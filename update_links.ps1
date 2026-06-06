@@ -121,3 +121,22 @@ Write-Output "Updated pages:"
 Write-Output "DB: $quizUrl"
 Write-Output "Hanja: $quizUrl/hanja"
 Write-Output "Tetris: $gameUrl"
+
+if (Test-Path -LiteralPath (Join-Path $root '.git')) {
+    Push-Location $root
+    try {
+        git add index.html db/index.html hanja/index.html tetris/index.html update_links.ps1
+        $status = git status --porcelain
+        if ($status) {
+            git commit -m "Update public links"
+            git push
+            Write-Output "Pushed updated pages to GitHub."
+        }
+        else {
+            Write-Output "No Git changes to push."
+        }
+    }
+    finally {
+        Pop-Location
+    }
+}

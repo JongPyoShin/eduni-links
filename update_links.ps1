@@ -125,11 +125,12 @@ Write-Output "Tetris: $gameUrl"
 if (Test-Path -LiteralPath (Join-Path $root '.git')) {
     Push-Location $root
     try {
-        git add index.html db/index.html hanja/index.html tetris/index.html update_links.ps1
-        $status = git status --porcelain
+        $safeRoot = $root -replace '\\', '/'
+        git -c "safe.directory=$safeRoot" -c core.autocrlf=false add index.html db/index.html hanja/index.html tetris/index.html update_links.ps1
+        $status = git -c "safe.directory=$safeRoot" -c core.autocrlf=false status --porcelain
         if ($status) {
-            git commit -m "Update public links"
-            git push
+            git -c "safe.directory=$safeRoot" -c core.autocrlf=false commit -m "Update public links"
+            git -c "safe.directory=$safeRoot" -c core.autocrlf=false push
             Write-Output "Pushed updated pages to GitHub."
         }
         else {

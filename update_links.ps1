@@ -10,12 +10,14 @@ $dbLabel = 'DB &#49884;&#54744;'
 $hanjaLabel = '&#54620;&#51088; &#49884;&#54744;'
 $tetrisLabel = '&#51004;&#46272;&#45768; &#53580;&#53944;&#47532;&#49828;'
 $bubbleLabel = '&#51004;&#46272;&#45768; &#48260;&#48660;&#54045;'
+$shooterLabel = '으듀니 한자 슈터'
 $startLabel = '&#49884;&#51089;'
 $notePrefix = '&#51217;&#49549; &#53076;&#46300;&#45716; &#44032;&#51313;&#45180;&#47532; &#46384;&#47196; &#50508;&#44256; &#51080;&#45716; &#44050;&#51012; &#49324;&#50857;&#54633;&#45768;&#45796;. &#47560;&#51648;&#47561; &#44081;&#49888;:'
 $dbMove = 'DB &#49884;&#54744;&#51004;&#47196; &#51060;&#46041;'
 $hanjaMove = '&#54620;&#51088; &#49884;&#54744;&#51004;&#47196; &#51060;&#46041;'
 $tetrisMove = '&#51004;&#46272;&#45768; &#53580;&#53944;&#47532;&#49828;&#47196; &#51060;&#46041;'
 $bubbleMove = '&#51004;&#46272;&#45768; &#48260;&#48660;&#54045;&#51004;&#47196; &#51060;&#46041;'
+$shooterMove = '으듀니 한자 슈터로 이동'
 
 function Read-Url($path, $label) {
     if (-not (Test-Path -LiteralPath $path)) {
@@ -108,6 +110,7 @@ $index = @"
       <a href="./hanja/">$hanjaLabel <span>$startLabel</span></a>
       <a href="./tetris/">$tetrisLabel <span>$startLabel</span></a>
       <a href="./bubble/">$bubbleLabel <span>$startLabel</span></a>
+      <a href="./bubble-shooter/">$shooterLabel <span>$startLabel</span></a>
     </section>
     <p class="note">$notePrefix $updatedAt</p>
   </main>
@@ -120,18 +123,20 @@ Write-RedirectPage (Join-Path $root 'db') $dbMove $quizUrl
 Write-RedirectPage (Join-Path $root 'hanja') $hanjaMove "$quizUrl/hanja"
 Write-RedirectPage (Join-Path $root 'tetris') $tetrisMove $gameUrl
 Write-RedirectPage (Join-Path $root 'bubble') $bubbleMove "$gameUrl/bubble"
+Write-RedirectPage (Join-Path $root 'bubble-shooter') $shooterMove "$gameUrl/bubble-shooter"
 
 Write-Output "Updated pages:"
 Write-Output "DB: $quizUrl"
 Write-Output "Hanja: $quizUrl/hanja"
 Write-Output "Tetris: $gameUrl"
 Write-Output "Bubble: $gameUrl/bubble"
+Write-Output "Bubble Shooter: $gameUrl/bubble-shooter"
 
 if (Test-Path -LiteralPath (Join-Path $root '.git')) {
     Push-Location $root
     try {
         $safeRoot = $root -replace '\\', '/'
-        git -c "safe.directory=$safeRoot" -c core.autocrlf=false add index.html db/index.html hanja/index.html tetris/index.html bubble/index.html update_links.ps1
+        git -c "safe.directory=$safeRoot" -c core.autocrlf=false add index.html db/index.html hanja/index.html tetris/index.html bubble/index.html bubble-shooter/index.html update_links.ps1
         $status = git -c "safe.directory=$safeRoot" -c core.autocrlf=false status --porcelain
         if ($status) {
             git -c "safe.directory=$safeRoot" -c core.autocrlf=false commit -m "Update public links"

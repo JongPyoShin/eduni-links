@@ -1,0 +1,4 @@
+﻿Game external URL: https://indication-responded-ruth-fan.trycloudflare.com
+Local URL: http://127.0.0.1:8081
+Access code: none
+Created at: 2026-06-11 21:58:14

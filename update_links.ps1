@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$quizRoot = if ($env:EDUNI_QUIZ_ROOT) { $env:EDUNI_QUIZ_ROOT } else { Join-Path $root 'quiz-server' }
+$quizRoot = if ($env:EDUNI_QUIZ_ROOT) { $env:EDUNI_QUIZ_ROOT } else { Join-Path $root 'files-mentioned-by-the-user-oracle' }
 $gameRoot = if ($env:EDUNI_GAME_ROOT) { $env:EDUNI_GAME_ROOT } else { Join-Path $root 'nice-gui-1-1-7' }
 $quizStatus = Join-Path $quizRoot 'outputs\external_access.txt'
 $gameStatus = Join-Path $gameRoot 'outputs\game_external_access.txt'
@@ -26,7 +26,7 @@ function Read-Url($path, $label) {
         throw "Missing status file: $path"
     }
     $content = Get-Content -LiteralPath $path -Raw
-    $match = [regex]::Match($content, 'https://[a-z0-9-]+\.trycloudflare\.com')
+    $match = [regex]::Match($content, 'https://[a-z0-9.-]+(?::\d+)?')
     if (-not $match.Success) {
         throw "No external URL found for $label in $path"
     }

@@ -1,0 +1,336 @@
+{
+  "set_id": "oracle_quiz_set_06",
+  "title": "Oracle DB 사내 접근 인증시험 문제 세트 06",
+  "source_files": [
+    "Oracle_DB_사내인증_실전문제_30.pdf",
+    "Oracle_DB_사내접근_인증시험_학습자료.pdf"
+  ],
+  "questions": [
+    {
+      "topic": "WHERE / HAVING",
+      "question": "부서별 사원 수가 3명 이상인 부서만 조회하려고 한다. 조건을 작성할 위치로 가장 알맞은 것은?",
+      "choices": [
+        "WHERE COUNT(*) >= 3",
+        "HAVING COUNT(*) >= 3",
+        "ORDER BY COUNT(*) >= 3",
+        "ON COUNT(*) >= 3"
+      ],
+      "answer": 2,
+      "explanation": "GROUP BY 이후 집계 결과에 대한 조건은 HAVING에 작성한다. WHERE는 그룹화 전 개별 행을 제한한다.",
+      "number": 1
+    },
+    {
+      "topic": "MERGE",
+      "question": "조건에 따라 이미 있으면 UPDATE, 없으면 INSERT를 한 문장에서 처리할 때 사용할 수 있는 명령어는?",
+      "choices": [
+        "MERGE",
+        "REVOKE",
+        "ROLLBACK",
+        "TRUNCATE"
+      ],
+      "answer": 1,
+      "explanation": "MERGE는 조건 매칭 여부에 따라 UPDATE 또는 INSERT를 수행하는 UPSERT 형태에 활용할 수 있다.",
+      "number": 2
+    },
+    {
+      "topic": "FOREIGN KEY",
+      "question": "FOREIGN KEY에 대한 설명으로 가장 옳은 것은?",
+      "choices": [
+        "다른 테이블의 키를 참조하여 참조 무결성을 지원한다",
+        "항상 NULL 값을 금지한다",
+        "항상 UNIQUE 인덱스를 자동 생성한다",
+        "부모 테이블 데이터를 자식 테이블에 물리적으로 복사한다"
+      ],
+      "answer": 1,
+      "explanation": "FOREIGN KEY는 부모 키를 참조해 관계의 무결성을 유지한다. NULL 허용 여부나 인덱스 생성 여부는 별도 설계와 제약에 따라 달라진다.",
+      "number": 3
+    },
+    {
+      "topic": "Oracle (+) JOIN",
+      "question": "다음 Oracle 구문과 같은 의미의 ANSI JOIN은?\nSELECT * FROM EMP E, DEPT D\nWHERE E.DEPTNO(+) = D.DEPTNO;",
+      "choices": [
+        "EMP E LEFT OUTER JOIN DEPT D ON E.DEPTNO = D.DEPTNO",
+        "EMP E RIGHT OUTER JOIN DEPT D ON E.DEPTNO = D.DEPTNO",
+        "EMP E INNER JOIN DEPT D ON E.DEPTNO = D.DEPTNO",
+        "EMP E CROSS JOIN DEPT D"
+      ],
+      "answer": 2,
+      "explanation": "`(+)`가 붙은 EMP 쪽이 선택적으로 보완된다. DEPT 행을 보존하는 형태이므로 EMP 기준으로 쓰면 RIGHT OUTER JOIN에 해당한다.",
+      "number": 4
+    },
+    {
+      "topic": "바인드 변수",
+      "question": "바인드 변수를 사용하는 주된 이점으로 가장 알맞은 것은?",
+      "choices": [
+        "SQL 문장을 무조건 더 길게 만든다",
+        "유사 SQL 재사용과 파싱 부하 감소에 도움을 줄 수 있다",
+        "COMMIT을 자동으로 수행한다",
+        "인덱스를 자동 생성한다"
+      ],
+      "answer": 2,
+      "explanation": "바인드 변수는 값만 바뀌는 유사 SQL의 재사용 가능성을 높여 하드 파싱 부담을 줄이는 데 도움을 줄 수 있다.",
+      "number": 5
+    },
+    {
+      "topic": "ACID",
+      "question": "ACID 속성과 설명의 연결로 가장 옳은 것은?",
+      "choices": [
+        "Atomicity - COMMIT된 데이터는 장애 이후에도 유지되어야 한다",
+        "Consistency - 트랜잭션은 모두 성공하거나 모두 실패해야 한다",
+        "Isolation - 동시에 실행되는 트랜잭션이 서로 부적절하게 간섭하지 않도록 한다",
+        "Durability - 트랜잭션 중간 상태를 다른 세션이 반드시 읽어야 한다"
+      ],
+      "answer": 3,
+      "explanation": "Isolation은 격리성으로, 동시 트랜잭션 사이의 부적절한 간섭을 막는 성질이다. 모두 성공/실패는 Atomicity, 커밋 후 유지성은 Durability다.",
+      "number": 6
+    },
+    {
+      "topic": "암시적 형변환",
+      "question": "문자형 EMPNO 컬럼에 인덱스가 있을 때 `WHERE EMPNO = 100` 조건의 문제점으로 가장 알맞은 것은?",
+      "choices": [
+        "항상 문법 오류가 발생한다",
+        "암시적 형변환 때문에 인덱스 활용이나 성능에 불리할 수 있다",
+        "숫자 리터럴을 쓰면 항상 INDEX UNIQUE SCAN이 보장된다",
+        "문자형 컬럼에는 WHERE 조건을 쓸 수 없다"
+      ],
+      "answer": 2,
+      "explanation": "컬럼 타입과 비교 리터럴 타입을 맞추는 것이 안전하다. 암시적 변환은 성능 저하나 예상치 못한 오류를 만들 수 있다.",
+      "number": 7
+    },
+    {
+      "topic": "VIEW",
+      "question": "일반 VIEW에 대한 설명으로 가장 옳은 것은?",
+      "choices": [
+        "SELECT 문을 기반으로 정의되는 논리적 객체이다",
+        "항상 데이터를 물리적으로 별도 저장한다",
+        "ROLLBACK을 대신 수행하는 트랜잭션 객체이다",
+        "인덱스와 동일한 저장 구조를 가진다"
+      ],
+      "answer": 1,
+      "explanation": "일반 VIEW는 SELECT 정의를 저장한 논리적 객체다. 일반 VIEW 자체가 항상 데이터를 별도 저장하는 것은 아니다.",
+      "number": 8
+    },
+    {
+      "topic": "LIKE와 인덱스",
+      "question": "일반 인덱스가 있는 NAME 컬럼에서 인덱스 범위 탐색에 가장 불리한 조건은?",
+      "choices": [
+        "WHERE NAME LIKE 'KIM%'",
+        "WHERE NAME LIKE '%KIM'",
+        "WHERE NAME = 'KIM'",
+        "WHERE NAME >= 'KIM'"
+      ],
+      "answer": 2,
+      "explanation": "앞쪽에 `%`가 있으면 시작 지점을 특정하기 어려워 일반적인 B-Tree 인덱스 범위 탐색에 불리하다.",
+      "number": 9
+    },
+    {
+      "topic": "JOIN 조건 수",
+      "question": "4개의 테이블을 일반적인 INNER JOIN으로 모두 연결하려면 최소 몇 개의 조인 조건이 필요한가?",
+      "choices": [
+        "2개",
+        "3개",
+        "4개",
+        "5개"
+      ],
+      "answer": 2,
+      "explanation": "N개의 테이블을 하나의 연결된 결과로 조인하려면 일반적으로 최소 N-1개의 조인 조건이 필요하다. 4개 테이블이면 3개다.",
+      "number": 10
+    },
+    {
+      "topic": "COUNT와 NULL",
+      "question": "COUNT 함수에 대한 설명으로 가장 옳은 것은?",
+      "choices": [
+        "COUNT(*)는 NULL 컬럼이 있는 행을 제외한다",
+        "COUNT(COMM)는 COMM이 NULL인 행도 모두 센다",
+        "COUNT(*)는 조회 결과의 행 수를 세고, COUNT(컬럼)은 해당 컬럼 값이 NULL이 아닌 행만 센다",
+        "COUNT 함수는 GROUP BY 없이 사용할 수 없다"
+      ],
+      "answer": 3,
+      "explanation": "COUNT(*)는 WHERE 조건 등이 적용된 뒤의 결과 행 수를 센다. COUNT(컬럼)은 그중 해당 컬럼 값이 NULL이 아닌 행만 센다.",
+      "number": 11
+    },
+    {
+      "topic": "ROWNUM / 정렬",
+      "question": "급여 상위 5명을 올바르게 조회하는 방식으로 가장 알맞은 것은?",
+      "choices": [
+        "WHERE ROWNUM <= 5를 먼저 적용하고 나중에 ORDER BY SAL DESC를 수행한다",
+        "내부 쿼리에서 SAL DESC로 정렬한 뒤 외부 쿼리에서 ROWNUM <= 5를 적용한다",
+        "GROUP BY ROWNUM을 사용하면 자동으로 상위 5명이 나온다",
+        "COMMIT 후 ORDER BY를 사용해야 상위 5명이 보장된다"
+      ],
+      "answer": 2,
+      "explanation": "ROWNUM은 정렬 전에 부여될 수 있으므로, 먼저 내부 쿼리에서 정렬하고 외부에서 ROWNUM 조건을 적용하는 방식이 안전하다.",
+      "number": 12
+    },
+    {
+      "topic": "PRIMARY KEY / UNIQUE",
+      "question": "PRIMARY KEY에 대한 설명으로 가장 옳은 것은?",
+      "choices": [
+        "중복은 허용하지만 NULL은 허용하지 않는다",
+        "NULL은 허용하지만 중복은 허용하지 않는다",
+        "중복과 NULL을 모두 허용하지 않는다",
+        "한 테이블에 반드시 두 개 이상 있어야 한다"
+      ],
+      "answer": 3,
+      "explanation": "PRIMARY KEY는 행을 식별하는 키이므로 중복과 NULL을 모두 허용하지 않는다.",
+      "number": 13
+    },
+    {
+      "topic": "집합 연산",
+      "question": "다음 집합 연산자 중 중복 제거를 하지 않아 정렬 또는 중복 제거 비용이 가장 적은 것은?",
+      "choices": [
+        "UNION",
+        "MINUS",
+        "INTERSECT",
+        "UNION ALL"
+      ],
+      "answer": 4,
+      "explanation": "UNION ALL은 결과를 그대로 이어 붙이며 중복을 제거하지 않는다. UNION, MINUS, INTERSECT는 중복 판단 과정이 필요하다.",
+      "number": 14
+    },
+    {
+      "topic": "복합 인덱스",
+      "question": "복합 인덱스 IDX_EMP(A, B, C)가 있을 때 일반적인 B-Tree 인덱스 기본 원칙상 가장 유리한 조건은?",
+      "choices": [
+        "WHERE B = 10",
+        "WHERE C = 20",
+        "WHERE A = 1 AND B = 10",
+        "WHERE B = 10 AND C = 20"
+      ],
+      "answer": 3,
+      "explanation": "복합 인덱스는 일반적으로 선두 컬럼부터 조건이 주어질 때 유리하다. A 없이 B, C만 쓰면 활용이 제한될 수 있다.",
+      "number": 15
+    },
+    {
+      "topic": "시퀀스",
+      "question": "시퀀스의 다음 값을 얻기 위한 표현으로 가장 알맞은 것은?",
+      "choices": [
+        "SEQ_EMP.NEXTVAL",
+        "SEQ_EMP.CURRVAL + NEXT",
+        "NEXT(SEQ_EMP)",
+        "SEQ_EMP.VALUE"
+      ],
+      "answer": 1,
+      "explanation": "NEXTVAL은 시퀀스의 다음 값을 생성한다. CURRVAL은 현재 세션에서 이미 얻은 최근 값을 의미한다.",
+      "number": 16
+    },
+    {
+      "topic": "인덱스와 함수",
+      "question": "NAME 컬럼에 일반 B-Tree 인덱스가 있을 때 인덱스 활용이 가장 어려워질 가능성이 높은 조건은?",
+      "choices": [
+        "WHERE NAME = 'KIM'",
+        "WHERE NAME LIKE 'KIM%'",
+        "WHERE UPPER(NAME) = 'KIM'",
+        "WHERE NAME BETWEEN 'A' AND 'C'"
+      ],
+      "answer": 3,
+      "explanation": "일반 인덱스 컬럼에 함수를 적용하면 컬럼 원형을 그대로 사용하지 못해 인덱스 활용이 불리할 수 있다. 함수 기반 인덱스는 별도 설계다.",
+      "number": 17
+    },
+    {
+      "topic": "트랜잭션",
+      "question": "트랜잭션에 대한 설명으로 가장 옳은 것은?",
+      "choices": [
+        "SELECT 문을 실행하면 항상 자동 COMMIT이 발생한다",
+        "DML 작업은 COMMIT 전까지 ROLLBACK으로 취소할 수 있다",
+        "ROLLBACK은 마지막 COMMIT 이후뿐 아니라 이전 COMMIT까지 모두 취소한다",
+        "SAVEPOINT는 테이블 구조를 변경하기 위해 사용하는 DDL 명령이다",
+        "TRUNCATE는 일반 DELETE와 동일하게 항상 ROLLBACK으로 복구된다"
+      ],
+      "answer": 2,
+      "explanation": "INSERT, UPDATE, DELETE 같은 DML은 COMMIT 전까지 ROLLBACK으로 취소할 수 있다. COMMIT된 변경은 일반적으로 ROLLBACK 대상이 아니다.",
+      "number": 18
+    },
+    {
+      "topic": "NVL / NULLIF",
+      "question": "COMM 값이 NULL일 때 0으로 표시하려고 한다. 알맞은 표현은?",
+      "choices": [
+        "NULLIF(COMM, 0)",
+        "NVL(COMM, 0)",
+        "TO_NUMBER(COMM, 0)",
+        "ISNULL(COMM, 0)"
+      ],
+      "answer": 2,
+      "explanation": "Oracle에서 NVL(expr, 대체값)은 expr이 NULL이면 대체값을 반환한다. NULLIF는 두 값이 같으면 NULL을 반환하는 함수다.",
+      "number": 19
+    },
+    {
+      "topic": "DDL / DML 구분",
+      "question": "다음 중 DML 명령어만으로 묶인 것은?",
+      "choices": [
+        "CREATE, ALTER, DROP",
+        "INSERT, UPDATE, DELETE",
+        "GRANT, REVOKE, COMMIT",
+        "SAVEPOINT, ROLLBACK, TRUNCATE"
+      ],
+      "answer": 2,
+      "explanation": "INSERT, UPDATE, DELETE는 데이터를 조작하는 DML이다. CREATE/ALTER/DROP은 DDL, GRANT/REVOKE는 DCL, COMMIT/ROLLBACK/SAVEPOINT는 TCL이다.",
+      "number": 20
+    },
+    {
+      "topic": "NULL 비교",
+      "question": "NULL 값을 찾는 조건으로 틀린 것은?",
+      "choices": [
+        "WHERE COMM IS NULL",
+        "WHERE COMM IS NOT NULL",
+        "WHERE COMM = ''",
+        "WHERE NVL(COMM, 0) = 0"
+      ],
+      "answer": 3,
+      "explanation": "NULL은 `=`로 비교하지 않는다. Oracle에서는 빈 문자열을 NULL처럼 취급하는 면이 있지만, NULL 검색 조건은 `IS NULL`을 사용해야 한다.",
+      "number": 21
+    },
+    {
+      "topic": "DDL 암시적 COMMIT",
+      "question": "다음 중 Oracle에서 일반적으로 암시적 COMMIT이 발생하는 명령으로 가장 알맞은 것은?",
+      "choices": [
+        "UPDATE EMP SET SAL = SAL + 100",
+        "DELETE FROM EMP WHERE EMPNO = 100",
+        "CREATE TABLE TEST_EMP (ID NUMBER)",
+        "SELECT * FROM EMP"
+      ],
+      "answer": 3,
+      "explanation": "CREATE TABLE 같은 DDL은 일반적으로 암시적 COMMIT을 동반한다. DML은 명시적 COMMIT 전까지 트랜잭션 안에 남는다.",
+      "number": 22
+    },
+    {
+      "topic": "객체명 규칙",
+      "question": "다음 중 Oracle 테이블 이름으로 가장 알맞은 것은?",
+      "choices": [
+        "100EMP",
+        "EMP-100",
+        "EMP 100",
+        "EMP_100"
+      ],
+      "answer": 4,
+      "explanation": "일반적인 객체명은 문자로 시작하고 문자, 숫자, `_`, `$`, `#` 등을 사용할 수 있다. 숫자로 시작하거나 공백, 하이픈을 쓰는 이름은 부적절하다.",
+      "number": 23
+    },
+    {
+      "topic": "OUTER JOIN",
+      "question": "LEFT OUTER JOIN의 의미로 가장 알맞은 것은?",
+      "choices": [
+        "오른쪽 테이블의 모든 행을 반드시 보존한다",
+        "왼쪽 테이블의 모든 행을 보존하고 매칭이 없으면 오른쪽 컬럼은 NULL이 될 수 있다",
+        "양쪽 테이블에서 조인 조건이 맞는 행만 반환한다",
+        "두 테이블의 가능한 모든 조합을 반환한다"
+      ],
+      "answer": 2,
+      "explanation": "LEFT OUTER JOIN은 왼쪽 테이블을 기준으로 행을 보존한다. 오른쪽에 매칭되는 행이 없으면 오른쪽 컬럼은 NULL로 보완된다.",
+      "number": 24
+    },
+    {
+      "topic": "객체명 규칙",
+      "question": "다음 중 따옴표를 사용하지 않는 일반 Oracle 객체명으로 가장 적절한 것은?",
+      "choices": [
+        "ORDER DETAIL",
+        "ORDER-DETAIL",
+        "ORDER_DETAIL",
+        "2026_ORDER"
+      ],
+      "answer": 3,
+      "explanation": "일반 객체명은 문자로 시작하고 공백이나 하이픈은 피해야 한다. 언더바는 사용할 수 있으므로 ORDER_DETAIL이 가장 적절하다.",
+      "number": 25
+    }
+  ]
+}

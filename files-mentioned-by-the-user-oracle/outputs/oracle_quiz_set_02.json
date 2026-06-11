@@ -1,0 +1,336 @@
+{
+  "set_id": "oracle_quiz_set_02",
+  "title": "Oracle DB 사내 접근 인증시험 문제 세트 02",
+  "source_files": [
+    "Oracle_DB_사내인증_실전문제_30.pdf",
+    "Oracle_DB_사내접근_인증시험_학습자료.pdf"
+  ],
+  "questions": [
+    {
+      "topic": "인덱스와 함수",
+      "question": "NAME 컬럼에 일반 인덱스가 있을 때, 다음 중 인덱스 활용이 어려워질 가능성이 가장 높은 조건은?",
+      "choices": [
+        "WHERE NAME = 'KIM'",
+        "WHERE NAME LIKE 'KIM%'",
+        "WHERE UPPER(NAME) = 'KIM'",
+        "WHERE NAME BETWEEN 'A' AND 'C'"
+      ],
+      "answer": 3,
+      "explanation": "일반 인덱스 컬럼에 함수를 적용하면 기존 인덱스 활용이 어려울 수 있다. 함수 기반 인덱스는 별도 설계다.",
+      "number": 1
+    },
+    {
+      "topic": "LIKE와 인덱스",
+      "question": "NAME 컬럼에 일반 인덱스가 있을 때, 인덱스 범위 검색이 어려워질 가능성이 높은 조건은?",
+      "choices": [
+        "WHERE NAME LIKE 'KIM%'",
+        "WHERE NAME LIKE '%KIM'",
+        "WHERE NAME = 'KIM'",
+        "WHERE NAME >= 'KIM'"
+      ],
+      "answer": 2,
+      "explanation": "앞에 %가 붙으면 시작 지점을 특정하기 어려워 일반적인 범위 탐색에 불리하다.",
+      "number": 2
+    },
+    {
+      "topic": "암시적 형변환",
+      "question": "문자형 EMPNO 컬럼에 인덱스가 있을 때 다음 조건의 문제점으로 가장 알맞은 것은?\nWHERE EMPNO = 100",
+      "choices": [
+        "항상 구문 오류가 발생한다",
+        "암시적 형변환 때문에 인덱스 활용이나 성능에 불리할 수 있다",
+        "숫자 리터럴은 언제나 더 빠르다",
+        "무조건 UNIQUE SCAN이 수행된다"
+      ],
+      "answer": 2,
+      "explanation": "컬럼 타입과 리터럴 타입을 맞추는 것이 안전하다. 암시적 변환은 성능과 오류 위험을 높일 수 있다.",
+      "number": 3
+    },
+    {
+      "topic": "복합 인덱스",
+      "question": "복합 인덱스 IDX(A, B, C)가 있다. 일반적인 B-Tree 인덱스 기본 원칙상 가장 유리한 조건은?",
+      "choices": [
+        "WHERE B = 2",
+        "WHERE C = 3",
+        "WHERE A = 1 AND B = 2",
+        "WHERE B = 2 AND C = 3"
+      ],
+      "answer": 3,
+      "explanation": "복합 인덱스는 일반적으로 선두 컬럼 A부터 조건이 주어질 때 유리하다. Skip Scan 등 예외는 별도다.",
+      "number": 4
+    },
+    {
+      "topic": "INDEX UNIQUE SCAN",
+      "question": "PRIMARY KEY 또는 UNIQUE 인덱스의 전체 키가 등가 조건으로 주어졌을 때 기대할 수 있는 접근 방식은?",
+      "choices": [
+        "INDEX UNIQUE SCAN",
+        "HASH JOIN",
+        "SORT UNIQUE",
+        "MERGE CARTESIAN"
+      ],
+      "answer": 1,
+      "explanation": "고유 키 전체가 '='로 주어지면 INDEX UNIQUE SCAN 후보가 된다.",
+      "number": 5
+    },
+    {
+      "topic": "TABLE ACCESS FULL",
+      "question": "TABLE ACCESS FULL에 대한 설명으로 가장 알맞은 것은?",
+      "choices": [
+        "항상 나쁜 실행계획이므로 반드시 제거해야 한다",
+        "조회 대상 비율이 높거나 테이블이 작으면 합리적일 수 있다",
+        "인덱스가 하나라도 있으면 절대 나타나지 않는다",
+        "DDL 실행 시에만 나타난다"
+      ],
+      "answer": 2,
+      "explanation": "많은 행을 읽거나 테이블이 작으면 FULL SCAN이 더 효율적일 수 있다. 실행계획은 비용 기반으로 판단한다.",
+      "number": 6
+    },
+    {
+      "topic": "바인드 변수",
+      "question": "바인드 변수를 사용하는 주된 이점으로 알맞은 것은?",
+      "choices": [
+        "SQL 문장을 더 길게 만든다",
+        "SQL 재사용과 파싱 부하 감소에 도움을 줄 수 있다",
+        "무조건 인덱스를 생성한다",
+        "COMMIT을 자동 실행한다"
+      ],
+      "answer": 2,
+      "explanation": "바인드 변수는 유사 SQL의 재사용 가능성을 높여 하드 파싱 부담 감소에 도움을 줄 수 있다.",
+      "number": 7
+    },
+    {
+      "topic": "ACID / Atomicity",
+      "question": "ACID 중 Atomicity의 의미는?",
+      "choices": [
+        "커밋된 데이터는 영구적으로 유지된다",
+        "트랜잭션 작업은 전부 성공하거나 전부 실패해야 한다",
+        "동시 트랜잭션은 항상 순차 실행된다",
+        "데이터는 반드시 정렬되어야 한다"
+      ],
+      "answer": 2,
+      "explanation": "Atomicity는 논리적 작업 단위를 쪼개지 않고 모두 성공 또는 모두 실패시키는 성질이다.",
+      "number": 8
+    },
+    {
+      "topic": "날짜 포맷 / TO_CHAR",
+      "question": "현재 날짜와 시간을 `20260605 223648` 형식으로 출력하려고 한다. 가장 알맞은 SQL은?",
+      "choices": [
+        "SELECT TO_DATE(SYSDATE, 'YYYYMMDD HH24MISS') FROM DUAL",
+        "SELECT TO_CHAR(SYSDATE, 'YYYY-MM-DD HH24:MI:SS') FROM DUAL",
+        "SELECT TO_CHAR(SYSDATE, 'YYYYMMDD HH24MISS') FROM DUAL",
+        "SELECT TO_CHAR(SYSDATE, 'YYYYDDMM HHMISS24') FROM DUAL"
+      ],
+      "answer": 3,
+      "explanation": "SYSDATE 값을 문자 형식으로 표시할 때는 TO_CHAR를 사용한다. `YYYYMMDD HH24MISS`는 연월일, 24시간, 분, 초를 공백 하나로 구분해 출력한다.",
+      "number": 9
+    },
+    {
+      "topic": "트랜잭션",
+      "question": "트랜잭션에 대한 설명으로 가장 옳은 것은?",
+      "choices": [
+        "SELECT 문을 실행하면 항상 자동 COMMIT이 발생한다",
+        "DML 작업은 COMMIT 전까지 ROLLBACK으로 취소할 수 있다",
+        "ROLLBACK은 마지막 COMMIT 이후뿐 아니라 이전 COMMIT까지 모두 취소한다",
+        "SAVEPOINT는 테이블 구조를 변경하기 위해 사용하는 DDL 명령이다",
+        "TRUNCATE는 일반 DELETE와 동일하게 항상 ROLLBACK으로 복구된다"
+      ],
+      "answer": 2,
+      "explanation": "INSERT, UPDATE, DELETE 같은 DML은 COMMIT 전까지 ROLLBACK으로 취소할 수 있다. COMMIT된 변경은 일반적으로 ROLLBACK 대상이 아니다.",
+      "number": 10
+    },
+    {
+      "topic": "NULL 비교",
+      "question": "NULL 값을 찾는 조건으로 틀린 것은?",
+      "choices": [
+        "WHERE COMM IS NULL",
+        "WHERE COMM IS NOT NULL",
+        "WHERE COMM = ''",
+        "WHERE NVL(COMM, 0) = 0"
+      ],
+      "answer": 3,
+      "explanation": "NULL은 `=`로 비교하지 않는다. Oracle에서는 빈 문자열을 NULL처럼 취급하는 면이 있지만, NULL 검색 조건은 `IS NULL`을 사용해야 한다.",
+      "number": 11
+    },
+    {
+      "topic": "객체명 규칙",
+      "question": "다음 중 Oracle 테이블 이름으로 가장 알맞은 것은?",
+      "choices": [
+        "100EMP",
+        "EMP-100",
+        "EMP 100",
+        "EMP_100"
+      ],
+      "answer": 4,
+      "explanation": "일반적인 객체명은 문자로 시작하고 문자, 숫자, `_`, `$`, `#` 등을 사용할 수 있다. 숫자로 시작하거나 공백, 하이픈을 쓰는 이름은 부적절하다.",
+      "number": 12
+    },
+    {
+      "topic": "집합 연산",
+      "question": "다음 집합 연산자 중 중복 제거를 하지 않아 정렬 또는 중복 제거 비용이 가장 적은 것은?",
+      "choices": [
+        "UNION",
+        "MINUS",
+        "INTERSECT",
+        "UNION ALL"
+      ],
+      "answer": 4,
+      "explanation": "UNION ALL은 결과를 그대로 이어 붙이며 중복을 제거하지 않는다. UNION, MINUS, INTERSECT는 중복 판단 과정이 필요하다.",
+      "number": 13
+    },
+    {
+      "topic": "JOIN 조건 수",
+      "question": "4개의 테이블을 일반적인 INNER JOIN으로 모두 연결하려면 최소 몇 개의 조인 조건이 필요한가?",
+      "choices": [
+        "2개",
+        "3개",
+        "4개",
+        "5개"
+      ],
+      "answer": 2,
+      "explanation": "N개의 테이블을 하나의 연결된 결과로 조인하려면 일반적으로 최소 N-1개의 조인 조건이 필요하다. 4개 테이블이면 3개다.",
+      "number": 14
+    },
+    {
+      "topic": "DDL / DML 구분",
+      "question": "다음 중 DML 명령어만으로 묶인 것은?",
+      "choices": [
+        "CREATE, ALTER, DROP",
+        "INSERT, UPDATE, DELETE",
+        "GRANT, REVOKE, COMMIT",
+        "SAVEPOINT, ROLLBACK, TRUNCATE"
+      ],
+      "answer": 2,
+      "explanation": "INSERT, UPDATE, DELETE는 데이터를 조작하는 DML이다. CREATE/ALTER/DROP은 DDL, GRANT/REVOKE는 DCL, COMMIT/ROLLBACK/SAVEPOINT는 TCL이다.",
+      "number": 15
+    },
+    {
+      "topic": "DDL 암시적 COMMIT",
+      "question": "다음 중 Oracle에서 일반적으로 암시적 COMMIT이 발생하는 명령으로 가장 알맞은 것은?",
+      "choices": [
+        "UPDATE EMP SET SAL = SAL + 100",
+        "DELETE FROM EMP WHERE EMPNO = 100",
+        "CREATE TABLE TEST_EMP (ID NUMBER)",
+        "SELECT * FROM EMP"
+      ],
+      "answer": 3,
+      "explanation": "CREATE TABLE 같은 DDL은 일반적으로 암시적 COMMIT을 동반한다. DML은 명시적 COMMIT 전까지 트랜잭션 안에 남는다.",
+      "number": 16
+    },
+    {
+      "topic": "OUTER JOIN",
+      "question": "LEFT OUTER JOIN의 의미로 가장 알맞은 것은?",
+      "choices": [
+        "오른쪽 테이블의 모든 행을 반드시 보존한다",
+        "왼쪽 테이블의 모든 행을 보존하고 매칭이 없으면 오른쪽 컬럼은 NULL이 될 수 있다",
+        "양쪽 테이블에서 조인 조건이 맞는 행만 반환한다",
+        "두 테이블의 가능한 모든 조합을 반환한다"
+      ],
+      "answer": 2,
+      "explanation": "LEFT OUTER JOIN은 왼쪽 테이블을 기준으로 행을 보존한다. 오른쪽에 매칭되는 행이 없으면 오른쪽 컬럼은 NULL로 보완된다.",
+      "number": 17
+    },
+    {
+      "topic": "Oracle (+) JOIN",
+      "question": "다음 Oracle 구문과 같은 의미의 ANSI JOIN은?\nSELECT * FROM EMP E, DEPT D\nWHERE E.DEPTNO(+) = D.DEPTNO;",
+      "choices": [
+        "EMP E LEFT OUTER JOIN DEPT D ON E.DEPTNO = D.DEPTNO",
+        "EMP E RIGHT OUTER JOIN DEPT D ON E.DEPTNO = D.DEPTNO",
+        "EMP E INNER JOIN DEPT D ON E.DEPTNO = D.DEPTNO",
+        "EMP E CROSS JOIN DEPT D"
+      ],
+      "answer": 2,
+      "explanation": "`(+)`가 붙은 EMP 쪽이 선택적으로 보완된다. DEPT 행을 보존하는 형태이므로 EMP 기준으로 쓰면 RIGHT OUTER JOIN에 해당한다.",
+      "number": 18
+    },
+    {
+      "topic": "WHERE / HAVING",
+      "question": "부서별 사원 수가 3명 이상인 부서만 조회하려고 한다. 조건을 작성할 위치로 가장 알맞은 것은?",
+      "choices": [
+        "WHERE COUNT(*) >= 3",
+        "HAVING COUNT(*) >= 3",
+        "ORDER BY COUNT(*) >= 3",
+        "ON COUNT(*) >= 3"
+      ],
+      "answer": 2,
+      "explanation": "GROUP BY 이후 집계 결과에 대한 조건은 HAVING에 작성한다. WHERE는 그룹화 전 개별 행을 제한한다.",
+      "number": 19
+    },
+    {
+      "topic": "COUNT와 NULL",
+      "question": "COUNT 함수에 대한 설명으로 가장 옳은 것은?",
+      "choices": [
+        "COUNT(*)는 NULL 컬럼이 있는 행을 제외한다",
+        "COUNT(COMM)는 COMM이 NULL인 행도 모두 센다",
+        "COUNT(*)는 조회 결과의 행 수를 세고, COUNT(컬럼)은 해당 컬럼 값이 NULL이 아닌 행만 센다",
+        "COUNT 함수는 GROUP BY 없이 사용할 수 없다"
+      ],
+      "answer": 3,
+      "explanation": "COUNT(*)는 WHERE 조건 등이 적용된 뒤의 결과 행 수를 센다. COUNT(컬럼)은 그중 해당 컬럼 값이 NULL이 아닌 행만 센다.",
+      "number": 20
+    },
+    {
+      "topic": "NVL / NULLIF",
+      "question": "COMM 값이 NULL일 때 0으로 표시하려고 한다. 알맞은 표현은?",
+      "choices": [
+        "NULLIF(COMM, 0)",
+        "NVL(COMM, 0)",
+        "TO_NUMBER(COMM, 0)",
+        "ISNULL(COMM, 0)"
+      ],
+      "answer": 2,
+      "explanation": "Oracle에서 NVL(expr, 대체값)은 expr이 NULL이면 대체값을 반환한다. NULLIF는 두 값이 같으면 NULL을 반환하는 함수다.",
+      "number": 21
+    },
+    {
+      "topic": "ROWNUM / 정렬",
+      "question": "급여 상위 5명을 올바르게 조회하는 방식으로 가장 알맞은 것은?",
+      "choices": [
+        "WHERE ROWNUM <= 5를 먼저 적용하고 나중에 ORDER BY SAL DESC를 수행한다",
+        "내부 쿼리에서 SAL DESC로 정렬한 뒤 외부 쿼리에서 ROWNUM <= 5를 적용한다",
+        "GROUP BY ROWNUM을 사용하면 자동으로 상위 5명이 나온다",
+        "COMMIT 후 ORDER BY를 사용해야 상위 5명이 보장된다"
+      ],
+      "answer": 2,
+      "explanation": "ROWNUM은 정렬 전에 부여될 수 있으므로, 먼저 내부 쿼리에서 정렬하고 외부에서 ROWNUM 조건을 적용하는 방식이 안전하다.",
+      "number": 22
+    },
+    {
+      "topic": "인덱스와 함수",
+      "question": "NAME 컬럼에 일반 B-Tree 인덱스가 있을 때 인덱스 활용이 가장 어려워질 가능성이 높은 조건은?",
+      "choices": [
+        "WHERE NAME = 'KIM'",
+        "WHERE NAME LIKE 'KIM%'",
+        "WHERE UPPER(NAME) = 'KIM'",
+        "WHERE NAME BETWEEN 'A' AND 'C'"
+      ],
+      "answer": 3,
+      "explanation": "일반 인덱스 컬럼에 함수를 적용하면 컬럼 원형을 그대로 사용하지 못해 인덱스 활용이 불리할 수 있다. 함수 기반 인덱스는 별도 설계다.",
+      "number": 23
+    },
+    {
+      "topic": "LIKE와 인덱스",
+      "question": "일반 인덱스가 있는 NAME 컬럼에서 인덱스 범위 탐색에 가장 불리한 조건은?",
+      "choices": [
+        "WHERE NAME LIKE 'KIM%'",
+        "WHERE NAME LIKE '%KIM'",
+        "WHERE NAME = 'KIM'",
+        "WHERE NAME >= 'KIM'"
+      ],
+      "answer": 2,
+      "explanation": "앞쪽에 `%`가 있으면 시작 지점을 특정하기 어려워 일반적인 B-Tree 인덱스 범위 탐색에 불리하다.",
+      "number": 24
+    },
+    {
+      "topic": "암시적 형변환",
+      "question": "문자형 EMPNO 컬럼에 인덱스가 있을 때 `WHERE EMPNO = 100` 조건의 문제점으로 가장 알맞은 것은?",
+      "choices": [
+        "항상 문법 오류가 발생한다",
+        "암시적 형변환 때문에 인덱스 활용이나 성능에 불리할 수 있다",
+        "숫자 리터럴을 쓰면 항상 INDEX UNIQUE SCAN이 보장된다",
+        "문자형 컬럼에는 WHERE 조건을 쓸 수 없다"
+      ],
+      "answer": 2,
+      "explanation": "컬럼 타입과 비교 리터럴 타입을 맞추는 것이 안전하다. 암시적 변환은 성능 저하나 예상치 못한 오류를 만들 수 있다.",
+      "number": 25
+    }
+  ]
+}

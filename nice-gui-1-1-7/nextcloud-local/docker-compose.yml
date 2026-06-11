@@ -1,0 +1,36 @@
+services:
+  db:
+    image: mariadb:11
+    container_name: eduni-nextcloud-db
+    restart: unless-stopped
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    environment:
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: ${NEXTCLOUD_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${NEXTCLOUD_DB_ROOT_PASSWORD}
+    volumes:
+      - nextcloud_db:/var/lib/mysql
+
+  app:
+    image: nextcloud:apache
+    container_name: eduni-nextcloud
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "${NEXTCLOUD_PORT}:80"
+    environment:
+      MYSQL_HOST: db
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: ${NEXTCLOUD_DB_PASSWORD}
+      NEXTCLOUD_TRUSTED_DOMAINS: ${NEXTCLOUD_TRUSTED_DOMAINS}
+      OVERWRITEPROTOCOL: http
+    volumes:
+      - nextcloud_html:/var/www/html
+      - ${NEXTCLOUD_STORAGE_ROOT}/data:/var/www/html/data
+
+volumes:
+  nextcloud_db:
+  nextcloud_html:

@@ -1,8 +1,10 @@
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$quizStatus = 'C:\Users\jongp\Documents\Codex\2026-06-05\files-mentioned-by-the-user-oracle\outputs\external_access.txt'
-$gameStatus = 'C:\Users\jongp\Documents\Codex\2026-06-06\nice-gui-1-1-7\outputs\game_external_access.txt'
+$quizRoot = if ($env:EDUNI_QUIZ_ROOT) { $env:EDUNI_QUIZ_ROOT } else { Join-Path $root 'quiz-server' }
+$gameRoot = if ($env:EDUNI_GAME_ROOT) { $env:EDUNI_GAME_ROOT } else { Join-Path $root 'nice-gui-1-1-7' }
+$quizStatus = Join-Path $quizRoot 'outputs\external_access.txt'
+$gameStatus = Join-Path $gameRoot 'outputs\game_external_access.txt'
 
 $titleLinks = '&#51004;&#46272;&#45768; &#47553;&#53356;'
 $intro = '&#50500;&#47000; &#48260;&#53948;&#51004;&#47196; &#49884;&#54744;&#44284; &#44172;&#51076;&#50640; &#51217;&#49549;&#54616;&#49464;&#50836;.'
@@ -31,6 +33,13 @@ function Read-Url($path, $label) {
     return $match.Value
 }
 
+function Read-OptionalUrl($path, $label) {
+    if (-not (Test-Path -LiteralPath $path)) {
+        return $null
+    }
+    return Read-Url $path $label
+}
+
 function Write-RedirectPage($dir, $title, $url) {
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
     $html = @"
@@ -51,7 +60,7 @@ function Write-RedirectPage($dir, $title, $url) {
     Set-Content -LiteralPath (Join-Path $dir 'index.html') -Value $html -Encoding UTF8
 }
 
-$quizUrl = Read-Url $quizStatus 'quiz'
+$quizUrl = Read-OptionalUrl $quizStatus 'quiz'
 $gameUrl = Read-Url $gameStatus 'game'
 $updatedAt = Get-Date -Format 'yyyy-MM-dd HH:mm'
 
@@ -106,8 +115,6 @@ $index = @"
       <p>$intro</p>
     </div>
     <section class="links" aria-label="links">
-      <a href="./db/">$dbLabel <span>$startLabel</span></a>
-      <a href="./hanja/">$hanjaLabel <span>$startLabel</span></a>
       <a href="./tetris/">$tetrisLabel <span>$startLabel</span></a>
       <a href="./bubble/">$bubbleLabel <span>$startLabel</span></a>
       <a href="./bubble-shooter/">$shooterLabel <span>$startLabel</span></a>
@@ -119,15 +126,19 @@ $index = @"
 "@
 
 Set-Content -LiteralPath (Join-Path $root 'index.html') -Value $index -Encoding UTF8
-Write-RedirectPage (Join-Path $root 'db') $dbMove $quizUrl
-Write-RedirectPage (Join-Path $root 'hanja') $hanjaMove "$quizUrl/hanja"
+if ($quizUrl) {
+    Write-RedirectPage (Join-Path $root 'db') $dbMove $quizUrl
+    Write-RedirectPage (Join-Path $root 'hanja') $hanjaMove "$quizUrl/hanja"
+}
 Write-RedirectPage (Join-Path $root 'tetris') $tetrisMove $gameUrl
 Write-RedirectPage (Join-Path $root 'bubble') $bubbleMove "$gameUrl/bubble"
 Write-RedirectPage (Join-Path $root 'bubble-shooter') $shooterMove "$gameUrl/bubble-shooter"
 
 Write-Output "Updated pages:"
-Write-Output "DB: $quizUrl"
-Write-Output "Hanja: $quizUrl/hanja"
+if ($quizUrl) {
+    Write-Output "DB: $quizUrl"
+    Write-Output "Hanja: $quizUrl/hanja"
+}
 Write-Output "Tetris: $gameUrl"
 Write-Output "Bubble: $gameUrl/bubble"
 Write-Output "Bubble Shooter: $gameUrl/bubble-shooter"

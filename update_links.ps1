@@ -60,8 +60,8 @@ function Write-RedirectPage($dir, $title, $url) {
     Set-Content -LiteralPath (Join-Path $dir 'index.html') -Value $html -Encoding UTF8
 }
 
-$quizUrl = Read-OptionalUrl $quizStatus 'quiz'
-$gameUrl = Read-Url $gameStatus 'game'
+$quizUrl = 'http://100.75.214.95:8080'
+$gameUrl = 'http://100.75.214.95:8081'
 $updatedAt = Get-Date -Format 'yyyy-MM-dd HH:mm'
 
 $index = @"
@@ -115,6 +115,8 @@ $index = @"
       <p>$intro</p>
     </div>
     <section class="links" aria-label="links">
+      <a href="./db/">$dbLabel <span>$startLabel</span></a>
+      <a href="./hanja/">$hanjaLabel <span>$startLabel</span></a>
       <a href="./tetris/">$tetrisLabel <span>$startLabel</span></a>
       <a href="./bubble/">$bubbleLabel <span>$startLabel</span></a>
       <a href="./bubble-shooter/">$shooterLabel <span>$startLabel</span></a>
@@ -125,7 +127,7 @@ $index = @"
 </html>
 "@
 
-Set-Content -LiteralPath (Join-Path $root 'index.html') -Value $index -Encoding UTF8
+Write-Output "Keeping existing root index.html and portal/index.html."
 if ($quizUrl) {
     Write-RedirectPage (Join-Path $root 'db') $dbMove $quizUrl
     Write-RedirectPage (Join-Path $root 'hanja') $hanjaMove "$quizUrl/hanja"
@@ -147,7 +149,7 @@ if (Test-Path -LiteralPath (Join-Path $root '.git')) {
     Push-Location $root
     try {
         $safeRoot = $root -replace '\\', '/'
-        git -c "safe.directory=$safeRoot" -c core.autocrlf=false add index.html db/index.html hanja/index.html tetris/index.html bubble/index.html bubble-shooter/index.html update_links.ps1
+        git -c "safe.directory=$safeRoot" -c core.autocrlf=false add index.html portal/index.html db/index.html hanja/index.html tetris/index.html bubble/index.html bubble-shooter/index.html update_links.ps1
         $status = git -c "safe.directory=$safeRoot" -c core.autocrlf=false status --porcelain
         if ($status) {
             git -c "safe.directory=$safeRoot" -c core.autocrlf=false commit -m "Update public links"

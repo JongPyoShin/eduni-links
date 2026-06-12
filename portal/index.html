@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>에듀니 학습 포털</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #65758b;
+      --paper: #ffffff;
+      --line: #dbe5f0;
+      --sun: #ffd166;
+      --mint: #48cfae;
+      --sky: #4dabf7;
+      --rose: #ff7aa2;
+      --leaf: #8bd450;
+      --violet: #9b7bff;
+      --shadow: 0 18px 48px rgba(23, 32, 51, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 12% 12%, rgba(255, 209, 102, 0.42), transparent 28%),
+        radial-gradient(circle at 86% 8%, rgba(77, 171, 247, 0.26), transparent 24%),
+        linear-gradient(135deg, #fff8d7 0%, #e8f7ff 46%, #fff0f6 100%);
+      color: var(--ink);
+      font-family: "Segoe UI", "Malgun Gothic", system-ui, sans-serif;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .page {
+      width: min(1120px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 28px 0 32px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero {
+      min-height: 220px;
+      display: grid;
+      grid-template-columns: 1.25fr 0.75fr;
+      align-items: center;
+      gap: 22px;
+      padding: 26px;
+      border: 2px solid rgba(255, 255, 255, 0.75);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.74);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: #d9480f;
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 680px;
+      font-size: clamp(36px, 6vw, 62px);
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      margin: 12px 0 0;
+      max-width: 610px;
+      color: #40516a;
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.55;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .hero-actions a,
+    .hero-actions span {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+      border-radius: 8px;
+      border: 2px solid rgba(23, 32, 51, 0.14);
+      background: #ffffff;
+      color: #26384f;
+      font-size: 14px;
+      font-weight: 1000;
+      box-shadow: 0 8px 18px rgba(23, 32, 51, 0.1);
+    }
+
+    .hero-actions .main-action {
+      background: #172033;
+      color: #ffffff;
+    }
+
+    .mascot {
+      min-height: 174px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.22)),
+        repeating-linear-gradient(135deg, rgba(255, 209, 102, 0.55) 0 12px, rgba(72, 207, 174, 0.35) 12px 24px);
+      border: 2px dashed rgba(23, 32, 51, 0.18);
+    }
+
+    .badge-stack {
+      width: min(260px, 100%);
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .badge {
+      min-height: 70px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--paper);
+      border: 2px solid rgba(23, 32, 51, 0.1);
+      font-size: 28px;
+      font-weight: 1000;
+      box-shadow: 0 10px 22px rgba(23, 32, 51, 0.1);
+    }
+
+    .mini-stats {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .mini-stat {
+      min-height: 58px;
+      display: grid;
+      align-content: center;
+      gap: 3px;
+      padding: 8px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.86);
+      border: 2px solid rgba(23, 32, 51, 0.1);
+      text-align: center;
+    }
+
+    .mini-stat b {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .mini-stat span {
+      color: #5a6b82;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .section-title {
+      margin: 8px 0 0;
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    .section-title p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 800;
+      text-align: right;
+    }
+
+    .quick-grid,
+    .subject-grid,
+    .parent-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .quick-grid {
+      grid-template-columns: 1.25fr repeat(3, minmax(0, 0.75fr));
+    }
+
+    .subject-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .parent-grid {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .card {
+      min-height: 138px;
+      padding: 18px;
+      border-radius: 8px;
+      border: 2px solid rgba(23, 32, 51, 0.12);
+      background: var(--paper);
+      box-shadow: 0 10px 24px rgba(23, 32, 51, 0.1);
+    }
+
+    .action-card {
+      display: grid;
+      align-content: space-between;
+      gap: 18px;
+      transition: transform 140ms ease, box-shadow 140ms ease;
+    }
+
+    .action-card:hover,
+    .action-card:focus-visible {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 28px rgba(23, 32, 51, 0.16);
+      outline: none;
+    }
+
+    .primary-start {
+      min-height: 174px;
+      background: linear-gradient(135deg, #ffe066, #ff9f43);
+    }
+
+    .game-one { background: linear-gradient(135deg, #b7f7e3, #4dabf7); }
+    .game-two { background: linear-gradient(135deg, #ffd6e7, #ff7aa2); }
+    .game-three { background: linear-gradient(135deg, #d8f8a7, #8bd450); }
+
+    .card strong {
+      display: block;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    .card small {
+      display: block;
+      margin-top: 7px;
+      color: #34445a;
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    .pill {
+      width: fit-content;
+      max-width: 100%;
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 2px solid rgba(23, 32, 51, 0.12);
+      font-size: 13px;
+      font-weight: 1000;
+    }
+
+    .subject {
+      min-height: 150px;
+      display: grid;
+      align-content: space-between;
+      gap: 14px;
+    }
+
+    .subject-top {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .subject .icon {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 26px;
+      font-weight: 1000;
+    }
+
+    .hanja .icon { background: var(--rose); }
+    .english .icon { background: var(--sky); }
+    .math .icon { background: var(--violet); }
+    .science .icon { background: var(--mint); }
+    .korean .icon { background: var(--leaf); }
+
+    .progress {
+      height: 10px;
+      width: 100%;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(23, 32, 51, 0.1);
+      border: 1px solid rgba(23, 32, 51, 0.08);
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #ff7aa2, #ffd166);
+    }
+
+    .disabled .progress span {
+      width: 18%;
+      background: #cbd5e1;
+    }
+
+    .disabled {
+      opacity: 0.62;
+      filter: saturate(0.78);
+      cursor: default;
+    }
+
+    .disabled .pill {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+
+    .parent-card {
+      min-height: 164px;
+      background: rgba(255, 255, 255, 0.86);
+    }
+
+    .parent-card h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .parent-card p,
+    .parent-card li {
+      color: #4b5f78;
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.55;
+    }
+
+    .parent-card p { margin: 0; }
+
+    .parent-card ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .report-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .report-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 42px;
+      padding: 0 10px;
+      border-radius: 8px;
+      background: #f8fafc;
+      border: 2px solid #e6edf5;
+      color: #41536a;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .report-item b {
+      color: #172033;
+    }
+
+    .parent-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .parent-links a {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 12px;
+      border-radius: 8px;
+      border: 2px solid var(--line);
+      background: #fff;
+      color: #24476e;
+      font-size: 13px;
+      font-weight: 1000;
+    }
+
+    footer {
+      color: #66768c;
+      font-size: 13px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    @media (max-width: 880px) {
+      .hero,
+      .parent-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .quick-grid,
+      .subject-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .primary-start {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .page {
+        width: min(100% - 18px, 1120px);
+        padding-top: 12px;
+      }
+
+      .hero,
+      .card {
+        padding: 14px;
+      }
+
+      .hero {
+        min-height: auto;
+      }
+
+      .hero p {
+        font-size: 16px;
+      }
+
+      .quick-grid,
+      .subject-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section-title {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .section-title p {
+        text-align: left;
+      }
+
+      .card strong {
+        font-size: 22px;
+      }
+
+      .subject {
+        min-height: 126px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero" aria-labelledby="home-title">
+      <div>
+        <p class="eyebrow">EDUNI LEARNING PORTAL</p>
+        <h1 id="home-title">오늘은 무엇을 배워볼까?</h1>
+        <p>한자 시험과 재미있는 학습 게임을 바로 시작하세요. 영어, 수학, 과학, 국어도 차례로 추가할 예정입니다.</p>
+        <div class="hero-actions" aria-label="오늘의 바로가기">
+          <a class="main-action" href="http://100.75.214.95:8080/hanja">오늘의 학습 시작</a>
+          <a href="#subjects">과목 보기</a>
+          <span>학습 리포트 준비중</span>
+        </div>
+      </div>
+      <div class="mascot" aria-hidden="true">
+        <div class="badge-stack">
+          <div class="badge">한</div>
+          <div class="badge">A</div>
+          <div class="badge">＋</div>
+          <div class="badge">실험</div>
+        </div>
+        <div class="mini-stats">
+          <div class="mini-stat"><b>20</b><span>한자 세트</span></div>
+          <div class="mini-stat"><b>3</b><span>학습 게임</span></div>
+          <div class="mini-stat"><b>4</b><span>준비 과목</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-title">
+      <h2>빠른 시작</h2>
+      <p>지금 바로 할 수 있는 학습과 게임</p>
+    </div>
+    <section class="quick-grid" aria-label="빠른 시작">
+      <a class="card action-card primary-start" href="http://100.75.214.95:8080/hanja">
+        <span>
+          <strong>한자 시험</strong>
+          <small>7급, 6급 문제를 풀고 바로 채점합니다.</small>
+        </span>
+        <span class="pill">시작하기</span>
+      </a>
+      <a class="card action-card game-one" href="http://100.75.214.95:8081/bubble-shooter">
+        <span>
+          <strong>한자 슈터</strong>
+          <small>맞는 한자를 찾아 쏘는 게임</small>
+        </span>
+        <span class="pill">놀이</span>
+      </a>
+      <a class="card action-card game-two" href="http://100.75.214.95:8081/bubble">
+        <span>
+          <strong>버블팝</strong>
+          <small>짧게 쉬면서 집중력 충전</small>
+        </span>
+        <span class="pill">놀이</span>
+      </a>
+      <a class="card action-card game-three" href="http://100.75.214.95:8081/">
+        <span>
+          <strong>테트리스</strong>
+          <small>머리를 깨우는 퍼즐 게임</small>
+        </span>
+        <span class="pill">놀이</span>
+      </a>
+    </section>
+
+    <div class="section-title">
+      <h2>과목</h2>
+      <p>한자부터 시작하고, 다른 과목은 준비 중입니다.</p>
+    </div>
+    <section id="subjects" class="subject-grid" aria-label="과목">
+      <a class="card action-card subject hanja" href="http://100.75.214.95:8080/hanja">
+        <span class="subject-top">
+          <span class="icon">漢</span>
+          <span class="pill">열림</span>
+        </span>
+        <span>
+          <strong>한자</strong>
+          <small>시험과 게임 모두 사용 가능</small>
+        </span>
+        <span class="progress" aria-label="한자 준비율"><span style="width: 100%"></span></span>
+      </a>
+      <div class="card subject english disabled" aria-disabled="true">
+        <span class="subject-top">
+          <span class="icon">A</span>
+          <span class="pill">준비중</span>
+        </span>
+        <span>
+          <strong>영어</strong>
+          <small>단어, 읽기, 문장 연습 준비 중</small>
+        </span>
+        <span class="progress" aria-label="영어 준비율"><span></span></span>
+      </div>
+      <div class="card subject math disabled" aria-disabled="true">
+        <span class="subject-top">
+          <span class="icon">＋</span>
+          <span class="pill">준비중</span>
+        </span>
+        <span>
+          <strong>수학</strong>
+          <small>개념 풀이와 연산 연습 준비 중</small>
+        </span>
+        <span class="progress" aria-label="수학 준비율"><span></span></span>
+      </div>
+      <div class="card subject science disabled" aria-disabled="true">
+        <span class="subject-top">
+          <span class="icon">S</span>
+          <span class="pill">준비중</span>
+        </span>
+        <span>
+          <strong>과학</strong>
+          <small>실험, 개념, 용어 학습 준비 중</small>
+        </span>
+        <span class="progress" aria-label="과학 준비율"><span></span></span>
+      </div>
+      <div class="card subject korean disabled" aria-disabled="true">
+        <span class="subject-top">
+          <span class="icon">가</span>
+          <span class="pill">준비중</span>
+        </span>
+        <span>
+          <strong>국어</strong>
+          <small>어휘, 독해, 맞춤법 준비 중</small>
+        </span>
+        <span class="progress" aria-label="국어 준비율"><span></span></span>
+      </div>
+    </section>
+
+    <div class="section-title">
+      <h2>부모용 정보</h2>
+      <p>접속과 운영 확인용</p>
+    </div>
+    <section class="parent-grid" aria-label="부모용 정보">
+      <div class="card parent-card">
+        <h3>접속 안내</h3>
+        <p>가족끼리 공유한 접속 코드를 사용합니다. 외부 접속 주소는 현재 Tailscale 주소를 유지합니다.</p>
+        <div class="parent-links">
+          <a href="http://100.75.214.95:8080/hanja">한자 시험</a>
+          <a href="http://100.75.214.95:8080">학습 서버</a>
+          <a href="./hanja/">한자 리다이렉트</a>
+        </div>
+      </div>
+      <div class="card parent-card">
+        <h3>학습 리포트</h3>
+        <p>자동 분석은 다음 단계에서 연결합니다. 지금은 한자 학습 흐름을 먼저 정리했습니다.</p>
+        <div class="report-list">
+          <div class="report-item"><span>활성 과목</span><b>한자</b></div>
+          <div class="report-item"><span>다음 확장</span><b>영어/수학</b></div>
+          <div class="report-item"><span>AI 튜터</span><b>보류</b></div>
+        </div>
+      </div>
+      <div class="card parent-card">
+        <h3>운영 메모</h3>
+        <ul>
+          <li>Oracle DB 시험은 아이 학습 포털의 주요 과목에서 제외했습니다.</li>
+          <li>영어, 수학, 과학, 국어는 콘텐츠가 준비되면 같은 카드 구조로 연결합니다.</li>
+          <li>마지막 갱신: 2026-06-12</li>
+        </ul>
+      </div>
+    </section>
+
+    <footer>에듀니 학습 포털</footer>
+  </main>
+</body>
+</html>

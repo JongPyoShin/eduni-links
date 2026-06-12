@@ -4,6 +4,7 @@ from nicegui import ui
 
 from .content_loader import load_activities
 from .database import configured_parent_pin_hash, initialize_database, verify_parent_pin
+from .pattern_train import render_pattern_train
 from .recommendation import today_world
 from .registry import WORLDS, get_world
 
@@ -21,6 +22,10 @@ def _head() -> None:
           .portal-action { min-height: 46px; border-radius: 8px; font-weight: 800; }
           .world-icon { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 8px; color: white; font-size: 24px; font-weight: 900; }
           .muted { color: #667085; }
+          .pattern-train-track { display: block; max-width: 100%; overflow-x: auto; padding: 18px; border-radius: 14px; background: #eef6ff; font-size: clamp(30px, 8vw, 56px); line-height: 1.5; white-space: nowrap; }
+          .pattern-choice-row { display: flex; flex-wrap: wrap; gap: 12px; }
+          .pattern-choice { min-width: 82px; min-height: 72px; font-size: 32px; }
+          .pattern-feedback { min-height: 28px; color: #0f766e; font-size: 18px; font-weight: 800; }
           @media (max-width: 560px) { .portal-shell { width: min(100vw - 18px, 1120px); padding-top: 12px; } }
         </style>
         """
@@ -81,8 +86,25 @@ def register_pages() -> None:
                             ui.label(activity.title).classes("text-h6 text-weight-bold")
                             ui.label(activity.prompt).classes("muted")
                             ui.label(f"{activity.difficulty} · {activity.estimated_minutes}분").classes("muted q-mt-sm")
+                            ui.link("시작하기", f"/portal/activity/{activity.id}").classes("portal-action q-btn q-btn-item q-btn--standard bg-dark text-white q-mt-md")
             else:
-                ui.label("Phase 0에서는 활동 실행 화면을 만들지 않고, 세계별 자리만 준비합니다.").classes("muted")
+                ui.label("아직 준비 중입니다. 새로운 놀이가 곧 추가됩니다.").classes("muted")
+
+    @ui.page("/portal/activity/{activity_id}")
+    def activity_page(activity_id: str) -> None:
+        _head()
+        activities = {activity.id: activity for activity in load_activities()}
+        activity = activities.get(activity_id)
+        with ui.element("main").classes("portal-shell"):
+            ui.link("← 수학탐험대", "/portal/world/math").classes("muted")
+            if activity is None:
+                ui.label("활동을 찾을 수 없습니다.").classes("text-h4 text-weight-bold q-mt-lg")
+                return
+            with ui.element("section").classes("portal-hero q-mt-md"):
+                if activity.activity_type == "pattern_sequence":
+                    render_pattern_train(activity)
+                    return
+                ui.label("이 활동은 아직 준비 중입니다.").classes("text-h5 text-weight-bold")
 
     @ui.page("/portal/parent")
     def parent_page() -> None:

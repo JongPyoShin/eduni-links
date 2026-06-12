@@ -1,0 +1,10 @@
+{
+  "id": "math.invalid.001",
+  "world": "math",
+  "activity_type": "pattern_sequence",
+  "difficulty": "easy",
+  "estimated_minutes": 5,
+  "prompt": "필수 필드가 빠진 테스트 fixture입니다.",
+  "enabled": true,
+  "version": 1
+}

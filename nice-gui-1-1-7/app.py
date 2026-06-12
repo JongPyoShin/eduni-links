@@ -6,6 +6,8 @@ from pathlib import Path
 
 from nicegui import ui
 
+from portal_app.routes import register_pages
+
 
 GAME_HTML = r'''
 <div id="manual-tetris-root">
@@ -2607,6 +2609,9 @@ def bubble_shooter() -> None:
         '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">'
     )
     ui.add_body_html(shooter_html())
+
+
+register_pages()
 
 
 if __name__ in {'__main__', '__mp_main__'}:

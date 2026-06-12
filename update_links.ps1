@@ -60,6 +60,30 @@ function Write-RedirectPage($dir, $title, $url) {
     Set-Content -LiteralPath (Join-Path $dir 'index.html') -Value $html -Encoding UTF8
 }
 
+function Write-PortalLinkConfig($root, $quizUrl, $gameUrl, $updatedAt) {
+    $configDir = Join-Path $root 'portal\config'
+    New-Item -ItemType Directory -Force -Path $configDir | Out-Null
+
+    $links = [ordered]@{
+        db = if ($quizUrl) { $quizUrl } else { '../db/' }
+        hanja = if ($quizUrl) { "$quizUrl/hanja" } else { '../hanja/' }
+        tetris = $gameUrl
+        bubble = "$gameUrl/bubble"
+        bubbleShooter = "$gameUrl/bubble-shooter"
+        familyPortal = "$gameUrl/portal"
+        familyPortalMath = "$gameUrl/portal/world/math"
+        parentPortal = "$gameUrl/portal/parent"
+    }
+
+    $config = [ordered]@{
+        generatedAt = $updatedAt
+        links = $links
+    }
+
+    $json = $config | ConvertTo-Json -Depth 4
+    Set-Content -LiteralPath (Join-Path $configDir 'links.json') -Value $json -Encoding UTF8
+}
+
 $quizUrl = Read-OptionalUrl $quizStatus 'quiz'
 $gameUrl = Read-Url $gameStatus 'game'
 $updatedAt = Get-Date -Format 'yyyy-MM-dd HH:mm'
@@ -135,6 +159,7 @@ if ($quizUrl) {
 Write-RedirectPage (Join-Path $root 'tetris') $tetrisMove $gameUrl
 Write-RedirectPage (Join-Path $root 'bubble') $bubbleMove "$gameUrl/bubble"
 Write-RedirectPage (Join-Path $root 'bubble-shooter') $shooterMove "$gameUrl/bubble-shooter"
+Write-PortalLinkConfig $root $quizUrl $gameUrl $updatedAt
 
 Write-Output "Updated pages:"
 if ($quizUrl) {
@@ -144,12 +169,14 @@ if ($quizUrl) {
 Write-Output "Tetris: $gameUrl"
 Write-Output "Bubble: $gameUrl/bubble"
 Write-Output "Bubble Shooter: $gameUrl/bubble-shooter"
+Write-Output "Portal: $gameUrl/portal"
+Write-Output "Portal Config: portal/config/links.json"
 
 if (Test-Path -LiteralPath (Join-Path $root '.git')) {
     Push-Location $root
     try {
         $safeRoot = $root -replace '\\', '/'
-        git -c "safe.directory=$safeRoot" -c core.autocrlf=false add index.html db/index.html hanja/index.html tetris/index.html bubble/index.html bubble-shooter/index.html update_links.ps1
+        git -c "safe.directory=$safeRoot" -c core.autocrlf=false add index.html db/index.html hanja/index.html tetris/index.html bubble/index.html bubble-shooter/index.html portal/config/links.json update_links.ps1
         $status = git -c "safe.directory=$safeRoot" -c core.autocrlf=false status --porcelain
         if ($status) {
             git -c "safe.directory=$safeRoot" -c core.autocrlf=false commit -m "Update public links"

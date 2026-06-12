@@ -5,18 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>EDUNI PORTAL</title>
   <style>
-    :root { color-scheme: light; --ink:#101827; --muted:#667085; --paper:#fff; --line:#d9e2ec; --teal:#0f766e; --mint:#14b8a6; --blue:#3b82f6; --amber:#f59e0b; --rose:#e11d48; --violet:#7c3aed; --green:#65a30d; --shadow:0 18px 48px rgba(16,24,39,.13); }
+    :root { color-scheme: light; --ink:#111827; --muted:#667085; --paper:#fff; --line:#d9e2ec; --teal:#0f766e; --blue:#2563eb; --amber:#f59e0b; --rose:#e11d48; --violet:#7c3aed; --green:#65a30d; --shadow:0 18px 48px rgba(16,24,39,.12); }
     * { box-sizing: border-box; }
-    body { margin:0; min-height:100vh; background:linear-gradient(135deg,rgba(20,184,166,.12),transparent 32%),linear-gradient(225deg,rgba(59,130,246,.14),transparent 34%),#f6f8fb; color:var(--ink); font-family:"Segoe UI","Malgun Gothic",system-ui,sans-serif; }
+    body { margin:0; min-height:100vh; background:linear-gradient(135deg,rgba(20,184,166,.12),transparent 32%),linear-gradient(225deg,rgba(37,99,235,.12),transparent 34%),#f6f8fb; color:var(--ink); font-family:"Segoe UI","Malgun Gothic",system-ui,sans-serif; }
     a { color:inherit; text-decoration:none; }
     .page { width:min(1120px,calc(100% - 28px)); margin:0 auto; padding:28px 0 32px; display:grid; gap:18px; }
-    .hero { min-height:230px; display:grid; grid-template-columns:1.25fr .75fr; align-items:center; gap:22px; padding:28px; border:1px solid rgba(16,24,39,.08); border-radius:8px; background:linear-gradient(135deg,rgba(255,255,255,.94),rgba(255,255,255,.76)),linear-gradient(135deg,rgba(20,184,166,.12),rgba(59,130,246,.08)); box-shadow:var(--shadow); backdrop-filter:blur(8px); }
+    .hero { display:grid; grid-template-columns:1.25fr .75fr; align-items:center; gap:22px; min-height:230px; padding:28px; border:1px solid rgba(16,24,39,.08); border-radius:8px; background:rgba(255,255,255,.92); box-shadow:var(--shadow); }
     .eyebrow { margin:0 0 8px; color:var(--teal); font-size:15px; font-weight:900; }
-    h1 { margin:0; max-width:680px; font-size:clamp(38px,6vw,64px); line-height:1.04; letter-spacing:0; }
+    h1 { margin:0; max-width:680px; font-size:clamp(38px,6vw,62px); line-height:1.04; letter-spacing:0; }
     .hero p { margin:12px 0 0; max-width:620px; color:#475467; font-size:18px; font-weight:800; line-height:1.55; }
-    .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
-    .actions a,.actions span { min-height:44px; display:inline-flex; align-items:center; justify-content:center; padding:0 16px; border-radius:8px; border:1px solid rgba(16,24,39,.12); background:#fff; color:#344054; font-size:14px; font-weight:1000; box-shadow:0 8px 18px rgba(16,24,39,.08); }
-    .actions .primary { background:#101827; color:#fff; }
+    .actions,.parent-links,.report { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+    .button-link,.actions span,.report span { min-height:44px; display:inline-flex; align-items:center; justify-content:center; padding:0 16px; border-radius:8px; border:1px solid rgba(16,24,39,.12); background:#fff; color:#344054; font-size:14px; font-weight:900; box-shadow:0 8px 18px rgba(16,24,39,.07); }
+    .primary { background:#101827; color:#fff; }
     .console { min-height:178px; display:grid; align-content:center; gap:12px; padding:18px; border-radius:8px; background:linear-gradient(145deg,rgba(16,24,39,.94),rgba(30,41,59,.88)); border:1px solid rgba(255,255,255,.16); color:#fff; }
     .tiles { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
     .tile { min-height:70px; display:grid; place-items:center; border-radius:8px; background:rgba(255,255,255,.94); color:#101827; font-size:28px; font-weight:1000; }
@@ -31,22 +31,22 @@
     .parents { grid-template-columns:repeat(3,1fr); }
     .card { min-height:138px; padding:18px; border-radius:8px; border:1px solid rgba(16,24,39,.08); background:var(--paper); box-shadow:0 10px 24px rgba(16,24,39,.08); }
     .action-card { display:grid; align-content:space-between; gap:18px; transition:transform .14s ease,box-shadow .14s ease; }
-    .action-card:hover,.action-card:focus-visible { transform:translateY(-2px); box-shadow:0 16px 28px rgba(16,24,39,.14); outline:none; }
+    .action-card[href]:hover,.action-card[href]:focus-visible { transform:translateY(-2px); box-shadow:0 16px 28px rgba(16,24,39,.14); outline:none; }
     .start { min-height:174px; color:#fff; background:linear-gradient(135deg,#0f766e,#14b8a6); }
     .start small { color:rgba(255,255,255,.84); }
     .game1 { background:linear-gradient(135deg,#e0f2fe,#fff); } .game2 { background:linear-gradient(135deg,#fff7ed,#fff); } .game3 { background:linear-gradient(135deg,#ecfdf5,#fff); }
     strong { display:block; font-size:24px; letter-spacing:0; } small { display:block; margin-top:7px; color:var(--muted); font-size:14px; font-weight:800; line-height:1.45; }
-    .pill { width:fit-content; max-width:100%; min-height:34px; display:inline-flex; align-items:center; padding:0 12px; border-radius:999px; background:rgba(255,255,255,.78); border:1px solid rgba(16,24,39,.1); font-size:13px; font-weight:1000; }
+    .pill { width:fit-content; min-height:34px; display:inline-flex; align-items:center; padding:0 12px; border-radius:999px; background:rgba(255,255,255,.78); border:1px solid rgba(16,24,39,.1); font-size:13px; font-weight:1000; }
     .subject { min-height:150px; display:grid; align-content:space-between; gap:14px; }
     .subject-top { display:flex; align-items:start; justify-content:space-between; gap:8px; }
     .icon { width:48px; height:48px; display:grid; place-items:center; border-radius:8px; color:#fff; font-size:26px; font-weight:1000; }
-    .hanja .icon{background:var(--rose)} .english .icon{background:var(--blue)} .math .icon{background:var(--violet)} .science .icon{background:var(--mint)} .korean .icon{background:var(--green)}
+    .hanja .icon{background:var(--rose)} .english .icon{background:var(--blue)} .math .icon{background:var(--violet)} .science .icon{background:#14b8a6} .korean .icon{background:var(--green)}
     .progress { height:10px; width:100%; overflow:hidden; border-radius:999px; background:rgba(16,24,39,.08); border:1px solid rgba(16,24,39,.08); }
     .progress span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#0f766e,#f59e0b); }
     .disabled { opacity:.62; filter:saturate(.78); cursor:default; } .disabled .progress span { width:18%; background:#cbd5e1; }
     .parent-card { min-height:164px; background:rgba(255,255,255,.9); }
     .parent-card h3 { margin:0 0 10px; font-size:18px; } .parent-card p,.parent-card li { color:#4b5565; font-size:14px; font-weight:800; line-height:1.55; } .parent-card p{margin:0} .parent-card ul{margin:0; padding-left:20px;}
-    .parent-links,.report { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; } .parent-links a,.report span { min-height:36px; display:inline-flex; align-items:center; padding:0 12px; border-radius:8px; border:1px solid var(--line); background:#fff; color:#24476e; font-size:13px; font-weight:1000; }
+    .error { display:none; padding:14px 16px; border:1px solid #fecaca; border-radius:8px; background:#fff1f2; color:#9f1239; font-weight:800; }
     footer { color:#667085; font-size:13px; font-weight:800; text-align:center; }
     @media (max-width:880px){ .hero,.parents{grid-template-columns:1fr}.quick,.subjects{grid-template-columns:repeat(2,minmax(0,1fr))}.start{grid-column:1/-1} }
     @media (max-width:560px){ .page{width:min(100% - 18px,1120px); padding-top:12px}.hero,.card{padding:14px}.hero{min-height:auto}.hero p{font-size:16px}.quick,.subjects{grid-template-columns:1fr}.section-title{align-items:start;flex-direction:column}.section-title p{text-align:left}strong{font-size:22px}.subject{min-height:126px} }
@@ -54,17 +54,74 @@
 </head>
 <body>
   <main class="page">
+    <div id="link-error" class="error">포털 링크 설정을 읽지 못했습니다. 아래 기본 메뉴는 같은 사이트 안의 리다이렉트 경로로 연결됩니다.</div>
     <section class="hero">
-      <div><p class="eyebrow">EDUNI LEARNING PORTAL</p><h1>오늘은 무엇을 배워볼까?</h1><p>한자 시험과 학습 게임을 바로 시작하세요. 영어, 수학, 과학, 국어도 차례로 추가할 예정입니다.</p><div class="actions"><a class="primary" href="http://100.75.214.95:8080/hanja">오늘의 학습 시작</a><a href="#subjects">과목 보기</a><span>학습 리포트 준비중</span></div></div>
-      <div class="console"><div class="tiles"><div class="tile">한</div><div class="tile">A</div><div class="tile">＋</div><div class="tile">실험</div></div><div class="stats"><div class="stat"><b>20</b><span>한자 세트</span></div><div class="stat"><b>3</b><span>학습 게임</span></div><div class="stat"><b>4</b><span>준비 과목</span></div></div></div>
+      <div>
+        <p class="eyebrow">EDUNI LEARNING PORTAL</p>
+        <h1>오늘은 무엇을 배워볼까?</h1>
+        <p>한자 시험과 학습 게임을 바로 시작하세요. 영어, 수학, 과학, 국어도 차례로 추가할 예정입니다.</p>
+        <div class="actions">
+          <a class="button-link primary" data-link-key="hanja" href="../hanja/">오늘의 학습 시작</a>
+          <a class="button-link" href="#subjects">과목 보기</a>
+          <span>학습 리포트 준비중</span>
+        </div>
+      </div>
+      <div class="console">
+        <div class="tiles"><div class="tile">漢</div><div class="tile">A</div><div class="tile">+</div><div class="tile">탐험</div></div>
+        <div class="stats"><div class="stat"><b>8</b><span>학습 세계</span></div><div class="stat"><b>3</b><span>놀이 링크</span></div><div class="stat"><b>1</b><span>검증 샘플</span></div></div>
+      </div>
     </section>
-    <div class="section-title"><h2>빠른 시작</h2><p>지금 바로 할 수 있는 학습과 게임</p></div>
-    <section class="quick"><a class="card action-card start" href="http://100.75.214.95:8080/hanja"><span><strong>한자 시험</strong><small>7급, 6급 문제를 풀고 바로 채점합니다.</small></span><span class="pill">시작하기</span></a><a class="card action-card game1" href="http://100.75.214.95:8081/bubble-shooter"><span><strong>한자 슈터</strong><small>맞는 한자를 찾아 쏘는 게임</small></span><span class="pill">놀이</span></a><a class="card action-card game2" href="http://100.75.214.95:8081/bubble"><span><strong>버블팝</strong><small>짧게 쉬면서 집중력 충전</small></span><span class="pill">놀이</span></a><a class="card action-card game3" href="http://100.75.214.95:8081/"><span><strong>테트리스</strong><small>머리를 깨우는 퍼즐 게임</small></span><span class="pill">놀이</span></a></section>
-    <div class="section-title"><h2>과목</h2><p>한자부터 시작하고, 다른 과목은 준비 중입니다.</p></div>
-    <section id="subjects" class="subjects"><a class="card action-card subject hanja" href="http://100.75.214.95:8080/hanja"><span class="subject-top"><span class="icon">漢</span><span class="pill">열림</span></span><span><strong>한자</strong><small>시험과 게임 모두 사용 가능</small></span><span class="progress"><span style="width:100%"></span></span></a><div class="card subject english disabled"><span class="subject-top"><span class="icon">A</span><span class="pill">준비중</span></span><span><strong>영어</strong><small>단어, 읽기, 문장 연습 준비 중</small></span><span class="progress"><span></span></span></div><div class="card subject math disabled"><span class="subject-top"><span class="icon">＋</span><span class="pill">준비중</span></span><span><strong>수학</strong><small>개념 풀이와 연산 연습 준비 중</small></span><span class="progress"><span></span></span></div><div class="card subject science disabled"><span class="subject-top"><span class="icon">S</span><span class="pill">준비중</span></span><span><strong>과학</strong><small>실험, 개념, 용어 학습 준비 중</small></span><span class="progress"><span></span></span></div><div class="card subject korean disabled"><span class="subject-top"><span class="icon">가</span><span class="pill">준비중</span></span><span><strong>국어</strong><small>어휘, 독해, 맞춤법 준비 중</small></span><span class="progress"><span></span></span></div></section>
-    <div class="section-title"><h2>부모용 정보</h2><p>접속과 운영 확인용</p></div>
-    <section class="parents"><div class="card parent-card"><h3>접속 안내</h3><p>휴대폰과 태블릿은 Tailscale 접속 상태에서 포털 메뉴를 사용할 수 있습니다.</p><div class="parent-links"><a href="http://100.75.214.95:8080/hanja">한자 시험</a><a href="http://100.75.214.95:8080">학습 서버</a></div></div><div class="card parent-card"><h3>학습 리포트</h3><p>자동 분석은 다음 단계에서 연결합니다. 지금은 한자 학습 흐름을 먼저 정리했습니다.</p><div class="report"><span>활성 과목: 한자</span><span>다음: 영어/수학</span></div></div><div class="card parent-card"><h3>운영 메모</h3><ul><li>Oracle DB 시험은 아이 학습 포털 주요 과목에서 제외했습니다.</li><li>다른 과목은 콘텐츠 준비 후 같은 카드 구조로 연결합니다.</li><li>마지막 갱신: 2026-06-12</li></ul></div></section>
-    <footer>에듀니 학습 포털</footer>
+    <div class="section-title"><h2>빠른 시작</h2><p>지금 바로 열 수 있는 학습과 게임</p></div>
+    <section class="quick">
+      <a class="card action-card start" data-link-key="hanja" href="../hanja/"><span><strong>한자 시험</strong><small>기존 한자 학습으로 이동합니다.</small></span><span class="pill">시작하기</span></a>
+      <a class="card action-card game1" data-link-key="bubbleShooter" href="../bubble-shooter/"><span><strong>한자 슈터</strong><small>맞는 한자를 찾아 쏘는 게임</small></span><span class="pill">놀이</span></a>
+      <a class="card action-card game2" data-link-key="bubble" href="../bubble/"><span><strong>버블팝</strong><small>짧게 쉬면서 집중력 충전</small></span><span class="pill">놀이</span></a>
+      <a class="card action-card game3" data-link-key="tetris" href="../tetris/"><span><strong>테트리스</strong><small>머리를 깨우는 퍼즐 게임</small></span><span class="pill">놀이</span></a>
+    </section>
+    <div class="section-title"><h2>학습 세계</h2><p>새 동적 포털은 가족 서버의 /portal에서 열립니다.</p></div>
+    <section id="subjects" class="subjects">
+      <a class="card action-card subject hanja" data-link-key="familyPortal" href="../"><span class="subject-top"><span class="icon">漢</span><span class="pill">열림</span></span><span><strong>한자마을</strong><small>기존 한자 시험과 연결</small></span><span class="progress"><span style="width:100%"></span></span></a>
+      <a class="card action-card subject math" data-link-key="familyPortalMath" href="../"><span class="subject-top"><span class="icon">+</span><span class="pill">Phase 0</span></span><span><strong>수학탐험대</strong><small>세계 화면 자리 준비</small></span><span class="progress"><span style="width:26%"></span></span></a>
+      <div class="card subject english disabled"><span class="subject-top"><span class="icon">A</span><span class="pill">준비중</span></span><span><strong>영어</strong><small>소리와 그림 연결 준비 중</small></span><span class="progress"><span></span></span></div>
+      <div class="card subject science disabled"><span class="subject-top"><span class="icon">S</span><span class="pill">준비중</span></span><span><strong>과학</strong><small>관찰 활동 준비 중</small></span><span class="progress"><span></span></span></div>
+      <div class="card subject korean disabled"><span class="subject-top"><span class="icon">가</span><span class="pill">준비중</span></span><span><strong>국어</strong><small>이야기 활동 준비 중</small></span><span class="progress"><span></span></span></div>
+    </section>
+    <div class="section-title"><h2>부모용 정보</h2><p>공개 런처와 가족 서버 앱은 분리됩니다.</p></div>
+    <section class="parents">
+      <div class="card parent-card"><h3>접속 안내</h3><p>이 화면은 공개 정적 런처입니다. 실제 학습 세계와 부모 화면은 가족 서버에서 제공합니다.</p><div class="parent-links"><a class="button-link" data-link-key="familyPortal" href="../">동적 포털</a><a class="button-link" data-link-key="parentPortal" href="../">부모 화면</a></div></div>
+      <div class="card parent-card"><h3>학습 리포트</h3><p>자동 분석은 다음 단계에서 연결합니다. Phase 0에서는 기반 구조와 검증만 준비합니다.</p><div class="report"><span>활동 샘플: 1개</span><span>추천: 규칙 기반 자리</span></div></div>
+      <div class="card parent-card"><h3>운영 원칙</h3><ul><li>내부 IP를 HTML에 직접 넣지 않습니다.</li><li>광고, 분석 SDK, 위치, 사진, 음성 저장은 추가하지 않습니다.</li><li>Phase 1 활동 구현은 시작하지 않습니다.</li></ul></div>
+    </section>
+    <footer>으듀니 학습 포털</footer>
   </main>
+  <script>
+    const fallbackLinks = {
+      hanja: "../hanja/",
+      tetris: "../tetris/",
+      bubble: "../bubble/",
+      bubbleShooter: "../bubble-shooter/",
+      familyPortal: "../",
+      familyPortalMath: "../",
+      parentPortal: "../"
+    };
+
+    function applyLinks(links) {
+      document.querySelectorAll("[data-link-key]").forEach((node) => {
+        const key = node.getAttribute("data-link-key");
+        if (links[key]) node.setAttribute("href", links[key]);
+      });
+    }
+
+    fetch("./config/links.json", { cache: "no-store" })
+      .then((response) => {
+        if (!response.ok) throw new Error("missing links config");
+        return response.json();
+      })
+      .then((config) => applyLinks({ ...fallbackLinks, ...(config.links || {}) }))
+      .catch(() => {
+        document.getElementById("link-error").style.display = "block";
+        applyLinks(fallbackLinks);
+      });
+  </script>
 </body>
 </html>

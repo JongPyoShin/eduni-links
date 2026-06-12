@@ -1,0 +1,13 @@
+{
+  "generatedAt": "static-fallback",
+  "links": {
+    "db": "../db/",
+    "hanja": "../hanja/",
+    "tetris": "../tetris/",
+    "bubble": "../bubble/",
+    "bubbleShooter": "../bubble-shooter/",
+    "familyPortal": "../",
+    "familyPortalMath": "../",
+    "parentPortal": "../"
+  }
+}

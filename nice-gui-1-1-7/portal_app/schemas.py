@@ -24,11 +24,44 @@ PRIVACY_BLOCKED_FIELDS = {
     "public_profile",
 }
 
+ACTIVITY_FIELDS = {
+    "id",
+    "world",
+    "title",
+    "activity_type",
+    "difficulty",
+    "estimated_minutes",
+    "skills",
+    "curriculum_tags",
+    "prompt",
+    "items",
+    "hints",
+    "process_badges",
+    "offline_mission",
+    "enabled",
+    "version",
+}
+
+
+def find_blocked_privacy_fields(value: Any) -> set[str]:
+    found: set[str] = set()
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            if key in PRIVACY_BLOCKED_FIELDS:
+                found.add(key)
+            found.update(find_blocked_privacy_fields(nested))
+    elif isinstance(value, list):
+        for item in value:
+            found.update(find_blocked_privacy_fields(item))
+    return found
+
 
 try:
-    from pydantic import BaseModel, Field, field_validator, model_validator
+    from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
     class Activity(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+
         id: str
         world: str
         title: str
@@ -70,13 +103,12 @@ try:
         @model_validator(mode="before")
         @classmethod
         def reject_private_fields(cls, value: Any) -> Any:
-            if isinstance(value, dict):
-                blocked = sorted(PRIVACY_BLOCKED_FIELDS.intersection(value))
-                if blocked:
-                    raise ValueError(f"privacy-blocked fields: {', '.join(blocked)}")
+            blocked = sorted(find_blocked_privacy_fields(value))
+            if blocked:
+                raise ValueError(f"privacy-blocked fields: {', '.join(blocked)}")
             return value
 
-except Exception:
+except ImportError:
     @dataclass
     class Activity:
         id: str
@@ -96,7 +128,10 @@ except Exception:
         version: int = 1
 
         def __init__(self, **data: Any) -> None:
-            blocked = sorted(PRIVACY_BLOCKED_FIELDS.intersection(data))
+            unknown_fields = sorted(set(data) - ACTIVITY_FIELDS)
+            if unknown_fields:
+                raise ValueError(f"unknown fields: {', '.join(unknown_fields)}")
+            blocked = sorted(find_blocked_privacy_fields(data))
             if blocked:
                 raise ValueError(f"privacy-blocked fields: {', '.join(blocked)}")
             required = ["id", "world", "title", "activity_type", "difficulty", "estimated_minutes", "prompt"]
@@ -133,4 +168,3 @@ except Exception:
             self.offline_mission = str(data.get("offline_mission", ""))
             self.enabled = bool(data.get("enabled", True))
             self.version = int(data.get("version", 1))
-

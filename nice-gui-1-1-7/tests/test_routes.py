@@ -19,6 +19,11 @@ class RouteFoundationTests(unittest.TestCase):
         self.assertIn("@ui.page('/bubble')", app_source)
         self.assertIn("@ui.page('/bubble-shooter')", app_source)
 
+    def test_eduni_host_environment_variable_is_supported(self) -> None:
+        app_source = (APP_ROOT / "app.py").read_text(encoding="utf-8")
+        self.assertIn("EDUNI_HOST", app_source)
+        self.assertIn("'127.0.0.1'", app_source)
+
     def test_portal_routes_module_declares_phase0_routes(self) -> None:
         route_source = (APP_ROOT / "portal_app" / "routes.py").read_text(encoding="utf-8")
         self.assertIn('@ui.page("/portal")', route_source)

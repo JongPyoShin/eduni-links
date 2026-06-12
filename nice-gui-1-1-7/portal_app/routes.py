@@ -3,7 +3,7 @@ from __future__ import annotations
 from nicegui import ui
 
 from .content_loader import load_activities
-from .database import configured_parent_pin_hash, initialize_database
+from .database import configured_parent_pin_hash, initialize_database, verify_parent_pin
 from .recommendation import today_world
 from .registry import WORLDS, get_world
 
@@ -91,11 +91,32 @@ def register_pages() -> None:
         with ui.element("main").classes("portal-shell"):
             ui.link("← 포털 홈", "/portal").classes("muted")
             ui.label("부모 화면").classes("text-h3 text-weight-bold q-mt-lg")
-            if configured_parent_pin_hash():
-                ui.label("PIN 해시가 환경변수로 설정되어 있습니다. Phase 0에서는 대시보드 자리만 제공합니다.").classes("muted")
-            else:
-                ui.label("아직 부모 PIN이 설정되지 않았습니다. 평문 PIN은 코드나 JSON에 저장하지 않습니다.").classes("muted")
-            with ui.card().classes("portal-card q-mt-md"):
-                ui.label("대시보드 준비 중").classes("text-h6 text-weight-bold")
-                ui.label("최근 활동, 힌트 사용, 과정 배지는 Phase 1에서 실제 세션 기록과 연결합니다.").classes("muted")
+            stored_hash = configured_parent_pin_hash()
+            if not stored_hash:
+                ui.label("부모 화면이 아직 활성화되지 않았습니다.").classes("text-h6 text-weight-bold q-mt-md")
+                ui.label("EDUNI_PARENT_PIN_HASH 환경변수를 PBKDF2 해시 문자열로 설정한 뒤 다시 시작하세요. 평문 PIN은 코드, JSON, 로그, DB에 저장하지 않습니다.").classes("muted")
+                return
 
+            ui.label("PIN을 입력하면 Phase 0 대시보드 자리로 이동합니다.").classes("muted")
+            pin_input = ui.input("PIN").props("type=password autocomplete=current-password").classes("q-mt-md")
+            message = ui.label("").classes("muted q-mt-sm")
+            dashboard = ui.column().classes("q-mt-md")
+
+            def show_dashboard() -> None:
+                dashboard.clear()
+                with dashboard:
+                    with ui.card().classes("portal-card"):
+                        ui.label("대시보드 준비 중").classes("text-h6 text-weight-bold")
+                        ui.label("최근 활동, 힌트 사용, 과정 배지는 Phase 1에서 실제 세션 기록과 연결합니다.").classes("muted")
+
+            def verify_pin() -> None:
+                if verify_parent_pin(pin_input.value or "", stored_hash):
+                    message.set_text("")
+                    pin_input.value = ""
+                    show_dashboard()
+                    return
+                dashboard.clear()
+                pin_input.value = ""
+                message.set_text("PIN을 확인할 수 없습니다. 다시 입력해 주세요.")
+
+            ui.button("확인", on_click=verify_pin).classes("portal-action q-mt-sm")

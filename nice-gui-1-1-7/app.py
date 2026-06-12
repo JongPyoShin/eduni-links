@@ -1,4 +1,4 @@
-import os
+﻿import os
 import json
 import re
 import base64
@@ -2616,4 +2616,5 @@ register_pages()
 
 if __name__ in {'__main__', '__mp_main__'}:
     port = int(os.environ.get('PORT', '8080'))
-    ui.run(title='으듀니 테트리스', host='127.0.0.1', port=port, reload=False)
+    host = os.environ.get('EDUNI_HOST', '127.0.0.1')
+    ui.run(title='으듀니 테트리스', host=host, port=port, reload=False)

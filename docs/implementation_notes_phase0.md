@@ -150,10 +150,23 @@ Result: `200`, length `271762`.
 - `update_links.ps1` still reads status files and still writes the existing redirect pages. It now also writes `portal/config/links.json`.
 - The public static launcher uses relative fallback links if `portal/config/links.json` is unavailable.
 - Parent PIN is not stored in plaintext. Phase 0 uses `EDUNI_PARENT_PIN_HASH` and optional `EDUNI_PARENT_PIN_SALT` helpers, with a placeholder parent page.
+- Parent PIN verification now uses PBKDF2-HMAC-SHA256 formatted hashes: `pbkdf2_sha256$iterations$salt$digest`.
+- For family-server deployment from Docker or another host, keep the secure local default or set:
+
+```powershell
+$env:EDUNI_HOST = "0.0.0.0"
+python app.py
+```
+
+- To refresh static redirect files and `portal/config/links.json` without git publishing:
+
+```powershell
+.\update_links.ps1 -NoGitPublish
+```
 
 ## Remaining Risks
 
 - `update_links.ps1` still contains its pre-existing auto commit/push behavior. It was not executed in this implementation run to avoid mixing changes unexpectedly.
-- The app currently binds to `127.0.0.1` inside `app.py`, so container host-port smoke testing required running HTTP checks from inside the container.
+- The app defaults to `127.0.0.1` and supports `EDUNI_HOST=0.0.0.0` for family-server deployment. Deployment settings still need review before exposing it to other devices.
 - The Activity schema uses Pydantic when available and a compatible fallback when Pydantic is unavailable. A production deployment should confirm the intended Pydantic version.
 - `/portal/parent` is a placeholder and does not yet implement full PIN entry flow or parent dashboard data.

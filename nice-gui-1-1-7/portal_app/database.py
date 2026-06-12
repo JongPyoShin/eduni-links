@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import os
+import secrets
 import sqlite3
 from pathlib import Path
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = APP_ROOT / "data"
 DEFAULT_DB_PATH = DATA_DIR / "eduni_portal.sqlite3"
+PIN_ALGORITHM = "pbkdf2_sha256"
+PIN_ITERATIONS = 260000
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS child_profile (
@@ -54,19 +58,44 @@ def get_database_path() -> Path:
     return Path(configured) if configured else DEFAULT_DB_PATH
 
 
-def initialize_database(path: Path | None = None) -> Path:
+def connect_database(path: Path | None = None) -> sqlite3.Connection:
     db_path = path or get_database_path()
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(db_path) as conn:
+    conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
+
+
+def initialize_database(path: Path | None = None) -> Path:
+    db_path = path or get_database_path()
+    with connect_database(db_path) as conn:
         conn.executescript(SCHEMA_SQL)
     return db_path
 
 
-def hash_parent_pin(pin: str, salt: str | None = None) -> str:
-    active_salt = salt or os.environ.get("EDUNI_PARENT_PIN_SALT", "")
-    return hashlib.sha256(f"{active_salt}:{pin}".encode("utf-8")).hexdigest()
+def hash_parent_pin(pin: str, salt: bytes | None = None, iterations: int = PIN_ITERATIONS) -> str:
+    if not pin:
+        raise ValueError("pin is required")
+    active_salt = salt if salt is not None else secrets.token_bytes(16)
+    if not active_salt:
+        raise ValueError("salt is required")
+    digest = hashlib.pbkdf2_hmac("sha256", pin.encode("utf-8"), active_salt, iterations)
+    return f"{PIN_ALGORITHM}${iterations}${active_salt.hex()}${digest.hex()}"
+
+
+def verify_parent_pin(pin: str, stored_hash: str) -> bool:
+    try:
+        algorithm, iterations_text, salt_hex, digest_hex = stored_hash.split("$", 3)
+        if algorithm != PIN_ALGORITHM:
+            return False
+        iterations = int(iterations_text)
+        salt = bytes.fromhex(salt_hex)
+        expected = bytes.fromhex(digest_hex)
+        actual = hashlib.pbkdf2_hmac("sha256", pin.encode("utf-8"), salt, iterations)
+    except (TypeError, ValueError):
+        return False
+    return hmac.compare_digest(actual, expected)
 
 
 def configured_parent_pin_hash() -> str | None:
     return os.environ.get("EDUNI_PARENT_PIN_HASH")
-

@@ -1,3 +1,7 @@
+param(
+    [switch]$NoGitPublish
+)
+
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -172,7 +176,10 @@ Write-Output "Bubble Shooter: $gameUrl/bubble-shooter"
 Write-Output "Portal: $gameUrl/portal"
 Write-Output "Portal Config: portal/config/links.json"
 
-if (Test-Path -LiteralPath (Join-Path $root '.git')) {
+if ($NoGitPublish) {
+    Write-Output "NoGitPublish enabled; skipped git add, commit, and push."
+}
+elseif (Test-Path -LiteralPath (Join-Path $root '.git')) {
     Push-Location $root
     try {
         $safeRoot = $root -replace '\\', '/'

@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+nice-gui-1-1-7/data/*.sqlite3
+nice-gui-1-1-7/data/*.db

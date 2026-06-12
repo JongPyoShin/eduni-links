@@ -29,6 +29,12 @@ class PrivacyDefaultTests(unittest.TestCase):
             with self.subTest(term=term):
                 self.assertNotIn(term, combined)
 
+    def test_update_links_has_no_git_publish_switch(self) -> None:
+        script_path = APP_ROOT.parents[0] / "update_links.ps1"
+        if script_path.exists():
+            script = script_path.read_text(encoding="utf-8")
+            self.assertIn("NoGitPublish", script)
+
 
 if __name__ == "__main__":
     unittest.main()

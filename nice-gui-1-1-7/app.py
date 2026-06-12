@@ -1188,7 +1188,7 @@ GAME_HTML = r'''
 </script>
 '''
 
-HANJA_OUTPUT_DIR = Path(r'C:\Users\jongp\Documents\Codex\2026-06-05\files-mentioned-by-the-user-oracle\outputs')
+HANJA_OUTPUT_DIR = Path(os.environ.get('EDUNI_HANJA_OUTPUT_DIR', r'C:\Users\jongp\Documents\Codex\2026-06-05\files-mentioned-by-the-user-oracle\outputs'))
 PRAISE_CHARACTER_DIR = Path(__file__).parent / 'assets' / 'praise_chars'
 BUBBLE_EXPLANATION_DROP_PHRASES = (
     '뚜렷한 반대 한자보다는 함께 쓰이는 단어를 중심으로 익히면 좋습니다',
@@ -1236,11 +1236,9 @@ def load_bubble_questions() -> list[dict[str, object]]:
             continue
         data = json.loads(path.read_text(encoding='utf-8-sig'))
         for question in data.get('questions', []):
-            if question.get('topic') not in {'뜻과 음', '음 읽기'}:
-                continue
             choices = question.get('choices', [])
             answer = int(question.get('answer', 0))
-            if not isinstance(choices, list) or not 1 <= answer <= len(choices):
+            if not question.get('target_char') or not isinstance(choices, list) or not 1 <= answer <= len(choices):
                 continue
             questions.append(
                 {

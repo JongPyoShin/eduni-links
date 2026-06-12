@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from .pattern_train import validate_activity_content
 from .schemas import Activity
 
 APP_ROOT = Path(__file__).resolve().parents[1]
@@ -20,7 +21,9 @@ def activity_from_file(path: Path) -> Activity:
         raise ContentValidationError(f"{path}: invalid JSON: {exc}") from exc
 
     try:
-        return Activity(**payload)
+        activity = Activity(**payload)
+        validate_activity_content(activity)
+        return activity
     except Exception as exc:
         raise ContentValidationError(f"{path}: {exc}") from exc
 
@@ -36,4 +39,3 @@ def load_activities(root: Path = CONTENT_ROOT) -> list[Activity]:
         if activity.enabled:
             activities.append(activity)
     return activities
-

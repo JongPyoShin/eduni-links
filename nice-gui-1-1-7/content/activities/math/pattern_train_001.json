@@ -8,14 +8,39 @@
   "skills": ["pattern", "observation", "explanation"],
   "curriculum_tags": ["math.pattern.basic"],
   "prompt": "다음 칸에는 어떤 모양이 올까?",
-  "items": [],
+  "items": [
+    {
+      "sequence": ["🔴", "🔵", "🔴", "🔵", "🔴"],
+      "choices": ["🔵", "🟢", "🟡"],
+      "answer": "🔵"
+    },
+    {
+      "sequence": ["⭐", "🌙", "⭐", "🌙", "⭐"],
+      "choices": ["☁️", "⭐", "🌙"],
+      "answer": "🌙"
+    },
+    {
+      "sequence": ["🟩", "🟨", "🟩", "🟨", "🟩"],
+      "choices": ["🟨", "🟦", "🟥"],
+      "answer": "🟨"
+    },
+    {
+      "sequence": ["🚗", "🚌", "🚗", "🚌", "🚗"],
+      "choices": ["🚲", "🚌", "🚗"],
+      "answer": "🚌"
+    },
+    {
+      "sequence": ["🍎", "🍌", "🍎", "🍌", "🍎"],
+      "choices": ["🍇", "🍎", "🍌"],
+      "answer": "🍌"
+    }
+  ],
   "hints": [
     "같은 순서가 다시 나오는지 살펴보자.",
-    "앞에서부터 천천히 읽어보자."
+    "첫 번째와 두 번째 모양이 번갈아 나오는지 확인해 보자."
   ],
   "process_badges": ["retry", "explain"],
   "offline_mission": "집 안 물건 세 가지로 반복 규칙을 만들어 보자.",
   "enabled": true,
   "version": 1
 }
-

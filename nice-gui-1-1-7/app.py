@@ -2160,7 +2160,14 @@ SHOOTER_HTML_TEMPLATE = r'''
   };
 
   function currentCols() {
-    return Math.max(6, Math.min(8, Math.floor(state.width / (state.radius * 2.25))));
+    const byWidth = Math.floor((state.width - state.radius * 1.6) / (state.radius * 2.06));
+    return Math.max(7, Math.min(14, byWidth));
+  }
+
+  function initialRows() {
+    const usableHeight = Math.max(0, state.baseY - state.radius * 4.2);
+    const rowsByHeight = Math.floor(usableHeight / (state.radius * 1.76));
+    return Math.max(2, Math.min(5, rowsByHeight));
   }
 
   function shuffle(items) {
@@ -2180,7 +2187,8 @@ SHOOTER_HTML_TEMPLATE = r'''
     canvas.width = Math.round(state.width * state.dpr);
     canvas.height = Math.round(state.height * state.dpr);
     ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
-    state.radius = Math.max(19, Math.min(27, state.width / 15));
+    const sizeBasis = Math.min(state.width, state.height * 0.78);
+    state.radius = Math.max(18, Math.min(29, sizeBasis / 18));
     state.baseX = state.width / 2;
     state.baseY = state.height - state.radius - 38;
     state.aimX = state.baseX;
@@ -2247,10 +2255,10 @@ SHOOTER_HTML_TEMPLATE = r'''
 
   function seedInitialBubbles() {
     const cols = currentCols();
-    const initialCount = Math.min(12, state.deck.length);
+    const initialCount = Math.min(cols * initialRows(), state.deck.length);
     state.bubbles = state.deck.slice(0, initialCount).map((question, index) => {
-      const bubble = makeBubble(question, cols + index);
-      bubble.slotIndex = cols + index;
+      const bubble = makeBubble(question, index);
+      bubble.slotIndex = index;
       return bubble;
     });
     state.nextIndex = initialCount;

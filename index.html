@@ -3,58 +3,167 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>&#51004;&#46272;&#45768; &#47553;&#53356;</title>
+  <title>EDUNI Links</title>
   <style>
-    :root { color-scheme: light; }
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #627189;
+      --paper: #ffffff;
+      --line: #dbe5f0;
+      --blue: #2563eb;
+      --orange: #f97316;
+      --shadow: 0 18px 44px rgba(23, 32, 51, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
     body {
       margin: 0;
       min-height: 100vh;
       display: grid;
       place-items: center;
-      background: #f4f7fb;
-      color: #172033;
-      font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+      padding: 18px;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(37, 99, 235, 0.18), transparent 28%),
+        radial-gradient(circle at 82% 16%, rgba(249, 115, 22, 0.2), transparent 26%),
+        linear-gradient(135deg, #f8fbff 0%, #eef6ff 48%, #fff7ed 100%);
+      color: var(--ink);
+      font-family: "Segoe UI", "Malgun Gothic", system-ui, sans-serif;
     }
+
     main {
-      width: min(520px, calc(100% - 32px));
+      width: min(620px, 100%);
       display: grid;
-      gap: 16px;
+      gap: 18px;
+      padding: 24px;
+      border-radius: 8px;
+      border: 2px solid rgba(255, 255, 255, 0.78);
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
     }
-    h1 { margin: 0; font-size: 30px; letter-spacing: 0; }
-    p { margin: 0; color: #64748b; font-weight: 700; }
-    .links { display: grid; gap: 10px; }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(34px, 8vw, 54px);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.5;
+    }
+
+    .links {
+      display: grid;
+      gap: 12px;
+    }
+
     a {
+      min-height: 86px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      min-height: 58px;
-      padding: 0 18px;
-      border: 2px solid #d6dee9;
+      gap: 14px;
+      padding: 18px;
       border-radius: 8px;
-      background: #ffffff;
-      color: #172033;
+      border: 2px solid var(--line);
+      background: var(--paper);
+      color: var(--ink);
       text-decoration: none;
-      font-size: 19px;
-      font-weight: 900;
+      box-shadow: 0 10px 24px rgba(23, 32, 51, 0.1);
+      transition: transform 140ms ease, box-shadow 140ms ease;
     }
-    a span { color: #2563eb; font-size: 18px; }
-    .note { font-size: 14px; }
+
+    a:hover,
+    a:focus-visible {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 28px rgba(23, 32, 51, 0.16);
+      outline: none;
+    }
+
+    strong {
+      display: block;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    small {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.4;
+    }
+
+    .badge {
+      min-width: 74px;
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 1000;
+    }
+
+    .db .badge { background: var(--orange); }
+    .portal .badge { background: var(--blue); }
+
+    .note {
+      color: #738197;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    @media (max-width: 520px) {
+      main { padding: 16px; }
+      a {
+        min-height: 78px;
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .badge {
+        min-width: 0;
+        width: fit-content;
+        padding: 0 12px;
+      }
+    }
   </style>
 </head>
 <body>
   <main>
-    <div>
-      <h1>&#51004;&#46272;&#45768; &#47553;&#53356;</h1>
-      <p>&#50500;&#47000; &#48260;&#53948;&#51004;&#47196; &#49884;&#54744;&#44284; &#44172;&#51076;&#50640; &#51217;&#49549;&#54616;&#49464;&#50836;.</p>
-    </div>
-    <section class="links" aria-label="links">
-      <a href="https://k12.tail8b64d5.ts.net:8444">DB &#49884;&#54744; <span>&#49884;&#51089;</span></a>
-      <a href="https://k12.tail8b64d5.ts.net:8444/hanja">&#54620;&#51088; &#49884;&#54744; <span>&#49884;&#51089;</span></a>
-      <a href="https://k12.tail8b64d5.ts.net:8443">&#51004;&#46272;&#45768; &#53580;&#53944;&#47532;&#49828; <span>&#49884;&#51089;</span></a>
-      <a href="https://k12.tail8b64d5.ts.net:8443/bubble">&#51004;&#46272;&#45768; &#48260;&#48660;&#54045; <span>&#49884;&#51089;</span></a>
-      <a href="https://k12.tail8b64d5.ts.net:8443/bubble-shooter">&#51004;&#46272;&#45768; &#54620;&#51088; &#49800;&#53552; <span>&#49884;&#51089;</span></a>
+    <header>
+      <h1>EDUNI Links</h1>
+      <p>필요한 곳으로 바로 이동하세요.</p>
+    </header>
+
+    <section class="links" aria-label="주요 링크">
+      <a class="db" href="./db/">
+        <span>
+          <strong>DB 시험</strong>
+          <small>개인용 DB 시험 페이지로 이동합니다.</small>
+        </span>
+        <span class="badge">EXAM</span>
+      </a>
+
+      <a class="portal" href="./portal/">
+        <span>
+          <strong>EDUNI PORTAL</strong>
+          <small>한자와 학습 게임을 시작하는 종합 포털입니다.</small>
+        </span>
+        <span class="badge">PORTAL</span>
+      </a>
     </section>
-    <p class="note">&#51217;&#49549; &#53076;&#46300;&#45716; &#44032;&#51313;&#45180;&#47532; &#46384;&#47196; &#50508;&#44256; &#51080;&#45716; &#44050;&#51012; &#49324;&#50857;&#54633;&#45768;&#45796;. &#47560;&#51648;&#47561; &#44081;&#49888;: 2026-06-12 00:25</p>
+
+    <p class="note">휴대폰과 태블릿은 Tailscale 접속 상태에서 포털 메뉴를 사용할 수 있습니다.</p>
   </main>
 </body>
 </html>

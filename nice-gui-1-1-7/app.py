@@ -2313,18 +2313,90 @@ SHOOTER_HTML_TEMPLATE = r'''
     lines.forEach((line, index) => ctx.fillText(line, x, startY + index * lineHeight));
   }
 
+  function traceAimPath() {
+    const segments = [];
+    let x = state.baseX;
+    let y = state.baseY;
+    let vx = Math.cos(aimAngle());
+    let vy = Math.sin(aimAngle());
+    const shotRadius = state.radius * 1.04;
+    const maxSegments = 4;
+
+    for (let segment = 0; segment < maxSegments; segment += 1) {
+      let nearestT = Infinity;
+      let endX = x;
+      let endY = y;
+      let hitWall = false;
+
+      if (vx < 0) {
+        const t = (shotRadius - x) / vx;
+        if (t > 0 && t < nearestT) {
+          nearestT = t;
+          endX = shotRadius;
+          endY = y + vy * t;
+          hitWall = true;
+        }
+      } else if (vx > 0) {
+        const t = (state.width - shotRadius - x) / vx;
+        if (t > 0 && t < nearestT) {
+          nearestT = t;
+          endX = state.width - shotRadius;
+          endY = y + vy * t;
+          hitWall = true;
+        }
+      }
+
+      if (vy < 0) {
+        const t = (shotRadius - y) / vy;
+        if (t > 0 && t < nearestT) {
+          nearestT = t;
+          endX = x + vx * t;
+          endY = shotRadius;
+          hitWall = false;
+        }
+      }
+
+      state.bubbles.filter(b => !b.popped).forEach((bubble) => {
+        const hitRadius = shotRadius + bubble.r * 0.82;
+        const dx = x - bubble.x;
+        const dy = y - bubble.y;
+        const b = 2 * (vx * dx + vy * dy);
+        const c = dx * dx + dy * dy - hitRadius * hitRadius;
+        const discriminant = b * b - 4 * c;
+        if (discriminant < 0) return;
+        const t = (-b - Math.sqrt(discriminant)) / 2;
+        if (t > 0 && t < nearestT) {
+          nearestT = t;
+          endX = x + vx * t;
+          endY = y + vy * t;
+          hitWall = false;
+        }
+      });
+
+      if (!Number.isFinite(nearestT)) break;
+      segments.push({ x1: x, y1: y, x2: endX, y2: endY });
+      if (!hitWall) break;
+      x = endX;
+      y = endY;
+      vx *= -1;
+    }
+
+    return segments;
+  }
+
   function drawAim() {
     if (!state.current || state.waiting || state.shot || state.gameOver) return;
-    const angle = aimAngle();
-    const endX = state.baseX + Math.cos(angle) * Math.min(190, state.height * 0.32);
-    const endY = state.baseY + Math.sin(angle) * Math.min(190, state.height * 0.32);
+    const segments = traceAimPath();
+    if (!segments.length) return;
     ctx.save();
     ctx.setLineDash([8, 8]);
     ctx.lineWidth = 4;
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.84)';
     ctx.beginPath();
-    ctx.moveTo(state.baseX, state.baseY);
-    ctx.lineTo(endX, endY);
+    segments.forEach((segment) => {
+      ctx.moveTo(segment.x1, segment.y1);
+      ctx.lineTo(segment.x2, segment.y2);
+    });
     ctx.stroke();
     ctx.restore();
   }

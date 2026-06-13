@@ -30,22 +30,21 @@ class RouteFoundationTests(unittest.TestCase):
         self.assertIn('@ui.page("/portal/world/{world_id}")', route_source)
         self.assertIn('@ui.page("/portal/parent")', route_source)
 
-    def test_jungle_expedition_phase_a_route_is_declared(self) -> None:
+    def test_jungle_expedition_phase_b_route_is_declared(self) -> None:
         route_source = (APP_ROOT / "portal_app" / "routes.py").read_text(encoding="utf-8")
         jungle_source = (APP_ROOT / "portal_app" / "jungle_expedition.py").read_text(encoding="utf-8")
         self.assertIn("JUNGLE_EXPEDITION_ACTIVITY_ID", route_source)
         self.assertIn("jungle.expedition.001", jungle_source)
         self.assertIn("정글 대탐험", jungle_source)
         self.assertIn("전진", jungle_source)
-        self.assertIn("정지", jungle_source)
         self.assertIn("짐칸", jungle_source)
-        self.assertIn("min-height: 58px", jungle_source)
-        self.assertIn("on_click=move_forward", jungle_source)
-        self.assertIn("on_click=stop_moving", jungle_source)
-        self.assertIn("on_click=discover_bird", jungle_source)
-        self.assertIn("choice(BIRD_POSITION_CLASSES)", jungle_source)
+        self.assertNotIn('ui.button("정지"', jungle_source)
+        self.assertIn("select_question", jungle_source)
+        self.assertIn("힌트", jungle_source)
+        self.assertIn("탐험 계속", jungle_source)
+        self.assertIn("포획 성공", jungle_source)
         self.assertIn('stage.classes(add="is-moving")', jungle_source)
-        self.assertIn("discovery_card.set_visibility(False)", jungle_source)
+        self.assertIn("question_card.set_visibility(False)", jungle_source)
 
 
 if __name__ == "__main__":

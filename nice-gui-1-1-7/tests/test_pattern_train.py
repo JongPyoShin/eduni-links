@@ -6,25 +6,28 @@ import unittest
 from pathlib import Path
 
 from portal_app.content_loader import ContentValidationError, activity_from_file
-from portal_app.pattern_train import PATTERN_TRAIN_ACTIVITY_ID, get_pattern_train_items
+from portal_app.pattern_train import PATTERN_TRAIN_ACTIVITY_ID, get_pattern_train_items, group_pattern_train_levels
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 ACTIVITY_PATH = APP_ROOT / "content" / "activities" / "math" / "pattern_train_001.json"
 
 
 class PatternTrainTests(unittest.TestCase):
-    def test_progressive_activity_has_ten_playable_questions(self) -> None:
+    def test_activity_has_three_levels_of_five_questions(self) -> None:
         activity = activity_from_file(ACTIVITY_PATH)
         items = get_pattern_train_items(activity)
+        levels = group_pattern_train_levels(items)
         self.assertEqual(PATTERN_TRAIN_ACTIVITY_ID, activity.id)
-        self.assertEqual(10, len(items))
+        self.assertEqual(15, len(items))
         self.assertEqual("normal", activity.difficulty)
-        self.assertIn("3단계 · 숫자 도전", {item["stage"] for item in items})
-        self.assertEqual("13", items[-1]["answer"])
+        self.assertEqual([1, 2, 3], [level for level, _ in levels])
+        self.assertEqual([5, 5, 5], [len(level_items) for _, level_items in levels])
+        self.assertEqual("16", items[-1]["answer"])
         for item in items:
             self.assertEqual(3, len(item["choices"]))
             self.assertIn(item["answer"], item["choices"])
             self.assertGreaterEqual(len(item["hints"]), 2)
+            self.assertGreaterEqual(item["level"], 1)
 
     def test_invalid_answer_is_rejected(self) -> None:
         payload = json.loads(ACTIVITY_PATH.read_text(encoding="utf-8"))
@@ -43,6 +46,22 @@ class PatternTrainTests(unittest.TestCase):
             path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
             with self.assertRaises(ContentValidationError):
                 activity_from_file(path)
+
+    def test_non_consecutive_levels_are_rejected(self) -> None:
+        payload = json.loads(ACTIVITY_PATH.read_text(encoding="utf-8"))
+        for item in payload["items"]:
+            if item["level"] == 2:
+                item["level"] = 4
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "invalid_levels.json"
+            path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+            with self.assertRaises(ContentValidationError):
+                activity_from_file(path)
+
+    def test_next_level_button_is_declared(self) -> None:
+        source = (APP_ROOT / "portal_app" / "pattern_train.py").read_text(encoding="utf-8")
+        self.assertIn("다음 레벨 도전", source)
+        self.assertIn("start_next_level", source)
 
     def test_activity_route_and_start_link_are_declared(self) -> None:
         route_source = (APP_ROOT / "portal_app" / "routes.py").read_text(encoding="utf-8")

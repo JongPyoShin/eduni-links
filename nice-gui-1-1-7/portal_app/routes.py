@@ -4,6 +4,7 @@ from nicegui import ui
 
 from .content_loader import load_activities
 from .database import configured_parent_pin_hash, initialize_database, verify_parent_pin
+from .jungle_expedition import JUNGLE_EXPEDITION_ACTIVITY_ID, render_jungle_expedition
 from .pattern_train import render_pattern_train
 from .recommendation import today_world
 from .registry import WORLDS, get_world
@@ -93,6 +94,10 @@ def register_pages() -> None:
     @ui.page("/portal/activity/{activity_id}")
     def activity_page(activity_id: str) -> None:
         _head()
+        if activity_id == JUNGLE_EXPEDITION_ACTIVITY_ID:
+            with ui.element("main").classes("portal-shell"):
+                render_jungle_expedition()
+            return
         activities = {activity.id: activity for activity in load_activities()}
         activity = activities.get(activity_id)
         with ui.element("main").classes("portal-shell"):

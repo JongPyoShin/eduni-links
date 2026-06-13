@@ -30,6 +30,17 @@ class RouteFoundationTests(unittest.TestCase):
         self.assertIn('@ui.page("/portal/world/{world_id}")', route_source)
         self.assertIn('@ui.page("/portal/parent")', route_source)
 
+    def test_jungle_expedition_phase_a_route_is_declared(self) -> None:
+        route_source = (APP_ROOT / "portal_app" / "routes.py").read_text(encoding="utf-8")
+        jungle_source = (APP_ROOT / "portal_app" / "jungle_expedition.py").read_text(encoding="utf-8")
+        self.assertIn("JUNGLE_EXPEDITION_ACTIVITY_ID", route_source)
+        self.assertIn("jungle.expedition.001", jungle_source)
+        self.assertIn("정글 대탐험", jungle_source)
+        self.assertIn("전진", jungle_source)
+        self.assertIn("정지", jungle_source)
+        self.assertIn("지망", jungle_source)
+        self.assertIn("min-height: 58px", jungle_source)
+
 
 if __name__ == "__main__":
     unittest.main()

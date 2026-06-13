@@ -21,6 +21,9 @@ def get_pattern_train_items(activity: Activity) -> list[dict[str, Any]]:
         sequence = raw.get("sequence")
         choices = raw.get("choices")
         answer = raw.get("answer")
+        stage = raw.get("stage", "규칙 탐험")
+        prompt = raw.get("prompt", "다음 칸에 올 모양은 무엇일까?")
+        hints = raw.get("hints", activity.hints)
         if not isinstance(sequence, list) or len(sequence) < 2 or not all(isinstance(value, str) and value for value in sequence):
             raise ValueError(f"{activity.id}: item {index} sequence must contain at least two text symbols")
         if not isinstance(choices, list) or len(choices) != 3 or not all(isinstance(value, str) and value for value in choices):
@@ -29,7 +32,20 @@ def get_pattern_train_items(activity: Activity) -> list[dict[str, Any]]:
             raise ValueError(f"{activity.id}: item {index} choices must not contain duplicates")
         if answer not in choices:
             raise ValueError(f"{activity.id}: item {index} answer must be one of the choices")
-        validated.append({"sequence": sequence, "choices": choices, "answer": answer})
+        if not isinstance(stage, str) or not stage:
+            raise ValueError(f"{activity.id}: item {index} stage must be text")
+        if not isinstance(prompt, str) or not prompt:
+            raise ValueError(f"{activity.id}: item {index} prompt must be text")
+        if not isinstance(hints, list) or len(hints) < 2 or not all(isinstance(value, str) and value for value in hints):
+            raise ValueError(f"{activity.id}: item {index} hints must contain at least two text hints")
+        validated.append({
+            "sequence": sequence,
+            "choices": choices,
+            "answer": answer,
+            "stage": stage,
+            "prompt": prompt,
+            "hints": hints,
+        })
     return validated
 
 
@@ -45,10 +61,11 @@ def render_pattern_train(activity: Activity) -> None:
     state = {"index": 0, "hint_level": 0, "answered": False}
 
     ui.label("규칙 기차").classes("text-h4 text-weight-bold")
-    ui.label("기차의 모양이 반복되는 규칙을 찾아 다음 칸을 골라보자!").classes("muted text-subtitle1")
-    progress = ui.label("").classes("text-weight-bold q-mt-md")
+    ui.label("쉬운 규칙부터 숫자 도전까지 차근차근 탐험해 보자!").classes("muted text-subtitle1")
+    stage = ui.label("").classes("text-subtitle2 text-weight-bold q-mt-md")
+    progress = ui.label("").classes("text-weight-bold")
     train = ui.label("").classes("pattern-train-track q-mt-md")
-    ui.label("다음 칸에 올 모양은 무엇일까?").classes("text-h6 text-weight-bold q-mt-lg")
+    question_prompt = ui.label("").classes("text-h6 text-weight-bold q-mt-lg")
     choices = ui.row().classes("pattern-choice-row q-mt-sm")
     feedback = ui.label("").classes("pattern-feedback q-mt-md")
     hint_text = ui.label("").classes("muted q-mt-sm")
@@ -60,8 +77,10 @@ def render_pattern_train(activity: Activity) -> None:
         choices.clear()
         controls.clear()
         next_button.set_visibility(False)
+        stage.set_text("탐험 완료!")
         progress.set_text(f"완료! {len(items)}문제를 모두 살펴봤어.")
         train.set_text("🚂  ⭐  ⭐  ⭐  ⭐  ⭐")
+        question_prompt.set_text("어떤 규칙이 가장 재미있었는지 이야기해 보자.")
         feedback.set_text("끝까지 규칙을 찾아냈구나! 천천히 살펴보고 다시 도전한 과정이 멋져.")
         hint_text.set_text(f"화면 밖 미션: {activity.offline_mission}")
         with controls:
@@ -72,8 +91,10 @@ def render_pattern_train(activity: Activity) -> None:
         item = items[state["index"]]
         state["hint_level"] = 0
         state["answered"] = False
+        stage.set_text(item["stage"])
         progress.set_text(f"{state['index'] + 1} / {len(items)} 문제")
         train.set_text("  ".join([*item["sequence"], "❓"]))
+        question_prompt.set_text(item["prompt"])
         feedback.set_text("")
         hint_text.set_text("")
         next_button.set_visibility(False)
@@ -84,14 +105,14 @@ def render_pattern_train(activity: Activity) -> None:
                 return
             if symbol == item["answer"]:
                 state["answered"] = True
-                feedback.set_text("정답! 반복되는 규칙을 잘 찾았네!")
+                feedback.set_text("정답! 규칙을 잘 찾았네!")
                 next_button.set_text("완료 보기" if state["index"] == len(items) - 1 else "다음 문제")
                 next_button.set_visibility(True)
                 return
-            feedback.set_text("괜찮아. 앞에서부터 같은 순서가 반복되는지 다시 살펴보자.")
+            feedback.set_text("괜찮아. 규칙을 다시 천천히 살펴보자.")
             if state["hint_level"] == 0:
                 state["hint_level"] = 1
-                hint_text.set_text(f"힌트 1: {activity.hints[0]}")
+                hint_text.set_text(f"힌트 1: {item['hints'][0]}")
 
         def make_handler(symbol: str):
             return lambda: choose_answer(symbol)
@@ -100,9 +121,10 @@ def render_pattern_train(activity: Activity) -> None:
             ui.button(symbol, on_click=make_handler(symbol)).classes("pattern-choice portal-action")
 
     def show_hint() -> None:
-        index = min(state["hint_level"], len(activity.hints) - 1)
-        state["hint_level"] = min(state["hint_level"] + 1, len(activity.hints))
-        hint_text.set_text(f"힌트 {index + 1}: {activity.hints[index]}")
+        item = items[state["index"]]
+        index = min(state["hint_level"], len(item["hints"]) - 1)
+        state["hint_level"] = min(state["hint_level"] + 1, len(item["hints"]))
+        hint_text.set_text(f"힌트 {index + 1}: {item['hints'][index]}")
 
     def next_question() -> None:
         if not state["answered"]:

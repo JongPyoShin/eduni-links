@@ -1,8 +1,16 @@
 from __future__ import annotations
 
+from random import choice
+
 from nicegui import ui
 
 JUNGLE_EXPEDITION_ACTIVITY_ID = "jungle.expedition.001"
+BIRD_POSITION_CLASSES = (
+    "bird-position-left-high",
+    "bird-position-left-low",
+    "bird-position-right-high",
+    "bird-position-right-low",
+)
 
 
 def render_jungle_expedition() -> None:
@@ -52,9 +60,16 @@ def render_jungle_expedition() -> None:
             height: 710px;
             transform: translateX(-50%);
             border-radius: 90px 90px 0 0;
-            background: linear-gradient(180deg, #fef3c7, #d97706);
+            background: repeating-linear-gradient(180deg, #fef3c7 0 48px, #f59e0b 48px 64px);
+            background-position: center 0;
             box-shadow: inset 0 0 0 8px rgba(120, 53, 15, .14);
+            animation: jungle-road-flow 2.2s linear infinite paused;
           }
+          .jungle-stage.is-moving .jungle-path { animation-play-state: running; }
+          .jungle-moving {
+            animation: jungle-object-flow 4.8s linear infinite paused;
+          }
+          .jungle-stage.is-moving .jungle-moving { animation-play-state: running; }
           .jungle-object {
             position: absolute;
             display: grid;
@@ -66,46 +81,70 @@ def render_jungle_expedition() -> None:
             background: rgba(255, 255, 255, .72);
             box-shadow: 0 10px 20px rgba(15, 23, 42, .14);
           }
-          .jungle-object.tree { left: 24px; top: 250px; }
-          .jungle-object.branch { right: 34px; top: 330px; }
-          .jungle-object.bird { left: 34px; bottom: 180px; outline: 4px solid rgba(250, 204, 21, .7); }
-          .jungle-ranger {
+          .jungle-object.tree-left { left: 18px; top: 220px; }
+          .jungle-object.tree-right { right: 18px; top: 350px; animation-delay: -1.8s; }
+          .jungle-object.branch-left { left: 38px; top: 430px; animation-delay: -3.1s; }
+          .jungle-object.branch-right { right: 40px; top: 170px; animation-delay: -2.4s; }
+          .jungle-object.bird {
+            z-index: 3;
+            min-width: 64px;
+            min-height: 64px;
+            outline: 4px solid rgba(250, 204, 21, .7);
+          }
+          .bird-position-left-high { left: 28px; top: 210px; }
+          .bird-position-left-low { left: 46px; top: 430px; }
+          .bird-position-right-high { right: 30px; top: 230px; }
+          .bird-position-right-low { right: 48px; top: 450px; }
+          .jungle-truck {
             position: absolute;
             left: 50%;
-            bottom: 118px;
+            bottom: 112px;
             transform: translateX(-50%);
             display: grid;
             place-items: center;
-            width: 92px;
-            height: 92px;
-            border-radius: 999px;
+            width: 94px;
+            height: 94px;
+            border-radius: 22px;
             background: #fefce8;
             border: 5px solid #854d0e;
-            font-size: 46px;
+            font-size: 48px;
             box-shadow: 0 12px 24px rgba(15, 23, 42, .2);
           }
           .jungle-card {
             position: absolute;
+            z-index: 5;
             left: 18px;
             right: 18px;
             bottom: 216px;
             padding: 14px;
             border-radius: 8px;
-            background: rgba(255,255,255,.9);
+            background: rgba(255,255,255,.94);
             border: 1px solid rgba(22, 101, 52, .24);
             font-weight: 800;
           }
           .jungle-hud {
             position: relative;
-            z-index: 1;
+            z-index: 4;
             display: flex;
             justify-content: space-between;
             gap: 8px;
             padding: 14px;
             font-weight: 900;
           }
+          .jungle-status {
+            position: absolute;
+            z-index: 4;
+            top: 52px;
+            left: 14px;
+            right: 14px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, .78);
+            font-weight: 800;
+          }
           .jungle-controls {
             position: absolute;
+            z-index: 6;
             left: 14px;
             right: 14px;
             bottom: 18px;
@@ -118,6 +157,14 @@ def render_jungle_expedition() -> None:
             border-radius: 8px;
             font-weight: 900;
           }
+          @keyframes jungle-road-flow {
+            from { background-position: center 0; }
+            to { background-position: center 128px; }
+          }
+          @keyframes jungle-object-flow {
+            from { transform: translateY(-80px); }
+            to { transform: translateY(520px); }
+          }
           @media (max-width: 420px) {
             .jungle-stage { min-height: calc(100vh - 40px); }
             .jungle-touch { min-height: 54px; }
@@ -126,21 +173,66 @@ def render_jungle_expedition() -> None:
         """
     )
 
-    with ui.element("section").classes("jungle-stage").props('aria-label="정글 대탐험 데모"'):
+    state = {"moving": False}
+
+    def set_motion(moving: bool) -> None:
+        state["moving"] = moving
+        if moving:
+            stage.classes(add="is-moving")
+            status.set_text("전진 중 · 좌우 나뭇가지를 살펴보자!")
+            return
+        stage.classes(remove="is-moving")
+        status.set_text("정지 · 발견한 새를 눌러보자!")
+
+    def place_bird() -> None:
+        bird.classes(remove=" ".join(BIRD_POSITION_CLASSES), add=choice(BIRD_POSITION_CLASSES))
+
+    def move_forward() -> None:
+        discovery_card.set_visibility(False)
+        bird.set_visibility(True)
+        place_bird()
+        set_motion(True)
+
+    def stop_moving() -> None:
+        set_motion(False)
+
+    def discover_bird() -> None:
+        set_motion(False)
+        bird.set_visibility(False)
+        discovery_card.set_visibility(True)
+
+    def close_discovery() -> None:
+        discovery_card.set_visibility(False)
+        bird.set_visibility(True)
+        place_bird()
+
+    def show_cargo_placeholder() -> None:
+        ui.notify("짐칸 도감은 Phase C에서 열려요.")
+
+    with ui.element("section").classes("jungle-stage").props('aria-label="정글 대탐험 데모"') as stage:
         with ui.element("div").classes("jungle-hud"):
             ui.label("정글 대탐험")
             ui.label("Phase A")
+        status = ui.label("정지 · 발견한 새를 눌러보자!").classes("jungle-status")
         with ui.element("div").classes("jungle-canopy"):
             for _ in range(4):
                 ui.element("span").classes("jungle-leaf")
         ui.element("div").classes("jungle-path")
-        ui.label("🌳").classes("jungle-object tree")
-        ui.label("🪵").classes("jungle-object branch")
-        ui.label("🐦").classes("jungle-object bird")
-        ui.label("🧭").classes("jungle-ranger")
-        with ui.element("div").classes("jungle-card"):
-            ui.label("희귀 새를 발견했어! 다음 Phase에서 문제 카드가 여기에 나타나요.")
+        ui.label("🌳").classes("jungle-object jungle-moving tree-left")
+        ui.label("🌴").classes("jungle-object jungle-moving tree-right")
+        ui.label("🪵").classes("jungle-object jungle-moving branch-left")
+        ui.label("🌿").classes("jungle-object jungle-moving branch-right")
+        bird = ui.button("🐦", on_click=discover_bird).classes("jungle-object jungle-moving bird").props('flat round aria-label="새 발견"')
+        ui.label("🚚").classes("jungle-truck")
+        discovery_card = ui.element("div").classes("jungle-card")
+        with discovery_card:
+            ui.label("새를 발견했어!").classes("text-h6")
+            ui.label("다음 Phase에서는 여기에 랜덤 학습 문제가 나타나요.")
+            ui.button("탐험 화면으로 돌아가기", on_click=close_discovery).classes("q-mt-sm")
+        discovery_card.set_visibility(False)
         with ui.element("div").classes("jungle-controls"):
-            ui.button("전진").classes("jungle-touch")
-            ui.button("정지").classes("jungle-touch")
-            ui.button("지망").classes("jungle-touch")
+            ui.button("전진", on_click=move_forward).classes("jungle-touch")
+            ui.button("정지", on_click=stop_moving).classes("jungle-touch")
+            ui.button("짐칸", on_click=show_cargo_placeholder).classes("jungle-touch")
+
+    place_bird()

@@ -38,8 +38,14 @@ class RouteFoundationTests(unittest.TestCase):
         self.assertIn("정글 대탐험", jungle_source)
         self.assertIn("전진", jungle_source)
         self.assertIn("정지", jungle_source)
-        self.assertIn("지망", jungle_source)
+        self.assertIn("짐칸", jungle_source)
         self.assertIn("min-height: 58px", jungle_source)
+        self.assertIn("on_click=move_forward", jungle_source)
+        self.assertIn("on_click=stop_moving", jungle_source)
+        self.assertIn("on_click=discover_bird", jungle_source)
+        self.assertIn("choice(BIRD_POSITION_CLASSES)", jungle_source)
+        self.assertIn('stage.classes(add="is-moving")', jungle_source)
+        self.assertIn("discovery_card.set_visibility(False)", jungle_source)
 
 
 if __name__ == "__main__":

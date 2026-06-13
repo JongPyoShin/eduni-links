@@ -189,7 +189,7 @@ def render_jungle_expedition() -> None:
     questions = load_jungle_questions()
     recent_questions: dict[str, list[str]] = {}
     collected_birds: list[dict[str, str]] = []
-    state: dict[str, object] = {"moving": False, "bird": choose_bird(), "question": None}
+    state: dict[str, object] = {"moving": False, "bird": choose_bird(), "question": None, "answered": False}
 
     def set_motion(moving: bool) -> None:
         state["moving"] = moving
@@ -221,6 +221,7 @@ def render_jungle_expedition() -> None:
         bird_info = state["bird"]
         question = select_question(questions, str(bird_info["id"]), recent_questions)
         state["question"] = question
+        state["answered"] = False
         remember_question(recent_questions, str(bird_info["id"]), question["id"])
         question_title.set_text(f'{bird_info["name"]} 발견! {question["subject"]} 문제')
         question_prompt.set_text(question["prompt"])
@@ -244,6 +245,8 @@ def render_jungle_expedition() -> None:
             hint_text.set_text(f'힌트: {question["hint"]}')
 
     def answer_question(choice_text: str) -> None:
+        if state["answered"]:
+            return
         question = state.get("question")
         bird_info = state["bird"]
         if not isinstance(question, dict) or not isinstance(bird_info, dict):
@@ -251,6 +254,7 @@ def render_jungle_expedition() -> None:
         if choice_text != question["answer"]:
             feedback.set_text("아직 아니야. 힌트를 보고 다시 골라보자.")
             return
+        state["answered"] = True
         collected_birds.append({"id": str(bird_info["id"]), "name": str(bird_info["name"])})
         feedback.set_text(f'{bird_info["name"]} 포획 성공! 이번 탐험 수집 수: {len(collected_birds)}')
         continue_button.set_visibility(True)

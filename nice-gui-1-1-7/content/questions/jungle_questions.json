@@ -1,0 +1,24 @@
+{
+  "questions": [
+    {"id": "hanja-001", "subject": "한자 7~6급", "difficulty": "basic", "prompt": "水의 뜻은 무엇일까?", "choices": ["물", "불", "나무"], "answer": "물", "hint": "시냇물과 강물을 떠올려 보자."},
+    {"id": "hanja-002", "subject": "한자 7~6급", "difficulty": "basic", "prompt": "山의 뜻은 무엇일까?", "choices": ["산", "강", "하늘"], "answer": "산", "hint": "높이 솟은 봉우리를 뜻해."},
+    {"id": "hanja-003", "subject": "한자 7~6급", "difficulty": "basic", "prompt": "日의 뜻은 무엇일까?", "choices": ["달", "해", "비"], "answer": "해", "hint": "낮에 밝게 빛나는 것을 뜻해."},
+    {"id": "hanja-004", "subject": "한자 7~6급", "difficulty": "basic", "prompt": "月의 뜻은 무엇일까?", "choices": ["별", "달", "구름"], "answer": "달", "hint": "밤하늘에서 둥글게 보이는 것을 뜻해."},
+    {"id": "hanja-005", "subject": "한자 7~6급", "difficulty": "basic", "prompt": "木의 뜻은 무엇일까?", "choices": ["나무", "돌", "흙"], "answer": "나무", "hint": "숲을 이루는 줄기와 가지를 떠올려 보자."},
+    {"id": "multiply-001", "subject": "구구단", "difficulty": "basic", "prompt": "3 x 4 = ?", "choices": ["7", "12", "14"], "answer": "12", "hint": "3을 네 번 더해 보자."},
+    {"id": "multiply-002", "subject": "구구단", "difficulty": "basic", "prompt": "6 x 2 = ?", "choices": ["8", "12", "16"], "answer": "12", "hint": "6이 두 묶음 있어."},
+    {"id": "multiply-003", "subject": "구구단", "difficulty": "basic", "prompt": "5 x 5 = ?", "choices": ["20", "25", "30"], "answer": "25", "hint": "5씩 다섯 번 뛰어 세어 보자."},
+    {"id": "multiply-004", "subject": "구구단", "difficulty": "basic", "prompt": "7 x 3 = ?", "choices": ["21", "24", "27"], "answer": "21", "hint": "7, 14 다음 수야."},
+    {"id": "multiply-005", "subject": "구구단", "difficulty": "basic", "prompt": "9 x 2 = ?", "choices": ["16", "18", "20"], "answer": "18", "hint": "9가 두 묶음 있어."},
+    {"id": "english-001", "subject": "영어", "difficulty": "basic", "prompt": "apple의 뜻은 무엇일까?", "choices": ["사과", "바나나", "포도"], "answer": "사과", "hint": "빨갛거나 초록색인 둥근 과일이야."},
+    {"id": "english-002", "subject": "영어", "difficulty": "basic", "prompt": "bird의 뜻은 무엇일까?", "choices": ["새", "물고기", "고양이"], "answer": "새", "hint": "정글에서 지금 찾고 있는 동물이야."},
+    {"id": "english-003", "subject": "영어", "difficulty": "basic", "prompt": "green의 뜻은 무엇일까?", "choices": ["초록색", "노란색", "검은색"], "answer": "초록색", "hint": "잎사귀 색을 떠올려 보자."},
+    {"id": "english-004", "subject": "영어", "difficulty": "basic", "prompt": "run의 뜻은 무엇일까?", "choices": ["달리다", "읽다", "잠자다"], "answer": "달리다", "hint": "빠르게 앞으로 움직이는 행동이야."},
+    {"id": "english-005", "subject": "영어", "difficulty": "basic", "prompt": "big의 뜻은 무엇일까?", "choices": ["큰", "작은", "차가운"], "answer": "큰", "hint": "크기가 작지 않은 것을 뜻해."},
+    {"id": "science-001", "subject": "과학", "difficulty": "basic", "prompt": "식물이 자라는 데 꼭 필요한 것은?", "choices": ["햇빛", "플라스틱", "모래시계"], "answer": "햇빛", "hint": "잎이 에너지를 만드는 데 필요해."},
+    {"id": "science-002", "subject": "과학", "difficulty": "basic", "prompt": "새가 날 때 주로 사용하는 것은?", "choices": ["날개", "뿌리", "지느러미"], "answer": "날개", "hint": "양쪽으로 펼쳐 바람을 타."},
+    {"id": "science-003", "subject": "과학", "difficulty": "basic", "prompt": "물은 몇 도에서 얼기 시작할까?", "choices": ["0도", "50도", "100도"], "answer": "0도", "hint": "겨울에 얼음이 생기는 온도야."},
+    {"id": "science-004", "subject": "과학", "difficulty": "basic", "prompt": "곤충의 다리는 보통 몇 개일까?", "choices": ["4개", "6개", "8개"], "answer": "6개", "hint": "세 쌍의 다리를 가져."},
+    {"id": "science-005", "subject": "과학", "difficulty": "basic", "prompt": "낮과 밤이 생기는 까닭은?", "choices": ["지구의 자전", "비가 와서", "바다가 움직여서"], "answer": "지구의 자전", "hint": "지구가 스스로 도는 움직임과 관련 있어."}
+  ]
+}

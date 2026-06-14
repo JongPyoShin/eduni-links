@@ -36,7 +36,7 @@ class RouteFoundationTests(unittest.TestCase):
         self.assertIn("JUNGLE_EXPEDITION_ACTIVITY_ID", route_source)
         self.assertIn("jungle.expedition.001", jungle_source)
         self.assertIn("정글 대탐험", jungle_source)
-        self.assertIn("Phase C-5", jungle_source)
+        self.assertIn("Phase C-6", jungle_source)
         self.assertIn("전진", jungle_source)
         self.assertIn("짐칸", jungle_source)
         self.assertIn("도감", jungle_source)

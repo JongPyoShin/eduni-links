@@ -75,6 +75,14 @@ def validate_question(question: dict[str, Any]) -> None:
         raise ValueError(f"{question['id']}: answer must be one of the choices")
 
 
+def shuffle_question_choices(question: dict[str, Any]) -> dict[str, Any]:
+    shuffled = dict(question)
+    choices = list(question["choices"])
+    random.shuffle(choices)
+    shuffled["choices"] = choices
+    return shuffled
+
+
 def select_question(
     questions: list[dict[str, Any]],
     bird_id: str,
@@ -83,7 +91,7 @@ def select_question(
     recent_ids = set(recent_by_bird.get(bird_id, [])[-4:])
     fresh = [question for question in questions if question["id"] not in recent_ids]
     pool = fresh or questions
-    return dict(random.choice(pool))
+    return shuffle_question_choices(random.choice(pool))
 
 
 def remember_question(recent_by_bird: dict[str, list[str]], bird_id: str, question_id: str) -> None:

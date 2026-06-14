@@ -170,11 +170,15 @@ def render_jungle_expedition() -> None:
             left: 18px;
             right: 18px;
             bottom: 220px;
+            box-sizing: border-box;
+            max-height: min(62vh, 430px);
+            overflow-y: auto;
             padding: 14px;
             border-radius: 8px;
             background: rgba(255,255,255,.95);
             border: 1px solid rgba(22, 101, 52, .24);
             font-weight: 800;
+            -webkit-overflow-scrolling: touch;
           }
           .jungle-hud {
             position: relative;
@@ -201,7 +205,7 @@ def render_jungle_expedition() -> None:
             z-index: 8;
             left: 14px;
             right: 14px;
-            bottom: 18px;
+            bottom: max(18px, env(safe-area-inset-bottom));
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 10px;
@@ -212,8 +216,8 @@ def render_jungle_expedition() -> None:
             font-weight: 900;
           }
           .jungle-answer-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-          .jungle-answer { min-height: 52px; min-width: 82px; border-radius: 8px; font-weight: 900; }
-          .jungle-codex-list { white-space: pre-line; max-height: 210px; overflow-y: auto; }
+          .jungle-answer { flex: 1 1 82px; min-height: 52px; min-width: 82px; border-radius: 8px; font-weight: 900; }
+          .jungle-codex-list { white-space: pre-line; max-height: min(34vh, 240px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
           @keyframes jungle-road-flow {
             from { background-position: center 0; }
             to { background-position: center 128px; }
@@ -224,7 +228,9 @@ def render_jungle_expedition() -> None:
           }
           @media (max-width: 420px) {
             .jungle-stage { min-height: calc(100vh - 40px); }
-            .jungle-touch { min-height: 54px; }
+            .jungle-card { left: 10px; right: 10px; bottom: 190px; max-height: calc(100vh - 286px); }
+            .jungle-controls { left: 10px; right: 10px; gap: 8px; }
+            .jungle-touch { min-height: 52px; }
           }
         </style>
         """
@@ -344,7 +350,7 @@ def render_jungle_expedition() -> None:
     with ui.element("section").classes("jungle-stage").props('aria-label="정글 대탐험 데모"') as stage:
         with ui.element("div").classes("jungle-hud"):
             ui.label("정글 대탐험")
-            ui.label("Phase C-3")
+            ui.label("Phase C-4")
         status = ui.label("전진을 눌러 새를 찾아보자!").classes("jungle-status")
         with ui.element("div").classes("jungle-canopy"):
             for _ in range(4):

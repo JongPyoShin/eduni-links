@@ -224,6 +224,15 @@ class JungleQuestionSelectorTests(unittest.TestCase):
         click("닫기")
         self.assertTrue(any("전진 중" in text for text in visible_texts()))
 
+        click("도감")
+        codex_texts = visible_texts()
+        self.assertTrue(any("도감 발견: 1/13종 · 총 3마리" in text for text in codex_texts))
+        self.assertTrue(any("비둘기 ★ 흔한 새 x 3개" in text for text in codex_texts))
+        self.assertTrue(any("❔ 미발견" in text for text in codex_texts))
+
+        click("닫기")
+        self.assertTrue(any("전진 중" in text for text in visible_texts()))
+
 
 if __name__ == "__main__":
     unittest.main()

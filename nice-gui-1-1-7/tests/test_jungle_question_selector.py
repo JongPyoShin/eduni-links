@@ -221,6 +221,9 @@ class JungleQuestionSelectorTests(unittest.TestCase):
         self.assertTrue(any("비둘기 ★ x 3개" in text for text in cargo_texts))
         self.assertFalse(any("비둘기 ★, 🕊️ 비둘기 ★" in text for text in cargo_texts))
 
+        click("닫기")
+        self.assertTrue(any("전진 중" in text for text in visible_texts()))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -62,6 +62,16 @@ class RouteFoundationTests(unittest.TestCase):
         self.assertIn("env(safe-area-inset-bottom)", jungle_source)
         self.assertIn("max-height: calc(100vh - 286px)", jungle_source)
 
+    def test_jungle_question_card_polish_is_declared(self) -> None:
+        jungle_source = (APP_ROOT / "portal_app" / "jungle_expedition.py").read_text(encoding="utf-8")
+        self.assertIn("jungle-question-prompt", jungle_source)
+        self.assertIn("font-size: 20px", jungle_source)
+        self.assertIn("font-size: 21px", jungle_source)
+        self.assertIn("question_title.set_text", jungle_source)
+        self.assertNotIn('{question["subject"]} 문제', jungle_source)
+        self.assertIn("hint_button.set_visibility(True)", jungle_source)
+        self.assertIn("hint_button.set_visibility(False)", jungle_source)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -5,7 +5,7 @@ import unittest
 from itertools import cycle
 from types import SimpleNamespace
 
-from portal_app.jungle_question_selector import BIRDS, load_jungle_questions, remember_question, select_question
+from portal_app.jungle_question_selector import BIRDS, load_jungle_birds, load_jungle_questions, remember_question, select_question
 
 
 class ClassList:
@@ -90,10 +90,25 @@ fake_ui = FakeUI()
 
 
 class JungleQuestionSelectorTests(unittest.TestCase):
+    def test_loads_bird_catalog_with_rarity(self) -> None:
+        birds = load_jungle_birds()
+        self.assertEqual(13, len(birds))
+        self.assertEqual(13, len(BIRDS))
+        rarity_counts = {rarity: 0 for rarity in {"common", "rare", "legendary"}}
+        for bird in birds:
+            rarity_counts[bird["rarity"]] += 1
+            self.assertTrue(bird["id"])
+            self.assertTrue(bird["emoji"])
+            self.assertTrue(bird["name"])
+            self.assertTrue(bird["rarity_label"])
+            self.assertTrue(bird["stars"])
+            self.assertTrue(bird["description"])
+            self.assertTrue(bird["asset_key"])
+        self.assertEqual({"common": 5, "rare": 5, "legendary": 3}, rarity_counts)
+
     def test_loads_required_subject_samples(self) -> None:
         questions = load_jungle_questions()
         subjects = {question["subject"] for question in questions}
-        self.assertEqual(6, len(BIRDS))
         self.assertEqual(20, len(questions))
         self.assertEqual({"한자 7~6급", "구구단", "영어", "과학"}, subjects)
         for question in questions:
@@ -113,7 +128,7 @@ class JungleQuestionSelectorTests(unittest.TestCase):
         questions = [
             {"id": "only", "subject": "과학", "difficulty": "basic", "prompt": "only", "choices": ["a", "b", "c"], "answer": "a", "hint": "h"}
         ]
-        selected = select_question(questions, "bird.owl", {"bird.owl": ["only"]})
+        selected = select_question(questions, "legend.starlight_owl", {"legend.starlight_owl": ["only"]})
         self.assertEqual("only", selected["id"])
 
     def test_remember_question_keeps_session_history_short(self) -> None:
@@ -161,6 +176,7 @@ class JungleQuestionSelectorTests(unittest.TestCase):
         click("새")
         click("새")
         self.assertTrue(any("수집 수: 1" in text for text in visible_texts()))
+        self.assertTrue(any("흔한 새" in text for text in visible_texts()))
         self.assertFalse(any("수집 수: 2" in text for text in visible_texts()))
 
         click("탐험 계속")

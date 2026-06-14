@@ -1,4 +1,4 @@
-﻿import os
+import os
 import json
 import re
 import base64
@@ -14,11 +14,11 @@ GAME_HTML = r'''
   <section class="game-shell">
     <header class="top-bar">
       <div>
-        <h1>?쇰????뚰듃由ъ뒪</h1>
-        <p id="statusText">媛濡쒖쨪???꾩꽦??蹂댁옄</p>
+        <h1>으듀니 테트리스</h1>
+        <p id="statusText">가로줄을 완성해 보자</p>
       </div>
       <div class="score-card">
-        <span>?먯닔</span>
+        <span>점수</span>
         <strong id="scoreText">0</strong>
       </div>
     </header>
@@ -30,30 +30,30 @@ GAME_HTML = r'''
 
       <aside class="side-panel">
         <div class="control-row">
-          <label for="difficultySelect">?쒖씠??/label>
+          <label for="difficultySelect">난이도</label>
           <select id="difficultySelect">
-            <option value="easy">?ъ?</option>
-            <option value="normal">蹂댄넻</option>
-            <option value="challenge">?꾩쟾</option>
+            <option value="easy">쉬움</option>
+            <option value="normal">보통</option>
+            <option value="challenge">도전</option>
           </select>
         </div>
 
         <div class="pieces-row">
           <div class="piece-area current-area">
-            <span>吏湲?釉붾줉</span>
+            <span>지금 블록</span>
             <div id="currentPiece" class="piece-preview" draggable="false" aria-label="current block"></div>
           </div>
           <div class="piece-area next-area">
-            <span>?ㅼ쓬</span>
+            <span>다음</span>
             <div id="nextPiece" class="piece-preview small" aria-label="next block"></div>
           </div>
         </div>
 
         <div class="button-row">
-          <button id="rotateToggleButton" type="button" aria-pressed="false">?뚯쟾 爰쇱쭚</button>
-          <button id="rotateButton" type="button">?뚯쟾</button>
-          <button id="soundToggleButton" type="button" aria-pressed="true">?④낵??耳쒖쭚</button>
-          <button id="newGameButton" type="button">??寃뚯엫</button>
+          <button id="rotateToggleButton" type="button" aria-pressed="false">회전 꺼짐</button>
+          <button id="rotateButton" type="button">회전</button>
+          <button id="soundToggleButton" type="button" aria-pressed="true">효과음 켜짐</button>
+          <button id="newGameButton" type="button">새 게임</button>
         </div>
       </aside>
     </main>
@@ -627,7 +627,7 @@ GAME_HTML = r'''
     if (!('speechSynthesis' in window) || !window.SpeechSynthesisUtterance) return false;
 
     const phrases = {
-      clear: ['?묒꽕?고듃!', '醫뗭븘!', '理쒓퀬??'],
+      clear: ['엑설런트!', '좋아!', '최고야!'],
     };
     const list = phrases[kind];
     if (!list) return false;
@@ -649,7 +649,7 @@ GAME_HTML = r'''
 
   function updateSoundControls() {
     soundToggleButton.setAttribute('aria-pressed', state.soundEnabled ? 'true' : 'false');
-    soundToggleButton.textContent = state.soundEnabled ? '?④낵??耳쒖쭚' : '?④낵??爰쇱쭚';
+    soundToggleButton.textContent = state.soundEnabled ? '효과음 켜짐' : '효과음 꺼짐';
   }
 
   function toggleSound() {
@@ -700,7 +700,7 @@ GAME_HTML = r'''
     boardEl.style.setProperty('--board-rows', state.rows);
     updateRotationControls();
     updateSoundControls();
-    statusText.textContent = '媛濡쒖쨪???꾩꽦??蹂댁옄';
+    statusText.textContent = '가로줄을 완성해 보자';
     renderAll();
     fitBoardToScreen();
   }
@@ -768,7 +768,7 @@ GAME_HTML = r'''
 
   function updateRotationControls() {
     rotateToggleButton.setAttribute('aria-pressed', state.rotationEnabled ? 'true' : 'false');
-    rotateToggleButton.textContent = state.rotationEnabled ? '?뚯쟾 耳쒖쭚' : '?뚯쟾 爰쇱쭚';
+    rotateToggleButton.textContent = state.rotationEnabled ? '회전 켜짐' : '회전 꺼짐';
     rotateButton.disabled = !state.rotationEnabled;
   }
 
@@ -779,9 +779,9 @@ GAME_HTML = r'''
       state.current = randomizeRotation(state.current);
       state.next = randomizeRotation(state.next);
       renderAll();
-      statusText.textContent = '釉붾줉? ?쒕뜡 諛⑺뼢?쇰줈 ?섏?';
+      statusText.textContent = '블록은 랜덤 방향으로 나와';
     } else {
-      statusText.textContent = '?뚯쟾 踰꾪듉???????덉뼱';
+      statusText.textContent = '회전 버튼을 쓸 수 있어';
     }
   }
 
@@ -1019,7 +1019,7 @@ GAME_HTML = r'''
     if (hasAnyMove(state.next)) {
       state.current = state.next;
       state.next = pickPiece();
-      statusText.textContent = '?볦쓣 ???덈뒗 釉붾윮?쇰줈 諛붽엥??';
+      statusText.textContent = '놓을 수 있는 블럭으로 바꿨어!';
       return true;
     }
 
@@ -1030,7 +1030,7 @@ GAME_HTML = r'''
       if (hasAnyMove(candidate)) {
         state.current = candidate;
         state.next = pickPiece();
-        statusText.textContent = '?볦쓣 ???덈뒗 釉붾윮?쇰줈 諛붽엥??';
+        statusText.textContent = '놓을 수 있는 블럭으로 바꿨어!';
         return true;
       }
     }
@@ -1040,7 +1040,7 @@ GAME_HTML = r'''
 
   function placePiece(startRow, startCol) {
     if (!canPlace(state.current, startRow, startCol)) {
-      statusText.textContent = '?ш린???볦쓣 ???놁뼱';
+      statusText.textContent = '여기는 놓을 수 없어';
       return;
     }
 
@@ -1083,7 +1083,7 @@ GAME_HTML = r'''
         if (cell) cell.classList.add('clear-flash');
       }
     });
-    statusText.textContent = completedRows.length > 1 ? '?! ?щ윭 以?' : '??以??깃났!';
+    statusText.textContent = completedRows.length > 1 ? '와! 여러 줄!' : '한 줄 성공!';
     window.setTimeout(done, 540);
   }
 
@@ -1100,11 +1100,11 @@ GAME_HTML = r'''
     state.next = pickPiece();
     state.selected = false;
     if (!completedRows.length) {
-      statusText.textContent = '醫뗭븘!';
+      statusText.textContent = '좋아!';
     }
     if (!preparePlayableCurrentPiece()) {
       state.gameOver = true;
-      statusText.textContent = '寃뚯엫 ?? ??寃뚯엫???뚮윭 ?ㅼ떆 ?대낫??;
+      statusText.textContent = '게임 끝! 새 게임을 눌러 다시 해보자';
     }
     renderAll();
   }
@@ -1114,7 +1114,7 @@ GAME_HTML = r'''
     state.current.shape = rotateShape(state.current.shape);
     renderPiece(currentPieceEl, state.current, false);
     playSound('rotate');
-    statusText.textContent = '鍮숆?!';
+    statusText.textContent = '빙글!';
     fitBoardToScreen();
   }
 
@@ -1191,9 +1191,9 @@ GAME_HTML = r'''
 HANJA_OUTPUT_DIR = Path(os.environ.get('EDUNI_HANJA_OUTPUT_DIR', r'C:\Users\jongp\Documents\Codex\2026-06-05\files-mentioned-by-the-user-oracle\outputs'))
 PRAISE_CHARACTER_DIR = Path(__file__).parent / 'assets' / 'praise_chars'
 BUBBLE_EXPLANATION_DROP_PHRASES = (
-    '?쒕졆??諛섎? ?쒖옄蹂대떎???④퍡 ?곗씠???⑥뼱瑜?以묒떖?쇰줈 ?듯엳硫?醫뗭뒿?덈떎',
-    '?룰컝由?留뚰븳 媛숈? ?뚯쓽 7湲??쒖옄??媛숈? ?뚯쓽 湲?먭? 留롮? ?딆뒿?덈떎',
-    '湲??紐⑥뼇留??몄슦吏 留먭퀬',
+    '뚜렷한 반대 한자보다는 함께 쓰이는 단어를 중심으로 익히면 좋습니다',
+    '헷갈릴 만한 같은 음의 7급 한자는 같은 음의 글자가 많지 않습니다',
+    '글자 모양만 외우지 말고',
 )
 
 
@@ -1208,11 +1208,11 @@ def clean_bubble_explanation(explanation: str) -> str:
 
 
 def extract_meaning_sound(explanation: str, fallback: str) -> str:
-    match = re.search(r"?산낵 ?뚯쓣 ?④퍡 ?곕㈃ '([^']+)'", explanation)
+    match = re.search(r"뜻과 음을 함께 쓰면 '([^']+)'", explanation)
     if match:
         return match.group(1)
-    meaning = re.search(r"?살? '([^']+)'", explanation)
-    sound = re.search(r"?뚯? '([^']+)'", explanation)
+    meaning = re.search(r"뜻은 '([^']+)'", explanation)
+    sound = re.search(r"음은 '([^']+)'", explanation)
     if meaning and sound:
         return f"{meaning.group(1)} {sound.group(1)}"
     return fallback
@@ -1264,18 +1264,18 @@ BUBBLE_HTML_TEMPLATE = r'''
   <section class="bubble-shell">
     <header class="bubble-top">
       <div>
-        <h1>?쇰???踰꾨툝??/h1>
-        <p id="bubbleStatus">?뺣떟 踰꾨툝?????곕쑉??蹂댁옄</p>
+        <h1>으듀니 버블팝</h1>
+        <p id="bubbleStatus">정답 버블을 톡 터뜨려 보자</p>
       </div>
       <div class="bubble-score">
         <span id="roundText">1 / 10</span>
-        <strong id="starText">??????/strong>
+        <strong id="starText">☆ ☆ ☆</strong>
       </div>
     </header>
 
     <main class="bubble-stage">
       <section class="prompt-panel">
-        <span id="topicText">?쒖옄</span>
+        <span id="topicText">한자</span>
         <h2 id="questionText"></h2>
       </section>
       <div id="bubbleField" class="bubble-field" aria-label="answer bubbles"></div>
@@ -1283,25 +1283,25 @@ BUBBLE_HTML_TEMPLATE = r'''
     </main>
 
     <footer class="bubble-actions">
-      <button id="soundButton" type="button" aria-pressed="true">?④낵??耳쒖쭚</button>
-      <button id="restartButton" type="button">?ㅼ떆 ?쒖옉</button>
+      <button id="soundButton" type="button" aria-pressed="true">효과음 켜짐</button>
+      <button id="restartButton" type="button">다시 시작</button>
     </footer>
 
     <div id="resultOverlay" class="result-overlay hidden">
       <div class="result-box">
-        <span>?꾨즺</span>
+        <span>완료</span>
         <h2 id="resultTitle"></h2>
         <p id="resultDetail"></p>
-        <button id="resultRestartButton" type="button">??踰???/button>
+        <button id="resultRestartButton" type="button">한 번 더</button>
       </div>
     </div>
 
     <div id="answerOverlay" class="result-overlay hidden">
       <div class="result-box answer-box">
-        <span id="answerPraise">醫뗭븘!</span>
-        <h2>?뺣떟</h2>
+        <span id="answerPraise">좋아!</span>
+        <h2>정답</h2>
         <div id="answerExplanation"></div>
-        <button id="answerNextButton" type="button">?뺤씤</button>
+        <button id="answerNextButton" type="button">확인</button>
       </div>
     </div>
   </section>
@@ -1600,7 +1600,7 @@ BUBBLE_HTML_TEMPLATE = r'''
   const questions = __QUESTIONS_JSON__;
   const totalRounds = 10;
   const colors = ['#9ee7ff', '#a7f3d0', '#fde68a', '#fecdd3', '#ddd6fe', '#bfdbfe'];
-  const praise = ['醫뗭븘!', '洹몃쩆??', '?묒꽕?고듃!', '?섑뻽??'];
+  const praise = ['좋아!', '그뤠잇!', '엑설런트!', '잘했어!'];
   const field = document.getElementById('bubbleField');
   const questionText = document.getElementById('questionText');
   const roundText = document.getElementById('roundText');
@@ -1663,13 +1663,13 @@ BUBBLE_HTML_TEMPLATE = r'''
   function updateStars() {
     const ratio = correctCount / Math.max(1, index);
     if (index === 0) {
-      starText.textContent = '??????;
+      starText.textContent = '☆ ☆ ☆';
     } else if (ratio >= 0.9) {
-      starText.textContent = '??????;
+      starText.textContent = '★ ★ ★';
     } else if (ratio >= 0.65) {
-      starText.textContent = '??????;
+      starText.textContent = '★ ★ ☆';
     } else {
-      starText.textContent = '??????;
+      starText.textContent = '★ ☆ ☆';
     }
   }
 
@@ -1696,7 +1696,7 @@ BUBBLE_HTML_TEMPLATE = r'''
     const question = deck[index];
     roundText.textContent = `${index + 1} / ${totalRounds}`;
     questionText.textContent = question.prompt;
-    feedbackPanel.textContent = '?뺣떟?대씪怨??앷컖?섎뒗 踰꾨툝???곗튂?대킄.';
+    feedbackPanel.textContent = '정답이라고 생각하는 버블을 터치해봐.';
     updateStars();
 
     const positions = bubblePositions(question.choices.length);
@@ -1725,7 +1725,7 @@ BUBBLE_HTML_TEMPLATE = r'''
       tone(660, 0.12, 'triangle');
       setTimeout(() => tone(880, 0.14, 'triangle'), 80);
       const say = praise[Math.floor(Math.random() * praise.length)];
-      feedbackPanel.textContent = `${say} ?댁꽕???뺤씤?대낫??`;
+      feedbackPanel.textContent = `${say} 해설을 확인해보자.`;
       if ((index + correctCount) % 3 === 0) speak(say);
       window.setTimeout(() => showAnswerExplanation(say, question.explanation), 420);
     } else {
@@ -1733,13 +1733,13 @@ BUBBLE_HTML_TEMPLATE = r'''
       void button.offsetWidth;
       button.classList.add('wrong');
       tone(180, 0.12, 'sine');
-      feedbackPanel.textContent = '愿쒖갖?? ?ㅼ떆 怨⑤씪蹂댁옄.';
+      feedbackPanel.textContent = '괜찮아. 다시 골라보자.';
     }
   }
 
   function showAnswerExplanation(say, explanation) {
     answerPraise.textContent = say;
-    renderAnswerExplanation(explanation || '?섑뻽?? ?뺣떟??怨⑤옄??');
+    renderAnswerExplanation(explanation || '잘했어. 정답을 골랐어.');
     answerOverlay.classList.remove('hidden');
     answerNextButton.focus({ preventScroll: true });
   }
@@ -1756,7 +1756,7 @@ BUBBLE_HTML_TEMPLATE = r'''
 
     details.forEach(sentence => {
       const line = document.createElement('p');
-      const shouldFocus = /?덉떆|鍮꾩듂|諛섎?|吏?媛숈? ??.test(sentence);
+      const shouldFocus = /예시|비슷|반대|짝|같은 음/.test(sentence);
       line.className = shouldFocus ? 'explanation-line explanation-focus' : 'explanation-line';
       line.textContent = sentence;
       answerExplanation.appendChild(line);
@@ -1776,10 +1776,10 @@ BUBBLE_HTML_TEMPLATE = r'''
   function showResult() {
     updateStars();
     const stars = correctCount >= 9 ? 3 : correctCount >= 7 ? 2 : 1;
-    resultTitle.textContent = `${starText.textContent} ${correctCount}媛?留욏삍??;
-    resultDetail.textContent = stars === 3 ? '?ㅻ뒛 ?쒖옄 踰꾨툝 ?ㅻ젰???꾩＜ 醫뗭븘.' : '?ㅼ떆 ?섎㈃ 蹂꾩쓣 ??紐⑥쓣 ???덉뼱.';
+    resultTitle.textContent = `${starText.textContent} ${correctCount}개 맞혔어`;
+    resultDetail.textContent = stars === 3 ? '오늘 한자 버블 실력이 아주 좋아.' : '다시 하면 별을 더 모을 수 있어.';
     resultOverlay.classList.remove('hidden');
-    if (stars === 3) speak('?묒꽕?고듃!');
+    if (stars === 3) speak('엑설런트!');
   }
 
   function startGame() {
@@ -1791,7 +1791,7 @@ BUBBLE_HTML_TEMPLATE = r'''
 
   soundButton.addEventListener('click', () => {
     soundEnabled = !soundEnabled;
-    soundButton.textContent = soundEnabled ? '?④낵??耳쒖쭚' : '?④낵??爰쇱쭚';
+    soundButton.textContent = soundEnabled ? '효과음 켜짐' : '효과음 꺼짐';
     soundButton.setAttribute('aria-pressed', String(soundEnabled));
   });
   restartButton.addEventListener('click', startGame);
@@ -1814,12 +1814,12 @@ def bubble_html() -> str:
     if not questions:
         questions = [
             {
-                'target': '??,
-                'prompt': "?쒖옄 '?????산낵 ?뚯쑝濡??뚮쭪? 寃껋??",
-                'choices': ['寃⑥슱 ??, '?щ쫫 ??, '遊?異?, '媛??異?],
+                'target': '冬',
+                'prompt': "한자 '冬'의 뜻과 음으로 알맞은 것은?",
+                'choices': ['겨울 동', '여름 하', '봄 춘', '가을 추'],
                 'answerIndex': 0,
-                'answerLabel': '寃⑥슱 ??,
-                'explanation': "?뺣떟? ?ъ엯?덈떎. ?ъ? 寃⑥슱 ?숈엯?덈떎.",
+                'answerLabel': '겨울 동',
+                'explanation': "정답은 冬입니다. 冬은 겨울 동입니다.",
             }
         ]
     return BUBBLE_HTML_TEMPLATE.replace('__QUESTIONS_JSON__', json.dumps(questions, ensure_ascii=False))
@@ -1830,11 +1830,11 @@ SHOOTER_HTML_TEMPLATE = r'''
   <section class="shooter-shell">
     <header class="shooter-top">
       <div>
-        <h1>?쇰????쒖옄 ?덊꽣</h1>
-        <p id="shooterStatus">?살쓬 踰꾨툝??留욌뒗 ?쒖옄????蹂댁옄</p>
+        <h1>으듀니 한자 슈터</h1>
+        <p id="shooterStatus">뜻음 버블을 맞는 한자에 쏴 보자</p>
       </div>
       <div class="shooter-score">
-        <span>?먯닔</span>
+        <span>점수</span>
         <strong id="shooterScore">0</strong>
       </div>
     </header>
@@ -1843,21 +1843,21 @@ SHOOTER_HTML_TEMPLATE = r'''
       <canvas id="shooterCanvas" aria-label="hanja bubble shooter"></canvas>
       <div id="shooterPraisePop" class="praise-pop hidden" aria-live="polite">
         <img id="praiseCharacterImage" class="praise-character" alt="">
-        <strong id="praisePopText">醫뗭븘!</strong>
+        <strong id="praisePopText">좋아!</strong>
       </div>
     </main>
 
     <footer class="shooter-actions">
-      <button id="shooterSoundButton" type="button" aria-pressed="true">?④낵??耳쒖쭚</button>
-      <button id="shooterRestartButton" type="button">?ㅼ떆 ?쒖옉</button>
+      <button id="shooterSoundButton" type="button" aria-pressed="true">효과음 켜짐</button>
+      <button id="shooterRestartButton" type="button">다시 시작</button>
     </footer>
 
     <div id="shooterAnswerOverlay" class="shooter-overlay hidden">
       <div class="shooter-dialog">
-        <span id="shooterPraise">醫뗭븘!</span>
-        <h2 id="shooterAnswerTitle">?뺣떟</h2>
+        <span id="shooterPraise">좋아!</span>
+        <h2 id="shooterAnswerTitle">정답</h2>
         <div id="shooterExplanation"></div>
-        <button id="shooterNextButton" type="button">?뺤씤</button>
+        <button id="shooterNextButton" type="button">확인</button>
       </div>
     </div>
   </section>
@@ -2133,7 +2133,7 @@ SHOOTER_HTML_TEMPLATE = r'''
   const praisePopText = document.getElementById('praisePopText');
   const praiseCharacterImage = document.getElementById('praiseCharacterImage');
 
-  const praise = ['醫뗭븘!', '洹몃쩆??', '?묒꽕?고듃!', '?섑뻽??'];
+  const praise = ['좋아!', '그뤠잇!', '엑설런트!', '잘했어!'];
   const colors = ['#f87171', '#facc15', '#38bdf8', '#4ade80', '#a78bfa', '#fb7185'];
   const state = {
     width: 0,
@@ -2232,7 +2232,7 @@ SHOOTER_HTML_TEMPLATE = r'''
     const frontY = Math.max(...live.map(b => b.y));
     const front = live.filter(b => Math.abs(b.y - frontY) < state.radius * 0.8);
     state.current = front[Math.floor(Math.random() * front.length)];
-    statusEl.textContent = `'${state.current.meaningSound || state.current.answerLabel}' 踰꾨툝??留욌뒗 ?쒖옄???섏옄`;
+    statusEl.textContent = `'${state.current.meaningSound || state.current.answerLabel}' 버블을 맞는 한자에 쏘자`;
   }
 
   function startGame() {
@@ -2500,12 +2500,12 @@ SHOOTER_HTML_TEMPLATE = r'''
       scoreEl.textContent = String(state.score);
       state.bubbles = state.bubbles.filter(b => b !== hit);
       const say = praise[Math.floor(Math.random() * praise.length)];
-      statusEl.textContent = `${say} ?뺣떟 踰꾨툝???곕쑉?몄뼱`;
+      statusEl.textContent = `${say} 정답 버블을 터뜨렸어`;
       playTone(780, 0.11, 'triangle');
       setTimeout(() => playTone(980, 0.12, 'triangle'), 80);
       setTimeout(() => showPraise(hit, say), 220);
     } else {
-      statusEl.textContent = '?꾧퉴?? 留욌뒗 ?쒖옄 踰꾨툝???ㅼ떆 李얠븘蹂댁옄';
+      statusEl.textContent = '아까워. 맞는 한자 버블을 다시 찾아보자';
       missShot();
     }
   }
@@ -2578,7 +2578,7 @@ SHOOTER_HTML_TEMPLATE = r'''
     explanationEl.appendChild(leadEl);
     details.forEach(sentence => {
       const line = document.createElement('p');
-      line.className = /?덉떆|鍮꾩듂|諛섎?|吏?媛숈? ??.test(sentence) ? 'shooter-line shooter-focus' : 'shooter-line';
+      line.className = /예시|비슷|반대|짝|같은 음/.test(sentence) ? 'shooter-line shooter-focus' : 'shooter-line';
       line.textContent = sentence;
       explanationEl.appendChild(line);
     });
@@ -2587,18 +2587,18 @@ SHOOTER_HTML_TEMPLATE = r'''
   function finishGame(clear) {
     state.gameOver = true;
     state.waiting = true;
-    praiseEl.textContent = clear ? '?깃났!' : '寃뚯엫 ??;
-    titleEl.textContent = clear ? '紐⑤뱺 踰꾨툝???곕쑉?몄뼱' : '?ㅼ떆 ?꾩쟾?대낫??;
-    renderExplanation(clear ? '?ㅻ뒛 ?쒖옄 ?덊꽣 ?ㅻ젰???꾩＜ 醫뗭븘.' : '踰꾨툝???꾨옒源뚯? ?대젮?붿뼱. ?ㅼ떆 ?쒖옉???뚮윭 ??踰????대낫??');
+    praiseEl.textContent = clear ? '성공!' : '게임 끝';
+    titleEl.textContent = clear ? '모든 버블을 터뜨렸어' : '다시 도전해보자';
+    renderExplanation(clear ? '오늘 한자 슈터 실력이 아주 좋아.' : '버블이 아래까지 내려왔어. 다시 시작을 눌러 한 번 더 해보자.');
     nextButton.style.display = '';
     overlay.classList.remove('hidden');
-    nextButton.textContent = '?ㅼ떆 ?쒖옉';
+    nextButton.textContent = '다시 시작';
   }
 
   function continueGame() {
     overlay.classList.add('hidden');
     if (state.gameOver) {
-      nextButton.textContent = '?뺤씤';
+      nextButton.textContent = '확인';
       startGame();
       return;
     }
@@ -2635,7 +2635,7 @@ SHOOTER_HTML_TEMPLATE = r'''
   nextButton.addEventListener('click', continueGame);
   soundButton.addEventListener('click', () => {
     state.soundEnabled = !state.soundEnabled;
-    soundButton.textContent = state.soundEnabled ? '?④낵??耳쒖쭚' : '?④낵??爰쇱쭚';
+    soundButton.textContent = state.soundEnabled ? '효과음 켜짐' : '효과음 꺼짐';
     soundButton.setAttribute('aria-pressed', String(state.soundEnabled));
   });
   window.addEventListener('resize', resizeCanvas);
@@ -2652,10 +2652,10 @@ def shooter_html() -> str:
     if not questions:
         questions = [
             {
-                'target': '??,
-                'answerLabel': '寃⑥슱 ??,
-                'meaningSound': '寃⑥슱 ??,
-                'explanation': '?뺣떟? ?ъ엯?덈떎. ?ъ? 寃⑥슱 ?숈엯?덈떎. ?덉떆 ?⑥뼱???ц눛(?숈?), ?х쑀(?숇㈃)?낅땲??',
+                'target': '冬',
+                'answerLabel': '겨울 동',
+                'meaningSound': '겨울 동',
+                'explanation': '정답은 冬입니다. 冬은 겨울 동입니다. 예시 단어는 冬至(동지), 冬眠(동면)입니다.',
             }
         ]
     return (
@@ -2695,5 +2695,4 @@ register_pages()
 if __name__ in {'__main__', '__mp_main__'}:
     port = int(os.environ.get('PORT', '8080'))
     host = os.environ.get('EDUNI_HOST', '127.0.0.1')
-    ui.run(title='?쇰????뚰듃由ъ뒪', host=host, port=port, reload=False)
-
+    ui.run(title='으듀니 테트리스', host=host, port=port, reload=False)

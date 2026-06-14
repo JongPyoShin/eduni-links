@@ -1188,7 +1188,7 @@ GAME_HTML = r'''
 </script>
 '''
 
-HANJA_OUTPUT_DIR = Path(os.environ.get('EDUNI_HANJA_OUTPUT_DIR', r'C:\Users\jongp\Documents\Codex\2026-06-05\files-mentioned-by-the-user-oracle\outputs'))
+HANJA_OUTPUT_DIR = Path(os.environ.get('EDUNI_HANJA_OUTPUT_DIR', Path(__file__).parent / 'content' / 'questions' / 'hanja'))
 PRAISE_CHARACTER_DIR = Path(__file__).parent / 'assets' / 'praise_chars'
 BUBBLE_EXPLANATION_DROP_PHRASES = (
     '뚜렷한 반대 한자보다는 함께 쓰이는 단어를 중심으로 익히면 좋습니다',
@@ -1230,10 +1230,7 @@ def load_praise_character_data_urls() -> list[str]:
 
 def load_bubble_questions() -> list[dict[str, object]]:
     questions: list[dict[str, object]] = []
-    for set_no in [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 1, 2, 3, 4]:
-        path = HANJA_OUTPUT_DIR / f'hanja_quiz_set_{set_no:02d}.json'
-        if not path.exists():
-            continue
+    for path in sorted(HANJA_OUTPUT_DIR.glob('hanja_quiz_set_*.json')):
         data = json.loads(path.read_text(encoding='utf-8-sig'))
         for question in data.get('questions', []):
             choices = question.get('choices', [])
@@ -1254,9 +1251,8 @@ def load_bubble_questions() -> list[dict[str, object]]:
                     'explanation': clean_bubble_explanation(question.get('explanation', '')),
                 }
             )
-            if len(questions) >= 80:
-                return questions
     return questions
+
 
 
 BUBBLE_HTML_TEMPLATE = r'''

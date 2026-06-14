@@ -10,6 +10,12 @@ from .recommendation import today_world
 from .registry import WORLDS, get_world
 
 
+FEATURED_ACTIVITY_IDS = (
+    JUNGLE_EXPEDITION_ACTIVITY_ID,
+    "math.pattern_train.001",
+)
+
+
 def _head() -> None:
     ui.add_head_html(
         """
@@ -20,6 +26,7 @@ def _head() -> None:
           .portal-hero { padding: 22px; border: 1px solid #d9e2ec; border-radius: 8px; background: #fff; box-shadow: 0 14px 36px rgba(16,24,39,.08); }
           .portal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
           .portal-card { min-height: 150px; padding: 18px; border: 1px solid #d9e2ec; border-radius: 8px; background: #fff; box-shadow: 0 8px 20px rgba(16,24,39,.06); }
+          .portal-feature-card { min-height: 170px; border: 2px solid rgba(22, 101, 52, .22); background: linear-gradient(180deg, #ffffff, #f0fdf4); }
           .portal-action { min-height: 46px; border-radius: 8px; font-weight: 800; }
           .world-icon { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 8px; color: white; font-size: 24px; font-weight: 900; }
           .muted { color: #667085; }
@@ -39,6 +46,8 @@ def register_pages() -> None:
         _head()
         initialize_database()
         activities = load_activities()
+        activity_by_id = {activity.id: activity for activity in activities}
+        featured_activities = [activity_by_id[activity_id] for activity_id in FEATURED_ACTIVITY_IDS if activity_id in activity_by_id]
         suggested = today_world()
         with ui.element("main").classes("portal-shell"):
             with ui.element("section").classes("portal-hero"):
@@ -46,7 +55,21 @@ def register_pages() -> None:
                 ui.label("짧은 활동을 고르고, 해 보고, 설명해 보는 가족용 학습 포털입니다.").classes("muted text-subtitle1")
                 with ui.row().classes("q-mt-md q-gutter-sm"):
                     ui.link("오늘의 탐험 시작", f"/portal/world/{suggested.id}").classes("portal-action q-btn q-btn-item q-btn--standard bg-dark text-white q-px-md")
-                    ui.link("잠깐 놀이: 테트리스", "/").classes("portal-action q-btn q-btn-item q-btn--outline q-px-md")
+                    ui.link("정글 대탐험 바로가기", f"/portal/activity/{JUNGLE_EXPEDITION_ACTIVITY_ID}").classes("portal-action q-btn q-btn-item q-btn--standard bg-green text-white q-px-md")
+
+            if featured_activities:
+                ui.label("바로 시작").classes("text-h5 text-weight-bold q-mt-lg")
+                with ui.element("section").classes("portal-grid"):
+                    for activity in featured_activities:
+                        with ui.card().classes("portal-card portal-feature-card"):
+                            world = get_world(activity.world)
+                            ui.label(activity.title).classes("text-h6 text-weight-bold")
+                            ui.label(activity.prompt).classes("muted")
+                            if world:
+                                ui.label(f"{world.short_title} · {activity.difficulty} · {activity.estimated_minutes}분").classes("muted q-mt-sm")
+                            else:
+                                ui.label(f"{activity.difficulty} · {activity.estimated_minutes}분").classes("muted q-mt-sm")
+                            ui.link("시작하기", f"/portal/activity/{activity.id}").classes("portal-action q-btn q-btn-item q-btn--standard bg-dark text-white q-mt-md")
 
             ui.label("학습 세계").classes("text-h5 text-weight-bold q-mt-lg")
             with ui.element("section").classes("portal-grid"):

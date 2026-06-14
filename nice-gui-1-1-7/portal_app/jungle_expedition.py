@@ -180,6 +180,13 @@ def render_jungle_expedition() -> None:
             font-weight: 800;
             -webkit-overflow-scrolling: touch;
           }
+          .jungle-question-prompt {
+            font-size: 20px;
+            line-height: 1.45;
+            font-weight: 900;
+            margin-top: 8px;
+            color: #0f172a;
+          }
           .jungle-hud {
             position: relative;
             z-index: 4;
@@ -229,6 +236,7 @@ def render_jungle_expedition() -> None:
           @media (max-width: 420px) {
             .jungle-stage { min-height: calc(100vh - 40px); }
             .jungle-card { left: 10px; right: 10px; bottom: 190px; max-height: calc(100vh - 286px); }
+            .jungle-question-prompt { font-size: 21px; }
             .jungle-controls { left: 10px; right: 10px; gap: 8px; }
             .jungle-touch { min-height: 52px; }
           }
@@ -275,10 +283,11 @@ def render_jungle_expedition() -> None:
         state["question"] = question
         state["answered"] = False
         remember_question(recent_questions, str(bird_info["id"]), question["id"])
-        question_title.set_text(f'{bird_info["emoji"]} {bird_info["name"]} 발견! {format_bird_badge(bird_info)} · {question["subject"]} 문제')
+        question_title.set_text(f'{bird_info["emoji"]} {bird_info["name"]} 발견! {format_bird_badge(bird_info)}')
         question_prompt.set_text(question["prompt"])
         hint_text.set_text(str(bird_info["description"]))
         feedback.set_text("")
+        hint_button.set_visibility(True)
         continue_button.set_visibility(False)
         answer_row.clear()
         with answer_row:
@@ -313,6 +322,7 @@ def render_jungle_expedition() -> None:
             f'{bird_info["name"]} 포획 성공! {format_bird_badge(bird_info)} · '
             f'이 새 {bird_capture_count}번 · 전체 {total_captures}마리'
         )
+        hint_button.set_visibility(False)
         continue_button.set_visibility(True)
 
     def continue_expedition() -> None:
@@ -371,12 +381,12 @@ def render_jungle_expedition() -> None:
         question_card = ui.element("div").classes("jungle-card")
         with question_card:
             question_title = ui.label("").classes("text-h6")
-            question_prompt = ui.label("")
+            question_prompt = ui.label("").classes("jungle-question-prompt")
             answer_row = ui.element("div").classes("jungle-answer-row")
             hint_text = ui.label("").classes("muted q-mt-sm")
             feedback = ui.label("").classes("q-mt-sm")
             with ui.row().classes("q-gutter-sm q-mt-sm"):
-                ui.button("힌트", on_click=show_hint).classes("jungle-answer")
+                hint_button = ui.button("힌트", on_click=show_hint).classes("jungle-answer")
                 continue_button = ui.button("탐험 계속", on_click=continue_expedition).classes("jungle-answer")
         question_card.set_visibility(False)
         continue_button.set_visibility(False)

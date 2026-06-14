@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import sys
 import unittest
-from itertools import cycle
 from types import SimpleNamespace
 
 from portal_app.jungle_question_selector import BIRDS, load_jungle_birds, load_jungle_questions, remember_question, select_question
@@ -137,14 +136,14 @@ class JungleQuestionSelectorTests(unittest.TestCase):
             remember_question(history, "bird.duck", f"q-{index}")
         self.assertEqual([f"q-{index}" for index in range(4, 12)], history["bird.duck"])
 
-    def test_jungle_correct_answer_is_counted_once_per_question(self) -> None:
+    def test_jungle_correct_answer_is_counted_once_and_cargo_groups_duplicates(self) -> None:
         fake_ui.created.clear()
         fake_ui.contexts.clear()
         sys.modules["nicegui"] = SimpleNamespace(ui=fake_ui)
 
         import portal_app.jungle_expedition as jungle_expedition
 
-        birds = cycle(dict(bird) for bird in BIRDS)
+        pigeon = dict(BIRDS[2])
         question = {
             "id": "test-q",
             "subject": "영어",
@@ -154,7 +153,7 @@ class JungleQuestionSelectorTests(unittest.TestCase):
             "answer": "새",
             "hint": "정글에서 찾는 동물이야.",
         }
-        jungle_expedition.choose_bird = lambda: next(birds)
+        jungle_expedition.choose_bird = lambda: dict(pigeon)
         jungle_expedition.load_jungle_questions = lambda: [question]
         jungle_expedition.select_question = lambda _questions, _bird_id, _recent: dict(question)
         jungle_expedition.render_jungle_expedition()
@@ -190,6 +189,11 @@ class JungleQuestionSelectorTests(unittest.TestCase):
         bird.on_click()
         click("새")
         self.assertTrue(any("수집 수: 3" in text for text in visible_texts()))
+
+        click("짐칸")
+        cargo_texts = visible_texts()
+        self.assertTrue(any("비둘기 ★ x 3개" in text for text in cargo_texts))
+        self.assertFalse(any("비둘기 ★, 🕊️ 비둘기 ★" in text for text in cargo_texts))
 
 
 if __name__ == "__main__":

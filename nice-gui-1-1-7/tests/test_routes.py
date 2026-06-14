@@ -30,13 +30,13 @@ class RouteFoundationTests(unittest.TestCase):
         self.assertIn('@ui.page("/portal/world/{world_id}")', route_source)
         self.assertIn('@ui.page("/portal/parent")', route_source)
 
-    def test_jungle_expedition_phase_c4_route_is_declared(self) -> None:
+    def test_jungle_expedition_phase_c5_route_is_declared(self) -> None:
         route_source = (APP_ROOT / "portal_app" / "routes.py").read_text(encoding="utf-8")
         jungle_source = (APP_ROOT / "portal_app" / "jungle_expedition.py").read_text(encoding="utf-8")
         self.assertIn("JUNGLE_EXPEDITION_ACTIVITY_ID", route_source)
         self.assertIn("jungle.expedition.001", jungle_source)
         self.assertIn("정글 대탐험", jungle_source)
-        self.assertIn("Phase C-4", jungle_source)
+        self.assertIn("Phase C-5", jungle_source)
         self.assertIn("전진", jungle_source)
         self.assertIn("짐칸", jungle_source)
         self.assertIn("도감", jungle_source)
@@ -46,6 +46,7 @@ class RouteFoundationTests(unittest.TestCase):
         self.assertIn("format_bird_badge", jungle_source)
         self.assertIn("format_codex_summary", jungle_source)
         self.assertIn("format_codex_items", jungle_source)
+        self.assertIn("format_codex_detail", jungle_source)
         self.assertIn("load_collection", jungle_source)
         self.assertIn("record_capture", jungle_source)
         self.assertIn("힌트", jungle_source)
@@ -71,6 +72,17 @@ class RouteFoundationTests(unittest.TestCase):
         self.assertNotIn('{question["subject"]} 문제', jungle_source)
         self.assertIn("hint_button.set_visibility(True)", jungle_source)
         self.assertIn("hint_button.set_visibility(False)", jungle_source)
+
+    def test_jungle_codex_detail_markers_are_declared(self) -> None:
+        jungle_source = (APP_ROOT / "portal_app" / "jungle_expedition.py").read_text(encoding="utf-8")
+        self.assertIn("jungle-detail-card", jungle_source)
+        self.assertIn("jungle-detail-body", jungle_source)
+        self.assertIn("상세 닫기", jungle_source)
+        self.assertIn("잡은 횟수:", jungle_source)
+        self.assertIn("처음 포획:", jungle_source)
+        self.assertIn("마지막 포획:", jungle_source)
+        self.assertIn("아직 미발견", jungle_source)
+        self.assertIn("???", jungle_source)
 
 
 if __name__ == "__main__":

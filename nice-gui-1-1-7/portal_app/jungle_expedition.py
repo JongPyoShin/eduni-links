@@ -297,7 +297,7 @@ def render_jungle_expedition() -> None:
         cargo_card.set_visibility(True)
 
     def close_cargo() -> None:
-        cargo_card.set_visibility(False)
+        move_forward()
 
     with ui.element("section").classes("jungle-stage").props('aria-label="정글 대탐험 데모"') as stage:
         with ui.element("div").classes("jungle-hud"):

@@ -9,10 +9,9 @@ from .jungle_storage import count_total_captures, load_collection, record_captur
 
 JUNGLE_EXPEDITION_ACTIVITY_ID = "jungle.expedition.001"
 BIRD_POSITION_CLASSES = (
-    "bird-position-left-high",
-    "bird-position-left-low",
-    "bird-position-right-high",
-    "bird-position-right-low",
+    "bird-lane-left",
+    "bird-lane-center",
+    "bird-lane-right",
 )
 
 
@@ -139,15 +138,17 @@ def render_jungle_expedition() -> None:
           .branch-right-b { right: 26px; top: 455px; animation-delay: -5.3s; }
           .jungle-object.bird {
             z-index: 3;
+            top: -72px;
             min-width: 64px;
             min-height: 64px;
             outline: 4px solid rgba(250, 204, 21, .7);
             font-size: 36px;
+            animation: jungle-bird-drop 7.5s linear infinite paused;
           }
-          .bird-position-left-high { left: 28px; top: 210px; }
-          .bird-position-left-low { left: 46px; top: 430px; }
-          .bird-position-right-high { right: 30px; top: 230px; }
-          .bird-position-right-low { right: 48px; top: 450px; }
+          .jungle-stage.is-moving .jungle-object.bird { animation-play-state: running; }
+          .bird-lane-left { left: 34px; }
+          .bird-lane-center { left: 50%; margin-left: -32px; }
+          .bird-lane-right { right: 34px; }
           .jungle-truck {
             position: absolute;
             z-index: 4;
@@ -232,6 +233,22 @@ def render_jungle_expedition() -> None:
           @keyframes jungle-object-flow {
             from { margin-top: -90px; }
             to { margin-top: 520px; }
+          }
+          @keyframes jungle-bird-drop {
+            0% {
+              transform: translateY(-90px) scale(.88);
+              opacity: 0;
+            }
+            8% {
+              opacity: 1;
+            }
+            78% {
+              opacity: 1;
+            }
+            100% {
+              transform: translateY(860px) scale(1.12);
+              opacity: 0;
+            }
           }
           @media (max-width: 420px) {
             .jungle-stage { min-height: calc(100vh - 40px); }
@@ -376,7 +393,7 @@ def render_jungle_expedition() -> None:
         ui.label("🌳").classes("jungle-object jungle-moving jungle-near tree-right-b")
         ui.label("🌿").classes("jungle-object jungle-moving jungle-mid branch-right-b")
         ui.label("🌲").classes("jungle-object jungle-moving jungle-far tree-right-c")
-        bird = ui.button("", on_click=discover_bird).classes("jungle-object jungle-moving bird").props("flat round")
+        bird = ui.button("", on_click=discover_bird).classes("jungle-object bird").props("flat round")
         ui.label("🚚").classes("jungle-truck")
         question_card = ui.element("div").classes("jungle-card")
         with question_card:

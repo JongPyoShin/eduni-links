@@ -30,12 +30,18 @@ class RouteFoundationTests(unittest.TestCase):
         self.assertIn('@ui.page("/portal/world/{world_id}")', route_source)
         self.assertIn('@ui.page("/portal/parent")', route_source)
 
-    def test_portal_home_exposes_featured_jungle_activity(self) -> None:
+    def test_portal_home_exposes_featured_jungle_activity_and_quick_games(self) -> None:
         route_source = (APP_ROOT / "portal_app" / "routes.py").read_text(encoding="utf-8")
         self.assertIn("FEATURED_ACTIVITY_IDS", route_source)
+        self.assertIn("QUICK_GAME_LINKS", route_source)
         self.assertIn("바로 시작", route_source)
         self.assertIn("정글 대탐험 바로가기", route_source)
         self.assertIn("portal-feature-card", route_source)
+        self.assertIn("portal-quick-card", route_source)
+        self.assertIn("테트리스", route_source)
+        self.assertIn("버블팝", route_source)
+        self.assertIn("한자 슈터", route_source)
+        self.assertNotIn('ui.label("잠깐 놀이")', route_source)
         self.assertIn("/portal/activity/{JUNGLE_EXPEDITION_ACTIVITY_ID}", route_source)
 
     def test_jungle_expedition_activity_content_is_registered(self) -> None:

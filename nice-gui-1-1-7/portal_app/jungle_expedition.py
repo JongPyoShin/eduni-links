@@ -172,15 +172,16 @@ def render_jungle_expedition() -> None:
             min-height: 66px;
             outline: 4px solid rgba(250, 204, 21, .74);
             font-size: 38px;
-            animation-name: jungle-bird-swoop;
-            animation-duration: .7s;
-            animation-timing-function: cubic-bezier(.2, .8, .2, 1);
+            animation-name: jungle-bird-fall;
+            animation-duration: 7.6s;
+            animation-timing-function: linear;
             animation-fill-mode: both;
+            animation-iteration-count: infinite;
           }
-          .bird-position-left-canopy { left: 30px; top: 126px; }
-          .bird-position-left-sky { left: 88px; top: 166px; }
-          .bird-position-right-canopy { right: 30px; top: 132px; }
-          .bird-position-right-sky { right: 88px; top: 172px; }
+          .bird-position-left-canopy { left: 30px; top: 92px; }
+          .bird-position-left-sky { left: 88px; top: 118px; }
+          .bird-position-right-canopy { right: 30px; top: 98px; }
+          .bird-position-right-sky { right: 88px; top: 124px; }
           .jungle-truck {
             position: absolute;
             z-index: 4;
@@ -270,10 +271,11 @@ def render_jungle_expedition() -> None:
             from { margin-top: -90px; }
             to { margin-top: 520px; }
           }
-          @keyframes jungle-bird-swoop {
-            from { opacity: 0; transform: translateY(-120px) scale(.78); }
-            68% { opacity: 1; transform: translateY(10px) scale(1.04); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+          @keyframes jungle-bird-fall {
+            0% { opacity: 0; transform: translateY(-96px) scale(.82); }
+            8% { opacity: 1; transform: translateY(0) scale(1); }
+            86% { opacity: 1; transform: translateY(520px) scale(1); }
+            100% { opacity: 0; transform: translateY(650px) scale(.96); }
           }
           @media (max-width: 420px) {
             .jungle-stage { min-height: calc(100vh - 40px); }
@@ -281,10 +283,10 @@ def render_jungle_expedition() -> None:
             .jungle-question-prompt { font-size: 21px; }
             .jungle-controls { left: 10px; right: 10px; gap: 8px; }
             .jungle-touch { min-height: 52px; }
-            .bird-position-left-canopy { left: 18px; top: 118px; }
-            .bird-position-left-sky { left: 78px; top: 156px; }
-            .bird-position-right-canopy { right: 18px; top: 124px; }
-            .bird-position-right-sky { right: 78px; top: 162px; }
+            .bird-position-left-canopy { left: 18px; top: 84px; }
+            .bird-position-left-sky { left: 78px; top: 112px; }
+            .bird-position-right-canopy { right: 18px; top: 90px; }
+            .bird-position-right-sky { right: 78px; top: 118px; }
           }
         </style>
         """
@@ -298,7 +300,7 @@ def render_jungle_expedition() -> None:
         state["moving"] = moving
         if moving:
             stage.classes(add="is-moving")
-            status.set_text("전진 중 · 위쪽 나뭇잎 사이에서 새를 찾아보자!")
+            status.set_text("전진 중 · 위에서 내려오는 새를 눌러보자!")
             return
         stage.classes(remove="is-moving")
         status.set_text("새를 발견하면 눌러서 문제를 풀어보자!")
@@ -443,7 +445,7 @@ def render_jungle_expedition() -> None:
         with ui.element("div").classes("jungle-hud"):
             ui.label("정글 대탐험")
             ui.label("Phase C-6")
-        status = ui.label("전진을 눌러 위쪽 나뭇잎 사이의 새를 찾아보자!").classes("jungle-status")
+        status = ui.label("전진을 눌러 위에서 내려오는 새를 찾아보자!").classes("jungle-status")
         with ui.element("div").classes("jungle-canopy"):
             for _ in range(4):
                 ui.element("span").classes("jungle-leaf")

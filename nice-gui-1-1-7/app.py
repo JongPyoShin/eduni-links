@@ -1,4 +1,4 @@
-import os
+﻿import os
 import json
 import re
 import base64
@@ -14,11 +14,11 @@ GAME_HTML = r'''
   <section class="game-shell">
     <header class="top-bar">
       <div>
-        <h1>으듀니 테트리스</h1>
-        <p id="statusText">가로줄을 완성해 보자</p>
+        <h1>?쇰????뚰듃由ъ뒪</h1>
+        <p id="statusText">媛濡쒖쨪???꾩꽦??蹂댁옄</p>
       </div>
       <div class="score-card">
-        <span>점수</span>
+        <span>?먯닔</span>
         <strong id="scoreText">0</strong>
       </div>
     </header>
@@ -30,30 +30,30 @@ GAME_HTML = r'''
 
       <aside class="side-panel">
         <div class="control-row">
-          <label for="difficultySelect">난이도</label>
+          <label for="difficultySelect">?쒖씠??/label>
           <select id="difficultySelect">
-            <option value="easy">쉬움</option>
-            <option value="normal">보통</option>
-            <option value="challenge">도전</option>
+            <option value="easy">?ъ?</option>
+            <option value="normal">蹂댄넻</option>
+            <option value="challenge">?꾩쟾</option>
           </select>
         </div>
 
         <div class="pieces-row">
           <div class="piece-area current-area">
-            <span>지금 블록</span>
+            <span>吏湲?釉붾줉</span>
             <div id="currentPiece" class="piece-preview" draggable="false" aria-label="current block"></div>
           </div>
           <div class="piece-area next-area">
-            <span>다음</span>
+            <span>?ㅼ쓬</span>
             <div id="nextPiece" class="piece-preview small" aria-label="next block"></div>
           </div>
         </div>
 
         <div class="button-row">
-          <button id="rotateToggleButton" type="button" aria-pressed="false">회전 꺼짐</button>
-          <button id="rotateButton" type="button">회전</button>
-          <button id="soundToggleButton" type="button" aria-pressed="true">효과음 켜짐</button>
-          <button id="newGameButton" type="button">새 게임</button>
+          <button id="rotateToggleButton" type="button" aria-pressed="false">?뚯쟾 爰쇱쭚</button>
+          <button id="rotateButton" type="button">?뚯쟾</button>
+          <button id="soundToggleButton" type="button" aria-pressed="true">?④낵??耳쒖쭚</button>
+          <button id="newGameButton" type="button">??寃뚯엫</button>
         </div>
       </aside>
     </main>
@@ -588,7 +588,7 @@ GAME_HTML = r'''
 
     gain.gain.setValueAtTime(0.0001, now + start);
     gain.gain.exponentialRampToValueAtTime(options.volume || 0.08, now + start + 0.015);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + start + duration);
 
     oscillator.connect(gain);
     gain.connect(ctx.destination);
@@ -627,7 +627,7 @@ GAME_HTML = r'''
     if (!('speechSynthesis' in window) || !window.SpeechSynthesisUtterance) return false;
 
     const phrases = {
-      clear: ['엑설런트!', '좋아!', '최고야!'],
+      clear: ['?묒꽕?고듃!', '醫뗭븘!', '理쒓퀬??'],
     };
     const list = phrases[kind];
     if (!list) return false;
@@ -644,18 +644,2050 @@ GAME_HTML = r'''
     utterance.pitch = 1.05;
     utterance.volume = 1;
     window.speechSynthesis.speak(utterance);
+    return true;
   }
+
+  function updateSoundControls() {
+    soundToggleButton.setAttribute('aria-pressed', state.soundEnabled ? 'true' : 'false');
+    soundToggleButton.textContent = state.soundEnabled ? '?④낵??耳쒖쭚' : '?④낵??爰쇱쭚';
+  }
+
+  function toggleSound() {
+    state.soundEnabled = !state.soundEnabled;
+    updateSoundControls();
+    if (state.soundEnabled) {
+      playSound('rotate');
+    }
+  }
+
+  function copyShape(shape) {
+    return shape.map(row => row.slice());
+  }
+
+  function rotateShape(shape) {
+    return shape[0].map((_, col) => shape.map(row => row[col]).reverse());
+  }
+
+  function randomizeRotation(piece) {
+    const turns = Math.floor(Math.random() * 4);
+    for (let i = 0; i < turns; i += 1) {
+      piece.shape = rotateShape(piece.shape);
+    }
+    return piece;
+  }
+
+  function pickPiece() {
+    const selected = TETROMINOES[Math.floor(Math.random() * TETROMINOES.length)];
+    const piece = {
+      name: selected.name,
+      shape: copyShape(selected.shape),
+      color: selected.color,
+    };
+    return state.rotationEnabled ? piece : randomizeRotation(piece);
+  }
+
+  function resetGame() {
+    const config = DIFFICULTIES[state.difficulty];
+    state.rows = config.rows;
+    state.cols = config.cols;
+    state.board = Array.from({ length: state.rows }, () => Array.from({ length: state.cols }, () => null));
+    state.current = pickPiece();
+    state.next = pickPiece();
+    state.score = 0;
+    state.gameOver = false;
+    state.selected = false;
+    boardEl.style.setProperty('--board-cols', state.cols);
+    boardEl.style.setProperty('--board-rows', state.rows);
+    updateRotationControls();
+    updateSoundControls();
+    statusText.textContent = '媛濡쒖쨪???꾩꽦??蹂댁옄';
+    renderAll();
+    fitBoardToScreen();
+  }
+
+  function renderAll() {
+    renderBoard();
+    renderPiece(currentPieceEl, state.current, false);
+    renderPiece(nextPieceEl, state.next, true);
+    updateSelectedState();
+    scoreText.textContent = state.score.toString();
+    requestAnimationFrame(fitBoardToScreen);
+  }
+
+  function renderBoard() {
+    boardEl.innerHTML = '';
+    boardEl.style.gridTemplateColumns = `repeat(${state.cols}, 1fr)`;
+    boardEl.style.gridTemplateRows = `repeat(${state.rows}, 1fr)`;
+
+    for (let row = 0; row < state.rows; row += 1) {
+      for (let col = 0; col < state.cols; col += 1) {
+        const cell = document.createElement('div');
+        const color = state.board[row][col];
+        cell.className = color ? 'cell filled' : 'cell';
+        cell.dataset.row = row.toString();
+        cell.dataset.col = col.toString();
+        if (color) {
+          cell.style.setProperty('--cell-color', color);
+        }
+        boardEl.appendChild(cell);
+      }
+    }
+  }
+
+  function renderPiece(target, piece, isSmall) {
+    target.innerHTML = '';
+    if (!piece) return;
+
+    const width = Math.max(...piece.shape.map(row => row.length));
+    const height = piece.shape.length;
+    const offsetCol = Math.floor((4 - width) / 2);
+    const offsetRow = Math.floor((4 - height) / 2);
+    target.style.setProperty('--piece-color', piece.color);
+    target.classList.toggle('small', isSmall);
+
+    for (let row = 0; row < 4; row += 1) {
+      for (let col = 0; col < 4; col += 1) {
+        const shapeRow = row - offsetRow;
+        const shapeCol = col - offsetCol;
+        const filled =
+          shapeRow >= 0 &&
+          shapeRow < height &&
+          shapeCol >= 0 &&
+          shapeCol < width &&
+          piece.shape[shapeRow][shapeCol];
+        const block = document.createElement('div');
+        block.className = filled ? 'piece-cell filled' : 'piece-cell';
+        target.appendChild(block);
+      }
+    }
+  }
+
+  function updateSelectedState() {
+    currentPieceEl.classList.toggle('selected', state.selected);
+  }
+
+  function updateRotationControls() {
+    rotateToggleButton.setAttribute('aria-pressed', state.rotationEnabled ? 'true' : 'false');
+    rotateToggleButton.textContent = state.rotationEnabled ? '?뚯쟾 耳쒖쭚' : '?뚯쟾 爰쇱쭚';
+    rotateButton.disabled = !state.rotationEnabled;
+  }
+
+  function toggleRotationMode() {
+    state.rotationEnabled = !state.rotationEnabled;
+    updateRotationControls();
+    if (!state.rotationEnabled) {
+      state.current = randomizeRotation(state.current);
+      state.next = randomizeRotation(state.next);
+      renderAll();
+      statusText.textContent = '釉붾줉? ?쒕뜡 諛⑺뼢?쇰줈 ?섏?';
+    } else {
+      statusText.textContent = '?뚯쟾 踰꾪듉???????덉뼱';
+    }
+  }
+
+  function fitBoardToScreen() {
+    const viewport = window.visualViewport || { width: window.innerWidth, height: window.innerHeight };
+    const rootStyle = getComputedStyle(document.getElementById('manual-tetris-root'));
+    const shellRect = document.querySelector('.game-shell').getBoundingClientRect();
+    const topRect = document.querySelector('.top-bar').getBoundingClientRect();
+    const sideRect = document.querySelector('.side-panel').getBoundingClientRect();
+    const boardWrapStyle = getComputedStyle(document.querySelector('.board-wrap'));
+    const boardPaddingX = parseFloat(boardWrapStyle.paddingLeft) + parseFloat(boardWrapStyle.paddingRight);
+    const boardPaddingY = parseFloat(boardWrapStyle.paddingTop) + parseFloat(boardWrapStyle.paddingBottom);
+    const rootPaddingX = parseFloat(rootStyle.paddingLeft) + parseFloat(rootStyle.paddingRight);
+    const rootPaddingY = parseFloat(rootStyle.paddingTop) + parseFloat(rootStyle.paddingBottom);
+    const isStacked = viewport.width <= 780;
+
+    const availableWidth = isStacked
+      ? viewport.width - rootPaddingX - boardPaddingX
+      : shellRect.width - sideRect.width - 20 - boardPaddingX;
+    const availableHeight = isStacked
+      ? viewport.height - rootPaddingY - topRect.height - sideRect.height - 18 - boardPaddingY
+      : viewport.height - rootPaddingY - topRect.height - 18 - boardPaddingY;
+
+    const widthLimitedHeight = availableWidth * (state.rows / state.cols);
+    const boardHeight = Math.max(120, Math.min(availableHeight, widthLimitedHeight, 760));
+    const boardWidth = boardHeight * (state.cols / state.rows);
+
+    boardEl.style.setProperty('--board-px', `${Math.floor(boardHeight)}px`);
+    boardEl.style.width = `${Math.floor(boardWidth)}px`;
+  }
+
+  function makeDragImage() {
+    const clone = currentPieceEl.cloneNode(true);
+    clone.classList.add('drag-ghost');
+    clone.classList.remove('selected', 'dragging');
+    const rect = boardEl.getBoundingClientRect();
+    const cellSize = Math.max(12, Math.floor(Math.min(rect.width / state.cols, rect.height / state.rows) - 3));
+    clone.style.setProperty('--drag-cell-size', `${cellSize}px`);
+    clone.style.setProperty('--drag-cell-gap', '3px');
+    clone.querySelectorAll('.piece-cell:not(.filled)').forEach(cell => {
+      cell.style.visibility = 'hidden';
+    });
+    document.body.appendChild(clone);
+    return clone;
+  }
+
+  function removeDragGhost() {
+    if (state.dragGhost) {
+      state.dragGhost.remove();
+      state.dragGhost = null;
+    }
+  }
+
+  function clearPreview() {
+    state.previewCells.forEach(cell => cell.classList.remove('preview'));
+    state.previewCells = [];
+  }
+
+  function showMagneticPreview(startRow, startCol) {
+    clearPreview();
+    state.current.shape.forEach((shapeRow, row) => {
+      shapeRow.forEach((filled, col) => {
+        if (!filled) return;
+        const cell = cellAt(startRow + row, startCol + col);
+        if (!cell) return;
+        cell.style.setProperty('--piece-color', state.current.color);
+        cell.classList.add('preview');
+        state.previewCells.push(cell);
+      });
+    });
+  }
+
+  function pieceSize(piece = state.current) {
+    return {
+      rows: piece.shape.length,
+      cols: Math.max(...piece.shape.map(row => row.length)),
+    };
+  }
+
+  function snapFromPoint(clientX, clientY) {
+    const rect = boardEl.getBoundingClientRect();
+    const margin = 90;
+    const nearBoard =
+      clientX >= rect.left - margin &&
+      clientX <= rect.right + margin &&
+      clientY >= rect.top - margin &&
+      clientY <= rect.bottom + margin;
+
+    if (!nearBoard) return null;
+
+    const cellWidth = rect.width / state.cols;
+    const cellHeight = rect.height / state.rows;
+    const size = pieceSize();
+    const rawCol = Math.round((clientX - rect.left) / cellWidth - size.cols / 2);
+    const rawRow = Math.round((clientY - rect.top) / cellHeight - size.rows / 2);
+    const maxCol = Math.max(0, state.cols - size.cols);
+    const maxRow = Math.max(0, state.rows - size.rows);
+    const col = Math.min(maxCol, Math.max(0, rawCol));
+    const row = Math.min(maxRow, Math.max(0, rawRow));
+    const magnetic = findMagneticPlacement(row, col);
+
+    return {
+      row: magnetic ? magnetic.row : row,
+      col: magnetic ? magnetic.col : col,
+      valid: !!magnetic,
+    };
+  }
+
+  function findMagneticPlacement(baseRow, baseCol) {
+    const candidates = [];
+    const radius = 2;
+
+    for (let row = baseRow - radius; row <= baseRow + radius; row += 1) {
+      for (let col = baseCol - radius; col <= baseCol + radius; col += 1) {
+        if (!canPlace(state.current, row, col)) continue;
+        const distance = Math.abs(row - baseRow) + Math.abs(col - baseCol);
+        candidates.push({ row, col, distance });
+      }
+    }
+
+    candidates.sort((a, b) => a.distance - b.distance || a.row - b.row || a.col - b.col);
+    return candidates[0] || null;
+  }
+
+  function moveDragGhost(event) {
+    if (!state.dragGhost) return;
+    const ghostX = event.clientX + FINGER_TO_GHOST_X;
+    const ghostY = event.clientY - FINGER_TO_GHOST_Y;
+    state.dragGhost.style.left = `${ghostX}px`;
+    state.dragGhost.style.top = `${ghostY}px`;
+
+    const snap = snapFromPoint(ghostX, ghostY);
+    state.lastSnap = snap;
+    if (snap && snap.valid) {
+      showMagneticPreview(snap.row, snap.col);
+    } else {
+      clearPreview();
+    }
+  }
+
+  function startPointerDrag(event) {
+    if (state.gameOver || event.button > 0) return;
+    event.preventDefault();
+    state.dragging = true;
+    state.selected = true;
+    state.suppressClick = false;
+    state.dragGhost = makeDragImage();
+    currentPieceEl.classList.add('dragging');
+    getAudioContext();
+    updateSelectedState();
+    currentPieceEl.setPointerCapture(event.pointerId);
+    moveDragGhost(event);
+  }
+
+  function endPointerDrag(event) {
+    if (!state.dragging) return;
+    event.preventDefault();
+    state.dragging = false;
+    state.suppressClick = true;
+    currentPieceEl.classList.remove('dragging');
+    removeDragGhost();
+
+    const snap = state.lastSnap;
+    clearPreview();
+    if (snap && snap.valid) {
+      placePiece(snap.row, snap.col);
+    }
+    state.lastSnap = null;
+    updateSelectedState();
+    setTimeout(() => {
+      state.suppressClick = false;
+    }, 0);
+  }
+
+  function canPlace(piece, startRow, startCol) {
+    if (!piece || state.gameOver) return false;
+    return canPlaceShape(piece.shape, startRow, startCol);
+  }
+
+  function canPlaceShape(shape, startRow, startCol) {
+    for (let row = 0; row < shape.length; row += 1) {
+      for (let col = 0; col < shape[row].length; col += 1) {
+        if (!shape[row][col]) continue;
+        const boardRow = startRow + row;
+        const boardCol = startCol + col;
+        if (boardRow < 0 || boardRow >= state.rows || boardCol < 0 || boardCol >= state.cols) return false;
+        if (state.board[boardRow][boardCol]) return false;
+      }
+    }
+    return true;
+  }
+
+  function hasAnyMove(piece = state.current) {
+    for (let row = 0; row < state.rows; row += 1) {
+      for (let col = 0; col < state.cols; col += 1) {
+        if (canPlace(piece, row, col)) return true;
+      }
+    }
+    return false;
+  }
+
+  function shapeKey(shape) {
+    return shape.map(row => row.join('')).join('/');
+  }
+
+  function rotatedShapes(shape) {
+    const variants = [];
+    let current = copyShape(shape);
+    for (let i = 0; i < 4; i += 1) {
+      const key = shapeKey(current);
+      if (!variants.some(item => item.key === key)) {
+        variants.push({ key, shape: copyShape(current) });
+      }
+      current = rotateShape(current);
+    }
+    return variants.map(item => item.shape);
+  }
+
+  function hasAnyStandardPieceMove() {
+    for (const template of TETROMINOES) {
+      for (const shape of rotatedShapes(template.shape)) {
+        for (let row = 0; row < state.rows; row += 1) {
+          for (let col = 0; col < state.cols; col += 1) {
+            if (canPlaceShape(shape, row, col)) return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  function preparePlayableCurrentPiece() {
+    if (hasAnyMove(state.current)) return true;
+
+    if (hasAnyMove(state.next)) {
+      state.current = state.next;
+      state.next = pickPiece();
+      statusText.textContent = '?볦쓣 ???덈뒗 釉붾윮?쇰줈 諛붽엥??';
+      return true;
+    }
+
+    if (!hasAnyStandardPieceMove()) return false;
+
+    for (let i = 0; i < 80; i += 1) {
+      const candidate = pickPiece();
+      if (hasAnyMove(candidate)) {
+        state.current = candidate;
+        state.next = pickPiece();
+        statusText.textContent = '?볦쓣 ???덈뒗 釉붾윮?쇰줈 諛붽엥??';
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function placePiece(startRow, startCol) {
+    if (!canPlace(state.current, startRow, startCol)) {
+      statusText.textContent = '?ш린???볦쓣 ???놁뼱';
+      return;
+    }
+
+    state.current.shape.forEach((shapeRow, row) => {
+      shapeRow.forEach((filled, col) => {
+        if (filled) {
+          state.board[startRow + row][startCol + col] = state.current.color;
+        }
+      });
+    });
+
+    playSound('place');
+    state.score += DIFFICULTIES[state.difficulty].placeScore;
+    renderBoard();
+    const completedRows = findCompletedRows();
+
+    if (completedRows.length) {
+      window.setTimeout(() => playSound('clear'), 90);
+      animateCompletedLines(completedRows, () => {
+        removeCompletedLines(completedRows);
+        finishTurn(completedRows);
+      });
+    } else {
+      finishTurn([]);
+    }
+  }
+
+  function findCompletedRows() {
+    const completedRows = [];
+    state.board.forEach((row, rowIndex) => {
+      if (row.every(Boolean)) completedRows.push(rowIndex);
+    });
+    return completedRows;
+  }
+
+  function animateCompletedLines(completedRows, done) {
+    completedRows.forEach(rowIndex => {
+      for (let col = 0; col < state.cols; col += 1) {
+        const cell = cellAt(rowIndex, col);
+        if (cell) cell.classList.add('clear-flash');
+      }
+    });
+    statusText.textContent = completedRows.length > 1 ? '?! ?щ윭 以?' : '??以??깃났!';
+    window.setTimeout(done, 540);
+  }
+
+  function removeCompletedLines(completedRows) {
+    state.board = state.board.filter((_, rowIndex) => !completedRows.includes(rowIndex));
+    while (state.board.length < state.rows) {
+      state.board.unshift(Array.from({ length: state.cols }, () => null));
+    }
+  }
+
+  function finishTurn(completedRows) {
+    state.score += completedRows.length * DIFFICULTIES[state.difficulty].lineScore;
+    state.current = state.next;
+    state.next = pickPiece();
+    state.selected = false;
+    if (!completedRows.length) {
+      statusText.textContent = '醫뗭븘!';
+    }
+    if (!preparePlayableCurrentPiece()) {
+      state.gameOver = true;
+      statusText.textContent = '寃뚯엫 ?? ??寃뚯엫???뚮윭 ?ㅼ떆 ?대낫??;
+    }
+    renderAll();
+  }
+
+  function rotateCurrentPiece() {
+    if (!state.rotationEnabled || state.gameOver) return;
+    state.current.shape = rotateShape(state.current.shape);
+    renderPiece(currentPieceEl, state.current, false);
+    playSound('rotate');
+    statusText.textContent = '鍮숆?!';
+    fitBoardToScreen();
+  }
+
+  function cellAt(row, col) {
+    return boardEl.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+  }
+
+  currentPieceEl.addEventListener('pointerdown', startPointerDrag);
+  currentPieceEl.addEventListener('pointermove', event => {
+    if (!state.dragging) return;
+    moveDragGhost(event);
+  });
+  currentPieceEl.addEventListener('pointerup', endPointerDrag);
+  currentPieceEl.addEventListener('pointercancel', endPointerDrag);
+  document.addEventListener('pointermove', event => {
+    if (!state.dragging) return;
+    moveDragGhost(event);
+  });
+  document.addEventListener('pointerup', endPointerDrag);
+  document.addEventListener('pointercancel', endPointerDrag);
+  document.addEventListener('mouseup', endPointerDrag);
+  window.addEventListener('blur', () => {
+    state.dragging = false;
+    state.lastSnap = null;
+    currentPieceEl.classList.remove('dragging');
+    removeDragGhost();
+    clearPreview();
+    updateSelectedState();
+  });
+
+  currentPieceEl.addEventListener('click', () => {
+    if (state.gameOver) return;
+    if (state.suppressClick) return;
+    state.selected = !state.selected;
+    updateSelectedState();
+  });
+
+  boardEl.addEventListener('pointermove', event => {
+    if (!state.selected || state.dragging) return;
+    const snap = snapFromPoint(event.clientX, event.clientY);
+    state.lastSnap = snap;
+    if (snap && snap.valid) {
+      showMagneticPreview(snap.row, snap.col);
+    } else {
+      clearPreview();
+    }
+  });
+
+  boardEl.addEventListener('click', event => {
+    const cell = event.target.closest('.cell');
+    if (!cell || !state.selected) return;
+    clearPreview();
+    placePiece(Number(cell.dataset.row), Number(cell.dataset.col));
+  });
+
+  rotateButton.addEventListener('click', rotateCurrentPiece);
+  rotateToggleButton.addEventListener('click', toggleRotationMode);
+  soundToggleButton.addEventListener('click', toggleSound);
+  newGameButton.addEventListener('click', resetGame);
+  difficultySelect.addEventListener('change', event => {
+    state.difficulty = event.target.value;
+    resetGame();
+  });
+  window.addEventListener('resize', fitBoardToScreen);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', fitBoardToScreen);
+  }
+
+  resetGame();
+})();
+</script>
 '''
 
 HANJA_OUTPUT_DIR = Path(os.environ.get('EDUNI_HANJA_OUTPUT_DIR', r'C:\Users\jongp\Documents\Codex\2026-06-05\files-mentioned-by-the-user-oracle\outputs'))
 PRAISE_CHARACTER_DIR = Path(__file__).parent / 'assets' / 'praise_chars'
 BUBBLE_EXPLANATION_DROP_PHRASES = (
-    '뚜렷한 반대 한자보다는 함께 쓰이는 단어를 중심으로 익히면 좋습니다',
-    '헷갈릴 만한 같은 음의 7급 한자는 같은 음의 글자가 많지 않습니다',
-    '글자 모양만 외우지 말고',
+    '?쒕졆??諛섎? ?쒖옄蹂대떎???④퍡 ?곗씠???⑥뼱瑜?以묒떖?쇰줈 ?듯엳硫?醫뗭뒿?덈떎',
+    '?룰컝由?留뚰븳 媛숈? ?뚯쓽 7湲??쒖옄??媛숈? ?뚯쓽 湲?먭? 留롮? ?딆뒿?덈떎',
+    '湲??紐⑥뼇留??몄슦吏 留먭퀬',
 )
 
-# NOTE: The large inline game templates above are unchanged. The app title is the portal-level title.
+
+def clean_bubble_explanation(explanation: str) -> str:
+    sentences = re.split(r'(?<=\.)\s+', explanation.strip())
+    useful_sentences = [
+        sentence
+        for sentence in sentences
+        if sentence and not any(phrase in sentence for phrase in BUBBLE_EXPLANATION_DROP_PHRASES)
+    ]
+    return ' '.join(useful_sentences)
+
+
+def extract_meaning_sound(explanation: str, fallback: str) -> str:
+    match = re.search(r"?산낵 ?뚯쓣 ?④퍡 ?곕㈃ '([^']+)'", explanation)
+    if match:
+        return match.group(1)
+    meaning = re.search(r"?살? '([^']+)'", explanation)
+    sound = re.search(r"?뚯? '([^']+)'", explanation)
+    if meaning and sound:
+        return f"{meaning.group(1)} {sound.group(1)}"
+    return fallback
+
+
+def load_praise_character_data_urls() -> list[str]:
+    if not PRAISE_CHARACTER_DIR.exists():
+        return []
+    data_urls: list[str] = []
+    for path in sorted(PRAISE_CHARACTER_DIR.glob('char*.png')):
+        encoded = base64.b64encode(path.read_bytes()).decode('ascii')
+        data_urls.append(f'data:image/png;base64,{encoded}')
+    return data_urls
+
+
+def load_bubble_questions() -> list[dict[str, object]]:
+    questions: list[dict[str, object]] = []
+    for set_no in [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 1, 2, 3, 4]:
+        path = HANJA_OUTPUT_DIR / f'hanja_quiz_set_{set_no:02d}.json'
+        if not path.exists():
+            continue
+        data = json.loads(path.read_text(encoding='utf-8-sig'))
+        for question in data.get('questions', []):
+            choices = question.get('choices', [])
+            answer = int(question.get('answer', 0))
+            if not question.get('target_char') or not isinstance(choices, list) or not 1 <= answer <= len(choices):
+                continue
+            questions.append(
+                {
+                    'target': question.get('target_char', ''),
+                    'prompt': question.get('question', ''),
+                    'choices': choices,
+                    'answerIndex': answer - 1,
+                    'answerLabel': choices[answer - 1],
+                    'meaningSound': extract_meaning_sound(
+                        question.get('explanation', ''),
+                        choices[answer - 1],
+                    ),
+                    'explanation': clean_bubble_explanation(question.get('explanation', '')),
+                }
+            )
+            if len(questions) >= 80:
+                return questions
+    return questions
+
+
+BUBBLE_HTML_TEMPLATE = r'''
+<div id="bubble-root">
+  <section class="bubble-shell">
+    <header class="bubble-top">
+      <div>
+        <h1>?쇰???踰꾨툝??/h1>
+        <p id="bubbleStatus">?뺣떟 踰꾨툝?????곕쑉??蹂댁옄</p>
+      </div>
+      <div class="bubble-score">
+        <span id="roundText">1 / 10</span>
+        <strong id="starText">??????/strong>
+      </div>
+    </header>
+
+    <main class="bubble-stage">
+      <section class="prompt-panel">
+        <span id="topicText">?쒖옄</span>
+        <h2 id="questionText"></h2>
+      </section>
+      <div id="bubbleField" class="bubble-field" aria-label="answer bubbles"></div>
+      <section id="feedbackPanel" class="feedback-panel" aria-live="polite"></section>
+    </main>
+
+    <footer class="bubble-actions">
+      <button id="soundButton" type="button" aria-pressed="true">?④낵??耳쒖쭚</button>
+      <button id="restartButton" type="button">?ㅼ떆 ?쒖옉</button>
+    </footer>
+
+    <div id="resultOverlay" class="result-overlay hidden">
+      <div class="result-box">
+        <span>?꾨즺</span>
+        <h2 id="resultTitle"></h2>
+        <p id="resultDetail"></p>
+        <button id="resultRestartButton" type="button">??踰???/button>
+      </div>
+    </div>
+
+    <div id="answerOverlay" class="result-overlay hidden">
+      <div class="result-box answer-box">
+        <span id="answerPraise">醫뗭븘!</span>
+        <h2>?뺣떟</h2>
+        <div id="answerExplanation"></div>
+        <button id="answerNextButton" type="button">?뺤씤</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<style>
+  html, body, #app, .nicegui-content {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    margin: 0;
+    background: #f7fbff;
+    font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+  }
+
+  #bubble-root {
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    background:
+      radial-gradient(circle at 18% 18%, rgba(125, 211, 252, 0.35), transparent 24%),
+      linear-gradient(135deg, #f8fbff 0%, #eef8f6 52%, #fff8ed 100%);
+    color: #172033;
+  }
+
+  .bubble-shell {
+    width: min(980px, 100%);
+    height: min(720px, calc(100dvh - 32px));
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 12px;
+  }
+
+  .bubble-top,
+  .bubble-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  h1, h2, p {
+    margin: 0;
+  }
+
+  .bubble-top h1 {
+    font-size: clamp(26px, 6vw, 44px);
+    letter-spacing: 0;
+    color: #123047;
+  }
+
+  .bubble-top p {
+    margin-top: 4px;
+    color: #527081;
+    font-weight: 800;
+    font-size: clamp(14px, 3vw, 18px);
+  }
+
+  .bubble-score {
+    min-width: 116px;
+    display: grid;
+    gap: 4px;
+    justify-items: end;
+    font-weight: 900;
+  }
+
+  #roundText {
+    color: #0f766e;
+    font-size: 18px;
+  }
+
+  #starText {
+    color: #f59e0b;
+    font-size: 24px;
+    white-space: nowrap;
+  }
+
+  .bubble-stage {
+    position: relative;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 12px;
+    overflow: hidden;
+  }
+
+  .prompt-panel {
+    min-height: 118px;
+    padding: 18px;
+    border: 2px solid #d6e7ee;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    display: grid;
+    align-content: center;
+    gap: 8px;
+    box-shadow: 0 10px 26px rgba(42, 69, 92, 0.08);
+  }
+
+  #topicText {
+    width: fit-content;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: #dff7ef;
+    color: #047857;
+    font-size: 14px;
+    font-weight: 900;
+  }
+
+  #questionText {
+    font-size: clamp(22px, 5vw, 36px);
+    line-height: 1.22;
+    color: #13293a;
+    letter-spacing: 0;
+  }
+
+  .bubble-field {
+    position: relative;
+    min-height: 260px;
+    border: 2px solid #cfe6ef;
+    border-radius: 8px;
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, rgba(225, 247, 255, 0.76), rgba(241, 253, 246, 0.82)),
+      repeating-linear-gradient(0deg, transparent 0 42px, rgba(255,255,255,0.45) 42px 44px);
+  }
+
+  .answer-bubble {
+    position: absolute;
+    width: clamp(104px, 21vw, 152px);
+    aspect-ratio: 1;
+    border: 0;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    padding: 14px;
+    color: #123047;
+    font-size: clamp(17px, 4vw, 24px);
+    font-weight: 950;
+    line-height: 1.18;
+    text-align: center;
+    letter-spacing: 0;
+    background:
+      radial-gradient(circle at 32% 25%, rgba(255,255,255,0.98) 0 18%, transparent 19%),
+      radial-gradient(circle at 64% 68%, rgba(255,255,255,0.34), transparent 32%),
+      var(--bubble-color, #a7f3d0);
+    box-shadow: inset -10px -14px 22px rgba(32, 73, 92, 0.14), 0 14px 28px rgba(20, 58, 82, 0.18);
+    touch-action: manipulation;
+    transform: translate(var(--x), var(--y));
+    animation: floaty var(--speed, 4.2s) ease-in-out infinite alternate;
+  }
+
+  .answer-bubble.correct {
+    animation: pop 420ms ease-out forwards;
+  }
+
+  .answer-bubble.wrong {
+    animation: shake 360ms ease-in-out;
+  }
+
+  .feedback-panel {
+    min-height: 56px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.82);
+    color: #3d5565;
+    font-weight: 850;
+    line-height: 1.35;
+    overflow: hidden;
+  }
+
+  .bubble-actions button,
+  .result-box button {
+    min-height: 46px;
+    border: 0;
+    border-radius: 8px;
+    padding: 0 18px;
+    background: #123047;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 900;
+  }
+
+  .bubble-actions button:first-child {
+    background: #0f766e;
+  }
+
+  .result-overlay {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(12, 28, 42, 0.38);
+    padding: 18px;
+  }
+
+  .result-overlay.hidden {
+    display: none;
+  }
+
+  .result-box {
+    width: min(420px, 100%);
+    padding: 24px;
+    border-radius: 8px;
+    background: #fff;
+    display: grid;
+    gap: 12px;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(17, 40, 59, 0.22);
+  }
+
+  .result-box span {
+    color: #0f766e;
+    font-weight: 950;
+  }
+
+  .result-box h2 {
+    font-size: 32px;
+  }
+
+  .answer-box {
+    text-align: left;
+  }
+
+  .answer-box span,
+  .answer-box h2 {
+    text-align: center;
+  }
+
+  #answerExplanation {
+    max-height: min(42dvh, 260px);
+    overflow: auto;
+    color: #3d5565;
+    font-weight: 850;
+    line-height: 1.5;
+  }
+
+  .explanation-lead {
+    margin: 0 0 10px;
+    color: #123047;
+    font-size: 20px;
+    font-weight: 950;
+    line-height: 1.45;
+  }
+
+  .explanation-line {
+    margin: 8px 0 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #f5f9fc;
+    font-size: 16px;
+  }
+
+  .explanation-focus {
+    border: 2px solid #fbbf24;
+    background: #fffbeb;
+    color: #7c2d12;
+    font-size: 18px;
+    font-weight: 950;
+  }
+
+  @keyframes floaty {
+    from { translate: 0 0; }
+    to { translate: 0 -14px; }
+  }
+
+  @keyframes pop {
+    0% { scale: 1; opacity: 1; }
+    70% { scale: 1.24; opacity: 0.82; }
+    100% { scale: 0.2; opacity: 0; }
+  }
+
+  @keyframes shake {
+    0%, 100% { translate: 0 0; }
+    25% { translate: -8px 0; }
+    50% { translate: 8px 0; }
+    75% { translate: -5px 0; }
+  }
+
+  @media (max-width: 640px) {
+    #bubble-root { padding: 10px; }
+    .bubble-shell { height: calc(100dvh - 20px); gap: 8px; }
+    .bubble-top { align-items: start; }
+    .prompt-panel { min-height: 104px; padding: 14px; }
+    .bubble-field { min-height: 0; }
+    .feedback-panel { min-height: 48px; font-size: 14px; }
+    .bubble-actions button { flex: 1; padding: 0 10px; }
+  }
+</style>
+
+<script>
+(() => {
+  const questions = __QUESTIONS_JSON__;
+  const totalRounds = 10;
+  const colors = ['#9ee7ff', '#a7f3d0', '#fde68a', '#fecdd3', '#ddd6fe', '#bfdbfe'];
+  const praise = ['醫뗭븘!', '洹몃쩆??', '?묒꽕?고듃!', '?섑뻽??'];
+  const field = document.getElementById('bubbleField');
+  const questionText = document.getElementById('questionText');
+  const roundText = document.getElementById('roundText');
+  const starText = document.getElementById('starText');
+  const feedbackPanel = document.getElementById('feedbackPanel');
+  const soundButton = document.getElementById('soundButton');
+  const restartButton = document.getElementById('restartButton');
+  const resultOverlay = document.getElementById('resultOverlay');
+  const resultTitle = document.getElementById('resultTitle');
+  const resultDetail = document.getElementById('resultDetail');
+  const resultRestartButton = document.getElementById('resultRestartButton');
+  const answerOverlay = document.getElementById('answerOverlay');
+  const answerPraise = document.getElementById('answerPraise');
+  const answerExplanation = document.getElementById('answerExplanation');
+  const answerNextButton = document.getElementById('answerNextButton');
+
+  let deck = [];
+  let index = 0;
+  let correctCount = 0;
+  let locked = false;
+  let soundEnabled = true;
+
+  function shuffle(items) {
+    const copy = [...items];
+    for (let i = copy.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  }
+
+  function tone(freq, duration, type = 'sine') {
+    if (!soundEnabled) return;
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.11, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration + 0.02);
+  }
+
+  function speak(text) {
+    if (!soundEnabled || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ko-KR';
+    utterance.rate = 0.98;
+    utterance.pitch = 1.05;
+    window.speechSynthesis.speak(utterance);
+  }
+
+  function updateStars() {
+    const ratio = correctCount / Math.max(1, index);
+    if (index === 0) {
+      starText.textContent = '??????;
+    } else if (ratio >= 0.9) {
+      starText.textContent = '??????;
+    } else if (ratio >= 0.65) {
+      starText.textContent = '??????;
+    } else {
+      starText.textContent = '??????;
+    }
+  }
+
+  function bubblePositions(count) {
+    const rect = field.getBoundingClientRect();
+    const width = Math.max(320, rect.width);
+    const height = Math.max(260, rect.height);
+    const size = Math.min(152, Math.max(104, width * 0.21));
+    const slots = [
+      [0.08, 0.08], [0.55, 0.11], [0.28, 0.43],
+      [0.68, 0.48], [0.08, 0.63], [0.47, 0.68],
+    ];
+    return slots.slice(0, count).map(([x, y]) => ({
+      x: Math.round(Math.min(width - size - 12, Math.max(8, width * x))),
+      y: Math.round(Math.min(height - size - 12, Math.max(8, height * y))),
+    }));
+  }
+
+  function renderQuestion() {
+    locked = false;
+    field.innerHTML = '';
+    resultOverlay.classList.add('hidden');
+    answerOverlay.classList.add('hidden');
+    const question = deck[index];
+    roundText.textContent = `${index + 1} / ${totalRounds}`;
+    questionText.textContent = question.prompt;
+    feedbackPanel.textContent = '?뺣떟?대씪怨??앷컖?섎뒗 踰꾨툝???곗튂?대킄.';
+    updateStars();
+
+    const positions = bubblePositions(question.choices.length);
+    question.choices.forEach((choice, choiceIndex) => {
+      const button = document.createElement('button');
+      const pos = positions[choiceIndex] || positions[0];
+      button.type = 'button';
+      button.className = 'answer-bubble';
+      button.textContent = choice;
+      button.style.setProperty('--x', `${pos.x}px`);
+      button.style.setProperty('--y', `${pos.y}px`);
+      button.style.setProperty('--speed', `${3.6 + choiceIndex * 0.32}s`);
+      button.style.setProperty('--bubble-color', colors[choiceIndex % colors.length]);
+      button.addEventListener('click', () => chooseAnswer(button, choiceIndex));
+      field.appendChild(button);
+    });
+  }
+
+  function chooseAnswer(button, choiceIndex) {
+    if (locked) return;
+    const question = deck[index];
+    if (choiceIndex === question.answerIndex) {
+      locked = true;
+      correctCount += 1;
+      button.classList.add('correct');
+      tone(660, 0.12, 'triangle');
+      setTimeout(() => tone(880, 0.14, 'triangle'), 80);
+      const say = praise[Math.floor(Math.random() * praise.length)];
+      feedbackPanel.textContent = `${say} ?댁꽕???뺤씤?대낫??`;
+      if ((index + correctCount) % 3 === 0) speak(say);
+      window.setTimeout(() => showAnswerExplanation(say, question.explanation), 420);
+    } else {
+      button.classList.remove('wrong');
+      void button.offsetWidth;
+      button.classList.add('wrong');
+      tone(180, 0.12, 'sine');
+      feedbackPanel.textContent = '愿쒖갖?? ?ㅼ떆 怨⑤씪蹂댁옄.';
+    }
+  }
+
+  function showAnswerExplanation(say, explanation) {
+    answerPraise.textContent = say;
+    renderAnswerExplanation(explanation || '?섑뻽?? ?뺣떟??怨⑤옄??');
+    answerOverlay.classList.remove('hidden');
+    answerNextButton.focus({ preventScroll: true });
+  }
+
+  function renderAnswerExplanation(explanation) {
+    answerExplanation.innerHTML = '';
+    const sentences = explanation.split(/(?<=\.)\s+/).filter(Boolean);
+    const lead = sentences.slice(0, 3).join(' ');
+    const details = sentences.slice(3);
+    const leadEl = document.createElement('p');
+    leadEl.className = 'explanation-lead';
+    leadEl.textContent = lead || explanation;
+    answerExplanation.appendChild(leadEl);
+
+    details.forEach(sentence => {
+      const line = document.createElement('p');
+      const shouldFocus = /?덉떆|鍮꾩듂|諛섎?|吏?媛숈? ??.test(sentence);
+      line.className = shouldFocus ? 'explanation-line explanation-focus' : 'explanation-line';
+      line.textContent = sentence;
+      answerExplanation.appendChild(line);
+    });
+  }
+
+  function nextQuestion() {
+    answerOverlay.classList.add('hidden');
+    index += 1;
+    if (index >= totalRounds) {
+      showResult();
+    } else {
+      renderQuestion();
+    }
+  }
+
+  function showResult() {
+    updateStars();
+    const stars = correctCount >= 9 ? 3 : correctCount >= 7 ? 2 : 1;
+    resultTitle.textContent = `${starText.textContent} ${correctCount}媛?留욏삍??;
+    resultDetail.textContent = stars === 3 ? '?ㅻ뒛 ?쒖옄 踰꾨툝 ?ㅻ젰???꾩＜ 醫뗭븘.' : '?ㅼ떆 ?섎㈃ 蹂꾩쓣 ??紐⑥쓣 ???덉뼱.';
+    resultOverlay.classList.remove('hidden');
+    if (stars === 3) speak('?묒꽕?고듃!');
+  }
+
+  function startGame() {
+    deck = shuffle(questions).slice(0, totalRounds);
+    index = 0;
+    correctCount = 0;
+    renderQuestion();
+  }
+
+  soundButton.addEventListener('click', () => {
+    soundEnabled = !soundEnabled;
+    soundButton.textContent = soundEnabled ? '?④낵??耳쒖쭚' : '?④낵??爰쇱쭚';
+    soundButton.setAttribute('aria-pressed', String(soundEnabled));
+  });
+  restartButton.addEventListener('click', startGame);
+  resultRestartButton.addEventListener('click', startGame);
+  answerNextButton.addEventListener('click', nextQuestion);
+  window.addEventListener('resize', () => {
+    if (!resultOverlay.classList.contains('hidden')) return;
+    if (!answerOverlay.classList.contains('hidden')) return;
+    renderQuestion();
+  });
+
+  startGame();
+})();
+</script>
+'''
+
+
+def bubble_html() -> str:
+    questions = load_bubble_questions()
+    if not questions:
+        questions = [
+            {
+                'target': '??,
+                'prompt': "?쒖옄 '?????산낵 ?뚯쑝濡??뚮쭪? 寃껋??",
+                'choices': ['寃⑥슱 ??, '?щ쫫 ??, '遊?異?, '媛??異?],
+                'answerIndex': 0,
+                'answerLabel': '寃⑥슱 ??,
+                'explanation': "?뺣떟? ?ъ엯?덈떎. ?ъ? 寃⑥슱 ?숈엯?덈떎.",
+            }
+        ]
+    return BUBBLE_HTML_TEMPLATE.replace('__QUESTIONS_JSON__', json.dumps(questions, ensure_ascii=False))
+
+
+SHOOTER_HTML_TEMPLATE = r'''
+<div id="hanja-shooter-root">
+  <section class="shooter-shell">
+    <header class="shooter-top">
+      <div>
+        <h1>?쇰????쒖옄 ?덊꽣</h1>
+        <p id="shooterStatus">?살쓬 踰꾨툝??留욌뒗 ?쒖옄????蹂댁옄</p>
+      </div>
+      <div class="shooter-score">
+        <span>?먯닔</span>
+        <strong id="shooterScore">0</strong>
+      </div>
+    </header>
+
+    <main class="shooter-stage">
+      <canvas id="shooterCanvas" aria-label="hanja bubble shooter"></canvas>
+      <div id="shooterPraisePop" class="praise-pop hidden" aria-live="polite">
+        <img id="praiseCharacterImage" class="praise-character" alt="">
+        <strong id="praisePopText">醫뗭븘!</strong>
+      </div>
+    </main>
+
+    <footer class="shooter-actions">
+      <button id="shooterSoundButton" type="button" aria-pressed="true">?④낵??耳쒖쭚</button>
+      <button id="shooterRestartButton" type="button">?ㅼ떆 ?쒖옉</button>
+    </footer>
+
+    <div id="shooterAnswerOverlay" class="shooter-overlay hidden">
+      <div class="shooter-dialog">
+        <span id="shooterPraise">醫뗭븘!</span>
+        <h2 id="shooterAnswerTitle">?뺣떟</h2>
+        <div id="shooterExplanation"></div>
+        <button id="shooterNextButton" type="button">?뺤씤</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<style>
+  html, body, #app, .nicegui-content {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    margin: 0;
+    background: #f4f8fb;
+    font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+  }
+
+  #hanja-shooter-root {
+    height: 100dvh;
+    display: grid;
+    place-items: center;
+    padding: 12px;
+    box-sizing: border-box;
+    color: #172033;
+    background:
+      linear-gradient(180deg, #edf7ff 0%, #f7fbf8 54%, #fff8ed 100%);
+  }
+
+  .shooter-shell {
+    width: min(720px, 100%);
+    height: min(860px, calc(100dvh - 24px));
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .shooter-top,
+  .shooter-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .shooter-top h1,
+  .shooter-top p {
+    margin: 0;
+  }
+
+  .shooter-top h1 {
+    font-size: clamp(24px, 6vw, 38px);
+    line-height: 1.15;
+    letter-spacing: 0;
+  }
+
+  .shooter-top p {
+    min-height: 24px;
+    margin-top: 4px;
+    color: #527081;
+    font-size: clamp(14px, 3vw, 17px);
+    font-weight: 850;
+  }
+
+  .shooter-score {
+    min-width: 86px;
+    padding: 9px 12px;
+    border: 2px solid #cfe0e8;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.9);
+    text-align: right;
+  }
+
+  .shooter-score span {
+    display: block;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .shooter-score strong {
+    display: block;
+    color: #0f172a;
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  .shooter-stage {
+    position: relative;
+    min-height: 0;
+    border: 2px solid #2d5f73;
+    border-radius: 8px;
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, rgba(32, 89, 116, 0.28), rgba(255,255,255,0.04)),
+      repeating-linear-gradient(0deg, rgba(74, 37, 96, 0.16) 0 36px, rgba(255,255,255,0.08) 36px 38px),
+      repeating-linear-gradient(90deg, rgba(74, 37, 96, 0.18) 0 36px, rgba(255,255,255,0.08) 36px 38px),
+      #2f2d63;
+  }
+
+  #shooterCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+  }
+
+  .praise-pop {
+    position: absolute;
+    left: 50%;
+    top: 54%;
+    transform: translate(-50%, -50%) scale(1);
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 18px 38px rgba(17, 40, 59, 0.28);
+    pointer-events: none;
+    animation: praise-float 980ms ease-out forwards;
+    z-index: 3;
+  }
+
+  .praise-pop.hidden {
+    display: none;
+  }
+
+  .praise-character {
+    width: 132px;
+    height: 132px;
+    object-fit: contain;
+    filter: drop-shadow(0 12px 18px rgba(17, 40, 59, 0.28));
+  }
+
+  .praise-pop strong {
+    color: #123047;
+    font-size: 22px;
+    font-weight: 950;
+    white-space: nowrap;
+  }
+
+  .shooter-actions button,
+  .shooter-dialog button {
+    min-height: 44px;
+    border: 0;
+    border-radius: 8px;
+    padding: 0 16px;
+    background: #123047;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 900;
+  }
+
+  .shooter-actions button:first-child {
+    background: #0f766e;
+  }
+
+  .shooter-overlay {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    background: rgba(12, 28, 42, 0.44);
+  }
+
+  .shooter-overlay.hidden {
+    display: none;
+  }
+
+  .shooter-dialog {
+    width: min(430px, 100%);
+    display: grid;
+    gap: 12px;
+    padding: 24px;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 24px 60px rgba(17, 40, 59, 0.25);
+  }
+
+  .shooter-dialog span,
+  .shooter-dialog h2 {
+    text-align: center;
+  }
+
+  .shooter-dialog span {
+    color: #0f766e;
+    font-weight: 950;
+  }
+
+  .shooter-dialog h2 {
+    margin: 0;
+    color: #123047;
+    font-size: 30px;
+  }
+
+  #shooterExplanation {
+    max-height: min(42dvh, 260px);
+    overflow: auto;
+  }
+
+  .shooter-lead {
+    margin: 0 0 10px;
+    color: #123047;
+    font-size: 20px;
+    font-weight: 950;
+    line-height: 1.45;
+  }
+
+  .shooter-line {
+    margin: 8px 0 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #f5f9fc;
+    color: #3d5565;
+    font-size: 16px;
+    font-weight: 850;
+    line-height: 1.45;
+  }
+
+  .shooter-focus {
+    border: 2px solid #fbbf24;
+    background: #fffbeb;
+    color: #7c2d12;
+    font-size: 18px;
+    font-weight: 950;
+  }
+
+  @keyframes praise-float {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -35%) scale(0.78);
+    }
+    18% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1.04);
+    }
+    72% {
+      opacity: 1;
+      transform: translate(-50%, -56%) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -74%) scale(0.92);
+    }
+  }
+
+  @media (max-width: 560px) {
+    #hanja-shooter-root { padding: 8px; }
+    .shooter-shell { height: calc(100dvh - 16px); gap: 8px; }
+    .shooter-actions button { flex: 1; padding: 0 10px; font-size: 14px; }
+    .shooter-score { min-width: 74px; }
+  }
+</style>
+
+<script>
+(() => {
+  const sourceQuestions = __QUESTIONS_JSON__.filter(q => q.target && q.answerLabel);
+  const praiseCharacterImages = __PRAISE_CHARACTERS_JSON__;
+  const canvas = document.getElementById('shooterCanvas');
+  const ctx = canvas.getContext('2d');
+  const statusEl = document.getElementById('shooterStatus');
+  const scoreEl = document.getElementById('shooterScore');
+  const restartButton = document.getElementById('shooterRestartButton');
+  const soundButton = document.getElementById('shooterSoundButton');
+  const overlay = document.getElementById('shooterAnswerOverlay');
+  const praiseEl = document.getElementById('shooterPraise');
+  const titleEl = document.getElementById('shooterAnswerTitle');
+  const explanationEl = document.getElementById('shooterExplanation');
+  const nextButton = document.getElementById('shooterNextButton');
+  const praisePop = document.getElementById('shooterPraisePop');
+  const praisePopText = document.getElementById('praisePopText');
+  const praiseCharacterImage = document.getElementById('praiseCharacterImage');
+
+  const praise = ['醫뗭븘!', '洹몃쩆??', '?묒꽕?고듃!', '?섑뻽??'];
+  const colors = ['#f87171', '#facc15', '#38bdf8', '#4ade80', '#a78bfa', '#fb7185'];
+  const state = {
+    width: 0,
+    height: 0,
+    dpr: 1,
+    radius: 24,
+    baseX: 0,
+    baseY: 0,
+    aimX: 0,
+    aimY: 0,
+    aiming: false,
+    bubbles: [],
+    current: null,
+    shot: null,
+    score: 0,
+    turn: 0,
+    waiting: false,
+    gameOver: false,
+    soundEnabled: true,
+    deck: [],
+    nextIndex: 0,
+  };
+
+  function currentCols() {
+    const byWidth = Math.floor((state.width - state.radius * 1.6) / (state.radius * 2.06));
+    return Math.max(7, Math.min(14, byWidth));
+  }
+
+  function initialRows() {
+    const usableHeight = Math.max(0, state.baseY - state.radius * 4.2);
+    const rowsByHeight = Math.floor(usableHeight / (state.radius * 1.76));
+    return Math.max(2, Math.min(5, rowsByHeight));
+  }
+
+  function shuffle(items) {
+    const copy = [...items];
+    for (let i = copy.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  }
+
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    state.dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    state.width = Math.max(320, rect.width);
+    state.height = Math.max(480, rect.height);
+    canvas.width = Math.round(state.width * state.dpr);
+    canvas.height = Math.round(state.height * state.dpr);
+    ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+    const sizeBasis = Math.min(state.width, state.height * 0.78);
+    state.radius = Math.max(18, Math.min(29, sizeBasis / 18));
+    state.baseX = state.width / 2;
+    state.baseY = state.height - state.radius - 38;
+    state.aimX = state.baseX;
+    state.aimY = state.baseY - 120;
+    layoutBubbles();
+  }
+
+  function layoutBubbles() {
+    if (!state.bubbles.length) return;
+    const cols = currentCols();
+    const gapX = state.radius * 2.06;
+    const gapY = state.radius * 1.76;
+    const top = state.radius + 16;
+    state.bubbles.forEach((bubble) => {
+      const slot = bubble.slotIndex ?? 0;
+      const row = Math.floor(slot / cols);
+      const col = slot % cols;
+      const rowWidth = (cols - 1) * gapX;
+      const startX = (state.width - rowWidth) / 2 + (row % 2 ? state.radius * 0.55 : 0);
+      bubble.x = Math.min(state.width - state.radius - 8, Math.max(state.radius + 8, startX + col * gapX));
+      bubble.y = top + row * gapY;
+      bubble.r = state.radius;
+    });
+  }
+
+  function makeBubble(question, index) {
+    return {
+      ...question,
+      color: colors[index % colors.length],
+      slotIndex: index,
+      x: 0,
+      y: 0,
+      r: state.radius,
+    };
+  }
+
+  function chooseCurrent() {
+    const live = state.bubbles.filter(b => !b.popped);
+    if (!live.length) {
+      finishGame(true);
+      return;
+    }
+    const frontY = Math.max(...live.map(b => b.y));
+    const front = live.filter(b => Math.abs(b.y - frontY) < state.radius * 0.8);
+    state.current = front[Math.floor(Math.random() * front.length)];
+    statusEl.textContent = `'${state.current.meaningSound || state.current.answerLabel}' 踰꾨툝??留욌뒗 ?쒖옄???섏옄`;
+  }
+
+  function startGame() {
+    state.deck = shuffle(sourceQuestions).slice(0, 64);
+    state.bubbles = [];
+    state.nextIndex = 0;
+    state.score = 0;
+    state.turn = 0;
+    state.shot = null;
+    state.waiting = false;
+    state.gameOver = false;
+    overlay.classList.add('hidden');
+    scoreEl.textContent = '0';
+    resizeCanvas();
+    seedInitialBubbles();
+    chooseCurrent();
+  }
+
+  function seedInitialBubbles() {
+    const cols = currentCols();
+    const initialCount = Math.min(cols * initialRows(), state.deck.length);
+    state.bubbles = state.deck.slice(0, initialCount).map((question, index) => {
+      const bubble = makeBubble(question, index);
+      bubble.slotIndex = index;
+      return bubble;
+    });
+    state.nextIndex = initialCount;
+    layoutBubbles();
+  }
+
+  function drawBubble(bubble, label, isMeaning = false) {
+    const parts = isMeaning ? String(label).trim().split(/\s+/) : [];
+    const meaningText = isMeaning && parts.length > 1 ? parts.slice(0, -1).join(' ') : '';
+    const soundText = isMeaning && parts.length > 1 ? parts[parts.length - 1] : label;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(bubble.x, bubble.y, bubble.r, 0, Math.PI * 2);
+    const grad = ctx.createRadialGradient(bubble.x - bubble.r * 0.35, bubble.y - bubble.r * 0.38, bubble.r * 0.1, bubble.x, bubble.y, bubble.r);
+    grad.addColorStop(0, '#ffffff');
+    grad.addColorStop(0.22, isMeaning ? '#ecfeff' : '#f8fafc');
+    grad.addColorStop(1, bubble.color || '#93c5fd');
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = isMeaning ? '#0f766e' : 'rgba(15, 23, 42, 0.25)';
+    ctx.stroke();
+    ctx.fillStyle = '#102033';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = isMeaning ? `950 ${Math.max(18, bubble.r * 0.72)}px "Malgun Gothic", sans-serif` : `950 ${bubble.r * 0.92}px "Malgun Gothic", sans-serif`;
+    wrapText(soundText, bubble.x, bubble.y, bubble.r * 1.55, isMeaning ? bubble.r * 0.62 : bubble.r);
+    if (meaningText) {
+      ctx.font = `900 ${Math.max(13, bubble.r * 0.42)}px "Malgun Gothic", sans-serif`;
+      ctx.fillStyle = '#ffffff';
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = 'rgba(15, 23, 42, 0.55)';
+      ctx.strokeText(meaningText, bubble.x, bubble.y + bubble.r + Math.max(14, bubble.r * 0.42));
+      ctx.fillText(meaningText, bubble.x, bubble.y + bubble.r + Math.max(14, bubble.r * 0.42));
+    }
+    ctx.restore();
+  }
+
+  function wrapText(text, x, y, maxWidth, lineHeight) {
+    const chars = String(text).split('');
+    let lines = [''];
+    chars.forEach(char => {
+      const test = lines[lines.length - 1] + char;
+      if (ctx.measureText(test).width > maxWidth && lines[lines.length - 1]) {
+        lines.push(char);
+      } else {
+        lines[lines.length - 1] = test;
+      }
+    });
+    if (lines.length > 2) {
+      lines = [String(text).slice(0, 3), String(text).slice(3, 6)];
+    }
+    const startY = y - ((lines.length - 1) * lineHeight) / 2;
+    lines.forEach((line, index) => ctx.fillText(line, x, startY + index * lineHeight));
+  }
+
+  function traceAimPath() {
+    const segments = [];
+    let x = state.baseX;
+    let y = state.baseY;
+    let vx = Math.cos(aimAngle());
+    let vy = Math.sin(aimAngle());
+    const shotRadius = state.radius * 1.04;
+    const maxSegments = 4;
+
+    for (let segment = 0; segment < maxSegments; segment += 1) {
+      let nearestT = Infinity;
+      let endX = x;
+      let endY = y;
+      let hitWall = false;
+
+      if (vx < 0) {
+        const t = (shotRadius - x) / vx;
+        if (t > 0 && t < nearestT) {
+          nearestT = t;
+          endX = shotRadius;
+          endY = y + vy * t;
+          hitWall = true;
+        }
+      } else if (vx > 0) {
+        const t = (state.width - shotRadius - x) / vx;
+        if (t > 0 && t < nearestT) {
+          nearestT = t;
+          endX = state.width - shotRadius;
+          endY = y + vy * t;
+          hitWall = true;
+        }
+      }
+
+      if (vy < 0) {
+        const t = (shotRadius - y) / vy;
+        if (t > 0 && t < nearestT) {
+          nearestT = t;
+          endX = x + vx * t;
+          endY = shotRadius;
+          hitWall = false;
+        }
+      }
+
+      state.bubbles.filter(b => !b.popped).forEach((bubble) => {
+        const hitRadius = shotRadius + bubble.r * 0.82;
+        const dx = x - bubble.x;
+        const dy = y - bubble.y;
+        const b = 2 * (vx * dx + vy * dy);
+        const c = dx * dx + dy * dy - hitRadius * hitRadius;
+        const discriminant = b * b - 4 * c;
+        if (discriminant < 0) return;
+        const t = (-b - Math.sqrt(discriminant)) / 2;
+        if (t > 0 && t < nearestT) {
+          nearestT = t;
+          endX = x + vx * t;
+          endY = y + vy * t;
+          hitWall = false;
+        }
+      });
+
+      if (!Number.isFinite(nearestT)) break;
+      segments.push({ x1: x, y1: y, x2: endX, y2: endY });
+      if (!hitWall) break;
+      x = endX;
+      y = endY;
+      vx *= -1;
+    }
+
+    return segments;
+  }
+
+  function drawAim() {
+    if (!state.current || state.waiting || state.shot || state.gameOver) return;
+    const segments = traceAimPath();
+    if (!segments.length) return;
+    ctx.save();
+    ctx.setLineDash([8, 8]);
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.84)';
+    ctx.beginPath();
+    segments.forEach((segment) => {
+      ctx.moveTo(segment.x1, segment.y1);
+      ctx.lineTo(segment.x2, segment.y2);
+    });
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawCannon() {
+    ctx.save();
+    ctx.strokeStyle = '#fbbf24';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(state.baseX, state.baseY + state.radius * 0.26, state.radius * 1.35, Math.PI * 1.1, Math.PI * 1.9);
+    ctx.stroke();
+    if (state.current && !state.shot && !state.gameOver) {
+      drawBubble({ x: state.baseX, y: state.baseY, r: state.radius * 1.18, color: '#a7f3d0' }, state.current.meaningSound || state.current.answerLabel, true);
+    }
+    ctx.restore();
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, state.width, state.height);
+    state.bubbles.forEach(bubble => drawBubble(bubble, bubble.target));
+    drawAim();
+    if (state.shot) drawBubble(state.shot, state.shot.meaningSound || state.shot.answerLabel, true);
+    drawCannon();
+  }
+
+  function aimAngle() {
+    let angle = Math.atan2(state.aimY - state.baseY, state.aimX - state.baseX);
+    const min = -Math.PI + 0.22;
+    const max = -0.22;
+    if (angle > max) angle = max;
+    if (angle < min) angle = min;
+    return angle;
+  }
+
+  function pointerPoint(event) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  }
+
+  function startAim(event) {
+    if (state.waiting || state.shot || state.gameOver) return;
+    state.aiming = true;
+    const point = pointerPoint(event);
+    state.aimX = point.x;
+    state.aimY = point.y;
+  }
+
+  function moveAim(event) {
+    if (!state.aiming || state.waiting || state.shot || state.gameOver) return;
+    const point = pointerPoint(event);
+    state.aimX = point.x;
+    state.aimY = point.y;
+  }
+
+  function releaseAim() {
+    if (!state.aiming || state.waiting || state.shot || state.gameOver || !state.current) return;
+    state.aiming = false;
+    const angle = aimAngle();
+    const speed = Math.max(8, Math.min(11, state.height / 65));
+    state.shot = {
+      ...state.current,
+      x: state.baseX,
+      y: state.baseY,
+      r: state.radius * 1.04,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      color: '#a7f3d0',
+    };
+    playTone(520, 0.08, 'triangle');
+  }
+
+  function tick() {
+    if (state.shot && !state.waiting) {
+      state.shot.x += state.shot.vx;
+      state.shot.y += state.shot.vy;
+      if (state.shot.x < state.shot.r || state.shot.x > state.width - state.shot.r) {
+        state.shot.vx *= -1;
+        state.shot.x = Math.max(state.shot.r, Math.min(state.width - state.shot.r, state.shot.x));
+        playTone(260, 0.04, 'sine');
+      }
+      if (state.shot.y < state.shot.r) {
+        missShot();
+      } else {
+        const hit = state.bubbles.find(b => distance(state.shot, b) < state.shot.r + b.r * 0.82);
+        if (hit) handleHit(hit);
+      }
+    }
+    draw();
+    requestAnimationFrame(tick);
+  }
+
+  function distance(a, b) {
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+
+  function handleHit(hit) {
+    if (!state.shot) return;
+    if (hit.target === state.shot.target) {
+      state.waiting = true;
+      state.score += 100;
+      scoreEl.textContent = String(state.score);
+      state.bubbles = state.bubbles.filter(b => b !== hit);
+      const say = praise[Math.floor(Math.random() * praise.length)];
+      statusEl.textContent = `${say} ?뺣떟 踰꾨툝???곕쑉?몄뼱`;
+      playTone(780, 0.11, 'triangle');
+      setTimeout(() => playTone(980, 0.12, 'triangle'), 80);
+      setTimeout(() => showPraise(hit, say), 220);
+    } else {
+      statusEl.textContent = '?꾧퉴?? 留욌뒗 ?쒖옄 踰꾨툝???ㅼ떆 李얠븘蹂댁옄';
+      missShot();
+    }
+  }
+
+  function missShot() {
+    playTone(180, 0.1, 'sine');
+    state.shot = null;
+    afterTurn();
+  }
+
+  function afterTurn() {
+    addBackRowBubble();
+    layoutBubbles();
+    if (state.bubbles.some(b => b.y + b.r > state.baseY - state.radius * 2.2)) {
+      finishGame(false);
+      return;
+    }
+    chooseCurrent();
+  }
+
+  function addBackRowBubble() {
+    if (state.nextIndex >= state.deck.length) return;
+    const cols = currentCols();
+    const occupied = new Set(state.bubbles.map(b => b.slotIndex));
+    const topSlots = Array.from({ length: cols }, (_, index) => index).filter(slot => !occupied.has(slot));
+    if (!topSlots.length || state.nextIndex >= state.deck.length) return;
+    const slotIndex = topSlots[0];
+    const bubble = makeBubble(state.deck[state.nextIndex], slotIndex);
+    bubble.slotIndex = slotIndex;
+    state.nextIndex += 1;
+    state.bubbles.push(bubble);
+    const topFull = Array.from({ length: cols }, (_, index) => index).every(slot =>
+      state.bubbles.some(b => b.slotIndex === slot)
+    );
+    if (topFull) {
+      state.bubbles.forEach(b => {
+        b.slotIndex += cols;
+      });
+      state.turn += 1;
+    }
+    layoutBubbles();
+  }
+
+  function showPraise(question, say) {
+    state.shot = null;
+    if (praiseCharacterImages.length) {
+      praiseCharacterImage.src = praiseCharacterImages[Math.floor(Math.random() * praiseCharacterImages.length)];
+    }
+    praisePopText.textContent = `${say} ${question.target}!`;
+    praisePop.classList.remove('hidden');
+    void praisePop.offsetWidth;
+    praisePop.style.animation = 'none';
+    void praisePop.offsetWidth;
+    praisePop.style.animation = '';
+    window.setTimeout(() => {
+      praisePop.classList.add('hidden');
+      state.waiting = false;
+      afterTurn();
+    }, 980);
+  }
+
+  function renderExplanation(explanation) {
+    explanationEl.innerHTML = '';
+    const sentences = explanation.split(/(?<=\.)\s+/).filter(Boolean);
+    const lead = sentences.slice(0, 3).join(' ');
+    const details = sentences.slice(3);
+    const leadEl = document.createElement('p');
+    leadEl.className = 'shooter-lead';
+    leadEl.textContent = lead || explanation;
+    explanationEl.appendChild(leadEl);
+    details.forEach(sentence => {
+      const line = document.createElement('p');
+      line.className = /?덉떆|鍮꾩듂|諛섎?|吏?媛숈? ??.test(sentence) ? 'shooter-line shooter-focus' : 'shooter-line';
+      line.textContent = sentence;
+      explanationEl.appendChild(line);
+    });
+  }
+
+  function finishGame(clear) {
+    state.gameOver = true;
+    state.waiting = true;
+    praiseEl.textContent = clear ? '?깃났!' : '寃뚯엫 ??;
+    titleEl.textContent = clear ? '紐⑤뱺 踰꾨툝???곕쑉?몄뼱' : '?ㅼ떆 ?꾩쟾?대낫??;
+    renderExplanation(clear ? '?ㅻ뒛 ?쒖옄 ?덊꽣 ?ㅻ젰???꾩＜ 醫뗭븘.' : '踰꾨툝???꾨옒源뚯? ?대젮?붿뼱. ?ㅼ떆 ?쒖옉???뚮윭 ??踰????대낫??');
+    nextButton.style.display = '';
+    overlay.classList.remove('hidden');
+    nextButton.textContent = '?ㅼ떆 ?쒖옉';
+  }
+
+  function continueGame() {
+    overlay.classList.add('hidden');
+    if (state.gameOver) {
+      nextButton.textContent = '?뺤씤';
+      startGame();
+      return;
+    }
+    state.waiting = false;
+    afterTurn();
+  }
+
+  function playTone(freq, duration, type) {
+    if (!state.soundEnabled) return;
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const audio = new AudioContext();
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.001, audio.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.08, audio.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audio.destination);
+    osc.start();
+    osc.stop(audio.currentTime + duration + 0.02);
+  }
+
+  canvas.addEventListener('pointerdown', event => {
+    canvas.setPointerCapture(event.pointerId);
+    startAim(event);
+  });
+  canvas.addEventListener('pointermove', moveAim);
+  canvas.addEventListener('pointerup', releaseAim);
+  canvas.addEventListener('pointercancel', () => { state.aiming = false; });
+  restartButton.addEventListener('click', startGame);
+  nextButton.addEventListener('click', continueGame);
+  soundButton.addEventListener('click', () => {
+    state.soundEnabled = !state.soundEnabled;
+    soundButton.textContent = state.soundEnabled ? '?④낵??耳쒖쭚' : '?④낵??爰쇱쭚';
+    soundButton.setAttribute('aria-pressed', String(state.soundEnabled));
+  });
+  window.addEventListener('resize', resizeCanvas);
+
+  startGame();
+  tick();
+})();
+</script>
+'''
+
+
+def shooter_html() -> str:
+    questions = load_bubble_questions()
+    if not questions:
+        questions = [
+            {
+                'target': '??,
+                'answerLabel': '寃⑥슱 ??,
+                'meaningSound': '寃⑥슱 ??,
+                'explanation': '?뺣떟? ?ъ엯?덈떎. ?ъ? 寃⑥슱 ?숈엯?덈떎. ?덉떆 ?⑥뼱???ц눛(?숈?), ?х쑀(?숇㈃)?낅땲??',
+            }
+        ]
+    return (
+        SHOOTER_HTML_TEMPLATE
+        .replace('__QUESTIONS_JSON__', json.dumps(questions, ensure_ascii=False))
+        .replace('__PRAISE_CHARACTERS_JSON__', json.dumps(load_praise_character_data_urls()))
+    )
+
+
+@ui.page('/')
+def index() -> None:
+    ui.add_head_html(
+        '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">'
+    )
+    ui.add_body_html(GAME_HTML)
+
+
+@ui.page('/bubble')
+def bubble() -> None:
+    ui.add_head_html(
+        '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">'
+    )
+    ui.add_body_html(bubble_html())
+
+
+@ui.page('/bubble-shooter')
+def bubble_shooter() -> None:
+    ui.add_head_html(
+        '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">'
+    )
+    ui.add_body_html(shooter_html())
+
 
 register_pages()
 
@@ -663,4 +2695,5 @@ register_pages()
 if __name__ in {'__main__', '__mp_main__'}:
     port = int(os.environ.get('PORT', '8080'))
     host = os.environ.get('EDUNI_HOST', '127.0.0.1')
-    ui.run(title='에듀니 학습 포털', host=host, port=port, reload=False)
+    ui.run(title='?쇰????뚰듃由ъ뒪', host=host, port=port, reload=False)
+

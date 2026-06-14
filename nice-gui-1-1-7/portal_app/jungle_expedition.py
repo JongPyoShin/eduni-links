@@ -4,7 +4,7 @@ from random import choice
 
 from nicegui import ui
 
-from .jungle_question_selector import BIRDS, choose_bird, load_jungle_questions, remember_question, select_question
+from .jungle_question_selector import choose_bird, load_jungle_questions, remember_question, select_question
 
 JUNGLE_EXPEDITION_ACTIVITY_ID = "jungle.expedition.001"
 BIRD_POSITION_CLASSES = (
@@ -13,6 +13,36 @@ BIRD_POSITION_CLASSES = (
     "bird-position-right-high",
     "bird-position-right-low",
 )
+
+
+def format_bird_badge(bird_info: dict[str, object]) -> str:
+    return f'{bird_info["stars"]} {bird_info["rarity_label"]}'
+
+
+def format_cargo_items(collected_birds: list[dict[str, str]]) -> str:
+    grouped: dict[str, dict[str, str | int]] = {}
+    ordered_ids: list[str] = []
+    for bird in collected_birds:
+        bird_id = bird["id"]
+        if bird_id not in grouped:
+            grouped[bird_id] = {
+                "emoji": bird["emoji"],
+                "name": bird["name"],
+                "stars": bird["stars"],
+                "count": 0,
+            }
+            ordered_ids.append(bird_id)
+        grouped[bird_id]["count"] = int(grouped[bird_id]["count"]) + 1
+
+    labels: list[str] = []
+    for bird_id in ordered_ids:
+        item = grouped[bird_id]
+        label = f'{item["emoji"]} {item["name"]} {item["stars"]}'
+        count = int(item["count"])
+        if count > 1:
+            label = f"{label} x {count}개"
+        labels.append(label)
+    return ", ".join(labels)
 
 
 def render_jungle_expedition() -> None:
@@ -206,8 +236,8 @@ def render_jungle_expedition() -> None:
     def place_bird() -> None:
         bird_info = choose_bird()
         state["bird"] = bird_info
-        bird.set_text(bird_info["emoji"])
-        bird.props(f'aria-label="{bird_info["name"]} 발견"')
+        bird.set_text(str(bird_info["emoji"]))
+        bird.props(f'aria-label="{bird_info["name"]} {format_bird_badge(bird_info)} 발견"')
         bird.classes(remove=" ".join(BIRD_POSITION_CLASSES), add=choose_bird_position())
 
     def move_forward() -> None:
@@ -219,13 +249,15 @@ def render_jungle_expedition() -> None:
 
     def render_question() -> None:
         bird_info = state["bird"]
+        if not isinstance(bird_info, dict):
+            return
         question = select_question(questions, str(bird_info["id"]), recent_questions)
         state["question"] = question
         state["answered"] = False
         remember_question(recent_questions, str(bird_info["id"]), question["id"])
-        question_title.set_text(f'{bird_info["name"]} 발견! {question["subject"]} 문제')
+        question_title.set_text(f'{bird_info["emoji"]} {bird_info["name"]} 발견! {format_bird_badge(bird_info)} · {question["subject"]} 문제')
         question_prompt.set_text(question["prompt"])
-        hint_text.set_text("")
+        hint_text.set_text(str(bird_info["description"]))
         feedback.set_text("")
         continue_button.set_visibility(False)
         answer_row.clear()
@@ -255,8 +287,14 @@ def render_jungle_expedition() -> None:
             feedback.set_text("아직 아니야. 힌트를 보고 다시 골라보자.")
             return
         state["answered"] = True
-        collected_birds.append({"id": str(bird_info["id"]), "name": str(bird_info["name"])})
-        feedback.set_text(f'{bird_info["name"]} 포획 성공! 이번 탐험 수집 수: {len(collected_birds)}')
+        collected_birds.append({
+            "id": str(bird_info["id"]),
+            "emoji": str(bird_info["emoji"]),
+            "name": str(bird_info["name"]),
+            "rarity_label": str(bird_info["rarity_label"]),
+            "stars": str(bird_info["stars"]),
+        })
+        feedback.set_text(f'{bird_info["name"]} 포획 성공! {format_bird_badge(bird_info)} · 이번 탐험 수집 수: {len(collected_birds)}')
         continue_button.set_visibility(True)
 
     def continue_expedition() -> None:
@@ -267,9 +305,8 @@ def render_jungle_expedition() -> None:
         set_motion(False)
         question_card.set_visibility(False)
         if collected_birds:
-            names = ", ".join(item["name"] for item in collected_birds)
             cargo_summary.set_text(f"현재 세션 수집 수: {len(collected_birds)}")
-            cargo_names.set_text(names)
+            cargo_names.set_text(format_cargo_items(collected_birds))
         else:
             cargo_summary.set_text("현재 세션 수집 수: 0")
             cargo_names.set_text("아직 잡은 새가 없어. 전진해서 새를 찾아보자.")
@@ -281,7 +318,7 @@ def render_jungle_expedition() -> None:
     with ui.element("section").classes("jungle-stage").props('aria-label="정글 대탐험 데모"') as stage:
         with ui.element("div").classes("jungle-hud"):
             ui.label("정글 대탐험")
-            ui.label("Phase B")
+            ui.label("Phase C-1")
         status = ui.label("전진을 눌러 새를 찾아보자!").classes("jungle-status")
         with ui.element("div").classes("jungle-canopy"):
             for _ in range(4):

@@ -170,11 +170,22 @@ def render_jungle_expedition() -> None:
             left: 18px;
             right: 18px;
             bottom: 220px;
+            box-sizing: border-box;
+            max-height: min(62vh, 430px);
+            overflow-y: auto;
             padding: 14px;
             border-radius: 8px;
             background: rgba(255,255,255,.95);
             border: 1px solid rgba(22, 101, 52, .24);
             font-weight: 800;
+            -webkit-overflow-scrolling: touch;
+          }
+          .jungle-question-prompt {
+            font-size: 20px;
+            line-height: 1.45;
+            font-weight: 900;
+            margin-top: 8px;
+            color: #0f172a;
           }
           .jungle-hud {
             position: relative;
@@ -201,7 +212,7 @@ def render_jungle_expedition() -> None:
             z-index: 8;
             left: 14px;
             right: 14px;
-            bottom: 18px;
+            bottom: max(18px, env(safe-area-inset-bottom));
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 10px;
@@ -212,8 +223,8 @@ def render_jungle_expedition() -> None:
             font-weight: 900;
           }
           .jungle-answer-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-          .jungle-answer { min-height: 52px; min-width: 82px; border-radius: 8px; font-weight: 900; }
-          .jungle-codex-list { white-space: pre-line; max-height: 210px; overflow-y: auto; }
+          .jungle-answer { flex: 1 1 82px; min-height: 52px; min-width: 82px; border-radius: 8px; font-weight: 900; }
+          .jungle-codex-list { white-space: pre-line; max-height: min(34vh, 240px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
           @keyframes jungle-road-flow {
             from { background-position: center 0; }
             to { background-position: center 128px; }
@@ -224,7 +235,10 @@ def render_jungle_expedition() -> None:
           }
           @media (max-width: 420px) {
             .jungle-stage { min-height: calc(100vh - 40px); }
-            .jungle-touch { min-height: 54px; }
+            .jungle-card { left: 10px; right: 10px; bottom: 190px; max-height: calc(100vh - 286px); }
+            .jungle-question-prompt { font-size: 21px; }
+            .jungle-controls { left: 10px; right: 10px; gap: 8px; }
+            .jungle-touch { min-height: 52px; }
           }
         </style>
         """
@@ -269,10 +283,11 @@ def render_jungle_expedition() -> None:
         state["question"] = question
         state["answered"] = False
         remember_question(recent_questions, str(bird_info["id"]), question["id"])
-        question_title.set_text(f'{bird_info["emoji"]} {bird_info["name"]} 발견! {format_bird_badge(bird_info)} · {question["subject"]} 문제')
+        question_title.set_text(f'{bird_info["emoji"]} {bird_info["name"]} 발견! {format_bird_badge(bird_info)}')
         question_prompt.set_text(question["prompt"])
         hint_text.set_text(str(bird_info["description"]))
         feedback.set_text("")
+        hint_button.set_visibility(True)
         continue_button.set_visibility(False)
         answer_row.clear()
         with answer_row:
@@ -307,6 +322,7 @@ def render_jungle_expedition() -> None:
             f'{bird_info["name"]} 포획 성공! {format_bird_badge(bird_info)} · '
             f'이 새 {bird_capture_count}번 · 전체 {total_captures}마리'
         )
+        hint_button.set_visibility(False)
         continue_button.set_visibility(True)
 
     def continue_expedition() -> None:
@@ -344,7 +360,7 @@ def render_jungle_expedition() -> None:
     with ui.element("section").classes("jungle-stage").props('aria-label="정글 대탐험 데모"') as stage:
         with ui.element("div").classes("jungle-hud"):
             ui.label("정글 대탐험")
-            ui.label("Phase C-3")
+            ui.label("Phase C-4")
         status = ui.label("전진을 눌러 새를 찾아보자!").classes("jungle-status")
         with ui.element("div").classes("jungle-canopy"):
             for _ in range(4):
@@ -365,12 +381,12 @@ def render_jungle_expedition() -> None:
         question_card = ui.element("div").classes("jungle-card")
         with question_card:
             question_title = ui.label("").classes("text-h6")
-            question_prompt = ui.label("")
+            question_prompt = ui.label("").classes("jungle-question-prompt")
             answer_row = ui.element("div").classes("jungle-answer-row")
             hint_text = ui.label("").classes("muted q-mt-sm")
             feedback = ui.label("").classes("q-mt-sm")
             with ui.row().classes("q-gutter-sm q-mt-sm"):
-                ui.button("힌트", on_click=show_hint).classes("jungle-answer")
+                hint_button = ui.button("힌트", on_click=show_hint).classes("jungle-answer")
                 continue_button = ui.button("탐험 계속", on_click=continue_expedition).classes("jungle-answer")
         question_card.set_visibility(False)
         continue_button.set_visibility(False)

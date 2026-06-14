@@ -4,6 +4,7 @@ import sys
 import unittest
 from types import SimpleNamespace
 
+import portal_app.jungle_question_selector as selector
 from portal_app.jungle_question_selector import BIRDS, load_jungle_birds, load_jungle_questions, remember_question, select_question
 
 
@@ -130,6 +131,26 @@ class JungleQuestionSelectorTests(unittest.TestCase):
         selected = select_question(questions, "legend.starlight_owl", {"legend.starlight_owl": ["only"]})
         self.assertEqual("only", selected["id"])
 
+    def test_selected_question_choices_are_shuffled_without_changing_answer(self) -> None:
+        original_shuffle = selector.random.shuffle
+        try:
+            selector.random.shuffle = lambda values: values.reverse()
+            question = {
+                "id": "shuffle-test",
+                "subject": "영어",
+                "difficulty": "basic",
+                "prompt": "정답 위치 테스트",
+                "choices": ["정답", "오답1", "오답2"],
+                "answer": "정답",
+                "hint": "정답은 값으로 비교한다.",
+            }
+            selected = selector.select_question([question], "bird.sparrow", {})
+            self.assertEqual("정답", selected["answer"])
+            self.assertEqual(["오답2", "오답1", "정답"], selected["choices"])
+            self.assertEqual(["정답", "오답1", "오답2"], question["choices"])
+        finally:
+            selector.random.shuffle = original_shuffle
+
     def test_remember_question_keeps_session_history_short(self) -> None:
         history: dict[str, list[str]] = {}
         for index in range(12):
@@ -220,6 +241,15 @@ class JungleQuestionSelectorTests(unittest.TestCase):
         self.assertTrue(any("저장된 수집 수: 3마리 · 종류: 1종" in text for text in cargo_texts))
         self.assertTrue(any("비둘기 ★ x 3개" in text for text in cargo_texts))
         self.assertFalse(any("비둘기 ★, 🕊️ 비둘기 ★" in text for text in cargo_texts))
+
+        click("닫기")
+        self.assertTrue(any("전진 중" in text for text in visible_texts()))
+
+        click("도감")
+        codex_texts = visible_texts()
+        self.assertTrue(any("도감 발견: 1/13종 · 총 3마리" in text for text in codex_texts))
+        self.assertTrue(any("비둘기 ★ 흔한 새 x 3개" in text for text in codex_texts))
+        self.assertTrue(any("❔ 미발견" in text for text in codex_texts))
 
         click("닫기")
         self.assertTrue(any("전진 중" in text for text in visible_texts()))

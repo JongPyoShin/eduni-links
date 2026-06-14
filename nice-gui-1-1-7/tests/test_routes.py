@@ -30,6 +30,21 @@ class RouteFoundationTests(unittest.TestCase):
         self.assertIn('@ui.page("/portal/world/{world_id}")', route_source)
         self.assertIn('@ui.page("/portal/parent")', route_source)
 
+    def test_portal_home_exposes_featured_jungle_activity(self) -> None:
+        route_source = (APP_ROOT / "portal_app" / "routes.py").read_text(encoding="utf-8")
+        self.assertIn("FEATURED_ACTIVITY_IDS", route_source)
+        self.assertIn("바로 시작", route_source)
+        self.assertIn("정글 대탐험 바로가기", route_source)
+        self.assertIn("portal-feature-card", route_source)
+        self.assertIn("/portal/activity/{JUNGLE_EXPEDITION_ACTIVITY_ID}", route_source)
+
+    def test_jungle_expedition_activity_content_is_registered(self) -> None:
+        activity_source = (APP_ROOT / "content" / "activities" / "math" / "jungle_expedition_001.json").read_text(encoding="utf-8")
+        self.assertIn('"id": "jungle.expedition.001"', activity_source)
+        self.assertIn('"title": "정글 대탐험"', activity_source)
+        self.assertIn('"activity_type": "jungle_expedition"', activity_source)
+        self.assertIn('"enabled": true', activity_source)
+
     def test_jungle_expedition_phase_c6_route_is_declared(self) -> None:
         route_source = (APP_ROOT / "portal_app" / "routes.py").read_text(encoding="utf-8")
         jungle_source = (APP_ROOT / "portal_app" / "jungle_expedition.py").read_text(encoding="utf-8")

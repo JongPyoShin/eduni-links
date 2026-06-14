@@ -328,6 +328,7 @@ def render_quiz_html() -> str:
       <footer class="actions">
         <button id="prev" type="button" class="secondary">Prev</button>
         <button id="save" type="button" class="save">Save</button>
+        <button id="reset-answers" type="button" class="secondary">Reset</button>
         <button id="grade" type="button" class="grade" disabled>Grade</button>
         <button id="next" type="button" class="primary">Next</button>
       </footer>
@@ -355,6 +356,7 @@ def render_quiz_html() -> str:
         const prev = document.getElementById('prev');
         const next = document.getElementById('next');
         const save = document.getElementById('save');
+        const resetAnswers = document.getElementById('reset-answers');
         const grade = document.getElementById('grade');
         const results = document.getElementById('results');
 
@@ -539,6 +541,8 @@ def render_quiz_html() -> str:
 
         prev.addEventListener('click', () => show(current - 1));
         next.addEventListener('click', () => show(current + 1));
+        resetAnswers.addEventListener('click', resetCurrentQuizAnswers);
+        resetAnswers.addEventListener('click', resetCurrentQuizAnswers);
         grade.addEventListener('click', () => {{
           if (!allAnswered()) {{
             status.textContent = `Answer all questions first. Remaining: ${{currentQuiz.questions.length - answeredCount()}}`;
@@ -715,6 +719,7 @@ def render_hanja_html() -> str:
         const prev = document.getElementById('prev');
         const next = document.getElementById('next');
         const save = document.getElementById('save');
+        const resetAnswers = document.getElementById('reset-answers');
         const grade = document.getElementById('grade');
         const results = document.getElementById('results');
         let current = 0;

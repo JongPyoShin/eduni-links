@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import unittest
+from collections import Counter
 from types import SimpleNamespace
 
 import portal_app.jungle_question_selector as selector
@@ -109,8 +110,17 @@ class JungleQuestionSelectorTests(unittest.TestCase):
     def test_loads_required_subject_samples(self) -> None:
         questions = load_jungle_questions()
         subjects = {question["subject"] for question in questions}
-        self.assertEqual(20, len(questions))
+        subject_counts = Counter(question["subject"] for question in questions)
+        difficulty_counts = Counter(question["difficulty"] for question in questions)
+        self.assertEqual(100, len(questions))
         self.assertEqual({"한자 7~6급", "구구단", "영어", "과학"}, subjects)
+        self.assertEqual(25, subject_counts["한자 7~6급"])
+        self.assertEqual(25, subject_counts["구구단"])
+        self.assertEqual(25, subject_counts["영어"])
+        self.assertEqual(25, subject_counts["과학"])
+        self.assertGreater(difficulty_counts["normal"], 0)
+        self.assertGreater(difficulty_counts["hard"], 0)
+        self.assertEqual(len(questions), len({question["id"] for question in questions}))
         for question in questions:
             self.assertEqual(3, len(question["choices"]))
             self.assertIn(question["answer"], question["choices"])

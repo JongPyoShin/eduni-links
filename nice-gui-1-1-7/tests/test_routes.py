@@ -30,19 +30,20 @@ class RouteFoundationTests(unittest.TestCase):
         self.assertIn('@ui.page("/portal/world/{world_id}")', route_source)
         self.assertIn('@ui.page("/portal/parent")', route_source)
 
-    def test_jungle_expedition_phase_c1_route_is_declared(self) -> None:
+    def test_jungle_expedition_phase_c2_route_is_declared(self) -> None:
         route_source = (APP_ROOT / "portal_app" / "routes.py").read_text(encoding="utf-8")
         jungle_source = (APP_ROOT / "portal_app" / "jungle_expedition.py").read_text(encoding="utf-8")
         self.assertIn("JUNGLE_EXPEDITION_ACTIVITY_ID", route_source)
         self.assertIn("jungle.expedition.001", jungle_source)
         self.assertIn("정글 대탐험", jungle_source)
-        self.assertIn("Phase C-1", jungle_source)
+        self.assertIn("Phase C-2", jungle_source)
         self.assertIn("전진", jungle_source)
         self.assertIn("짐칸", jungle_source)
         self.assertNotIn('ui.button("정지"', jungle_source)
         self.assertIn("select_question", jungle_source)
         self.assertIn("format_bird_badge", jungle_source)
-        self.assertIn("rarity_label", jungle_source)
+        self.assertIn("load_collection", jungle_source)
+        self.assertIn("record_capture", jungle_source)
         self.assertIn("힌트", jungle_source)
         self.assertIn("탐험 계속", jungle_source)
         self.assertIn("포획 성공", jungle_source)

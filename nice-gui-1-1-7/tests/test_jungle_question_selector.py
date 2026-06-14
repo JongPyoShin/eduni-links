@@ -194,6 +194,8 @@ class JungleQuestionSelectorTests(unittest.TestCase):
                 "rarity_label": pigeon["rarity_label"],
                 "stars": pigeon["stars"],
                 "capture_count": len(captures),
+                "first_captured_at": "2026-06-14T01:00:00+00:00",
+                "last_captured_at": "2026-06-14T02:00:00+00:00",
             }]
 
         jungle_expedition.choose_bird = lambda: dict(pigeon)
@@ -223,6 +225,7 @@ class JungleQuestionSelectorTests(unittest.TestCase):
         self.assertTrue(any("전체 1마리" in text for text in visible_texts()))
         self.assertTrue(any("흔한 새" in text for text in visible_texts()))
         self.assertFalse(any("전체 2마리" in text for text in visible_texts()))
+        self.assertFalse(visible_buttons("힌트"))
 
         click("탐험 계속")
         bird.on_click()
@@ -249,8 +252,15 @@ class JungleQuestionSelectorTests(unittest.TestCase):
         codex_texts = visible_texts()
         self.assertTrue(any("도감 발견: 1/13종 · 총 3마리" in text for text in codex_texts))
         self.assertTrue(any("비둘기 ★ 흔한 새 x 3개" in text for text in codex_texts))
-        self.assertTrue(any("❔ 미발견" in text for text in codex_texts))
+        self.assertTrue(any("❔ ???" in text for text in codex_texts))
 
+        click(f'{pigeon["emoji"]} {pigeon["name"]} {pigeon["stars"]} {pigeon["rarity_label"]} x 3개')
+        detail_texts = visible_texts()
+        self.assertTrue(any("잡은 횟수: 3회" in text for text in detail_texts))
+        self.assertTrue(any("처음 포획: 2026-06-14" in text for text in detail_texts))
+        self.assertTrue(any("마지막 포획: 2026-06-14" in text for text in detail_texts))
+
+        click("상세 닫기")
         click("닫기")
         self.assertTrue(any("전진 중" in text for text in visible_texts()))
 

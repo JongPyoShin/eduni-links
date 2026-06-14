@@ -19,6 +19,32 @@ def format_bird_badge(bird_info: dict[str, object]) -> str:
     return f'{bird_info["stars"]} {bird_info["rarity_label"]}'
 
 
+def format_cargo_items(collected_birds: list[dict[str, str]]) -> str:
+    grouped: dict[str, dict[str, str | int]] = {}
+    ordered_ids: list[str] = []
+    for bird in collected_birds:
+        bird_id = bird["id"]
+        if bird_id not in grouped:
+            grouped[bird_id] = {
+                "emoji": bird["emoji"],
+                "name": bird["name"],
+                "stars": bird["stars"],
+                "count": 0,
+            }
+            ordered_ids.append(bird_id)
+        grouped[bird_id]["count"] = int(grouped[bird_id]["count"]) + 1
+
+    labels: list[str] = []
+    for bird_id in ordered_ids:
+        item = grouped[bird_id]
+        label = f'{item["emoji"]} {item["name"]} {item["stars"]}'
+        count = int(item["count"])
+        if count > 1:
+            label = f"{label} x {count}개"
+        labels.append(label)
+    return ", ".join(labels)
+
+
 def render_jungle_expedition() -> None:
     ui.add_head_html(
         """
@@ -279,9 +305,8 @@ def render_jungle_expedition() -> None:
         set_motion(False)
         question_card.set_visibility(False)
         if collected_birds:
-            names = ", ".join(f'{item["emoji"]} {item["name"]} {item["stars"]}' for item in collected_birds)
             cargo_summary.set_text(f"현재 세션 수집 수: {len(collected_birds)}")
-            cargo_names.set_text(names)
+            cargo_names.set_text(format_cargo_items(collected_birds))
         else:
             cargo_summary.set_text("현재 세션 수집 수: 0")
             cargo_names.set_text("아직 잡은 새가 없어. 전진해서 새를 찾아보자.")

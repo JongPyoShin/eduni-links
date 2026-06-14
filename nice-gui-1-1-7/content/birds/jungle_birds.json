@@ -1,0 +1,147 @@
+{
+  "birds": [
+    {
+      "id": "bird.sparrow",
+      "emoji": "🐦",
+      "name": "참새",
+      "rarity": "common",
+      "rarity_label": "흔한 새",
+      "stars": "★",
+      "description": "작고 친근한 갈색 새야. 우리 주변에서도 자주 만날 수 있어.",
+      "asset_key": "sparrow",
+      "enabled": true
+    },
+    {
+      "id": "bird.magpie",
+      "emoji": "🐦",
+      "name": "까치",
+      "rarity": "common",
+      "rarity_label": "흔한 새",
+      "stars": "★",
+      "description": "검은색과 흰색 깃털이 눈에 띄는 새야.",
+      "asset_key": "magpie",
+      "enabled": true
+    },
+    {
+      "id": "bird.pigeon",
+      "emoji": "🕊️",
+      "name": "비둘기",
+      "rarity": "common",
+      "rarity_label": "흔한 새",
+      "stars": "★",
+      "description": "도시와 공원에서도 자주 볼 수 있는 새야.",
+      "asset_key": "pigeon",
+      "enabled": true
+    },
+    {
+      "id": "bird.duck",
+      "emoji": "🦆",
+      "name": "오리",
+      "rarity": "common",
+      "rarity_label": "흔한 새",
+      "stars": "★",
+      "description": "물 위를 헤엄치고 꽥꽥 소리를 내는 새야.",
+      "asset_key": "duck",
+      "enabled": true
+    },
+    {
+      "id": "bird.bulbul",
+      "emoji": "🐦",
+      "name": "직박구리",
+      "rarity": "common",
+      "rarity_label": "흔한 새",
+      "stars": "★",
+      "description": "머리 모양과 울음소리가 인상적인 새야.",
+      "asset_key": "bulbul",
+      "enabled": true
+    },
+    {
+      "id": "bird.bluebird",
+      "emoji": "🦜",
+      "name": "파랑새",
+      "rarity": "rare",
+      "rarity_label": "희귀 새",
+      "stars": "★★",
+      "description": "푸른빛 깃털이 아름다운 새야.",
+      "asset_key": "bluebird",
+      "enabled": true
+    },
+    {
+      "id": "bird.woodpecker",
+      "emoji": "🐦",
+      "name": "딱따구리",
+      "rarity": "rare",
+      "rarity_label": "희귀 새",
+      "stars": "★★",
+      "description": "나무를 톡톡 두드리며 먹이를 찾는 새야.",
+      "asset_key": "woodpecker",
+      "enabled": true
+    },
+    {
+      "id": "bird.hummingbird",
+      "emoji": "🐦",
+      "name": "벌새",
+      "rarity": "rare",
+      "rarity_label": "희귀 새",
+      "stars": "★★",
+      "description": "날개를 아주 빠르게 움직이는 작은 새야.",
+      "asset_key": "hummingbird",
+      "enabled": true
+    },
+    {
+      "id": "bird.flamingo",
+      "emoji": "🦩",
+      "name": "홍학",
+      "rarity": "rare",
+      "rarity_label": "희귀 새",
+      "stars": "★★",
+      "description": "분홍색 몸과 긴 다리가 멋진 새야.",
+      "asset_key": "flamingo",
+      "enabled": true
+    },
+    {
+      "id": "bird.peacock",
+      "emoji": "🦚",
+      "name": "공작",
+      "rarity": "rare",
+      "rarity_label": "희귀 새",
+      "stars": "★★",
+      "description": "화려한 꼬리 깃털을 펼치는 새야.",
+      "asset_key": "peacock",
+      "enabled": true
+    },
+    {
+      "id": "legend.golden_peacock",
+      "emoji": "🦚",
+      "name": "황금 공작",
+      "rarity": "legendary",
+      "rarity_label": "전설의 새",
+      "stars": "★★★",
+      "description": "황금빛 꼬리 깃털이 반짝이는 전설의 공작이야.",
+      "asset_key": "golden_peacock",
+      "enabled": true
+    },
+    {
+      "id": "legend.rainbow_hummingbird",
+      "emoji": "🐦",
+      "name": "무지개 벌새",
+      "rarity": "legendary",
+      "rarity_label": "전설의 새",
+      "stars": "★★★",
+      "description": "무지개처럼 빛나는 날개를 가진 전설의 새야.",
+      "asset_key": "rainbow_hummingbird",
+      "enabled": true
+    },
+    {
+      "id": "legend.starlight_owl",
+      "emoji": "🦉",
+      "name": "별빛 부엉이",
+      "rarity": "legendary",
+      "rarity_label": "전설의 새",
+      "stars": "★★★",
+      "description": "밤하늘의 별빛을 품은 전설의 부엉이야.",
+      "asset_key": "starlight_owl",
+      "enabled": true
+    }
+  ]
+}

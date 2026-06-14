@@ -1,0 +1,17 @@
+{
+  "id": "jungle.expedition.001",
+  "world": "math",
+  "title": "정글 대탐험",
+  "activity_type": "jungle_expedition",
+  "difficulty": "normal",
+  "estimated_minutes": 10,
+  "skills": ["multiplication", "hanja", "english", "science", "collection"],
+  "curriculum_tags": ["math.multiplication.basic", "hanja.grade7", "english.vocabulary.basic", "science.basic"],
+  "prompt": "정글을 전진하며 새를 발견하고, 문제를 맞혀 도감에 기록해 보자.",
+  "items": [],
+  "hints": ["새를 누르면 문제가 나와요.", "정답을 맞히면 새가 도감에 기록돼요."],
+  "process_badges": ["careful_observer"],
+  "offline_mission": "오늘 새롭게 배운 한자나 영어 단어 하나를 가족에게 설명해 보자.",
+  "enabled": true,
+  "version": 1
+}

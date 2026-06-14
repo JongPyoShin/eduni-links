@@ -136,7 +136,7 @@ class JungleQuestionSelectorTests(unittest.TestCase):
             remember_question(history, "bird.duck", f"q-{index}")
         self.assertEqual([f"q-{index}" for index in range(4, 12)], history["bird.duck"])
 
-    def test_jungle_correct_answer_is_counted_once_and_cargo_groups_duplicates(self) -> None:
+    def test_jungle_correct_answer_is_counted_once_and_cargo_groups_persisted_duplicates(self) -> None:
         fake_ui.created.clear()
         fake_ui.contexts.clear()
         sys.modules["nicegui"] = SimpleNamespace(ui=fake_ui)
@@ -153,9 +153,34 @@ class JungleQuestionSelectorTests(unittest.TestCase):
             "answer": "새",
             "hint": "정글에서 찾는 동물이야.",
         }
+        captures: list[dict[str, object]] = []
+
+        def fake_record_capture(bird_info, _question):
+            captures.append(dict(bird_info))
+            return len(captures)
+
+        def fake_count_total_captures():
+            return len(captures)
+
+        def fake_load_collection():
+            if not captures:
+                return []
+            return [{
+                "bird_id": pigeon["id"],
+                "emoji": pigeon["emoji"],
+                "bird_name": pigeon["name"],
+                "rarity": pigeon["rarity"],
+                "rarity_label": pigeon["rarity_label"],
+                "stars": pigeon["stars"],
+                "capture_count": len(captures),
+            }]
+
         jungle_expedition.choose_bird = lambda: dict(pigeon)
         jungle_expedition.load_jungle_questions = lambda: [question]
         jungle_expedition.select_question = lambda _questions, _bird_id, _recent: dict(question)
+        jungle_expedition.record_capture = fake_record_capture
+        jungle_expedition.count_total_captures = fake_count_total_captures
+        jungle_expedition.load_collection = fake_load_collection
         jungle_expedition.render_jungle_expedition()
 
         def visible_buttons(label):
@@ -174,26 +199,30 @@ class JungleQuestionSelectorTests(unittest.TestCase):
         bird.on_click()
         click("새")
         click("새")
-        self.assertTrue(any("수집 수: 1" in text for text in visible_texts()))
+        self.assertTrue(any("전체 1마리" in text for text in visible_texts()))
         self.assertTrue(any("흔한 새" in text for text in visible_texts()))
-        self.assertFalse(any("수집 수: 2" in text for text in visible_texts()))
+        self.assertFalse(any("전체 2마리" in text for text in visible_texts()))
 
         click("탐험 계속")
         bird.on_click()
         click("물고기")
         self.assertTrue(any("아직 아니야" in text for text in visible_texts()))
         click("새")
-        self.assertTrue(any("수집 수: 2" in text for text in visible_texts()))
+        self.assertTrue(any("전체 2마리" in text for text in visible_texts()))
 
         click("탐험 계속")
         bird.on_click()
         click("새")
-        self.assertTrue(any("수집 수: 3" in text for text in visible_texts()))
+        self.assertTrue(any("전체 3마리" in text for text in visible_texts()))
 
         click("짐칸")
         cargo_texts = visible_texts()
+        self.assertTrue(any("저장된 수집 수: 3마리 · 종류: 1종" in text for text in cargo_texts))
         self.assertTrue(any("비둘기 ★ x 3개" in text for text in cargo_texts))
         self.assertFalse(any("비둘기 ★, 🕊️ 비둘기 ★" in text for text in cargo_texts))
+
+        click("닫기")
+        self.assertTrue(any("전진 중" in text for text in visible_texts()))
 
 
 if __name__ == "__main__":

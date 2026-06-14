@@ -5,6 +5,7 @@ from random import choice
 from nicegui import ui
 
 from .jungle_question_selector import choose_bird, load_jungle_questions, remember_question, select_question
+from .jungle_storage import count_total_captures, load_collection, record_capture
 
 JUNGLE_EXPEDITION_ACTIVITY_ID = "jungle.expedition.001"
 BIRD_POSITION_CLASSES = (
@@ -19,26 +20,11 @@ def format_bird_badge(bird_info: dict[str, object]) -> str:
     return f'{bird_info["stars"]} {bird_info["rarity_label"]}'
 
 
-def format_cargo_items(collected_birds: list[dict[str, str]]) -> str:
-    grouped: dict[str, dict[str, str | int]] = {}
-    ordered_ids: list[str] = []
-    for bird in collected_birds:
-        bird_id = bird["id"]
-        if bird_id not in grouped:
-            grouped[bird_id] = {
-                "emoji": bird["emoji"],
-                "name": bird["name"],
-                "stars": bird["stars"],
-                "count": 0,
-            }
-            ordered_ids.append(bird_id)
-        grouped[bird_id]["count"] = int(grouped[bird_id]["count"]) + 1
-
+def format_cargo_items(collection: list[dict[str, str | int]]) -> str:
     labels: list[str] = []
-    for bird_id in ordered_ids:
-        item = grouped[bird_id]
-        label = f'{item["emoji"]} {item["name"]} {item["stars"]}'
-        count = int(item["count"])
+    for item in collection:
+        label = f'{item["emoji"]} {item["bird_name"]} {item["stars"]}'
+        count = int(item["capture_count"])
         if count > 1:
             label = f"{label} x {count}개"
         labels.append(label)
@@ -218,7 +204,6 @@ def render_jungle_expedition() -> None:
 
     questions = load_jungle_questions()
     recent_questions: dict[str, list[str]] = {}
-    collected_birds: list[dict[str, str]] = []
     state: dict[str, object] = {"moving": False, "bird": choose_bird(), "question": None, "answered": False}
 
     def set_motion(moving: bool) -> None:
@@ -287,14 +272,12 @@ def render_jungle_expedition() -> None:
             feedback.set_text("아직 아니야. 힌트를 보고 다시 골라보자.")
             return
         state["answered"] = True
-        collected_birds.append({
-            "id": str(bird_info["id"]),
-            "emoji": str(bird_info["emoji"]),
-            "name": str(bird_info["name"]),
-            "rarity_label": str(bird_info["rarity_label"]),
-            "stars": str(bird_info["stars"]),
-        })
-        feedback.set_text(f'{bird_info["name"]} 포획 성공! {format_bird_badge(bird_info)} · 이번 탐험 수집 수: {len(collected_birds)}')
+        bird_capture_count = record_capture(bird_info, question)
+        total_captures = count_total_captures()
+        feedback.set_text(
+            f'{bird_info["name"]} 포획 성공! {format_bird_badge(bird_info)} · '
+            f'이 새 {bird_capture_count}번 · 전체 {total_captures}마리'
+        )
         continue_button.set_visibility(True)
 
     def continue_expedition() -> None:
@@ -304,21 +287,22 @@ def render_jungle_expedition() -> None:
     def show_cargo() -> None:
         set_motion(False)
         question_card.set_visibility(False)
-        if collected_birds:
-            cargo_summary.set_text(f"현재 세션 수집 수: {len(collected_birds)}")
-            cargo_names.set_text(format_cargo_items(collected_birds))
+        collection = load_collection()
+        if collection:
+            cargo_summary.set_text(f"저장된 수집 수: {count_total_captures()}마리 · 종류: {len(collection)}종")
+            cargo_names.set_text(format_cargo_items(collection))
         else:
-            cargo_summary.set_text("현재 세션 수집 수: 0")
+            cargo_summary.set_text("저장된 수집 수: 0")
             cargo_names.set_text("아직 잡은 새가 없어. 전진해서 새를 찾아보자.")
         cargo_card.set_visibility(True)
 
     def close_cargo() -> None:
-        cargo_card.set_visibility(False)
+        move_forward()
 
     with ui.element("section").classes("jungle-stage").props('aria-label="정글 대탐험 데모"') as stage:
         with ui.element("div").classes("jungle-hud"):
             ui.label("정글 대탐험")
-            ui.label("Phase C-1")
+            ui.label("Phase C-2")
         status = ui.label("전진을 눌러 새를 찾아보자!").classes("jungle-status")
         with ui.element("div").classes("jungle-canopy"):
             for _ in range(4):

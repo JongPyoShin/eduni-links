@@ -9,10 +9,10 @@ from .jungle_storage import count_total_captures, load_collection, record_captur
 
 JUNGLE_EXPEDITION_ACTIVITY_ID = "jungle.expedition.001"
 BIRD_POSITION_CLASSES = (
-    "bird-position-left-high",
-    "bird-position-left-low",
-    "bird-position-right-high",
-    "bird-position-right-low",
+    "bird-position-left-canopy",
+    "bird-position-left-sky",
+    "bird-position-right-canopy",
+    "bird-position-right-sky",
 )
 
 
@@ -167,16 +167,20 @@ def render_jungle_expedition() -> None:
           .branch-right-a { right: 34px; top: 260px; animation-delay: -1.8s; }
           .branch-right-b { right: 26px; top: 455px; animation-delay: -5.3s; }
           .jungle-object.bird {
-            z-index: 3;
-            min-width: 64px;
-            min-height: 64px;
-            outline: 4px solid rgba(250, 204, 21, .7);
-            font-size: 36px;
+            z-index: 5;
+            min-width: 66px;
+            min-height: 66px;
+            outline: 4px solid rgba(250, 204, 21, .74);
+            font-size: 38px;
+            animation-name: jungle-bird-swoop;
+            animation-duration: .7s;
+            animation-timing-function: cubic-bezier(.2, .8, .2, 1);
+            animation-fill-mode: both;
           }
-          .bird-position-left-high { left: 28px; top: 210px; }
-          .bird-position-left-low { left: 46px; top: 430px; }
-          .bird-position-right-high { right: 30px; top: 230px; }
-          .bird-position-right-low { right: 48px; top: 450px; }
+          .bird-position-left-canopy { left: 30px; top: 126px; }
+          .bird-position-left-sky { left: 88px; top: 166px; }
+          .bird-position-right-canopy { right: 30px; top: 132px; }
+          .bird-position-right-sky { right: 88px; top: 172px; }
           .jungle-truck {
             position: absolute;
             z-index: 4;
@@ -266,12 +270,21 @@ def render_jungle_expedition() -> None:
             from { margin-top: -90px; }
             to { margin-top: 520px; }
           }
+          @keyframes jungle-bird-swoop {
+            from { opacity: 0; transform: translateY(-120px) scale(.78); }
+            68% { opacity: 1; transform: translateY(10px) scale(1.04); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+          }
           @media (max-width: 420px) {
             .jungle-stage { min-height: calc(100vh - 40px); }
             .jungle-card { left: 10px; right: 10px; bottom: 190px; max-height: calc(100vh - 286px); }
             .jungle-question-prompt { font-size: 21px; }
             .jungle-controls { left: 10px; right: 10px; gap: 8px; }
             .jungle-touch { min-height: 52px; }
+            .bird-position-left-canopy { left: 18px; top: 118px; }
+            .bird-position-left-sky { left: 78px; top: 156px; }
+            .bird-position-right-canopy { right: 18px; top: 124px; }
+            .bird-position-right-sky { right: 78px; top: 162px; }
           }
         </style>
         """
@@ -285,7 +298,7 @@ def render_jungle_expedition() -> None:
         state["moving"] = moving
         if moving:
             stage.classes(add="is-moving")
-            status.set_text("전진 중 · 좌우 숲에서 새를 찾아보자!")
+            status.set_text("전진 중 · 위쪽 나뭇잎 사이에서 새를 찾아보자!")
             return
         stage.classes(remove="is-moving")
         status.set_text("새를 발견하면 눌러서 문제를 풀어보자!")
@@ -430,7 +443,7 @@ def render_jungle_expedition() -> None:
         with ui.element("div").classes("jungle-hud"):
             ui.label("정글 대탐험")
             ui.label("Phase C-6")
-        status = ui.label("전진을 눌러 새를 찾아보자!").classes("jungle-status")
+        status = ui.label("전진을 눌러 위쪽 나뭇잎 사이의 새를 찾아보자!").classes("jungle-status")
         with ui.element("div").classes("jungle-canopy"):
             for _ in range(4):
                 ui.element("span").classes("jungle-leaf")

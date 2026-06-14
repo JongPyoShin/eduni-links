@@ -4,7 +4,7 @@ from random import choice
 
 from nicegui import ui
 
-from .jungle_question_selector import choose_bird, load_jungle_questions, remember_question, select_question
+from .jungle_question_selector import BIRDS, choose_bird, load_jungle_questions, remember_question, select_question
 from .jungle_storage import count_total_captures, load_collection, record_capture
 
 JUNGLE_EXPEDITION_ACTIVITY_ID = "jungle.expedition.001"
@@ -29,6 +29,33 @@ def format_cargo_items(collection: list[dict[str, str | int]]) -> str:
             label = f"{label} x {count}개"
         labels.append(label)
     return ", ".join(labels)
+
+
+def collection_by_bird_id(collection: list[dict[str, str | int]]) -> dict[str, dict[str, str | int]]:
+    return {str(item["bird_id"]): item for item in collection}
+
+
+def format_codex_summary(birds: tuple[dict[str, str], ...], collection: list[dict[str, str | int]]) -> str:
+    discovered = collection_by_bird_id(collection)
+    total_captures = sum(int(item["capture_count"]) for item in collection)
+    return f"도감 발견: {len(discovered)}/{len(birds)}종 · 총 {total_captures}마리"
+
+
+def format_codex_items(birds: tuple[dict[str, str], ...], collection: list[dict[str, str | int]]) -> str:
+    discovered = collection_by_bird_id(collection)
+    labels: list[str] = []
+    for bird in birds:
+        bird_id = str(bird["id"])
+        if bird_id in discovered:
+            item = discovered[bird_id]
+            count = int(item["capture_count"])
+            label = f'{item["emoji"]} {item["bird_name"]} {item["stars"]} {item["rarity_label"]}'
+            if count > 1:
+                label = f"{label} x {count}개"
+            labels.append(label)
+            continue
+        labels.append(f'❔ 미발견 {bird["stars"]} {bird["rarity_label"]}')
+    return "\n".join(labels)
 
 
 def render_jungle_expedition() -> None:
@@ -176,7 +203,7 @@ def render_jungle_expedition() -> None:
             right: 14px;
             bottom: 18px;
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 10px;
           }
           .jungle-touch {
@@ -186,6 +213,7 @@ def render_jungle_expedition() -> None:
           }
           .jungle-answer-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
           .jungle-answer { min-height: 52px; min-width: 82px; border-radius: 8px; font-weight: 900; }
+          .jungle-codex-list { white-space: pre-line; max-height: 210px; overflow-y: auto; }
           @keyframes jungle-road-flow {
             from { background-position: center 0; }
             to { background-position: center 128px; }
@@ -228,6 +256,7 @@ def render_jungle_expedition() -> None:
     def move_forward() -> None:
         question_card.set_visibility(False)
         cargo_card.set_visibility(False)
+        codex_card.set_visibility(False)
         bird.set_visibility(True)
         place_bird()
         set_motion(True)
@@ -287,6 +316,7 @@ def render_jungle_expedition() -> None:
     def show_cargo() -> None:
         set_motion(False)
         question_card.set_visibility(False)
+        codex_card.set_visibility(False)
         collection = load_collection()
         if collection:
             cargo_summary.set_text(f"저장된 수집 수: {count_total_captures()}마리 · 종류: {len(collection)}종")
@@ -299,10 +329,22 @@ def render_jungle_expedition() -> None:
     def close_cargo() -> None:
         move_forward()
 
+    def show_codex() -> None:
+        set_motion(False)
+        question_card.set_visibility(False)
+        cargo_card.set_visibility(False)
+        collection = load_collection()
+        codex_summary.set_text(format_codex_summary(BIRDS, collection))
+        codex_names.set_text(format_codex_items(BIRDS, collection))
+        codex_card.set_visibility(True)
+
+    def close_codex() -> None:
+        move_forward()
+
     with ui.element("section").classes("jungle-stage").props('aria-label="정글 대탐험 데모"') as stage:
         with ui.element("div").classes("jungle-hud"):
             ui.label("정글 대탐험")
-            ui.label("Phase C-2")
+            ui.label("Phase C-3")
         status = ui.label("전진을 눌러 새를 찾아보자!").classes("jungle-status")
         with ui.element("div").classes("jungle-canopy"):
             for _ in range(4):
@@ -339,8 +381,16 @@ def render_jungle_expedition() -> None:
             cargo_names = ui.label("").classes("muted")
             ui.button("닫기", on_click=close_cargo).classes("q-mt-sm")
         cargo_card.set_visibility(False)
+        codex_card = ui.element("div").classes("jungle-card")
+        with codex_card:
+            ui.label("새 도감").classes("text-h6")
+            codex_summary = ui.label("")
+            codex_names = ui.label("").classes("muted jungle-codex-list")
+            ui.button("닫기", on_click=close_codex).classes("q-mt-sm")
+        codex_card.set_visibility(False)
         with ui.element("div").classes("jungle-controls"):
             ui.button("전진", on_click=move_forward).classes("jungle-touch")
             ui.button("짐칸", on_click=show_cargo).classes("jungle-touch")
+            ui.button("도감", on_click=show_codex).classes("jungle-touch")
 
     place_bird()

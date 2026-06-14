@@ -30,7 +30,7 @@ class RouteFoundationTests(unittest.TestCase):
         self.assertIn('@ui.page("/portal/world/{world_id}")', route_source)
         self.assertIn('@ui.page("/portal/parent")', route_source)
 
-    def test_jungle_expedition_phase_c5_route_is_declared(self) -> None:
+    def test_jungle_expedition_phase_c6_route_is_declared(self) -> None:
         route_source = (APP_ROOT / "portal_app" / "routes.py").read_text(encoding="utf-8")
         jungle_source = (APP_ROOT / "portal_app" / "jungle_expedition.py").read_text(encoding="utf-8")
         self.assertIn("JUNGLE_EXPEDITION_ACTIVITY_ID", route_source)

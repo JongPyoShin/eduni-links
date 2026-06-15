@@ -1,335 +1,359 @@
 {
   "set_id": "oracle_quiz_set_01",
-  "title": "Oracle DB 사내 접근 인증시험 문제 세트 01",
+  "title": "Oracle DB 시험 대비 문제 세트 01",
   "source_files": [
-    "Oracle_DB_사내인증_실전문제_30.pdf",
-    "Oracle_DB_사내접근_인증시험_학습자료.pdf"
+    "oracle_exam_lecture_notes.md"
   ],
   "questions": [
     {
-      "topic": "DDL",
-      "question": "다음 중 DDL에 해당하는 명령어만 묶인 것은?",
+      "number": 1,
+      "topic": "NULL 연산",
+      "difficulty": "중",
+      "question": "Oracle에서 NULL + 4의 결과는?",
       "choices": [
-        "INSERT, UPDATE, DELETE",
-        "CREATE, ALTER, DROP",
-        "GRANT, REVOKE, COMMIT",
-        "SELECT, MERGE, TRUNCATE"
-      ],
-      "answer": 2,
-      "explanation": "CREATE, ALTER, DROP은 객체 구조를 정의하거나 변경하는 DDL이다.",
-      "number": 1
-    },
-    {
-      "topic": "DDL / TRUNCATE",
-      "question": "EMP 테이블의 모든 행을 제거한 뒤 ROLLBACK으로 복구할 수 없게 하려 한다. 가장 알맞은 명령어는?",
-      "choices": [
-        "DELETE FROM EMP",
-        "TRUNCATE TABLE EMP",
-        "DROP INDEX EMP_IDX",
-        "ROLLBACK"
-      ],
-      "answer": 2,
-      "explanation": "TRUNCATE는 DDL이며 일반적인 DELETE와 달리 ROLLBACK 복구 대상으로 보지 않는다.",
-      "number": 2
-    },
-    {
-      "topic": "DCL",
-      "question": "다음 중 DCL에 해당하는 명령어는?",
-      "choices": [
-        "SAVEPOINT",
-        "GRANT",
-        "MERGE",
-        "TRUNCATE"
-      ],
-      "answer": 2,
-      "explanation": "GRANT와 REVOKE는 권한을 부여하거나 회수하는 DCL이다.",
-      "number": 3
-    },
-    {
-      "topic": "트랜잭션 / SAVEPOINT",
-      "question": "트랜잭션 수행 중 일부 지점까지만 되돌리기 위해 사용하는 것은?",
-      "choices": [
-        "SAVEPOINT",
-        "VIEW",
-        "SEQUENCE",
-        "SYNONYM"
+        "NULL",
+        "0",
+        "빈 문자열",
+        "4"
       ],
       "answer": 1,
-      "explanation": "SAVEPOINT를 지정하면 전체 취소가 아니라 특정 지점까지 ROLLBACK할 수 있다.",
-      "number": 4
+      "explanation": "정답은 A번 'NULL'입니다. 산술식에 NULL이 포함되면 결과도 NULL로 전파됩니다. 보기별 확인: A. NULL - 문제 조건을 정확히 만족합니다. B. 0 - 'NULL 연산' 관점에서 핵심 조건과 맞지 않습니다. C. 빈 문자열 - 'NULL 연산' 관점에서 핵심 조건과 맞지 않습니다. D. 4 - 'NULL 연산' 관점에서 핵심 조건과 맞지 않습니다."
     },
     {
-      "topic": "INNER JOIN",
-      "question": "INNER JOIN에 대한 설명으로 가장 알맞은 것은?",
+      "number": 2,
+      "topic": "JOIN 조건",
+      "difficulty": "중",
+      "question": "4개 테이블을 카테시안 곱 없이 연결할 때 최소 조인 조건 수는?",
       "choices": [
-        "두 테이블의 모든 행을 무조건 반환한다",
-        "조인 조건을 만족하는 행만 반환한다",
-        "왼쪽 테이블의 행만 반환한다",
-        "오른쪽 테이블의 행만 반환한다"
+        "4개",
+        "3개",
+        "조건이 필요 없다",
+        "2개"
       ],
       "answer": 2,
-      "explanation": "INNER JOIN은 조인 조건에 맞는 교집합 행만 반환한다.",
-      "number": 5
+      "explanation": "정답은 B번 '3개'입니다. N개 테이블 연결에는 일반적으로 최소 N-1개의 조인 조건이 필요합니다. 보기별 확인: A. 4개 - 'JOIN 조건' 관점에서 핵심 조건과 맞지 않습니다. B. 3개 - 문제 조건을 정확히 만족합니다. C. 조건이 필요 없다 - 'JOIN 조건' 관점에서 핵심 조건과 맞지 않습니다. D. 2개 - 'JOIN 조건' 관점에서 핵심 조건과 맞지 않습니다."
     },
     {
-      "topic": "LEFT OUTER JOIN",
-      "question": "다음 ANSI JOIN 결과에 대한 설명으로 알맞은 것은?\nSELECT E.EMPNO, D.DNAME\nFROM EMP E LEFT OUTER JOIN DEPT D\nON E.DEPTNO = D.DEPTNO;",
+      "number": 3,
+      "topic": "ROLLUP",
+      "difficulty": "중",
+      "question": "소계와 총계를 계층적으로 만들 때 사용하는 GROUP BY 확장은?",
       "choices": [
-        "DEPT의 모든 행이 반드시 출력된다",
-        "EMP의 모든 행이 유지되며, 매칭되지 않은 부서명은 NULL이 될 수 있다",
-        "매칭되는 행만 출력된다",
-        "FULL OUTER JOIN과 결과가 항상 같다"
-      ],
-      "answer": 2,
-      "explanation": "LEFT OUTER JOIN은 왼쪽 EMP 행을 유지한다. 대응 부서가 없으면 D 컬럼은 NULL이다.",
-      "number": 6
-    },
-    {
-      "topic": "Oracle (+) JOIN",
-      "question": "Oracle 구문에서 다음 SQL과 의미가 같은 ANSI JOIN은?\nSELECT * FROM EMP E, DEPT D\nWHERE E.DEPTNO = D.DEPTNO(+);",
-      "choices": [
-        "EMP E RIGHT OUTER JOIN DEPT D",
-        "EMP E LEFT OUTER JOIN DEPT D",
-        "EMP E FULL OUTER JOIN DEPT D",
-        "EMP E CROSS JOIN DEPT D"
-      ],
-      "answer": 2,
-      "explanation": "(+)가 붙은 쪽이 선택적으로 보완되는 테이블이다. EMP 기준 LEFT OUTER JOIN이다.",
-      "number": 7
-    },
-    {
-      "topic": "OUTER JOIN 조건 위치",
-      "question": "LEFT OUTER JOIN에서 오른쪽 테이블의 조건을 WHERE 절에 작성하면 생길 수 있는 현상은?",
-      "choices": [
-        "항상 FULL OUTER JOIN으로 바뀐다",
-        "NULL로 확장된 행이 제거되어 INNER JOIN처럼 보일 수 있다",
-        "항상 오류가 발생한다",
-        "조인 순서가 자동으로 반대로 바뀐다"
-      ],
-      "answer": 2,
-      "explanation": "오른쪽 조건을 WHERE에서 제한하면 NULL 보완 행이 탈락할 수 있다. 필요 시 ON 절을 검토한다.",
-      "number": 8
-    },
-    {
-      "topic": "NULL",
-      "question": "NULL 값을 찾는 조건으로 올바른 것은?",
-      "choices": [
-        "WHERE COMM = NULL",
-        "WHERE COMM <> NULL",
-        "WHERE COMM IS NULL",
-        "WHERE COMM LIKE NULL"
+        "SAVEPOINT",
+        "MINUS",
+        "ROLLUP",
+        "NVL"
       ],
       "answer": 3,
-      "explanation": "NULL은 '='로 비교하지 않고 IS NULL 또는 IS NOT NULL을 사용한다.",
-      "number": 9
+      "explanation": "정답은 C번 'ROLLUP'입니다. ROLLUP은 그룹별 소계와 전체 합계를 만들 때 사용합니다. 보기별 확인: A. SAVEPOINT - 'ROLLUP' 관점에서 핵심 조건과 맞지 않습니다. B. MINUS - 'ROLLUP' 관점에서 핵심 조건과 맞지 않습니다. C. ROLLUP - 문제 조건을 정확히 만족합니다. D. NVL - 'ROLLUP' 관점에서 핵심 조건과 맞지 않습니다."
     },
     {
-      "topic": "NULL 함수",
-      "question": "COMM 값이 NULL이면 0으로 표시하려고 한다. Oracle 함수 사용이 올바른 것은?",
+      "number": 4,
+      "topic": "실행 계획",
+      "difficulty": "중",
+      "question": "실행 계획에서 TABLE ACCESS FULL의 의미는?",
+      "choices": [
+        "뷰 삭제",
+        "항상 오류",
+        "자동 COMMIT",
+        "테이블 전체를 읽는 접근"
+      ],
+      "answer": 4,
+      "explanation": "정답은 D번 '테이블 전체를 읽는 접근'입니다. FULL SCAN은 테이블 블록을 넓게 읽는 방식입니다. 보기별 확인: A. 뷰 삭제 - '실행 계획' 관점에서 핵심 조건과 맞지 않습니다. B. 항상 오류 - '실행 계획' 관점에서 핵심 조건과 맞지 않습니다. C. 자동 COMMIT - '실행 계획' 관점에서 핵심 조건과 맞지 않습니다. D. 테이블 전체를 읽는 접근 - 문제 조건을 정확히 만족합니다."
+    },
+    {
+      "number": 5,
+      "topic": "TRUNCATE",
+      "difficulty": "중",
+      "question": "TRUNCATE에 대한 설명으로 맞는 것은?",
+      "choices": [
+        "테이블 데이터를 빠르게 제거하는 DDL이다",
+        "행별 DELETE 트리거가 항상 실행된다",
+        "항상 ROLLBACK된다",
+        "인덱스만 삭제한다"
+      ],
+      "answer": 1,
+      "explanation": "정답은 A번 '테이블 데이터를 빠르게 제거하는 DDL이다'입니다. TRUNCATE는 DDL 성격으로 전체 데이터를 빠르게 제거합니다. 보기별 확인: A. 테이블 데이터를 빠르게 제거하는 DDL이다 - 문제 조건을 정확히 만족합니다. B. 행별 DELETE 트리거가 항상 실행된다 - 'TRUNCATE' 관점에서 핵심 조건과 맞지 않습니다. C. 항상 ROLLBACK된다 - 'TRUNCATE' 관점에서 핵심 조건과 맞지 않습니다. D. 인덱스만 삭제한다 - 'TRUNCATE' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 6,
+      "topic": "날짜 함수",
+      "difficulty": "중",
+      "question": "현재 날짜와 시간을 반환하는 대표 함수는?",
+      "choices": [
+        "COUNT",
+        "SYSDATE",
+        "TRUNCATE TABLE",
+        "NVL"
+      ],
+      "answer": 2,
+      "explanation": "정답은 B번 'SYSDATE'입니다. SYSDATE는 데이터베이스 서버 기준 현재 날짜와 시간을 반환합니다. 보기별 확인: A. COUNT - '날짜 함수' 관점에서 핵심 조건과 맞지 않습니다. B. SYSDATE - 문제 조건을 정확히 만족합니다. C. TRUNCATE TABLE - '날짜 함수' 관점에서 핵심 조건과 맞지 않습니다. D. NVL - '날짜 함수' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 7,
+      "topic": "다중 행 서브쿼리",
+      "difficulty": "중",
+      "question": "여러 행을 반환하는 서브쿼리에 적절한 연산자는?",
+      "choices": [
+        "LIKE만",
+        "DROP",
+        "IN",
+        "IS"
+      ],
+      "answer": 3,
+      "explanation": "정답은 C번 'IN'입니다. 여러 값을 비교할 때는 IN, ANY, ALL 같은 다중 행 연산자를 사용합니다. 보기별 확인: A. LIKE만 - '다중 행 서브쿼리' 관점에서 핵심 조건과 맞지 않습니다. B. DROP - '다중 행 서브쿼리' 관점에서 핵심 조건과 맞지 않습니다. C. IN - 문제 조건을 정확히 만족합니다. D. IS - '다중 행 서브쿼리' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 8,
+      "topic": "변수 대입",
+      "difficulty": "중",
+      "question": "PL/SQL에서 변수 대입에 사용하는 연산자는?",
+      "choices": [
+        "::",
+        "=",
+        "=>",
+        ":="
+      ],
+      "answer": 4,
+      "explanation": "정답은 D번 ':='입니다. PL/SQL 대입은 := 연산자를 사용합니다. 보기별 확인: A. :: - '변수 대입' 관점에서 핵심 조건과 맞지 않습니다. B. = - '변수 대입' 관점에서 핵심 조건과 맞지 않습니다. C. => - '변수 대입' 관점에서 핵심 조건과 맞지 않습니다. D. := - 문제 조건을 정확히 만족합니다."
+    },
+    {
+      "number": 9,
+      "topic": "NVL",
+      "difficulty": "중",
+      "question": "COMM이 NULL이면 0으로 바꾸어 계산하는 함수 사용은?",
       "choices": [
         "NVL(COMM, 0)",
-        "NULLIF(COMM, 0)",
-        "UPPER(COMM)",
-        "TO_DATE(COMM, 0)"
+        "NVL(0, COMM)",
+        "COMM IS NULL",
+        "ROUND(COMM, 0)"
       ],
       "answer": 1,
-      "explanation": "NVL(expr, 대체값)은 expr이 NULL일 때 대체값을 반환한다.",
-      "number": 10
+      "explanation": "정답은 A번 'NVL(COMM, 0)'입니다. NVL(expr1, expr2)는 expr1이 NULL일 때 expr2를 반환합니다. 보기별 확인: A. NVL(COMM, 0) - 문제 조건을 정확히 만족합니다. B. NVL(0, COMM) - 'NVL' 관점에서 핵심 조건과 맞지 않습니다. C. COMM IS NULL - 'NVL' 관점에서 핵심 조건과 맞지 않습니다. D. ROUND(COMM, 0) - 'NVL' 관점에서 핵심 조건과 맞지 않습니다."
     },
     {
-      "topic": "GROUP BY / HAVING",
-      "question": "부서별 평균 급여가 3000 이상인 부서만 조회하려 한다. 조건을 작성할 위치는?",
+      "number": 10,
+      "topic": "SELF JOIN",
+      "difficulty": "중",
+      "question": "같은 EMP 테이블에서 사원과 관리자를 함께 조회할 때 쓰기 좋은 방식은?",
       "choices": [
-        "WHERE AVG(SAL) >= 3000",
-        "HAVING AVG(SAL) >= 3000",
-        "ORDER BY AVG(SAL) >= 3000",
-        "ON AVG(SAL) >= 3000"
+        "CROSS JOIN만 사용",
+        "SELF JOIN",
+        "UNION으로만 처리",
+        "ROLLBACK 사용"
       ],
       "answer": 2,
-      "explanation": "집계 결과 조건은 WHERE가 아니라 HAVING에서 제한한다.",
-      "number": 11
+      "explanation": "정답은 B번 'SELF JOIN'입니다. 같은 테이블을 다른 별칭으로 두 번 참조하면 SELF JOIN이 됩니다. 보기별 확인: A. CROSS JOIN만 사용 - 'SELF JOIN' 관점에서 핵심 조건과 맞지 않습니다. B. SELF JOIN - 문제 조건을 정확히 만족합니다. C. UNION으로만 처리 - 'SELF JOIN' 관점에서 핵심 조건과 맞지 않습니다. D. ROLLBACK 사용 - 'SELF JOIN' 관점에서 핵심 조건과 맞지 않습니다."
     },
     {
-      "topic": "집합 연산 / UNION ALL",
-      "question": "UNION ALL에 대한 설명으로 알맞은 것은?",
+      "number": 11,
+      "topic": "CUBE",
+      "difficulty": "중",
+      "question": "가능한 조합별 집계를 만들 때 사용하는 GROUP BY 확장은?",
+      "choices": [
+        "INDEX",
+        "VIEW",
+        "CUBE",
+        "UNION ALL"
+      ],
+      "answer": 3,
+      "explanation": "정답은 C번 'CUBE'입니다. CUBE는 지정한 컬럼 조합의 다차원 집계를 만듭니다. 보기별 확인: A. INDEX - 'CUBE' 관점에서 핵심 조건과 맞지 않습니다. B. VIEW - 'CUBE' 관점에서 핵심 조건과 맞지 않습니다. C. CUBE - 문제 조건을 정확히 만족합니다. D. UNION ALL - 'CUBE' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 12,
+      "topic": "UNIQUE SCAN",
+      "difficulty": "중",
+      "question": "INDEX UNIQUE SCAN이 가능한 대표 조건은?",
+      "choices": [
+        "정렬만 수행",
+        "함수 결과 비교만",
+        "조건 없는 전체 조회",
+        "유니크 인덱스 컬럼의 동등 조건"
+      ],
+      "answer": 4,
+      "explanation": "정답은 D번 '유니크 인덱스 컬럼의 동등 조건'입니다. 유니크 키를 정확히 찾는 동등 조건에서 UNIQUE SCAN이 가능합니다. 보기별 확인: A. 정렬만 수행 - 'UNIQUE SCAN' 관점에서 핵심 조건과 맞지 않습니다. B. 함수 결과 비교만 - 'UNIQUE SCAN' 관점에서 핵심 조건과 맞지 않습니다. C. 조건 없는 전체 조회 - 'UNIQUE SCAN' 관점에서 핵심 조건과 맞지 않습니다. D. 유니크 인덱스 컬럼의 동등 조건 - 문제 조건을 정확히 만족합니다."
+    },
+    {
+      "number": 13,
+      "topic": "DELETE",
+      "difficulty": "중",
+      "question": "DELETE와 TRUNCATE의 차이로 맞는 것은?",
+      "choices": [
+        "DELETE는 WHERE 조건으로 일부 행 삭제가 가능하다",
+        "TRUNCATE는 SELECT다",
+        "TRUNCATE는 WHERE를 쓴다",
+        "DELETE는 테이블 구조를 삭제한다"
+      ],
+      "answer": 1,
+      "explanation": "정답은 A번 'DELETE는 WHERE 조건으로 일부 행 삭제가 가능하다'입니다. DELETE는 DML이라 조건에 맞는 행을 삭제할 수 있습니다. 보기별 확인: A. DELETE는 WHERE 조건으로 일부 행 삭제가 가능하다 - 문제 조건을 정확히 만족합니다. B. TRUNCATE는 SELECT다 - 'DELETE' 관점에서 핵심 조건과 맞지 않습니다. C. TRUNCATE는 WHERE를 쓴다 - 'DELETE' 관점에서 핵심 조건과 맞지 않습니다. D. DELETE는 테이블 구조를 삭제한다 - 'DELETE' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 14,
+      "topic": "문자 함수",
+      "difficulty": "중",
+      "question": "문자열을 대문자로 바꾸는 함수는?",
+      "choices": [
+        "ROLLUP",
+        "UPPER",
+        "ROUND",
+        "COUNT"
+      ],
+      "answer": 2,
+      "explanation": "정답은 B번 'UPPER'입니다. UPPER는 문자열을 대문자로 변환합니다. 보기별 확인: A. ROLLUP - '문자 함수' 관점에서 핵심 조건과 맞지 않습니다. B. UPPER - 문제 조건을 정확히 만족합니다. C. ROUND - '문자 함수' 관점에서 핵심 조건과 맞지 않습니다. D. COUNT - '문자 함수' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 15,
+      "topic": "EXISTS",
+      "difficulty": "중",
+      "question": "서브쿼리 결과 존재 여부를 확인하는 연산자는?",
+      "choices": [
+        "MINUS",
+        "NVL",
+        "EXISTS",
+        "SAVEPOINT"
+      ],
+      "answer": 3,
+      "explanation": "정답은 C번 'EXISTS'입니다. EXISTS는 서브쿼리가 행을 반환하는지만 확인합니다. 보기별 확인: A. MINUS - 'EXISTS' 관점에서 핵심 조건과 맞지 않습니다. B. NVL - 'EXISTS' 관점에서 핵심 조건과 맞지 않습니다. C. EXISTS - 문제 조건을 정확히 만족합니다. D. SAVEPOINT - 'EXISTS' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 16,
+      "topic": "커서",
+      "difficulty": "중",
+      "question": "명시적 커서 처리 순서로 자연스러운 것은?",
+      "choices": [
+        "CLOSE - OPEN - FETCH",
+        "ROLLUP - FETCH - CUBE",
+        "FETCH - CLOSE - OPEN",
+        "OPEN - FETCH - CLOSE"
+      ],
+      "answer": 4,
+      "explanation": "정답은 D번 'OPEN - FETCH - CLOSE'입니다. 명시적 커서는 열고, 행을 가져오고, 닫는 흐름으로 처리합니다. 보기별 확인: A. CLOSE - OPEN - FETCH - '커서' 관점에서 핵심 조건과 맞지 않습니다. B. ROLLUP - FETCH - CUBE - '커서' 관점에서 핵심 조건과 맞지 않습니다. C. FETCH - CLOSE - OPEN - '커서' 관점에서 핵심 조건과 맞지 않습니다. D. OPEN - FETCH - CLOSE - 문제 조건을 정확히 만족합니다."
+    },
+    {
+      "number": 17,
+      "topic": "NOT IN",
+      "difficulty": "중",
+      "question": "NOT IN 목록에 NULL이 포함될 때 주의할 점은?",
+      "choices": [
+        "결과가 예상과 달리 나오지 않을 수 있다",
+        "정렬만 느려진다",
+        "인덱스가 반드시 생성된다",
+        "NULL은 자동으로 0이 된다"
+      ],
+      "answer": 1,
+      "explanation": "정답은 A번 '결과가 예상과 달리 나오지 않을 수 있다'입니다. NOT IN은 내부 비교가 UNKNOWN이 되어 결과가 사라질 수 있습니다. 보기별 확인: A. 결과가 예상과 달리 나오지 않을 수 있다 - 문제 조건을 정확히 만족합니다. B. 정렬만 느려진다 - 'NOT IN' 관점에서 핵심 조건과 맞지 않습니다. C. 인덱스가 반드시 생성된다 - 'NOT IN' 관점에서 핵심 조건과 맞지 않습니다. D. NULL은 자동으로 0이 된다 - 'NOT IN' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 18,
+      "topic": "OUTER JOIN",
+      "difficulty": "중",
+      "question": "부서가 없는 사원도 보이게 하려면 어떤 조인을 고려하는가?",
+      "choices": [
+        "HAVING만 사용",
+        "OUTER JOIN",
+        "INNER JOIN만 사용",
+        "MINUS"
+      ],
+      "answer": 2,
+      "explanation": "정답은 B번 'OUTER JOIN'입니다. OUTER JOIN은 한쪽에 매칭이 없어도 기준 행을 남길 수 있습니다. 보기별 확인: A. HAVING만 사용 - 'OUTER JOIN' 관점에서 핵심 조건과 맞지 않습니다. B. OUTER JOIN - 문제 조건을 정확히 만족합니다. C. INNER JOIN만 사용 - 'OUTER JOIN' 관점에서 핵심 조건과 맞지 않습니다. D. MINUS - 'OUTER JOIN' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 19,
+      "topic": "ORDER BY",
+      "difficulty": "중",
+      "question": "결과 정렬을 지정하는 절은?",
+      "choices": [
+        "VALUES",
+        "WHERE",
+        "ORDER BY",
+        "FROM"
+      ],
+      "answer": 3,
+      "explanation": "정답은 C번 'ORDER BY'입니다. ORDER BY는 최종 결과의 정렬 기준을 지정합니다. 보기별 확인: A. VALUES - 'ORDER BY' 관점에서 핵심 조건과 맞지 않습니다. B. WHERE - 'ORDER BY' 관점에서 핵심 조건과 맞지 않습니다. C. ORDER BY - 문제 조건을 정확히 만족합니다. D. FROM - 'ORDER BY' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 20,
+      "topic": "힌트",
+      "difficulty": "중",
+      "question": "Oracle 힌트의 일반적인 주석 형태는?",
+      "choices": [
+        "/* FULL(EMP) */",
+        "#+ FULL(EMP)",
+        "HINT FULL EMP",
+        "/*+ FULL(EMP) */"
+      ],
+      "answer": 4,
+      "explanation": "정답은 D번 '/*+ FULL(EMP) */'입니다. 힌트는 보통 /*+ ... */ 형태로 작성합니다. 보기별 확인: A. /* FULL(EMP) */ - '힌트' 관점에서 핵심 조건과 맞지 않습니다. B. #+ FULL(EMP) - '힌트' 관점에서 핵심 조건과 맞지 않습니다. C. HINT FULL EMP - '힌트' 관점에서 핵심 조건과 맞지 않습니다. D. /*+ FULL(EMP) */ - 문제 조건을 정확히 만족합니다."
+    },
+    {
+      "number": 21,
+      "topic": "VIEW",
+      "difficulty": "중",
+      "question": "뷰에 대한 설명으로 맞는 것은?",
+      "choices": [
+        "SELECT 결과를 객체처럼 정의한 것이다",
+        "항상 물리 테이블 복사본이다",
+        "인덱스 힌트다",
+        "데이터 파일 자체다"
+      ],
+      "answer": 1,
+      "explanation": "정답은 A번 'SELECT 결과를 객체처럼 정의한 것이다'입니다. VIEW는 저장된 SELECT 정의를 객체처럼 조회하게 합니다. 보기별 확인: A. SELECT 결과를 객체처럼 정의한 것이다 - 문제 조건을 정확히 만족합니다. B. 항상 물리 테이블 복사본이다 - 'VIEW' 관점에서 핵심 조건과 맞지 않습니다. C. 인덱스 힌트다 - 'VIEW' 관점에서 핵심 조건과 맞지 않습니다. D. 데이터 파일 자체다 - 'VIEW' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 22,
+      "topic": "숫자 함수",
+      "difficulty": "중",
+      "question": "숫자를 반올림하는 함수는?",
+      "choices": [
+        "SYSDATE",
+        "ROUND",
+        "GRANT",
+        "UPPER"
+      ],
+      "answer": 2,
+      "explanation": "정답은 B번 'ROUND'입니다. ROUND는 숫자 또는 날짜를 지정 단위로 반올림합니다. 보기별 확인: A. SYSDATE - '숫자 함수' 관점에서 핵심 조건과 맞지 않습니다. B. ROUND - 문제 조건을 정확히 만족합니다. C. GRANT - '숫자 함수' 관점에서 핵심 조건과 맞지 않습니다. D. UPPER - '숫자 함수' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 23,
+      "topic": "상관 서브쿼리",
+      "difficulty": "중",
+      "question": "외부 쿼리의 값을 내부 쿼리가 참조하는 서브쿼리는?",
+      "choices": [
+        "시퀀스",
+        "스칼라 함수",
+        "상관 서브쿼리",
+        "동의어"
+      ],
+      "answer": 3,
+      "explanation": "정답은 C번 '상관 서브쿼리'입니다. 상관 서브쿼리는 외부 행마다 내부 조건을 평가할 수 있습니다. 보기별 확인: A. 시퀀스 - '상관 서브쿼리' 관점에서 핵심 조건과 맞지 않습니다. B. 스칼라 함수 - '상관 서브쿼리' 관점에서 핵심 조건과 맞지 않습니다. C. 상관 서브쿼리 - 문제 조건을 정확히 만족합니다. D. 동의어 - '상관 서브쿼리' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 24,
+      "topic": "SQL*Plus",
+      "difficulty": "중",
+      "question": "SQL*Plus에서 스크립트 파일을 실행할 때 흔히 쓰는 명령은?",
+      "choices": [
+        "SELECT @ FROM",
+        "EXEC FILE ONLY",
+        "COMMIT SCRIPT",
+        "@script.sql"
+      ],
+      "answer": 4,
+      "explanation": "정답은 D번 '@script.sql'입니다. @ 또는 START 명령으로 스크립트 파일을 실행할 수 있습니다. 보기별 확인: A. SELECT @ FROM - 'SQL*Plus' 관점에서 핵심 조건과 맞지 않습니다. B. EXEC FILE ONLY - 'SQL*Plus' 관점에서 핵심 조건과 맞지 않습니다. C. COMMIT SCRIPT - 'SQL*Plus' 관점에서 핵심 조건과 맞지 않습니다. D. @script.sql - 문제 조건을 정확히 만족합니다."
+    },
+    {
+      "number": 25,
+      "topic": "UNION",
+      "difficulty": "중",
+      "question": "UNION의 기본 동작으로 맞는 것은?",
       "choices": [
         "중복 행을 제거한다",
-        "중복 행을 유지한다",
-        "두 SELECT의 컬럼 개수가 달라도 된다",
-        "ORDER BY를 각 SELECT마다 반드시 사용한다"
-      ],
-      "answer": 2,
-      "explanation": "UNION ALL은 중복 제거 비용 없이 결과를 이어 붙이며 중복도 유지한다.",
-      "number": 12
-    },
-    {
-      "topic": "SEQUENCE",
-      "question": "시퀀스의 다음 번호를 얻는 표현은?",
-      "choices": [
-        "SEQ_EMP.NEXTVAL",
-        "SEQ_EMP.CURRVAL + INIT",
-        "SEQ_EMP.VALUE",
-        "NEXT(SEQ_EMP)"
+        "중복을 모두 유지한다",
+        "항상 첫 SELECT만 실행한다",
+        "NULL 값을 오류로 처리한다"
       ],
       "answer": 1,
-      "explanation": "NEXTVAL은 새 시퀀스 값을 생성한다. CURRVAL은 현재 세션에서 얻은 최근 값을 뜻한다.",
-      "number": 13
-    },
-    {
-      "topic": "PRIMARY KEY",
-      "question": "PRIMARY KEY에 대한 설명으로 가장 알맞은 것은?",
-      "choices": [
-        "중복을 허용하지만 NULL은 허용하지 않는다",
-        "중복과 NULL을 모두 허용한다",
-        "중복과 NULL을 모두 허용하지 않는다",
-        "테이블마다 반드시 두 개 이상 필요하다"
-      ],
-      "answer": 3,
-      "explanation": "PRIMARY KEY는 행 식별자이며 중복과 NULL을 허용하지 않는다.",
-      "number": 14
-    },
-    {
-      "topic": "FOREIGN KEY",
-      "question": "FOREIGN KEY에 대한 설명으로 가장 알맞은 것은?",
-      "choices": [
-        "다른 테이블의 키를 참조하여 참조 무결성을 지원한다",
-        "항상 UNIQUE 인덱스를 자동 생성한다",
-        "NULL 값을 절대로 허용하지 않는다",
-        "테이블 데이터를 물리적으로 복제한다"
-      ],
-      "answer": 1,
-      "explanation": "FOREIGN KEY는 부모 키를 참조해 관계의 무결성을 관리한다. NULL 허용 여부는 별도 조건에 따라 달라진다.",
-      "number": 15
-    },
-    {
-      "topic": "VIEW",
-      "question": "일반 VIEW에 대한 설명으로 가장 알맞은 것은?",
-      "choices": [
-        "조회 SQL을 기반으로 정의되는 가상 테이블이다",
-        "항상 데이터를 별도 저장한다",
-        "인덱스와 완전히 같은 객체다",
-        "ROLLBACK을 대신한다"
-      ],
-      "answer": 1,
-      "explanation": "VIEW는 SELECT 정의를 저장한 논리적 객체다. 일반 VIEW 자체가 데이터를 별도 저장하는 것은 아니다.",
-      "number": 16
-    },
-    {
-      "topic": "B-Tree 인덱스",
-      "question": "일반적으로 B-Tree 인덱스 후보로 가장 효율적인 컬럼은?",
-      "choices": [
-        "성별처럼 값 종류가 매우 적은 컬럼",
-        "대부분 같은 값을 가진 처리 상태 컬럼",
-        "조회 조건에 자주 사용되고 값의 구분도가 높은 회원 ID",
-        "매 행마다 NULL인 메모 컬럼"
-      ],
-      "answer": 3,
-      "explanation": "인덱스는 자주 검색하며 선택도가 높은 컬럼에서 효율적일 가능성이 높다.",
-      "number": 17
-    },
-    {
-      "topic": "인덱스와 함수",
-      "question": "NAME 컬럼에 일반 인덱스가 있을 때, 다음 중 인덱스 활용이 어려워질 가능성이 가장 높은 조건은?",
-      "choices": [
-        "WHERE NAME = 'KIM'",
-        "WHERE NAME LIKE 'KIM%'",
-        "WHERE UPPER(NAME) = 'KIM'",
-        "WHERE NAME BETWEEN 'A' AND 'C'"
-      ],
-      "answer": 3,
-      "explanation": "일반 인덱스 컬럼에 함수를 적용하면 기존 인덱스 활용이 어려울 수 있다. 함수 기반 인덱스는 별도 설계다.",
-      "number": 18
-    },
-    {
-      "topic": "LIKE와 인덱스",
-      "question": "NAME 컬럼에 일반 인덱스가 있을 때, 인덱스 범위 검색이 어려워질 가능성이 높은 조건은?",
-      "choices": [
-        "WHERE NAME LIKE 'KIM%'",
-        "WHERE NAME LIKE '%KIM'",
-        "WHERE NAME = 'KIM'",
-        "WHERE NAME >= 'KIM'"
-      ],
-      "answer": 2,
-      "explanation": "앞에 %가 붙으면 시작 지점을 특정하기 어려워 일반적인 범위 탐색에 불리하다.",
-      "number": 19
-    },
-    {
-      "topic": "암시적 형변환",
-      "question": "문자형 EMPNO 컬럼에 인덱스가 있을 때 다음 조건의 문제점으로 가장 알맞은 것은?\nWHERE EMPNO = 100",
-      "choices": [
-        "항상 구문 오류가 발생한다",
-        "암시적 형변환 때문에 인덱스 활용이나 성능에 불리할 수 있다",
-        "숫자 리터럴은 언제나 더 빠르다",
-        "무조건 UNIQUE SCAN이 수행된다"
-      ],
-      "answer": 2,
-      "explanation": "컬럼 타입과 리터럴 타입을 맞추는 것이 안전하다. 암시적 변환은 성능과 오류 위험을 높일 수 있다.",
-      "number": 20
-    },
-    {
-      "topic": "복합 인덱스",
-      "question": "복합 인덱스 IDX(A, B, C)가 있다. 일반적인 B-Tree 인덱스 기본 원칙상 가장 유리한 조건은?",
-      "choices": [
-        "WHERE B = 2",
-        "WHERE C = 3",
-        "WHERE A = 1 AND B = 2",
-        "WHERE B = 2 AND C = 3"
-      ],
-      "answer": 3,
-      "explanation": "복합 인덱스는 일반적으로 선두 컬럼 A부터 조건이 주어질 때 유리하다. Skip Scan 등 예외는 별도다.",
-      "number": 21
-    },
-    {
-      "topic": "INDEX UNIQUE SCAN",
-      "question": "PRIMARY KEY 또는 UNIQUE 인덱스의 전체 키가 등가 조건으로 주어졌을 때 기대할 수 있는 접근 방식은?",
-      "choices": [
-        "INDEX UNIQUE SCAN",
-        "HASH JOIN",
-        "SORT UNIQUE",
-        "MERGE CARTESIAN"
-      ],
-      "answer": 1,
-      "explanation": "고유 키 전체가 '='로 주어지면 INDEX UNIQUE SCAN 후보가 된다.",
-      "number": 22
-    },
-    {
-      "topic": "TABLE ACCESS FULL",
-      "question": "TABLE ACCESS FULL에 대한 설명으로 가장 알맞은 것은?",
-      "choices": [
-        "항상 나쁜 실행계획이므로 반드시 제거해야 한다",
-        "조회 대상 비율이 높거나 테이블이 작으면 합리적일 수 있다",
-        "인덱스가 하나라도 있으면 절대 나타나지 않는다",
-        "DDL 실행 시에만 나타난다"
-      ],
-      "answer": 2,
-      "explanation": "많은 행을 읽거나 테이블이 작으면 FULL SCAN이 더 효율적일 수 있다. 실행계획은 비용 기반으로 판단한다.",
-      "number": 23
-    },
-    {
-      "topic": "바인드 변수",
-      "question": "바인드 변수를 사용하는 주된 이점으로 알맞은 것은?",
-      "choices": [
-        "SQL 문장을 더 길게 만든다",
-        "SQL 재사용과 파싱 부하 감소에 도움을 줄 수 있다",
-        "무조건 인덱스를 생성한다",
-        "COMMIT을 자동 실행한다"
-      ],
-      "answer": 2,
-      "explanation": "바인드 변수는 유사 SQL의 재사용 가능성을 높여 하드 파싱 부담 감소에 도움을 줄 수 있다.",
-      "number": 24
-    },
-    {
-      "topic": "ACID / Atomicity",
-      "question": "ACID 중 Atomicity의 의미는?",
-      "choices": [
-        "커밋된 데이터는 영구적으로 유지된다",
-        "트랜잭션 작업은 전부 성공하거나 전부 실패해야 한다",
-        "동시 트랜잭션은 항상 순차 실행된다",
-        "데이터는 반드시 정렬되어야 한다"
-      ],
-      "answer": 2,
-      "explanation": "Atomicity는 논리적 작업 단위를 쪼개지 않고 모두 성공 또는 모두 실패시키는 성질이다.",
-      "number": 25
+      "explanation": "정답은 A번 '중복 행을 제거한다'입니다. UNION은 두 결과를 합치면서 중복 제거를 수행합니다. 보기별 확인: A. 중복 행을 제거한다 - 문제 조건을 정확히 만족합니다. B. 중복을 모두 유지한다 - 'UNION' 관점에서 핵심 조건과 맞지 않습니다. C. 항상 첫 SELECT만 실행한다 - 'UNION' 관점에서 핵심 조건과 맞지 않습니다. D. NULL 값을 오류로 처리한다 - 'UNION' 관점에서 핵심 조건과 맞지 않습니다."
     }
   ]
 }

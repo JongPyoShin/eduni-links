@@ -67,64 +67,101 @@ def render_jungle_expedition() -> None:
             min-height: 760px;
             margin: 0 auto;
             overflow: hidden;
-            border: 1px solid #18412f;
-            border-radius: 8px;
+            border: 6px solid #2f1f12;
+            border-radius: 0;
             background:
-              linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,255,255,0) 22%),
-              linear-gradient(180deg, #d9f99d 0%, #86efac 34%, #166534 100%);
-            box-shadow: 0 16px 36px rgba(17, 24, 39, .16);
+              linear-gradient(180deg, rgba(117, 191, 255, .86) 0 16%, rgba(117, 191, 255, 0) 34%),
+              repeating-linear-gradient(90deg, rgba(255,255,255,.08) 0 32px, transparent 32px 64px),
+              linear-gradient(180deg, #79c85a 0%, #3fa34d 48%, #26743b 100%);
+            box-shadow: 0 18px 0 #1f130b, 0 24px 44px rgba(17, 24, 39, .22);
             color: #102a1f;
             touch-action: manipulation;
+            image-rendering: pixelated;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+          }
+          .jungle-stage::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+              linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px);
+            background-size: 32px 32px;
+            mix-blend-mode: soft-light;
+            opacity: .72;
+          }
+          .jungle-stage::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 210px;
+            pointer-events: none;
+            background:
+              repeating-linear-gradient(90deg, rgba(26, 92, 43, .72) 0 32px, rgba(45, 128, 54, .72) 32px 64px),
+              linear-gradient(180deg, rgba(58, 143, 62, .08), rgba(21, 83, 38, .54));
+            clip-path: polygon(0 24%, 12% 18%, 28% 27%, 45% 17%, 62% 29%, 80% 18%, 100% 24%, 100% 100%, 0 100%);
           }
           .jungle-canopy {
             position: absolute;
             inset: 0 0 auto;
             height: 250px;
             pointer-events: none;
+            z-index: 1;
           }
           .jungle-leaf {
             position: absolute;
-            top: -34px;
-            width: 104px;
-            height: 210px;
-            border-radius: 52px 52px 8px 8px;
+            top: -22px;
+            width: 96px;
+            height: 168px;
+            border-radius: 0;
             transform-origin: top center;
-            background: linear-gradient(180deg, #14532d, #22c55e);
-            box-shadow: inset 0 -18px 0 rgba(255,255,255,.12);
+            background:
+              repeating-linear-gradient(0deg, rgba(255,255,255,.08) 0 12px, transparent 12px 24px),
+              linear-gradient(180deg, #14532d, #22c55e);
+            border: 4px solid #174421;
+            box-shadow: inset -10px -10px 0 rgba(0,0,0,.14), 0 8px 0 rgba(24, 65, 47, .3);
           }
-          .jungle-leaf:nth-child(1) { left: 16px; transform: rotate(17deg); }
-          .jungle-leaf:nth-child(2) { left: 92px; top: -54px; transform: rotate(-9deg); opacity: .9; }
-          .jungle-leaf:nth-child(3) { right: 90px; top: -48px; transform: rotate(10deg); opacity: .92; }
-          .jungle-leaf:nth-child(4) { right: 12px; transform: rotate(-18deg); }
+          .jungle-leaf:nth-child(1) { left: 10px; transform: rotate(7deg); }
+          .jungle-leaf:nth-child(2) { left: 106px; top: -46px; transform: rotate(-4deg); opacity: .94; }
+          .jungle-leaf:nth-child(3) { right: 100px; top: -42px; transform: rotate(5deg); opacity: .94; }
+          .jungle-leaf:nth-child(4) { right: 8px; transform: rotate(-8deg); }
           .jungle-path {
             position: absolute;
+            z-index: 1;
             left: 50%;
             bottom: -42px;
-            width: 150px;
+            width: 168px;
             height: 710px;
             transform: translateX(-50%);
-            border-radius: 82px 82px 0 0;
-            background: repeating-linear-gradient(180deg, #fef3c7 0 48px, #f59e0b 48px 64px);
+            border-radius: 0;
+            background:
+              repeating-linear-gradient(0deg, rgba(255,255,255,.10) 0 28px, transparent 28px 56px),
+              repeating-linear-gradient(90deg, #a16207 0 34px, #854d0e 34px 68px);
             background-position: center 0;
-            box-shadow: inset 0 0 0 8px rgba(120, 53, 15, .14);
-            animation: jungle-road-flow 2.2s linear infinite paused;
+            box-shadow: inset 0 0 0 8px rgba(68, 35, 12, .35);
+            animation: jungle-road-flow 2.2s steps(8) infinite paused;
           }
           .jungle-stage.is-moving .jungle-path { animation-play-state: running; }
-          .jungle-moving { animation: jungle-object-flow 4.8s linear infinite paused; }
-          .jungle-far { opacity: .48; transform: scale(.78); animation-duration: 7.2s; }
-          .jungle-mid { opacity: .76; transform: scale(.92); animation-duration: 5.6s; }
+          .jungle-moving { animation: jungle-object-flow 4.8s steps(8) infinite paused; }
+          .jungle-far { opacity: .56; transform: scale(.78); animation-duration: 7.2s; }
+          .jungle-mid { opacity: .82; transform: scale(.92); animation-duration: 5.6s; }
           .jungle-near { opacity: .98; transform: scale(1.08); animation-duration: 4.2s; }
           .jungle-stage.is-moving .jungle-moving { animation-play-state: running; }
           .jungle-object {
             position: absolute;
+            z-index: 2;
             display: grid;
             place-items: center;
-            min-width: 56px;
-            min-height: 56px;
-            border-radius: 999px;
-            font-size: 32px;
-            background: rgba(255, 255, 255, .7);
-            box-shadow: 0 10px 20px rgba(15, 23, 42, .14);
+            min-width: 58px;
+            min-height: 58px;
+            border-radius: 0;
+            font-size: 34px;
+            background: rgba(221, 255, 202, .84);
+            border: 4px solid rgba(36, 91, 36, .72);
+            box-shadow: inset -8px -8px 0 rgba(0,0,0,.13), 0 8px 0 rgba(20, 55, 30, .24);
           }
           .tree-left-a { left: 12px; top: 150px; animation-delay: -1.1s; }
           .tree-left-b { left: 42px; top: 340px; animation-delay: -3.5s; }
@@ -137,48 +174,59 @@ def render_jungle_expedition() -> None:
           .branch-right-a { right: 34px; top: 260px; animation-delay: -1.8s; }
           .branch-right-b { right: 26px; top: 455px; animation-delay: -5.3s; }
           .jungle-object.bird {
-            z-index: 3;
-            top: -72px;
-            min-width: 64px;
-            min-height: 64px;
-            outline: 4px solid rgba(250, 204, 21, .7);
-            font-size: 36px;
-            animation: jungle-bird-drop 7.5s linear infinite paused;
+            z-index: 5;
+            top: -78px;
+            min-width: 82px;
+            min-height: 82px;
+            outline: none;
+            border: 5px solid #5c3b00;
+            background: #facc15;
+            font-size: 48px;
+            box-shadow: inset -10px -10px 0 rgba(120, 53, 15, .24), 0 10px 0 rgba(92, 59, 0, .35);
+            animation: jungle-bird-drop 9s steps(14) infinite paused;
+          }
+          .jungle-object.bird::after {
+            content: "";
+            position: absolute;
+            inset: -12px;
+            border: 4px solid rgba(250, 204, 21, .48);
+            pointer-events: none;
           }
           .jungle-stage.is-moving .jungle-object.bird { animation-play-state: running; }
-          .bird-lane-left { left: 34px; }
-          .bird-lane-center { left: 50%; margin-left: -32px; }
-          .bird-lane-right { right: 34px; }
+          .bird-lane-left { left: 28px; }
+          .bird-lane-center { left: 50%; margin-left: -41px; }
+          .bird-lane-right { right: 28px; }
           .jungle-truck {
             position: absolute;
             z-index: 4;
             left: 50%;
-            bottom: 112px;
+            bottom: 132px;
             transform: translateX(-50%);
             display: grid;
             place-items: center;
-            width: 94px;
-            height: 94px;
-            border-radius: 22px;
-            background: #fefce8;
-            border: 5px solid #854d0e;
-            font-size: 48px;
-            box-shadow: 0 12px 24px rgba(15, 23, 42, .2);
+            width: 104px;
+            height: 104px;
+            border-radius: 0;
+            background: #eab308;
+            border: 6px solid #713f12;
+            font-size: 54px;
+            box-shadow: inset -12px -12px 0 rgba(120, 53, 15, .2), 0 12px 0 rgba(68, 35, 12, .35);
           }
           .jungle-card {
             position: absolute;
             z-index: 7;
             left: 18px;
             right: 18px;
-            bottom: 220px;
+            bottom: 232px;
             box-sizing: border-box;
             max-height: min(62vh, 430px);
             overflow-y: auto;
             padding: 14px;
-            border-radius: 8px;
-            background: rgba(255,255,255,.95);
-            border: 1px solid rgba(22, 101, 52, .24);
-            font-weight: 800;
+            border-radius: 0;
+            background: rgba(254, 252, 232, .97);
+            border: 5px solid #3f2a16;
+            font-weight: 900;
+            box-shadow: 0 10px 0 rgba(63, 42, 22, .25);
             -webkit-overflow-scrolling: touch;
           }
           .jungle-question-prompt {
@@ -190,41 +238,51 @@ def render_jungle_expedition() -> None:
           }
           .jungle-hud {
             position: relative;
-            z-index: 4;
+            z-index: 6;
             display: flex;
             justify-content: space-between;
             gap: 8px;
-            padding: 14px;
+            padding: 12px;
             font-weight: 900;
+            color: #fefce8;
+            text-shadow: 2px 2px 0 #1f130b;
           }
           .jungle-status {
             position: absolute;
-            z-index: 4;
-            top: 52px;
-            left: 14px;
-            right: 14px;
+            z-index: 6;
+            top: 50px;
+            left: 12px;
+            right: 12px;
             padding: 8px 10px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, .78);
-            font-weight: 800;
+            border-radius: 0;
+            background: rgba(254, 252, 232, .88);
+            border: 4px solid rgba(63, 42, 22, .88);
+            font-weight: 900;
           }
           .jungle-controls {
             position: absolute;
             z-index: 8;
-            left: 14px;
-            right: 14px;
-            bottom: max(18px, env(safe-area-inset-bottom));
+            left: 12px;
+            right: 12px;
+            bottom: max(14px, env(safe-area-inset-bottom));
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 10px;
+            grid-template-columns: 1.25fr 1.25fr 1fr 1fr;
+            gap: 8px;
           }
           .jungle-touch {
-            min-height: 58px;
-            border-radius: 8px;
+            min-height: 62px;
+            border-radius: 0;
+            border: 4px solid #3f2a16;
+            font-size: 16px;
             font-weight: 900;
+            box-shadow: 0 7px 0 rgba(63, 42, 22, .32);
+          }
+          .jungle-catch {
+            min-height: 70px;
+            font-size: 18px;
           }
           .jungle-answer-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-          .jungle-answer { flex: 1 1 82px; min-height: 52px; min-width: 82px; border-radius: 8px; font-weight: 900; }
+          .jungle-answer { flex: 1 1 82px; min-height: 52px; min-width: 82px; border-radius: 0; font-weight: 900; }
           .jungle-codex-list { white-space: pre-line; max-height: min(34vh, 240px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
           @keyframes jungle-road-flow {
             from { background-position: center 0; }
@@ -236,26 +294,27 @@ def render_jungle_expedition() -> None:
           }
           @keyframes jungle-bird-drop {
             0% {
-              transform: translateY(-90px) scale(.88);
+              transform: translateY(-90px) scale(.82);
               opacity: 0;
             }
             8% {
               opacity: 1;
             }
-            78% {
+            84% {
               opacity: 1;
             }
             100% {
-              transform: translateY(860px) scale(1.12);
+              transform: translateY(870px) scale(1.08);
               opacity: 0;
             }
           }
           @media (max-width: 420px) {
             .jungle-stage { min-height: calc(100vh - 40px); }
-            .jungle-card { left: 10px; right: 10px; bottom: 190px; max-height: calc(100vh - 286px); }
+            .jungle-card { left: 10px; right: 10px; bottom: 218px; max-height: calc(100vh - 318px); }
             .jungle-question-prompt { font-size: 21px; }
-            .jungle-controls { left: 10px; right: 10px; gap: 8px; }
-            .jungle-touch { min-height: 52px; }
+            .jungle-controls { left: 10px; right: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+            .jungle-touch { min-height: 58px; }
+            .jungle-catch { min-height: 68px; }
           }
         </style>
         """
@@ -269,10 +328,10 @@ def render_jungle_expedition() -> None:
         state["moving"] = moving
         if moving:
             stage.classes(add="is-moving")
-            status.set_text("전진 중 · 좌우 숲에서 새를 찾아보자!")
+            status.set_text("블록 정글 전진 중 · 새가 보이면 새 잡기를 눌러보자!")
             return
         stage.classes(remove="is-moving")
-        status.set_text("새를 발견하면 눌러서 문제를 풀어보자!")
+        status.set_text("새가 보이면 화면의 새 또는 아래 새 잡기 버튼을 눌러보자!")
 
     def choose_bird_position() -> str:
         return choice(BIRD_POSITION_CLASSES)
@@ -316,6 +375,11 @@ def render_jungle_expedition() -> None:
         set_motion(False)
         bird.set_visibility(False)
         render_question()
+
+    def catch_bird() -> None:
+        if question_card.visible or cargo_card.visible or codex_card.visible:
+            return
+        discover_bird()
 
     def show_hint() -> None:
         question = state.get("question")
@@ -374,11 +438,11 @@ def render_jungle_expedition() -> None:
     def close_codex() -> None:
         move_forward()
 
-    with ui.element("section").classes("jungle-stage").props('aria-label="정글 대탐험 데모"') as stage:
+    with ui.element("section").classes("jungle-stage").props('aria-label="블록 정글 대탐험 데모"') as stage:
         with ui.element("div").classes("jungle-hud"):
-            ui.label("정글 대탐험")
-            ui.label("Phase C-4")
-        status = ui.label("전진을 눌러 새를 찾아보자!").classes("jungle-status")
+            ui.label("블록 정글 대탐험")
+            ui.label("Voxel Mode")
+        status = ui.label("전진을 누르고, 새가 보이면 새 잡기를 눌러보자!").classes("jungle-status")
         with ui.element("div").classes("jungle-canopy"):
             for _ in range(4):
                 ui.element("span").classes("jungle-leaf")
@@ -393,7 +457,7 @@ def render_jungle_expedition() -> None:
         ui.label("🌳").classes("jungle-object jungle-moving jungle-near tree-right-b")
         ui.label("🌿").classes("jungle-object jungle-moving jungle-mid branch-right-b")
         ui.label("🌲").classes("jungle-object jungle-moving jungle-far tree-right-c")
-        bird = ui.button("", on_click=discover_bird).classes("jungle-object bird").props("flat round")
+        bird = ui.button("", on_click=discover_bird).classes("jungle-object bird").props("flat square")
         ui.label("🚚").classes("jungle-truck")
         question_card = ui.element("div").classes("jungle-card")
         with question_card:
@@ -422,8 +486,9 @@ def render_jungle_expedition() -> None:
             ui.button("닫기", on_click=close_codex).classes("q-mt-sm")
         codex_card.set_visibility(False)
         with ui.element("div").classes("jungle-controls"):
-            ui.button("전진", on_click=move_forward).classes("jungle-touch")
-            ui.button("짐칸", on_click=show_cargo).classes("jungle-touch")
-            ui.button("도감", on_click=show_codex).classes("jungle-touch")
+            ui.button("▶ 전진", on_click=move_forward).classes("jungle-touch")
+            ui.button("🐤 새 잡기", on_click=catch_bird).classes("jungle-touch jungle-catch")
+            ui.button("🎒 짐칸", on_click=show_cargo).classes("jungle-touch")
+            ui.button("📖 도감", on_click=show_codex).classes("jungle-touch")
 
     place_bird()

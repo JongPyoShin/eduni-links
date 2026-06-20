@@ -99,6 +99,14 @@ def _portal_card(
 
 
 def register_pages() -> None:
+    @ui.page("/games/eduni-link")
+    @ui.page("/games/eduni-link/")
+    def eduni_link_redirect() -> None:
+        ui.add_head_html(f'<meta http-equiv="refresh" content="0; url={EDUNI_LINK_URL}">')
+        with ui.element("main").classes("portal-shell"):
+            ui.label("의준 링크로 이동합니다.").classes("text-h4 text-weight-bold q-mt-lg")
+            ui.link("게임 열기", EDUNI_LINK_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-dark text-white q-mt-md")
+
     @ui.page("/portal")
     def portal_home() -> None:
         _head()

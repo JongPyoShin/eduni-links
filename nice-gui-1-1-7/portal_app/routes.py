@@ -11,6 +11,7 @@ from .registry import get_world
 
 HANJA_URL = "http://100.75.214.95:8080/hanja"
 EDUNI_LINK_URL = "http://100.75.214.95:8092/"
+EDUNI_OMOK_URL = "http://100.75.214.95:8093/"
 
 
 def _head() -> None:
@@ -49,13 +50,14 @@ def _head() -> None:
           .portal-section-title { margin:22px 0 10px; display:flex; align-items:end; justify-content:space-between; gap:12px; }
           .portal-section-title h2 { margin:0; font-size:24px; font-weight:900; }
           .portal-section-title p { margin:0; color:var(--muted); font-size:14px; font-weight:800; text-align:right; }
-          .portal-quick { display:grid; grid-template-columns:1.2fr repeat(3,minmax(0,.8fr)); gap:12px; }
+          .portal-quick { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px; }
           .portal-worlds { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
           .portal-start { min-height:174px; color:#fff; background:linear-gradient(135deg,#0f766e,#14b8a6); }
           .portal-game-blue { background:linear-gradient(135deg,#e0f2fe,#fff); }
           .portal-game-amber { background:linear-gradient(135deg,#fff7ed,#fff); }
           .portal-game-green { background:linear-gradient(135deg,#ecfdf5,#fff); }
           .portal-game-pink { background:linear-gradient(135deg,#fdf2f8,#fff); }
+          .portal-game-violet { background:linear-gradient(135deg,#ede9fe,#fff); }
           .portal-pill { width:fit-content; min-height:34px; display:inline-flex; align-items:center; padding:0 12px; border-radius:999px; background:rgba(255,255,255,.78); border:1px solid rgba(16,24,39,.1); font-size:13px; font-weight:1000; }
           .portal-notice { padding:14px 16px; border:1px solid #bfdbfe; border-radius:8px; background:#eff6ff; color:#1e3a8a; font-weight:850; line-height:1.5; }
           .portal-card strong { display:block; font-size:24px; letter-spacing:0; }
@@ -65,7 +67,7 @@ def _head() -> None:
           .pattern-choice-row { display:flex; flex-wrap:wrap; gap:12px; }
           .pattern-choice { min-width:82px; min-height:72px; font-size:32px; }
           .pattern-feedback { min-height:28px; color:#0f766e; font-size:18px; font-weight:800; }
-          @media (max-width:880px) { .portal-hero { grid-template-columns:1fr; } .portal-quick,.portal-worlds { grid-template-columns:repeat(2,minmax(0,1fr)); } .portal-start { grid-column:1/-1; } }
+          @media (max-width:880px) { .portal-hero { grid-template-columns:1fr; } .portal-worlds { grid-template-columns:repeat(2,minmax(0,1fr)); } .portal-start { grid-column:1/-1; } }
           @media (max-width:560px) { .portal-shell { width:min(100vw - 18px,1120px); padding-top:12px; } .portal-hero,.portal-card { padding:14px; } .portal-hero { min-height:auto; } .portal-copy { font-size:16px; } .portal-quick,.portal-worlds { grid-template-columns:1fr; } .portal-section-title { align-items:start; flex-direction:column; } .portal-section-title p { text-align:left; } .portal-card strong { font-size:22px; } }
         </style>
         """
@@ -107,6 +109,14 @@ def register_pages() -> None:
             ui.label("의준 링크로 이동합니다.").classes("text-h4 text-weight-bold q-mt-lg")
             ui.link("게임 열기", EDUNI_LINK_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-dark text-white q-mt-md")
 
+    @ui.page("/games/eduni-omok")
+    @ui.page("/games/eduni-omok/")
+    def eduni_omok_redirect() -> None:
+        ui.add_head_html(f'<meta http-equiv="refresh" content="0; url={EDUNI_OMOK_URL}">')
+        with ui.element("main").classes("portal-shell"):
+            ui.label("EDUNI 오목으로 이동합니다.").classes("text-h4 text-weight-bold q-mt-lg")
+            ui.link("AI 오목 열기", EDUNI_OMOK_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-dark text-white q-mt-md")
+
     @ui.page("/portal")
     def portal_home() -> None:
         _head()
@@ -120,19 +130,21 @@ def register_pages() -> None:
                     with ui.row().classes("q-mt-md q-gutter-sm"):
                         ui.link("수학 바로가기", "/portal/world/math").classes("portal-action q-btn q-btn-item q-btn--standard bg-dark text-white q-px-md")
                         ui.link("의준 링크", EDUNI_LINK_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-positive text-white q-px-md")
+                        ui.link("AI 오목", EDUNI_OMOK_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-deep-purple text-white q-px-md")
                         ui.link("부모 화면", "/portal/parent").classes("portal-action q-btn q-btn-item q-btn--outline q-px-md")
                 with ui.element("div").classes("portal-console"):
                     with ui.element("div").classes("portal-tiles"):
-                        for text in ("漢", "A", "+", "링크"):
+                        for text in ("漢", "A", "+", "오목"):
                             ui.label(text).classes("portal-tile")
                     with ui.element("div").classes("portal-stats"):
-                        for value, label in (("8", "학습 세계"), ("4", "게임 링크"), ("1", "서버 포털")):
+                        for value, label in (("8", "학습 세계"), ("5", "게임 링크"), ("1", "서버 포털")):
                             ui.html(f"<div class='portal-stat'><b>{value}</b><span>{label}</span></div>")
 
             ui.label("외부에서 바로 접속하려면 해당 기기에 Tailscale이 연결되어 있어야 합니다. 같은 Wi-Fi 여부와는 별개로, Tailscale 가족망 안이면 이 서버 주소가 통합니다.").classes("portal-notice q-mt-md")
 
             _section_title("빠른 시작", "자주 쓰는 학습과 게임으로 바로 이동합니다.")
             with ui.element("section").classes("portal-quick"):
+                _portal_card(EDUNI_OMOK_URL, "AI 오목", "AI 친구와 오목을 두는 두뇌 게임", "신규", "portal-game-violet")
                 _portal_card(EDUNI_LINK_URL, "의준 링크", "의준 얼굴 블럭을 연결하는 모바일 퍼즐", "신규", "portal-game-pink")
                 _portal_card("/bubble-shooter", "한자 슈터", "목표 한자를 맞히는 버블 슈터 게임", "게임", "portal-game-blue")
                 _portal_card("/bubble", "버블 게임", "짧게 집중해서 푸는 한자 게임", "게임", "portal-game-amber")

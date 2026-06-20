@@ -1,13 +1,13 @@
 {
-  "generatedAt": "static-fallback",
+  "generatedAt": "static-tailscale-portal",
   "links": {
-    "db": "../db/",
-    "hanja": "../hanja/",
-    "tetris": "../tetris/",
-    "bubble": "../bubble/",
-    "bubbleShooter": "../bubble-shooter/",
-    "familyPortal": "../",
-    "familyPortalMath": "../",
-    "parentPortal": "../"
+    "db": "http://100.75.214.95:8080/",
+    "hanja": "http://100.75.214.95:8080/hanja",
+    "tetris": "http://100.75.214.95:8081/",
+    "bubble": "http://100.75.214.95:8081/bubble",
+    "bubbleShooter": "http://100.75.214.95:8081/bubble-shooter",
+    "familyPortal": "http://100.75.214.95:8081/portal",
+    "familyPortalMath": "http://100.75.214.95:8081/portal/world/math",
+    "parentPortal": "http://100.75.214.95:8081/portal/parent"
   }
 }

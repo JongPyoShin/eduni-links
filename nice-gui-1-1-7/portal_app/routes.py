@@ -10,6 +10,7 @@ from .registry import get_world
 
 
 HANJA_URL = "http://100.75.214.95:8080/hanja"
+EDUNI_LINK_URL = "http://100.75.214.95:8092/"
 
 
 def _head() -> None:
@@ -54,6 +55,7 @@ def _head() -> None:
           .portal-game-blue { background:linear-gradient(135deg,#e0f2fe,#fff); }
           .portal-game-amber { background:linear-gradient(135deg,#fff7ed,#fff); }
           .portal-game-green { background:linear-gradient(135deg,#ecfdf5,#fff); }
+          .portal-game-pink { background:linear-gradient(135deg,#fdf2f8,#fff); }
           .portal-pill { width:fit-content; min-height:34px; display:inline-flex; align-items:center; padding:0 12px; border-radius:999px; background:rgba(255,255,255,.78); border:1px solid rgba(16,24,39,.1); font-size:13px; font-weight:1000; }
           .portal-notice { padding:14px 16px; border:1px solid #bfdbfe; border-radius:8px; background:#eff6ff; color:#1e3a8a; font-weight:850; line-height:1.5; }
           .portal-card strong { display:block; font-size:24px; letter-spacing:0; }
@@ -109,19 +111,21 @@ def register_pages() -> None:
                     ui.label("이 화면이 실제 EDUNI 서버 포털입니다. Tailscale이 켜진 모바일, 태블릿, PC에서는 같은 Wi-Fi가 아니어도 바로 접속할 수 있습니다.").classes("portal-copy")
                     with ui.row().classes("q-mt-md q-gutter-sm"):
                         ui.link("수학 바로가기", "/portal/world/math").classes("portal-action q-btn q-btn-item q-btn--standard bg-dark text-white q-px-md")
+                        ui.link("의준 링크", EDUNI_LINK_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-positive text-white q-px-md")
                         ui.link("부모 화면", "/portal/parent").classes("portal-action q-btn q-btn-item q-btn--outline q-px-md")
                 with ui.element("div").classes("portal-console"):
                     with ui.element("div").classes("portal-tiles"):
-                        for text in ("漢", "A", "+", "탐험"):
+                        for text in ("漢", "A", "+", "링크"):
                             ui.label(text).classes("portal-tile")
                     with ui.element("div").classes("portal-stats"):
-                        for value, label in (("8", "학습 세계"), ("3", "게임 링크"), ("1", "서버 포털")):
+                        for value, label in (("8", "학습 세계"), ("4", "게임 링크"), ("1", "서버 포털")):
                             ui.html(f"<div class='portal-stat'><b>{value}</b><span>{label}</span></div>")
 
             ui.label("외부에서 바로 접속하려면 해당 기기에 Tailscale이 연결되어 있어야 합니다. 같은 Wi-Fi 여부와는 별개로, Tailscale 가족망 안이면 이 서버 주소가 통합니다.").classes("portal-notice q-mt-md")
 
             _section_title("빠른 시작", "자주 쓰는 학습과 게임으로 바로 이동합니다.")
             with ui.element("section").classes("portal-quick"):
+                _portal_card(EDUNI_LINK_URL, "의준 링크", "의준 얼굴 블럭을 연결하는 모바일 퍼즐", "신규", "portal-game-pink")
                 _portal_card("/bubble-shooter", "한자 슈터", "목표 한자를 맞히는 버블 슈터 게임", "게임", "portal-game-blue")
                 _portal_card("/bubble", "버블 게임", "짧게 집중해서 푸는 한자 게임", "게임", "portal-game-amber")
                 _portal_card("/", "블록 퍼즐", "가볍게 머리를 깨우는 퍼즐", "게임", "portal-game-green")

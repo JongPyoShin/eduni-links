@@ -108,8 +108,7 @@ def register_pages() -> None:
                     ui.label("가족 학습 포털로 바로 들어가기").classes("portal-title")
                     ui.label("이 화면이 실제 EDUNI 서버 포털입니다. Tailscale이 켜진 모바일, 태블릿, PC에서는 같은 Wi-Fi가 아니어도 바로 접속할 수 있습니다.").classes("portal-copy")
                     with ui.row().classes("q-mt-md q-gutter-sm"):
-                        ui.link("EDUNI 포털 열기", "/portal").classes("portal-action q-btn q-btn-item q-btn--standard bg-dark text-white q-px-md")
-                        ui.link("수학 바로가기", "/portal/world/math").classes("portal-action q-btn q-btn-item q-btn--outline q-px-md")
+                        ui.link("수학 바로가기", "/portal/world/math").classes("portal-action q-btn q-btn-item q-btn--standard bg-dark text-white q-px-md")
                         ui.link("부모 화면", "/portal/parent").classes("portal-action q-btn q-btn-item q-btn--outline q-px-md")
                 with ui.element("div").classes("portal-console"):
                     with ui.element("div").classes("portal-tiles"):
@@ -123,7 +122,6 @@ def register_pages() -> None:
 
             _section_title("빠른 시작", "자주 쓰는 학습과 게임으로 바로 이동합니다.")
             with ui.element("section").classes("portal-quick"):
-                _portal_card("/portal", "EDUNI 학습 포털", "서버에서 실행되는 실제 포털 홈입니다.", "열기", "portal-start")
                 _portal_card("/bubble-shooter", "한자 슈터", "목표 한자를 맞히는 버블 슈터 게임", "게임", "portal-game-blue")
                 _portal_card("/bubble", "버블 게임", "짧게 집중해서 푸는 한자 게임", "게임", "portal-game-amber")
                 _portal_card("/", "블록 퍼즐", "가볍게 머리를 깨우는 퍼즐", "게임", "portal-game-green")

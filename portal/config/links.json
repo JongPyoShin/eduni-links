@@ -7,6 +7,7 @@
     "bubble": "http://100.75.214.95:8081/bubble",
     "bubbleShooter": "http://100.75.214.95:8081/bubble-shooter",
     "eduniLink": "http://100.75.214.95:8092/",
+    "eduniOmok": "http://100.75.214.95:8093/",
     "familyPortal": "http://100.75.214.95:8081/portal",
     "familyPortalMath": "http://100.75.214.95:8081/portal/world/math",
     "parentPortal": "http://100.75.214.95:8081/portal/parent"

@@ -3,401 +3,59 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>EDUNI Portal</title>
+  <meta http-equiv="refresh" content="1; url=http://100.75.214.95:8081/portal">
+  <title>EDUNI Portal로 이동</title>
   <style>
-    :root {
-      color-scheme: light;
-      --ink: #111827;
-      --muted: #667085;
-      --paper: #ffffff;
-      --line: #d9e2ec;
-      --dark: #101827;
-      --teal: #0f766e;
-      --blue: #2563eb;
-      --violet: #7c3aed;
-      --green: #65a30d;
-      --rose: #e11d48;
-      --shadow: 0 18px 48px rgba(16, 24, 39, .12);
-    }
-
-    * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
-      background:
-        linear-gradient(135deg, rgba(20, 184, 166, .12), transparent 32%),
-        linear-gradient(225deg, rgba(37, 99, 235, .12), transparent 34%),
-        #f6f8fb;
-      color: var(--ink);
+      display: grid;
+      place-items: center;
+      background: #f6f8fb;
+      color: #111827;
       font-family: "Segoe UI", "Malgun Gothic", system-ui, sans-serif;
     }
-    a { color: inherit; text-decoration: none; }
-    .page {
-      width: min(1120px, calc(100% - 28px));
-      margin: 0 auto;
-      padding: 28px 0 32px;
-      display: grid;
-      gap: 18px;
-    }
-    .hero, .card {
+    main {
+      width: min(520px, calc(100% - 32px));
+      padding: 24px;
       border: 1px solid rgba(16, 24, 39, .08);
       border-radius: 8px;
-      background: rgba(255, 255, 255, .94);
-      box-shadow: var(--shadow);
-    }
-    .hero {
-      min-height: 250px;
-      padding: 28px;
-      display: grid;
-      grid-template-columns: 1.2fr .8fr;
-      align-items: center;
-      gap: 22px;
-    }
-    .eyebrow {
-      margin: 0 0 8px;
-      color: var(--teal);
-      font-size: 15px;
-      font-weight: 900;
+      background: #fff;
+      box-shadow: 0 18px 48px rgba(16, 24, 39, .12);
     }
     h1 {
-      margin: 0;
-      max-width: 680px;
-      font-size: clamp(38px, 6vw, 62px);
-      line-height: 1.04;
+      margin: 0 0 10px;
+      font-size: 26px;
       letter-spacing: 0;
     }
-    .hero p {
-      margin: 12px 0 0;
-      max-width: 660px;
+    p {
+      margin: 0 0 18px;
       color: #475467;
-      font-size: 18px;
       font-weight: 800;
       line-height: 1.55;
     }
-    .actions, .link-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 18px;
-    }
-    .button-link {
+    a {
       min-height: 44px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       padding: 0 16px;
       border-radius: 8px;
-      border: 1px solid rgba(16, 24, 39, .12);
-      background: #fff;
-      color: #344054;
-      font-size: 14px;
+      background: #101827;
+      color: #fff;
       font-weight: 900;
-      box-shadow: 0 8px 18px rgba(16, 24, 39, .07);
-    }
-    .primary {
-      background: var(--dark);
-      color: #fff;
-    }
-    .console {
-      min-height: 178px;
-      padding: 18px;
-      display: grid;
-      align-content: center;
-      gap: 12px;
-      border-radius: 8px;
-      background: linear-gradient(145deg, rgba(16, 24, 39, .94), rgba(30, 41, 59, .88));
-      border: 1px solid rgba(255, 255, 255, .16);
-      color: #fff;
-    }
-    .tiles {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-    }
-    .tile {
-      min-height: 70px;
-      display: grid;
-      place-items: center;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, .94);
-      color: #101827;
-      font-size: 28px;
-      font-weight: 1000;
-    }
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
-    .stat {
-      min-height: 56px;
-      display: grid;
-      align-content: center;
-      text-align: center;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, .1);
-      border: 1px solid rgba(255, 255, 255, .18);
-    }
-    .stat b { font-size: 18px; }
-    .stat span {
-      color: rgba(255, 255, 255, .76);
-      font-size: 12px;
-      font-weight: 900;
-    }
-    .section-title {
-      margin: 8px 0 0;
-      display: flex;
-      align-items: end;
-      justify-content: space-between;
-      gap: 12px;
-    }
-    .section-title h2 {
-      margin: 0;
-      font-size: 24px;
-    }
-    .section-title p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 14px;
-      font-weight: 800;
-      text-align: right;
-    }
-    .quick {
-      display: grid;
-      grid-template-columns: 1.2fr repeat(3, minmax(0, .8fr));
-      gap: 12px;
-    }
-    .worlds {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-    }
-    .card {
-      min-height: 138px;
-      padding: 18px;
-    }
-    .action-card {
-      display: grid;
-      align-content: space-between;
-      gap: 18px;
-      transition: transform .14s ease, box-shadow .14s ease;
-    }
-    .action-card[href]:hover, .action-card[href]:focus-visible {
-      transform: translateY(-2px);
-      box-shadow: 0 16px 28px rgba(16, 24, 39, .14);
-      outline: none;
-    }
-    .start {
-      min-height: 174px;
-      color: #fff;
-      background: linear-gradient(135deg, #0f766e, #14b8a6);
-    }
-    .start small { color: rgba(255, 255, 255, .84); }
-    .game1 { background: linear-gradient(135deg, #e0f2fe, #fff); }
-    .game2 { background: linear-gradient(135deg, #fff7ed, #fff); }
-    .game3 { background: linear-gradient(135deg, #ecfdf5, #fff); }
-    strong {
-      display: block;
-      font-size: 24px;
-      letter-spacing: 0;
-    }
-    small {
-      display: block;
-      margin-top: 7px;
-      color: var(--muted);
-      font-size: 14px;
-      font-weight: 800;
-      line-height: 1.45;
-    }
-    .pill {
-      width: fit-content;
-      min-height: 34px;
-      display: inline-flex;
-      align-items: center;
-      padding: 0 12px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, .78);
-      border: 1px solid rgba(16, 24, 39, .1);
-      font-size: 13px;
-      font-weight: 1000;
-    }
-    .world {
-      min-height: 150px;
-      display: grid;
-      align-content: space-between;
-      gap: 14px;
-    }
-    .world-top {
-      display: flex;
-      align-items: start;
-      justify-content: space-between;
-      gap: 8px;
-    }
-    .icon {
-      width: 48px;
-      height: 48px;
-      display: grid;
-      place-items: center;
-      border-radius: 8px;
-      color: #fff;
-      font-size: 26px;
-      font-weight: 1000;
-    }
-    .hanja .icon { background: var(--rose); }
-    .math .icon { background: var(--violet); }
-    .english .icon { background: var(--blue); }
-    .science .icon { background: #14b8a6; }
-    .korean .icon { background: var(--green); }
-    .notice {
-      padding: 14px 16px;
-      border: 1px solid #bfdbfe;
-      border-radius: 8px;
-      background: #eff6ff;
-      color: #1e3a8a;
-      font-weight: 850;
-      line-height: 1.5;
-    }
-    .error {
-      display: none;
-      padding: 14px 16px;
-      border: 1px solid #fecaca;
-      border-radius: 8px;
-      background: #fff1f2;
-      color: #9f1239;
-      font-weight: 850;
-    }
-    footer {
-      color: #667085;
-      font-size: 13px;
-      font-weight: 800;
-      text-align: center;
-    }
-    @media (max-width: 880px) {
-      .hero { grid-template-columns: 1fr; }
-      .quick, .worlds { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .start { grid-column: 1 / -1; }
-    }
-    @media (max-width: 560px) {
-      .page { width: min(100% - 18px, 1120px); padding-top: 12px; }
-      .hero, .card { padding: 14px; }
-      .hero { min-height: auto; }
-      .hero p { font-size: 16px; }
-      .quick, .worlds { grid-template-columns: 1fr; }
-      .section-title { align-items: start; flex-direction: column; }
-      .section-title p { text-align: left; }
-      strong { font-size: 22px; }
+      text-decoration: none;
     }
   </style>
 </head>
 <body>
-  <main class="page">
-    <div id="link-error" class="error">링크 설정을 읽지 못했습니다. 기본 Tailscale 주소로 연결합니다.</div>
-
-    <section class="hero">
-      <div>
-        <p class="eyebrow">EDUNI PORTAL</p>
-        <h1>가족 학습 포털로 바로 들어가기</h1>
-        <p>GitHub Pages 화면은 공개 안내판이고, 실제 학습 포털은 가족 서버에서 실행됩니다. Tailscale이 켜진 모바일/태블릿/PC에서는 아래 버튼으로 같은 화면에 접속합니다.</p>
-        <div class="actions">
-          <a class="button-link primary" data-link-key="familyPortal" href="http://100.75.214.95:8081/portal">EDUNI 포털 열기</a>
-          <a class="button-link" data-link-key="familyPortalMath" href="http://100.75.214.95:8081/portal/world/math">수학 바로가기</a>
-          <a class="button-link" data-link-key="parentPortal" href="http://100.75.214.95:8081/portal/parent">부모 화면</a>
-        </div>
-      </div>
-      <div class="console">
-        <div class="tiles">
-          <div class="tile">漢</div>
-          <div class="tile">A</div>
-          <div class="tile">+</div>
-          <div class="tile">탐험</div>
-        </div>
-        <div class="stats">
-          <div class="stat"><b>8</b><span>학습 세계</span></div>
-          <div class="stat"><b>3</b><span>게임 링크</span></div>
-          <div class="stat"><b>1</b><span>서버 포털</span></div>
-        </div>
-      </div>
-    </section>
-
-    <div class="notice">외부에서 바로 접속하려면 해당 기기에 Tailscale이 연결되어 있어야 합니다. 같은 Wi-Fi 여부와는 별개로, Tailscale 가족망 안이면 `100.75.214.95:8081` 주소가 통합니다.</div>
-
-    <div class="section-title">
-      <h2>빠른 시작</h2>
-      <p>서버 포털과 같은 목적지로 연결됩니다.</p>
-    </div>
-    <section class="quick">
-      <a class="card action-card start" data-link-key="familyPortal" href="http://100.75.214.95:8081/portal">
-        <span><strong>EDUNI 학습 포털</strong><small>서버에서 실행되는 실제 포털 화면으로 이동합니다.</small></span>
-        <span class="pill">열기</span>
-      </a>
-      <a class="card action-card game1" data-link-key="bubbleShooter" href="http://100.75.214.95:8081/bubble-shooter">
-        <span><strong>한자 슈터</strong><small>목표 한자를 맞히는 버블 슈터 게임</small></span>
-        <span class="pill">게임</span>
-      </a>
-      <a class="card action-card game2" data-link-key="bubble" href="http://100.75.214.95:8081/bubble">
-        <span><strong>버블 게임</strong><small>짧게 집중해서 푸는 한자 게임</small></span>
-        <span class="pill">게임</span>
-      </a>
-      <a class="card action-card game3" data-link-key="tetris" href="http://100.75.214.95:8081/">
-        <span><strong>블록 퍼즐</strong><small>가볍게 머리를 깨우는 퍼즐</small></span>
-        <span class="pill">게임</span>
-      </a>
-    </section>
-
-    <div class="section-title">
-      <h2>학습 세계</h2>
-      <p>동적 포털의 `/portal/world/...` 경로와 맞췄습니다.</p>
-    </div>
-    <section class="worlds">
-      <a class="card action-card world hanja" data-link-key="hanja" href="http://100.75.214.95:8080/hanja">
-        <span class="world-top"><span class="icon">漢</span><span class="pill">운영 중</span></span>
-        <span><strong>한자마을</strong><small>한자 시험과 한자 게임으로 이동</small></span>
-      </a>
-      <a class="card action-card world math" data-link-key="familyPortalMath" href="http://100.75.214.95:8081/portal/world/math">
-        <span class="world-top"><span class="icon">+</span><span class="pill">포털</span></span>
-        <span><strong>수학탐험대</strong><small>패턴 기차와 정글 탐험 활동</small></span>
-      </a>
-      <a class="card action-card world english" data-link-key="familyPortal" href="http://100.75.214.95:8081/portal">
-        <span class="world-top"><span class="icon">A</span><span class="pill">준비 중</span></span>
-        <span><strong>영어</strong><small>다음 단계에서 확장 예정</small></span>
-      </a>
-      <a class="card action-card world science" data-link-key="familyPortal" href="http://100.75.214.95:8081/portal">
-        <span class="world-top"><span class="icon">S</span><span class="pill">준비 중</span></span>
-        <span><strong>과학</strong><small>다음 단계에서 확장 예정</small></span>
-      </a>
-    </section>
-
-    <footer>GitHub Pages는 공개 런처, `100.75.214.95:8081/portal`은 실제 EDUNI 서버 포털입니다.</footer>
+  <main>
+    <h1>EDUNI 서버 포털로 이동합니다</h1>
+    <p>앞으로는 GitHub Pages가 아니라 Tailscale이 연결된 기기에서 실제 서버 포털을 사용합니다.</p>
+    <a href="http://100.75.214.95:8081/portal">EDUNI 포털 열기</a>
   </main>
-
   <script>
-    const fallbackLinks = {
-      hanja: "http://100.75.214.95:8080/hanja",
-      tetris: "http://100.75.214.95:8081/",
-      bubble: "http://100.75.214.95:8081/bubble",
-      bubbleShooter: "http://100.75.214.95:8081/bubble-shooter",
-      familyPortal: "http://100.75.214.95:8081/portal",
-      familyPortalMath: "http://100.75.214.95:8081/portal/world/math",
-      parentPortal: "http://100.75.214.95:8081/portal/parent"
-    };
-
-    function applyLinks(links) {
-      document.querySelectorAll("[data-link-key]").forEach((node) => {
-        const key = node.getAttribute("data-link-key");
-        if (links[key]) node.setAttribute("href", links[key]);
-      });
-    }
-
-    fetch("./config/links.json", { cache: "no-store" })
-      .then((response) => {
-        if (!response.ok) throw new Error("missing links config");
-        return response.json();
-      })
-      .then((config) => applyLinks({ ...fallbackLinks, ...(config.links || {}) }))
-      .catch(() => {
-        document.getElementById("link-error").style.display = "block";
-        applyLinks(fallbackLinks);
-      });
+    window.location.replace("http://100.75.214.95:8081/portal");
   </script>
 </body>
 </html>

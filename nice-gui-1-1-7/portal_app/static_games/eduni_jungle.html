@@ -1,0 +1,1304 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>EDUNI Jungle Adventure</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body {
+      color: #113047;
+      font-family: "Segoe UI", "Malgun Gothic", system-ui, sans-serif;
+      background: linear-gradient(135deg, #7dd3fc 0%, #baf7d0 72%, #86efac 100%);
+      touch-action: none;
+      user-select: none;
+    }
+    #root {
+      width: 100vw;
+      height: 100dvh;
+      padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+      display: grid;
+      place-items: center;
+    }
+    .shell {
+      width: min(1180px, 100%);
+      height: 100%;
+      max-height: 760px;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      gap: 8px;
+      min-height: 0;
+    }
+    .hud, .side, .stage, .bar, .quiz-card {
+      border: 4px solid #fff;
+      border-radius: 18px;
+      background: rgba(255,255,255,.92);
+      box-shadow: 0 10px 0 rgba(15,91,75,.10);
+    }
+    .hud {
+      min-height: 74px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 14px;
+    }
+    h1 { margin: 0; color: #155e75; font-size: clamp(25px, 3.4vw, 38px); line-height: 1; }
+    .story { margin-top: 6px; color: #31576a; font-size: clamp(12px, 1.7vw, 15px); font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stats { display: grid; grid-template-columns: repeat(2, auto); gap: 4px 14px; font-weight: 950; font-size: 14px; }
+    .stats strong { color: #0f766e; }
+    .layout { min-height: 0; display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 8px; }
+    .side {
+      min-height: 0;
+      padding: 12px;
+      display: grid;
+      grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+      gap: 9px;
+      overflow: auto;
+    }
+    .side h2 { margin: 0; color: #166534; font-size: 22px; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge { border: 2px solid #bae6fd; border-radius: 999px; background: #ecfeff; color: #155e75; padding: 4px 8px; font-size: 12px; font-weight: 950; }
+    .mission { padding: 8px 9px; border-radius: 13px; border: 2px solid #bbf7d0; background: #f0fdf4; color: #14532d; font-weight: 950; font-size: 13px; margin-bottom: 6px; }
+    .mission.done { border-color: #facc15; background: #fef9c3; color: #854d0e; }
+    .book-title { color: #155e75; font-weight: 950; }
+    .book { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+    .stamp { min-height: 52px; display: grid; place-items: center; border: 2px dashed #bae6fd; border-radius: 13px; background: #f8fafc; color: #64748b; font-size: 11px; font-weight: 900; text-align: center; opacity: .68; }
+    .stamp.found { opacity: 1; border-style: solid; border-color: #fed7aa; background: #fff7ed; color: #0f172a; }
+    .stage { position: relative; min-height: 0; overflow: hidden; background: #183c2b; }
+    #game { width: 100%; height: 100%; display: block; touch-action: none; background: #183c2b; }
+    .map-label {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      z-index: 10;
+      border: 3px solid #fff;
+      border-radius: 999px;
+      background: rgba(255,255,255,.92);
+      color: #166534;
+      padding: 6px 11px;
+      font-size: 13px;
+      font-weight: 950;
+      pointer-events: none;
+    }
+    .joy {
+      position: absolute;
+      left: 14px;
+      bottom: 14px;
+      z-index: 20;
+      width: 106px;
+      height: 106px;
+      border: 5px solid rgba(255,255,255,.96);
+      border-radius: 50%;
+      background: rgba(255,255,255,.46);
+      box-shadow: 0 10px 24px rgba(15,91,75,.18);
+      touch-action: none;
+    }
+    .stick {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 50px;
+      height: 50px;
+      margin: -25px 0 0 -25px;
+      border: 4px solid #fff;
+      border-radius: 17px;
+      background: linear-gradient(135deg, #38bdf8, #22c55e);
+      box-shadow: inset -6px -8px 0 rgba(15,23,42,.14);
+    }
+    .actions {
+      position: absolute;
+      right: 14px;
+      bottom: 14px;
+      z-index: 20;
+      display: grid;
+      gap: 8px;
+      width: 124px;
+    }
+    button { border: 0; cursor: pointer; font: inherit; }
+    .btn {
+      min-height: 46px;
+      border-radius: 14px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 950;
+      box-shadow: inset 0 -7px 0 rgba(15,23,42,.14), 0 7px 0 rgba(15,91,75,.16);
+    }
+    .blue { background: #38bdf8; }
+    .orange { background: #fb923c; }
+    .green { background: #10b981; }
+    .bar {
+      min-height: 58px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto auto;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 12px;
+      font-weight: 900;
+    }
+    .bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .small { min-width: 74px; }
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      place-items: center;
+      padding: 18px;
+      background: rgba(15,23,42,.45);
+    }
+    .modal.show { display: grid; }
+    .quiz-card { width: min(520px, 96vw); padding: 18px; }
+    .quiz-card h2 { margin: 0 0 10px; color: #155e75; font-size: 24px; }
+    .quiz-q { margin: 10px 0 14px; color: #0f172a; font-size: 28px; font-weight: 950; }
+    .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .options button { min-height: 54px; border-radius: 14px; background: #38bdf8; color: #fff; font-size: 22px; font-weight: 950; box-shadow: inset 0 -7px 0 rgba(15,23,42,.14); }
+    .feedback { min-height: 24px; margin-top: 12px; color: #c2410c; font-weight: 950; }
+    .reward-hud {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      z-index: 11;
+      width: min(188px, 42vw);
+      border: 3px solid rgba(255,255,255,.96);
+      border-radius: 16px;
+      background: rgba(255,255,255,.92);
+      padding: 7px 9px;
+      color: #155e75;
+      font-size: 12px;
+      font-weight: 950;
+      box-shadow: 0 8px 18px rgba(15,91,75,.14);
+      pointer-events: none;
+    }
+    .reward-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .xp-track {
+      height: 8px;
+      margin: 5px 0 4px;
+      border-radius: 999px;
+      background: #dbeafe;
+      overflow: hidden;
+    }
+    .xp-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #38bdf8, #22c55e, #facc15);
+      transition: width .25s ease;
+    }
+    .time-track {
+      height: 7px;
+      margin: 5px 0 4px;
+      border-radius: 999px;
+      background: #fee2e2;
+      overflow: hidden;
+    }
+    .time-fill {
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #ef4444, #f97316, #facc15);
+      transition: width .2s ease;
+    }
+    .combo { color: #ea580c; }
+    .sheet-card {
+      width: min(620px, 96vw);
+      max-height: min(740px, 92dvh);
+      overflow: auto;
+      padding: 16px;
+    }
+    .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .sheet-head h2 { margin: 0; color: #155e75; font-size: 24px; }
+    .close-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: #0f766e;
+      color: #fff;
+      font-size: 22px;
+      font-weight: 950;
+    }
+    .sheet-section { margin-top: 12px; }
+    .sheet-section h3 { margin: 0 0 8px; color: #166534; font-size: 17px; }
+    .reward-list { display: grid; gap: 6px; color: #14532d; font-weight: 900; }
+    .reward-pill { border: 2px solid #bbf7d0; border-radius: 999px; background: #f0fdf4; padding: 7px 10px; }
+
+    @media (orientation: landscape) and (max-height: 760px) {
+      #root {
+        padding: max(3px, env(safe-area-inset-top)) max(3px, env(safe-area-inset-right)) max(3px, env(safe-area-inset-bottom)) max(3px, env(safe-area-inset-left));
+        place-items: stretch;
+      }
+      .shell { width: 100%; height: 100%; max-height: none; gap: 4px; grid-template-rows: auto minmax(0, 1fr) auto; }
+      .hud { min-height: 42px; padding: 5px 8px; border-width: 3px; border-radius: 13px; }
+      h1 { font-size: clamp(18px, 2.4vw, 25px); }
+      .story { display: none; }
+      .stats { grid-template-columns: repeat(4, auto); font-size: 12px; gap: 2px 8px; }
+      .layout { grid-template-columns: 1fr; gap: 4px; }
+      .side { display: none; }
+      .stage { border-width: 3px; border-radius: 13px; }
+      .bar {
+        min-height: 38px;
+        padding: 4px 7px;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        font-size: 12px;
+        border-width: 3px;
+        border-radius: 13px;
+      }
+      .bar .green { display: none; }
+      .btn { min-height: 36px; font-size: 12px; border-radius: 11px; }
+      .actions { right: 8px; bottom: 8px; width: 100px; gap: 6px; }
+      .joy { left: 8px; bottom: 8px; width: 82px; height: 82px; border-width: 4px; }
+      .stick { width: 38px; height: 38px; margin: -19px 0 0 -19px; }
+      .map-label { left: 8px; top: 8px; padding: 4px 9px; font-size: 12px; border-width: 2px; }
+      .reward-hud { right: 8px; top: 8px; width: 150px; padding: 5px 7px; font-size: 11px; border-width: 2px; border-radius: 13px; }
+    }
+    @media (orientation: portrait) {
+      #root {
+        padding: max(3px, env(safe-area-inset-top)) max(3px, env(safe-area-inset-right)) max(3px, env(safe-area-inset-bottom)) max(3px, env(safe-area-inset-left));
+        place-items: stretch;
+      }
+      .shell { width: 100%; height: 100%; max-height: none; gap: 4px; grid-template-rows: auto minmax(0, 1fr) auto; }
+      .layout { grid-template-columns: 1fr; gap: 4px; }
+      .side { display: none; }
+      .hud { min-height: 50px; padding: 6px 8px; border-width: 3px; border-radius: 14px; }
+      h1 { font-size: clamp(20px, 5vw, 28px); }
+      .story { margin-top: 2px; font-size: 11px; }
+      .stats { grid-template-columns: repeat(4, auto); justify-content: start; font-size: 11px; gap: 2px 7px; }
+      .stage { border-width: 3px; border-radius: 14px; }
+      .bar { min-height: 42px; padding: 5px 7px; grid-template-columns: minmax(0, 1fr) auto; font-size: 12px; border-width: 3px; border-radius: 14px; }
+      .bar #settingsBtn, .bar .green { display: none; }
+      .btn { min-height: 40px; font-size: 13px; border-radius: 12px; }
+      .actions { right: 9px; bottom: 9px; width: 104px; gap: 6px; }
+      .joy { left: 9px; bottom: 9px; width: 88px; height: 88px; border-width: 4px; }
+      .stick { width: 40px; height: 40px; margin: -20px 0 0 -20px; }
+      .map-label { left: 8px; top: 8px; padding: 4px 8px; font-size: 12px; border-width: 2px; }
+      .reward-hud { right: 8px; top: 8px; width: 152px; padding: 5px 7px; font-size: 11px; border-width: 2px; border-radius: 13px; }
+    }
+    @media (max-width: 900px) {
+      #root {
+        padding: max(3px, env(safe-area-inset-top)) max(3px, env(safe-area-inset-right)) max(3px, env(safe-area-inset-bottom)) max(3px, env(safe-area-inset-left));
+        place-items: stretch;
+      }
+      .shell { width: 100%; height: 100%; max-height: none; gap: 4px; grid-template-rows: auto minmax(0, 1fr) auto; }
+      .layout { grid-template-columns: 1fr; gap: 4px; }
+      .side { display: none; }
+      .stage { border-width: 3px; border-radius: 14px; }
+    }
+    @media (orientation: landscape) and (min-width: 1000px) and (min-height: 700px) {
+      .layout { grid-template-columns: minmax(180px, 18vw) minmax(0, 1fr); }
+      .side { display: grid; padding: 9px; gap: 7px; border-width: 3px; border-radius: 14px; }
+      .side h2 { font-size: 18px; }
+      .mission { font-size: 12px; padding: 6px 7px; margin-bottom: 4px; }
+      .stamp { min-height: 40px; font-size: 10px; border-radius: 10px; }
+    }
+    @media (max-width: 560px) and (orientation: portrait) {
+      .hud { grid-template-columns: 1fr; align-content: center; gap: 2px; }
+      .story { display: none; }
+      .bar { min-height: 38px; }
+      .bar #missionBtn { min-width: 62px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <main class="shell">
+      <header class="hud">
+        <div>
+          <h1>&#51004;&#46272;&#45768; &#51221;&#44544; &#53456;&#54744;</h1>
+          <div class="story">&#51221;&#44544; &#44600;&#51012; &#46384;&#46972; &#49352;&#50752; &#48324;&#51012; &#47784;&#51004;&#51088;.</div>
+        </div>
+        <div class="stats">
+          <span>&#47605; <strong id="mapNo">1</strong></span>
+          <span>&#49352; <strong id="birdCount">0/5</strong></span>
+          <span>&#48324; <strong id="starCount">0/5</strong></span>
+          <span>&#52404;&#47141; <strong id="heartCount">3</strong></span>
+        </div>
+      </header>
+      <section class="layout">
+        <aside class="side">
+          <h2 id="mapTitle">&#47605; 1. &#48260;&#49455; &#49714; &#44288;&#47928;</h2>
+          <div class="badges"><span class="badge">&#52488;&#44553;</span><span class="badge">&#48120;&#49496; &#51652;&#54665;</span></div>
+          <div id="missions"></div>
+          <div>
+            <div class="book-title">&#49352; &#46020;&#44048;</div>
+            <div class="book" id="book"></div>
+          </div>
+          <button class="btn blue" id="resetBtn">&#52376;&#51020;&#48512;&#53552;</button>
+        </aside>
+        <section class="stage" id="stage">
+          <canvas id="game"></canvas>
+          <div class="map-label" id="mapLabel">&#48260;&#49455; &#49714; &#44288;&#47928;</div>
+          <div class="reward-hud" id="rewardHud">
+            <div class="reward-row"><span>Lv <strong id="trainerLevel">1</strong></span><span id="rankName">새싹 탐험가</span></div>
+            <div class="xp-track"><div class="xp-fill" id="xpFill"></div></div>
+            <div class="reward-row"><span>EXP <strong id="xpCount">0/80</strong></span><span class="combo" id="comboText">연속 0</span></div>
+            <div class="time-track"><div class="time-fill" id="timeFill"></div></div>
+            <div class="reward-row"><span>시간 <strong id="timeCount">1:40</strong></span><span id="cosmeticName">기본 복장</span></div>
+          </div>
+          <div class="joy" id="joy"><div class="stick" id="stick"></div></div>
+          <div class="actions">
+            <button class="btn orange" id="catchBtn">&#51105;&#44592;</button>
+            <button class="btn blue" id="moveBtn">&#51060;&#46041;</button>
+          </div>
+        </section>
+      </section>
+      <footer class="bar">
+        <span id="log">&#48260;&#49455; &#49714; &#44288;&#47928;&#50640; &#46020;&#52265;&#54664;&#50612;. &#49352;&#50752; &#48324;&#51012; &#47784;&#50500; &#48372;&#51088;!</span>
+        <button class="btn blue small" id="missionBtn">&#48120;&#49496;</button>
+        <button class="btn blue small" id="settingsBtn">&#48512;&#47784;&#49444;&#51221;</button>
+        <button class="btn green small" id="pauseBtn">&#51068;&#49884;&#51221;&#51648;</button>
+      </footer>
+    </main>
+  </div>
+  <div class="modal" id="quizModal">
+    <div class="quiz-card">
+      <h2 id="quizTitle">&#49352; &#51105;&#44592; &#48120;&#49496;</h2>
+      <div class="quiz-q" id="quizQuestion">1 + 1 = ?</div>
+      <div class="options" id="quizOptions"></div>
+      <div class="feedback" id="quizFeedback"></div>
+    </div>
+  </div>
+  <div class="modal" id="infoModal">
+    <div class="quiz-card sheet-card">
+      <div class="sheet-head">
+        <h2>탐험 기록</h2>
+        <button class="close-btn" id="closeInfoBtn" aria-label="닫기">×</button>
+      </div>
+      <div class="sheet-section">
+        <h3>미션 진행</h3>
+        <div id="sheetMissions"></div>
+      </div>
+      <div class="sheet-section">
+        <h3>새 도감</h3>
+        <div class="book" id="sheetBook"></div>
+      </div>
+      <div class="sheet-section">
+        <h3>보상</h3>
+        <div class="reward-list" id="sheetRewards"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const DEFAULT_MAP_W = 2048, DEFAULT_MAP_H = 1152;
+      const ASSET_VERSION = 'worlds-11';
+      let mapW = DEFAULT_MAP_W, mapH = DEFAULT_MAP_H;
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+      const stage = document.getElementById('stage');
+      const joy = document.getElementById('joy');
+      const stick = document.getElementById('stick');
+      const mapNo = document.getElementById('mapNo');
+      const mapTitle = document.getElementById('mapTitle');
+      const mapLabel = document.getElementById('mapLabel');
+      const birdCount = document.getElementById('birdCount');
+      const starCount = document.getElementById('starCount');
+      const heartCount = document.getElementById('heartCount');
+      const missions = document.getElementById('missions');
+      const book = document.getElementById('book');
+      const logEl = document.getElementById('log');
+      const catchBtn = document.getElementById('catchBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const pauseBtn = document.getElementById('pauseBtn');
+      const quizModal = document.getElementById('quizModal');
+      const quizTitle = document.getElementById('quizTitle');
+      const quizQuestion = document.getElementById('quizQuestion');
+      const quizOptions = document.getElementById('quizOptions');
+      const quizFeedback = document.getElementById('quizFeedback');
+      const infoModal = document.getElementById('infoModal');
+      const closeInfoBtn = document.getElementById('closeInfoBtn');
+      const missionBtn = document.getElementById('missionBtn');
+      const trainerLevel = document.getElementById('trainerLevel');
+      const rankName = document.getElementById('rankName');
+      const xpFill = document.getElementById('xpFill');
+      const xpCount = document.getElementById('xpCount');
+      const comboText = document.getElementById('comboText');
+      const timeFill = document.getElementById('timeFill');
+      const timeCount = document.getElementById('timeCount');
+      const cosmeticName = document.getElementById('cosmeticName');
+      const sheetMissions = document.getElementById('sheetMissions');
+      const sheetBook = document.getElementById('sheetBook');
+      const sheetRewards = document.getElementById('sheetRewards');
+      const keys = new Set();
+      const view = { w: 1, h: 1, dpr: 1, scale: 1, ox: 0, oy: 0 };
+      const mapImg = new Image();
+      const playerImg = new Image();
+      const maskImg = new Image();
+      const mask = { canvas: document.createElement('canvas'), ctx: null, ready: false };
+      playerImg.src = '/jungle-assets/sprites/explorer-child-sheet.png?v=desired-1';
+      mapImg.onload = () => {
+        mapW = mapImg.naturalWidth || mapImg.width || DEFAULT_MAP_W;
+        mapH = mapImg.naturalHeight || mapImg.height || DEFAULT_MAP_H;
+        resize();
+      };
+      maskImg.onload = () => {
+        mask.canvas.width = maskImg.naturalWidth || maskImg.width;
+        mask.canvas.height = maskImg.naturalHeight || maskImg.height;
+        mask.ctx = mask.canvas.getContext('2d', { willReadFrequently: true });
+        mask.ctx.drawImage(maskImg, 0, 0);
+        mask.ready = true;
+      };
+      function mapAsset(name) { return `/jungle-assets/maps/${name}?v=${ASSET_VERSION}`; }
+
+      const TXT = {
+        progress: '\uc9c4\ud589',
+        done: '\uc644\ub8cc',
+        missing: '\ubbf8\ubc1c\uacac',
+        missionBird: '\uc0c8 5\ub9c8\ub9ac \ub3c4\uac10 \ub4f1\ub85d',
+        missionStar: '\ubcc4 5\uac1c \uc218\uc9d1',
+        missionGate: '\uac8c\uc774\ud2b8 \uc5f4\uae30',
+        star: '\ubc18\uc9dd\uc774\ub294 \ubcc4\uc744 \ucc3e\uc558\uc5b4!',
+        near: '\uc0c8\uc5d0\uac8c \ub354 \uac00\uae4c\uc774 \uac00\uc11c \uc7a1\uae30\ub97c \ub20c\ub7ec\uc918.',
+        quiz: '\uc815\ub2f5\uc744 \uace0\ub974\uba74 \uc0c8\ub97c \ub3c4\uac10\uc5d0 \ub4f1\ub85d\ud574!',
+        wrong: '\uc544\uc26c\uc6cc. \ub2e4\uc2dc \uace0\ub974\uba74 \ub3fc.',
+        pause: '\uc7a0\uc2dc \uba48\uc84c\uc5b4.',
+        resume: '\ub2e4\uc2dc \ucd9c\ubc1c!',
+        pauseBtn: '\uc77c\uc2dc\uc815\uc9c0',
+        resumeBtn: '\uacc4\uc18d',
+        reset: '\ucc98\uc74c\ubd80\ud130 \ub2e4\uc2dc \uc2dc\uc791!',
+        caught: ' \ub3c4\uac10 \ub4f1\ub85d!',
+        gateOpen: '\uac8c\uc774\ud2b8\uac00 \uc5f4\ub838\uc5b4. \ubb38\uc73c\ub85c \uac00\uba74 \ub2e4\uc74c \ub9f5\uc73c\ub85c \uc774\ub3d9\ud574!',
+        nextMap: '\ub2e4\uc74c \ub9f5\uc73c\ub85c \uc774\ub3d9!',
+      };
+
+      const LEVELS = [
+        {
+          name: '\ubc84\uc12f \uc232 \uad00\ubb38',
+          map: mapAsset('map-world-mushroom-01.png'),
+          mask: mapAsset('path-mask-world-mushroom-01.png'),
+          start: { x:.450, y:.940 },
+          birds: [
+            { x:.350, y:.751, icon:'\ud83d\udc24', name:'\uc78e\uc0c8\uc090\uc57d' },
+            { x:.454, y:.566, icon:'\ud83e\udd9c', name:'\uba54\uc544\ub9ac\uc575' },
+            { x:.456, y:.420, icon:'\ud83e\udd89', name:'\ubc24\ub208\ubd80\uc5c9' },
+            { x:.609, y:.391, icon:'\ud83d\udc26', name:'\ubb3c\uae38\uc0c8' },
+            { x:.732, y:.221, icon:'\ud83e\udd9a', name:'\ubb34\uc9c0\uacf5\uc791' },
+          ],
+          stars: [{ x:.290, y:.788 }, { x:.456, y:.662 }, { x:.491, y:.490 }, { x:.548, y:.313 }, { x:.765, y:.203 }],
+          gate: { x:.500, y:.202 },
+        },
+        {
+          name: '\ud558\ub298 \uc815\uc6d0',
+          map: mapAsset('map-world-sky-garden-01.png'),
+          mask: mapAsset('path-mask-world-sky-garden-01.png'),
+          start: { x:.481, y:.962 },
+          birds: [
+            { x:.481, y:.781, icon:'\ud83d\udc26', name:'\ubb3c\uae38\uc0c8' },
+            { x:.431, y:.631, icon:'\ud83e\udd9c', name:'\uba54\uc544\ub9ac\uc575' },
+            { x:.636, y:.480, icon:'\ud83d\udc24', name:'\uc78e\uc0c8\uc090\uc57d' },
+            { x:.681, y:.380, icon:'\ud83e\udd89', name:'\ubc24\ub208\ubd80\uc5c9' },
+            { x:.597, y:.203, icon:'\ud83e\udd9a', name:'\ubb34\uc9c0\uacf5\uc791' },
+          ],
+          stars: [{ x:.466, y:.851 }, { x:.360, y:.600 }, { x:.370, y:.500 }, { x:.701, y:.500 }, { x:.571, y:.292 }],
+          gate: { x:.521, y:.185 },
+        },
+        {
+          name: '\ucd08\ub85d \uae38 \ud0d0\ud5d8',
+          map: mapAsset('map-world-straight-jungle-01.png'),
+          mask: mapAsset('path-mask-world-straight-jungle-01.png'),
+          start: { x:.194, y:.548 },
+          birds: [
+            { x:.260, y:.511, icon:'\ud83d\udc24', name:'\uc78e\uc0c8\uc090\uc57d' },
+            { x:.448, y:.359, icon:'\ud83e\udd9c', name:'\uba54\uc544\ub9ac\uc575' },
+            { x:.680, y:.359, icon:'\ud83e\udd89', name:'\ubc24\ub208\ubd80\uc5c9' },
+            { x:.307, y:.548, icon:'\ud83d\udc26', name:'\ubb3c\uae38\uc0c8' },
+            { x:.685, y:.350, icon:'\ud83e\udd9a', name:'\ubb34\uc9c0\uacf5\uc791' },
+          ],
+          stars: [{ x:.194, y:.548 }, { x:.448, y:.359 }, { x:.680, y:.210 }, { x:.577, y:.364 }, { x:.680, y:.359 }],
+          gate: { x:.680, y:.210 },
+        },
+        {
+          name: '\uc0ac\ub9c9 \uc624\uc544\uc2dc\uc2a4',
+          map: mapAsset('map-world-desert-route-01.png'),
+          mask: mapAsset('path-mask-world-desert-route-01.png'),
+          start: { x:.133, y:.876 },
+          birds: [
+            { x:.272, y:.627, icon:'\ud83d\udc24', name:'\uc78e\uc0c8\uc090\uc57d' },
+            { x:.360, y:.482, icon:'\ud83e\udd9c', name:'\uba54\uc544\ub9ac\uc575' },
+            { x:.499, y:.643, icon:'\ud83e\udd89', name:'\ubc24\ub208\ubd80\uc5c9' },
+            { x:.661, y:.380, icon:'\ud83d\udc26', name:'\ubb3c\uae38\uc0c8' },
+            { x:.796, y:.229, icon:'\ud83e\udd9a', name:'\ubb34\uc9c0\uacf5\uc791' },
+          ],
+          stars: [{ x:.227, y:.827 }, { x:.301, y:.560 }, { x:.481, y:.420 }, { x:.581, y:.448 }, { x:.757, y:.366 }],
+          gate: { x:.822, y:.200 },
+        },
+        {
+          name: '\ub208\ub9c8\uc744 \uae38',
+          map: mapAsset('map-world-snow-village-01.png'),
+          mask: mapAsset('path-mask-world-snow-village-01.png'),
+          start: { x:.141, y:.821 },
+          birds: [
+            { x:.282, y:.694, icon:'\ud83d\udc26', name:'\ubb3c\uae38\uc0c8' },
+            { x:.460, y:.499, icon:'\ud83e\udd9c', name:'\uba54\uc544\ub9ac\uc575' },
+            { x:.620, y:.520, icon:'\ud83d\udc24', name:'\uc78e\uc0c8\uc090\uc57d' },
+            { x:.742, y:.285, icon:'\ud83e\udd89', name:'\ubc24\ub208\ubd80\uc5c9' },
+            { x:.861, y:.240, icon:'\ud83e\udd9a', name:'\ubb34\uc9c0\uacf5\uc791' },
+          ],
+          stars: [{ x:.200, y:.722 }, { x:.382, y:.499 }, { x:.540, y:.420 }, { x:.630, y:.634 }, { x:.828, y:.285 }],
+          gate: { x:.857, y:.212 },
+        },
+        {
+          name: '\ubc84\uc12f \ubbf8\ub85c',
+          map: mapAsset('map-world-mushroom-maze-01.png'),
+          mask: mapAsset('path-mask-world-mushroom-maze-01.png'),
+          start: { x:.100, y:.502 },
+          birds: [
+            { x:.241, y:.502, icon:'\ud83d\udc24', name:'\uc78e\uc0c8\uc090\uc57d' },
+            { x:.382, y:.407, icon:'\ud83e\udd9c', name:'\uba54\uc544\ub9ac\uc575' },
+            { x:.521, y:.502, icon:'\ud83e\udd89', name:'\ubc24\ub208\ubd80\uc5c9' },
+            { x:.663, y:.404, icon:'\ud83d\udc26', name:'\ubb3c\uae38\uc0c8' },
+            { x:.822, y:.502, icon:'\ud83e\udd9a', name:'\ubb34\uc9c0\uacf5\uc791' },
+          ],
+          stars: [{ x:.200, y:.561 }, { x:.341, y:.442 }, { x:.501, y:.561 }, { x:.661, y:.442 }, { x:.802, y:.561 }],
+          gate: { x:.847, y:.502 },
+        },
+        {
+          name: '\uc232\uc18d \uc5f0\ubabb\uae38',
+          map: mapAsset('map-world-forest-pond-01.png'),
+          mask: mapAsset('path-mask-world-forest-pond-01.png'),
+          start: { x:.100, y:.683 },
+          birds: [
+            { x:.241, y:.647, icon:'\ud83d\udc26', name:'\ubb3c\uae38\uc0c8' },
+            { x:.382, y:.442, icon:'\ud83e\udd9c', name:'\uba54\uc544\ub9ac\uc575' },
+            { x:.538, y:.507, icon:'\ud83d\udc24', name:'\uc78e\uc0c8\uc090\uc57d' },
+            { x:.577, y:.442, icon:'\ud83e\udd89', name:'\ubc24\ub208\ubd80\uc5c9' },
+            { x:.857, y:.291, icon:'\ud83e\udd9a', name:'\ubb34\uc9c0\uacf5\uc791' },
+          ],
+          stars: [{ x:.200, y:.651 }, { x:.341, y:.500 }, { x:.481, y:.381 }, { x:.601, y:.536 }, { x:.808, y:.374 }],
+          gate: { x:.885, y:.259 },
+        },
+        {
+          name: '\ud574\ubcc0 \uc12c\uae38',
+          map: mapAsset('map-world-island-loop-01.png'),
+          mask: mapAsset('path-mask-world-island-loop-01.png'),
+          start: { x:.194, y:.523 },
+          birds: [
+            { x:.241, y:.502, icon:'\ud83d\udc24', name:'\uc78e\uc0c8\uc090\uc57d' },
+            { x:.382, y:.341, icon:'\ud83e\udd9c', name:'\uba54\uc544\ub9ac\uc575' },
+            { x:.530, y:.502, icon:'\ud83e\udd89', name:'\ubc24\ub208\ubd80\uc5c9' },
+            { x:.718, y:.645, icon:'\ud83d\udc26', name:'\ubb3c\uae38\uc0c8' },
+            { x:.841, y:.523, icon:'\ud83e\udd9a', name:'\ubb34\uc9c0\uacf5\uc791' },
+          ],
+          stars: [{ x:.207, y:.557 }, { x:.337, y:.434 }, { x:.503, y:.341 }, { x:.661, y:.502 }, { x:.793, y:.679 }],
+          gate: { x:.881, y:.515 },
+        },
+        {
+          name: '\ud558\ub298 \uc2e0\uc804',
+          map: mapAsset('map-world-sky-temple-01.png'),
+          mask: mapAsset('path-mask-world-sky-temple-01.png'),
+          start: { x:.501, y:.862 },
+          birds: [
+            { x:.501, y:.681, icon:'\ud83d\udc26', name:'\ubb3c\uae38\uc0c8' },
+            { x:.350, y:.520, icon:'\ud83e\udd9c', name:'\uba54\uc544\ub9ac\uc575' },
+            { x:.501, y:.450, icon:'\ud83d\udc24', name:'\uc78e\uc0c8\uc090\uc57d' },
+            { x:.652, y:.520, icon:'\ud83e\udd89', name:'\ubc24\ub208\ubd80\uc5c9' },
+            { x:.501, y:.280, icon:'\ud83e\udd9a', name:'\ubb34\uc9c0\uacf5\uc791' },
+          ],
+          stars: [{ x:.444, y:.722 }, { x:.301, y:.501 }, { x:.501, y:.560 }, { x:.701, y:.501 }, { x:.501, y:.361 }],
+          gate: { x:.521, y:.266 },
+        },
+      ];
+
+      const RARITY = {
+        common: { label:'일반', color:'#38bdf8', xp:1, glow:18 },
+        uncommon: { label:'고급', color:'#22c55e', xp:1.15, glow:21 },
+        rare: { label:'희귀', color:'#a855f7', xp:1.35, glow:24 },
+        epic: { label:'영웅', color:'#f97316', xp:1.65, glow:27 },
+        legendary: { label:'전설', color:'#facc15', xp:2, glow:31 },
+      };
+      const BIRD_VARIANTS = [
+        { icon:'🐤', name:'잎새삐약', rarity:'common' },
+        { icon:'🐦', name:'물길파랑새', rarity:'common' },
+        { icon:'🦜', name:'메아리앵', rarity:'uncommon' },
+        { icon:'🦉', name:'밤눈부엉', rarity:'uncommon' },
+        { icon:'🦢', name:'연못백조', rarity:'rare' },
+        { icon:'🦩', name:'분홍홍학', rarity:'rare' },
+        { icon:'🦚', name:'무지공작', rarity:'epic' },
+        { icon:'🦅', name:'바람독수리', rarity:'epic' },
+        { icon:'🐧', name:'눈꽃펭귄', rarity:'legendary' },
+      ];
+      const COSMETICS = [
+        { key:'cap', name:'탐험 모자' },
+        { key:'glasses', name:'반짝 안경' },
+        { key:'scarf', name:'빨간 스카프' },
+        { key:'cape', name:'별빛 망토' },
+      ];
+      function rarityInfo(b) { return RARITY[b.rarity] || RARITY.common; }
+      function birdKey(b) { return `${b.icon}|${b.name}`; }
+      function decorateBirds(birds, levelIndex) {
+        return birds.map((b, i) => {
+          const variant = BIRD_VARIANTS[(levelIndex * 3 + i) % BIRD_VARIANTS.length];
+          return { ...b, ...variant };
+        });
+      }
+      const BIRD_CATALOG = BIRD_VARIANTS.map(b => ({ ...b }));
+      function pick(values) { return values[Math.floor(Math.random() * values.length)]; }
+      function shuffle(values) { return [...values].sort(() => Math.random() - .5); }
+      function buildQuestion(category, text, answer, options) {
+        const answerText = String(answer);
+        const values = [answerText];
+        options.map(String).forEach(value => {
+          if (!values.includes(value)) values.push(value);
+        });
+        const numericAnswer = Number(answerText);
+        while (values.length < 4 && Number.isFinite(numericAnswer)) {
+          const next = String(Math.max(0, numericAnswer + Math.floor(Math.random() * 9) - 4));
+          if (!values.includes(next)) values.push(next);
+        }
+        return { text: `[${category}] ${text}`, answer: answerText, options: shuffle(values).slice(0, 4) };
+      }
+      const QUIZ_BANK = [
+        { category:'상식', text:'우리나라 국기의 이름은?', answer:'태극기', options:['성조기','일장기','오륜기'] },
+        { category:'상식', text:'신호등에서 길을 건너도 되는 색은?', answer:'초록색', options:['빨간색','노란색','검은색'] },
+        { category:'상식', text:'일주일은 며칠일까?', answer:'7일', options:['5일','6일','10일'] },
+        { category:'상식', text:'봄 다음에 오는 계절은?', answer:'여름', options:['겨울','가을','봄'] },
+        { category:'과학', text:'식물이 자라는 데 가장 필요한 빛은?', answer:'햇빛', options:['달빛','전등 스위치','그림자'] },
+        { category:'과학', text:'물은 몇 도에서 얼기 시작할까?', answer:'0도', options:['10도','50도','100도'] },
+        { category:'과학', text:'사람이 숨 쉴 때 필요한 기체는?', answer:'산소', options:['헬륨','수증기','먼지'] },
+        { category:'과학', text:'지구가 하루에 한 번 도는 움직임은?', answer:'자전', options:['공전','정지','점프'] },
+        { category:'국어', text:'반대말이 알맞은 것은? 크다 ↔ ?', answer:'작다', options:['길다','높다','많다'] },
+        { category:'국어', text:'받침이 있는 글자는?', answer:'길', options:['가','나','소'] },
+        { category:'국어', text:'문장을 끝낼 때 쓰는 표시는?', answer:'마침표', options:['쉼표','따옴표','물음표만'] },
+        { category:'국어', text:'소리를 흉내 낸 말은?', answer:'의성어', options:['의태어','동사','명사'] },
+        { category:'영어', text:'apple의 뜻은?', answer:'사과', options:['바나나','포도','수박'] },
+        { category:'영어', text:'blue는 어떤 색일까?', answer:'파란색', options:['빨간색','노란색','검은색'] },
+        { category:'영어', text:'cat은 어떤 동물일까?', answer:'고양이', options:['강아지','새','물고기'] },
+        { category:'영어', text:'thank you의 뜻은?', answer:'고마워', options:['안녕','미안해','잘 자'] },
+        {"category":"\ud55c\uc790 7\uae09","text":"\ud55c\uc790 '\u767b'\uc758 \ub73b\uacfc \uc74c\uc73c\ub85c \uc54c\ub9de\uc740 \uac83\uc740?","answer":"\uc624\ub97c \ub4f1","options":["\uac00\uc744 \ucd94","\uc5ec\uc12f \ub959","\ub109 \uc0ac"]},
+        {"category":"\ud55c\uc790 7\uae09","text":"\ub73b\uacfc \uc74c\uc774 '\uc218\ub808 \uac70'\uc778 \ud55c\uc790\ub294?","answer":"\u8eca","options":["\u4e94","\u8a18","\u4e09"]},
+        {"category":"\ud55c\uc790 7\uae09","text":"\ud55c\uc790 '\u5148'\uc758 \uc74c\uc73c\ub85c \uc54c\ub9de\uc740 \uac83\uc740?","answer":"\uc120","options":["\uc721","\ud3c9","\ud6a8"]},
+        {"category":"\ud55c\uc790 7\uae09","text":"\ud55c\uc790 '\u5bf8'\uc758 \ub73b\uacfc \uc74c\uc73c\ub85c \uc54c\ub9de\uc740 \uac83\uc740?","answer":"\ub9c8\ub514 \ucd0c","options":["\uc544\ub798 \ud558","\uc5b4\ubbf8 \ubaa8","\uc624\ub978 \uc6b0"]},
+        {"category":"\ud55c\uc790 7\uae09","text":"\ub73b\uacfc \uc74c\uc774 '\uc124 \ub9bd'\uc778 \ud55c\uc790\ub294?","answer":"\u7acb","options":["\u706b","\u590f","\u5915"]},
+        {"category":"\ud55c\uc790 7\uae09","text":"\ud55c\uc790 '\u80b2'\uc758 \uc74c\uc73c\ub85c \uc54c\ub9de\uc740 \uac83\uc740?","answer":"\uc721","options":["\uc871","\ub144","\uc88c"]},
+        {"category":"\ud55c\uc790 7\uae09","text":"\ud55c\uc790 '\u5165'\uc758 \ub73b\uacfc \uc74c\uc73c\ub85c \uc54c\ub9de\uc740 \uac83\uc740?","answer":"\ub4e4 \uc785","options":["\ud798 \ub825","\uac00\ub974\uce60 \uad50","\ud559\uad50 \uad50"]},
+        {"category":"\ud55c\uc790 7\uae09","text":"\ub73b\uacfc \uc74c\uc774 '\uc9d1 \uc2e4'\uc778 \ud55c\uc790\ub294?","answer":"\u5ba4","options":["\u6d77","\u6821","\u706b"]},
+        {"category":"\ud55c\uc790 7\uae09","text":"\ud55c\uc790 '\u547d'\uc758 \uc74c\uc73c\ub85c \uc54c\ub9de\uc740 \uac83\uc740?","answer":"\uba85","options":["\uc2e4","\uc721","\uba74"]},
+        {"category":"\ud55c\uc790 7\uae09","text":"\ud55c\uc790 '\u7a7a'\uc758 \ub73b\uacfc \uc74c\uc73c\ub85c \uc54c\ub9de\uc740 \uac83\uc740?","answer":"\ube4c \uacf5","options":["\ub0ae \uc624","\uc5b4\ubbf8 \ubaa8","\ud478\ub97c \uccad"]},
+        {"category":"\ud55c\uc790 7\uae09","text":"\ub73b\uacfc \uc74c\uc774 '\uc885\uc774 \uc9c0'\uc778 \ud55c\uc790\ub294?","answer":"\u7d19","options":["\u5b57","\u751f","\u59d3"]},
+        {"category":"\ud55c\uc790 7\uae09","text":"\ud55c\uc790 '\u7269'\uc758 \uc74c\uc73c\ub85c \uc54c\ub9de\uc740 \uac83\uc740?","answer":"\ubb3c","options":["\uae08","\uc9c0","\ub4f1"]},
+      ];
+      const QUIZ_CATEGORY_ORDER = ['수학', '상식', '과학', '국어', '영어', '\ud55c\uc790 7\uae09'];
+      let quizCategoryQueue = [];
+      function nextQuizCategory() {
+        if (!quizCategoryQueue.length) quizCategoryQueue = shuffle(QUIZ_CATEGORY_ORDER);
+        return quizCategoryQueue.shift();
+      }
+      function makeMathQuestion() {
+        const mode = Math.floor(Math.random() * 4);
+        if (mode === 0) {
+          const a = 2 + Math.floor(Math.random() * 18);
+          const b = 1 + Math.floor(Math.random() * 12);
+          const answer = a + b;
+          return buildQuestion('수학', `${a} + ${b} = ?`, answer, [answer + 1, answer - 1, answer + 3]);
+        }
+        if (mode === 1) {
+          const b = 1 + Math.floor(Math.random() * 9);
+          const answer = 2 + Math.floor(Math.random() * 12);
+          const a = answer + b;
+          return buildQuestion('수학', `${a} - ${b} = ?`, answer, [answer + 1, answer - 1, Math.max(0, answer - 3)]);
+        }
+        if (mode === 2) {
+          const a = 2 + Math.floor(Math.random() * 5);
+          const b = 2 + Math.floor(Math.random() * 5);
+          const answer = a * b;
+          return buildQuestion('수학', `${a} × ${b} = ?`, answer, [answer + a, answer - b, answer + 2]);
+        }
+        const a = 1 + Math.floor(Math.random() * 6);
+        const b = a * 2;
+        return buildQuestion('수학', `${b}는 ${a}의 몇 배일까?`, 2, [1, 3, 4]);
+      }
+      function makeBankQuestion(category) {
+        const pool = QUIZ_BANK.filter(q => q.category === category);
+        const q = pick(pool.length ? pool : QUIZ_BANK);
+        return buildQuestion(q.category, q.text, q.answer, q.options);
+      }
+      function mapTimeLimit(index) { return Math.max(75, 110 - index * 4); }
+      const state = {
+        mapIndex: 0,
+        paused: false,
+        hearts: 3,
+        level: 1,
+        xp: 0,
+        combo: 0,
+        badges: new Set(),
+        cosmetics: new Set(),
+        activeCosmetic: null,
+        timeLimit: mapTimeLimit(0),
+        timeLeft: mapTimeLimit(0),
+        dangerUntil: 0,
+        birdsGoal: LEVELS[0].birds.length,
+        starsGoal: LEVELS[0].stars.length,
+        caught: new Set(),
+        found: new Set(),
+        discoveredBirds: new Set(),
+        player: { x: LEVELS[0].start.x, y: LEVELS[0].start.y, dir: 'down', frame: 0 },
+        joy: { x: 0, y: 0 },
+        quiz: null,
+        gateOpen: false,
+        transitioning: false,
+        renderAt: 0,
+        last: performance.now(),
+        birds: decorateBirds(LEVELS[0].birds, 0),
+        stars: LEVELS[0].stars.map(s => ({ ...s })),
+        gate: { ...LEVELS[0].gate },
+      };
+
+      function log(msg) { logEl.textContent = msg; }
+      function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+      function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+      function screen(p) { return { x: view.ox + p.x * mapW * view.scale, y: view.oy + p.y * mapH * view.scale }; }
+      function xpTarget(level = state.level) { return 80 + (level - 1) * 25; }
+      function formatTime(seconds) {
+        const s = Math.max(0, Math.ceil(seconds));
+        return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+      }
+      function playerRank() {
+        const ranks = ['새싹 탐험가', '숲길 조련사', '별빛 수집가', '정글 레인저', '도감 마스터'];
+        return ranks[clamp(Math.floor((state.level - 1) / 2), 0, ranks.length - 1)];
+      }
+      function activeCosmeticName() {
+        const item = COSMETICS.find(c => c.key === state.activeCosmetic);
+        return item ? item.name : '기본 복장';
+      }
+      function unlockCosmetic() {
+        const item = COSMETICS.find(c => !state.cosmetics.has(c.key));
+        if (!item) return null;
+        state.cosmetics.add(item.key);
+        state.activeCosmetic = item.key;
+        updateRewards();
+        return item;
+      }
+      function applyTimePenalty(seconds) {
+        state.timeLeft = Math.max(0, state.timeLeft - seconds);
+        state.combo = 0;
+        state.dangerUntil = performance.now() + 950;
+        updateRewards();
+      }
+      function handleTimeout(skipHeartPenalty = false) {
+        if (state.transitioning) return;
+        if (!skipHeartPenalty) state.hearts = Math.max(1, state.hearts - 1);
+        state.combo = 0;
+        state.dangerUntil = performance.now() + 1400;
+        quizModal.classList.remove('show');
+        state.quiz = null;
+        startMap(state.mapIndex, '시간 초과! 체력 1을 잃고 이 맵을 다시 시작해.');
+      }
+      function awardXp(amount, message) {
+        state.xp += amount;
+        let leveled = false;
+        while (state.xp >= xpTarget()) {
+          state.xp -= xpTarget();
+          state.level += 1;
+          state.hearts = 3;
+          leveled = true;
+        }
+        if (leveled) log(`레벨 ${state.level}! 체력이 회복됐어.`);
+        else if (message) log(`${message} +${amount} EXP`);
+        updateRewards();
+      }
+      function missionRows() {
+        return [[TXT.missionBird, state.caught.size >= state.birdsGoal], [TXT.missionStar, state.found.size >= state.starsGoal], [TXT.missionGate, missionComplete()]];
+      }
+      function renderMissions(target) {
+        target.innerHTML = '';
+        missionRows().forEach(([txt, done]) => {
+          const el = document.createElement('div');
+          el.className = `mission ${done ? 'done' : ''}`;
+          el.textContent = `${done ? TXT.done : TXT.progress} - ${txt}`;
+          target.appendChild(el);
+        });
+      }
+      function renderBook(target) {
+        target.innerHTML = '';
+        for (let i = 0; i < BIRD_CATALOG.length; i++) {
+          const b = BIRD_CATALOG[i];
+          const found = b && state.discoveredBirds.has(birdKey(b));
+          const el = document.createElement('div');
+          el.className = `stamp ${found ? 'found' : ''}`;
+          el.innerHTML = found ? `<div style="font-size:23px">${b.icon}</div><div>${b.name}</div>` : `<div>?</div><div>${TXT.missing}</div>`;
+          target.appendChild(el);
+        }
+      }
+      function updateRewards() {
+        const target = xpTarget();
+        trainerLevel.textContent = String(state.level);
+        rankName.textContent = playerRank();
+        xpCount.textContent = `${state.xp}/${target}`;
+        xpFill.style.width = `${clamp(state.xp / target * 100, 0, 100)}%`;
+        comboText.textContent = `연속 ${state.combo}`;
+        timeCount.textContent = formatTime(state.timeLeft);
+        timeFill.style.width = `${clamp(state.timeLeft / state.timeLimit * 100, 0, 100)}%`;
+        timeFill.style.background = state.timeLeft <= 20 ? 'linear-gradient(90deg, #dc2626, #ef4444)' : 'linear-gradient(90deg, #ef4444, #f97316, #facc15)';
+        cosmeticName.textContent = activeCosmeticName();
+        sheetRewards.innerHTML = '';
+        [`등급: ${playerRank()}`, `남은 시간: ${formatTime(state.timeLeft)}`, `배지: ${state.badges.size}/${LEVELS.length}`, `발견한 새: ${state.discoveredBirds.size}/${BIRD_CATALOG.length}`, `착용: ${activeCosmeticName()}`].forEach(text => {
+          const el = document.createElement('div');
+          el.className = 'reward-pill';
+          el.textContent = text;
+          sheetRewards.appendChild(el);
+        });
+      }
+      function renderInfoSheet() {
+        renderMissions(sheetMissions);
+        renderBook(sheetBook);
+        updateRewards();
+      }
+      function loadMapAssets(level) {
+        mask.ready = false;
+        mask.ctx = null;
+        mapImg.src = level.map;
+        maskImg.src = level.mask;
+      }
+      loadMapAssets(LEVELS[0]);
+      function walkable(x, y) {
+        if (!mask.ready || !mask.ctx) return true;
+        const mx = clamp(Math.floor(x * mask.canvas.width), 0, mask.canvas.width - 1);
+        const my = clamp(Math.floor(y * mask.canvas.height), 0, mask.canvas.height - 1);
+        try { return mask.ctx.getImageData(mx, my, 1, 1).data[0] > 120; } catch { return true; }
+      }
+      function resize() {
+        const rect = stage.getBoundingClientRect();
+        view.w = Math.max(320, Math.floor(rect.width));
+        view.h = Math.max(260, Math.floor(rect.height));
+        view.dpr = Math.min(2, window.devicePixelRatio || 1);
+        canvas.width = Math.floor(view.w * view.dpr);
+        canvas.height = Math.floor(view.h * view.dpr);
+        canvas.style.width = `${view.w}px`;
+        canvas.style.height = `${view.h}px`;
+        ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+        updateCamera();
+      }
+      function updateCamera() {
+        view.scale = Math.max(view.w / mapW, view.h / mapH);
+        const drawW = mapW * view.scale;
+        const drawH = mapH * view.scale;
+        const targetX = view.w / 2 - state.player.x * drawW;
+        const targetY = view.h / 2 - state.player.y * drawH;
+        view.ox = drawW <= view.w ? (view.w - drawW) / 2 : clamp(targetX, view.w - drawW, 0);
+        view.oy = drawH <= view.h ? (view.h - drawH) / 2 : clamp(targetY, view.h - drawH, 0);
+      }
+      function keyVector() {
+        let x = 0, y = 0;
+        if (keys.has('arrowleft') || keys.has('a')) x -= 1;
+        if (keys.has('arrowright') || keys.has('d')) x += 1;
+        if (keys.has('arrowup') || keys.has('w')) y -= 1;
+        if (keys.has('arrowdown') || keys.has('s')) y += 1;
+        const len = Math.hypot(x, y);
+        return len ? { x:x/len, y:y/len } : { x:0, y:0 };
+      }
+      function moveVector() {
+        const k = keyVector();
+        let x = state.joy.x + k.x;
+        let y = state.joy.y + k.y;
+        const len = Math.hypot(x, y);
+        return len > 1 ? { x:x/len, y:y/len } : { x, y };
+      }
+      function playerFrame(moving) {
+        if (state.player.dir === 'down') return moving ? 1 + (Math.floor(performance.now() / 140) % 2) : 0;
+        if (state.player.dir === 'up') return moving ? 4 : 3;
+        return moving ? 5 + (Math.floor(performance.now() / 140) % 2) : 5;
+      }
+      function missionComplete() {
+        return state.caught.size >= state.birdsGoal && state.found.size >= state.starsGoal;
+      }
+      function syncGate() {
+        const open = missionComplete();
+        if (open && !state.gateOpen) log(TXT.gateOpen);
+        state.gateOpen = open;
+      }
+      function startMap(index, message) {
+        const nextIndex = ((index % LEVELS.length) + LEVELS.length) % LEVELS.length;
+        const level = LEVELS[nextIndex];
+        state.mapIndex = nextIndex;
+        state.birds = decorateBirds(level.birds, nextIndex);
+        state.stars = level.stars.map(s => ({ ...s }));
+        state.gate = { ...level.gate };
+        state.birdsGoal = state.birds.length;
+        state.starsGoal = state.stars.length;
+        state.timeLimit = mapTimeLimit(nextIndex);
+        state.timeLeft = state.timeLimit;
+        state.caught.clear();
+        state.found.clear();
+        state.gateOpen = false;
+        state.transitioning = false;
+        state.quiz = null;
+        state.player.x = level.start.x;
+        state.player.y = level.start.y;
+        state.player.dir = 'down';
+        loadMapAssets(level);
+        quizModal.classList.remove('show');
+        log(message || `${level.name} - ${TXT.nextMap}`);
+      }
+      function tryGateTransition() {
+        if (!state.gateOpen || state.transitioning) return;
+        if (dist(state.player, state.gate) > .055) return;
+        const cleared = LEVELS[state.mapIndex].name;
+        const firstClear = !state.badges.has(cleared);
+        state.badges.add(cleared);
+        awardXp(firstClear ? 36 : 14, `${cleared} 배지 획득!`);
+        state.transitioning = true;
+        state.joy.x = 0;
+        state.joy.y = 0;
+        stick.style.transform = 'translate(0, 0)';
+        log(`${cleared} 배지를 얻었어. ${TXT.nextMap}`);
+        window.setTimeout(() => startMap(state.mapIndex + 1), 250);
+      }
+      function drawStar(x, y, t) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(t / 700);
+        ctx.strokeStyle = '#f97316';
+        ctx.lineWidth = 4;
+        ctx.setLineDash([7, 6]);
+        ctx.beginPath();
+        ctx.arc(0, 0, 25, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.rotate(-t / 700);
+        ctx.fillStyle = '#facc15';
+        ctx.strokeStyle = '#92400e';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const a = -Math.PI / 2 + i * Math.PI / 5;
+          const r = i % 2 === 0 ? 18 : 8;
+          const px = Math.cos(a) * r;
+          const py = Math.sin(a) * r;
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
+      function drawBird(b, i, t) {
+        const p = screen(b);
+        const bob = Math.sin(t / 280 + i) * 4;
+        const rarity = rarityInfo(b);
+        const pulse = 1 + Math.sin(t / 230 + i) * .06;
+        ctx.save();
+        ctx.translate(p.x, p.y + bob);
+        ctx.fillStyle = 'rgba(15,23,42,.18)';
+        ctx.beginPath();
+        ctx.ellipse(4, 26, 22, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = .72;
+        ctx.strokeStyle = rarity.color;
+        ctx.lineWidth = b.rarity === 'legendary' ? 4 : 3;
+        ctx.beginPath();
+        ctx.arc(0, -2, rarity.glow * pulse, 0, Math.PI * 2);
+        ctx.stroke();
+        if (b.rarity === 'rare' || b.rarity === 'epic' || b.rarity === 'legendary') {
+          ctx.globalAlpha = .95;
+          ctx.fillStyle = rarity.color;
+          for (let s = 0; s < 3; s++) {
+            const a = t / 540 + s * Math.PI * 2 / 3;
+            ctx.beginPath();
+            ctx.arc(Math.cos(a) * 28, -2 + Math.sin(a) * 21, b.rarity === 'legendary' ? 3.6 : 2.8, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        ctx.globalAlpha = 1;
+        ctx.font = `${b.rarity === 'legendary' ? 38 : 34}px "Segoe UI Emoji", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(b.icon, 0, -1);
+        ctx.font = '900 10px "Segoe UI", sans-serif';
+        ctx.fillStyle = rarity.color;
+        ctx.fillText(rarity.label, 0, 31);
+        ctx.restore();
+      }
+      function drawPlayer(moving) {
+        const p = screen(state.player);
+        const frame = playerFrame(moving);
+        const sx = (frame % 4) * 96;
+        const sy = Math.floor(frame / 4) * 96;
+        const size = clamp(Math.min(window.innerWidth, window.innerHeight) * .095, 64, 76);
+        ctx.save();
+        if (state.player.dir === 'left') {
+          ctx.translate(p.x, p.y);
+          ctx.scale(-1, 1);
+          ctx.drawImage(playerImg, sx, sy, 96, 96, -size / 2, -size * .74, size, size);
+        } else {
+          ctx.drawImage(playerImg, sx, sy, 96, 96, p.x - size / 2, p.y - size * .74, size, size);
+        }
+        ctx.restore();
+        drawCosmetics(p, size);
+      }
+      function drawCosmetics(p, size) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        if (state.cosmetics.has('cape')) {
+          ctx.fillStyle = 'rgba(96,165,250,.80)';
+          ctx.beginPath();
+          ctx.moveTo(-size * .27, -size * .33);
+          ctx.lineTo(size * .28, -size * .33);
+          ctx.lineTo(size * .22, size * .03);
+          ctx.lineTo(-size * .22, size * .03);
+          ctx.closePath();
+          ctx.fill();
+        }
+        if (state.cosmetics.has('scarf')) {
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.moveTo(-size * .19, -size * .30);
+          ctx.lineTo(size * .20, -size * .30);
+          ctx.stroke();
+        }
+        if (state.cosmetics.has('glasses')) {
+          ctx.strokeStyle = '#111827';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(-size * .10, -size * .49, 5, 0, Math.PI * 2);
+          ctx.arc(size * .10, -size * .49, 5, 0, Math.PI * 2);
+          ctx.moveTo(-size * .04, -size * .49);
+          ctx.lineTo(size * .04, -size * .49);
+          ctx.stroke();
+        }
+        if (state.cosmetics.has('cap')) {
+          ctx.fillStyle = '#f59e0b';
+          ctx.beginPath();
+          ctx.ellipse(0, -size * .67, size * .20, size * .08, 0, Math.PI, 0);
+          ctx.fill();
+          ctx.fillStyle = '#92400e';
+          ctx.fillRect(-size * .12, -size * .67, size * .24, size * .08);
+        }
+        ctx.restore();
+      }
+      function drawGate(t) {
+        if (!state.gateOpen) return;
+        const p = screen(state.gate);
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.fillStyle = 'rgba(15,23,42,.22)';
+        ctx.beginPath();
+        ctx.ellipse(0, 30, 36, 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+        const glow = 1 + Math.sin(t / 180) * .08;
+        ctx.scale(glow, glow);
+        ctx.fillStyle = 'rgba(34,211,238,.32)';
+        ctx.beginPath();
+        ctx.arc(0, 0, 44, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.arc(0, 0, 32, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.font = '900 13px "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('OPEN', 0, 0);
+        ctx.restore();
+      }
+      function drawDanger(t) {
+        const hitFlash = state.dangerUntil > t;
+        const lowHeart = state.hearts <= 1;
+        if (!hitFlash && !lowHeart) return;
+        const alpha = hitFlash ? .24 : .10 + Math.sin(t / 180) * .04;
+        ctx.save();
+        ctx.strokeStyle = `rgba(244,63,94,${alpha})`;
+        ctx.lineWidth = hitFlash ? 18 : 12;
+        ctx.strokeRect(7, 7, view.w - 14, view.h - 14);
+        ctx.restore();
+      }
+      function renderSide() {
+        const level = LEVELS[state.mapIndex];
+        mapNo.textContent = String(state.mapIndex + 1);
+        mapTitle.textContent = `\ub9f5 ${state.mapIndex + 1}. ${level.name}`;
+        mapLabel.textContent = level.name;
+        birdCount.textContent = `${state.caught.size}/${state.birdsGoal}`;
+        starCount.textContent = `${state.found.size}/${state.starsGoal}`;
+        heartCount.textContent = String(state.hearts);
+        renderMissions(missions);
+        renderBook(book);
+        renderInfoSheet();
+      }
+      function draw() {
+        const t = performance.now();
+        const v = moveVector();
+        const moving = Math.abs(v.x) + Math.abs(v.y) > .02;
+        ctx.clearRect(0, 0, view.w, view.h);
+        ctx.fillStyle = '#183c2b';
+        ctx.fillRect(0, 0, view.w, view.h);
+        updateCamera();
+        if (mapImg.complete && mapImg.naturalWidth > 0) ctx.drawImage(mapImg, view.ox, view.oy, mapW * view.scale, mapH * view.scale);
+        drawGate(t);
+        state.stars.forEach((s, i) => { if (!state.found.has(i)) { const p = screen(s); drawStar(p.x, p.y, t + i * 100); } });
+        state.birds.forEach((b, i) => { if (!state.caught.has(i)) drawBird(b, i, t); });
+        drawPlayer(moving);
+        drawDanger(t);
+        requestAnimationFrame(draw);
+      }
+      function update(now) {
+        const dt = Math.min(40, now - state.last);
+        state.last = now;
+        const v = moveVector();
+        if (!state.paused && !state.quiz && !state.transitioning && !infoModal.classList.contains('show')) {
+          state.timeLeft = Math.max(0, state.timeLeft - dt / 1000);
+          if (state.timeLeft <= 0) {
+            handleTimeout();
+            requestAnimationFrame(update);
+            return;
+          }
+        }
+        if (!state.paused && Math.abs(v.x) + Math.abs(v.y) > .02) {
+          const screenSpeed = .18 * dt;
+          const dx = v.x * screenSpeed / Math.max(1, mapW * view.scale);
+          const dy = v.y * screenSpeed / Math.max(1, mapH * view.scale);
+          const nx = clamp(state.player.x + dx, .04, .96);
+          const ny = clamp(state.player.y + dy, .08, .92);
+          if (walkable(nx, ny)) { state.player.x = nx; state.player.y = ny; }
+          else if (walkable(nx, state.player.y)) state.player.x = nx;
+          else if (walkable(state.player.x, ny)) state.player.y = ny;
+          state.player.dir = Math.abs(v.x) > Math.abs(v.y) ? (v.x < 0 ? 'left' : 'right') : (v.y < 0 ? 'up' : 'down');
+          collectStars();
+        }
+        syncGate();
+        tryGateTransition();
+        if (now >= state.renderAt) {
+          renderSide();
+          state.renderAt = now + 120;
+        }
+        requestAnimationFrame(update);
+      }
+      function collectStars() {
+        state.stars.forEach((s, i) => {
+          if (!state.found.has(i) && dist(state.player, s) < .035) {
+            state.found.add(i);
+            awardXp(8, TXT.star);
+          }
+        });
+      }
+      function nearestBird() {
+        let best = null;
+        state.birds.forEach((b, i) => {
+          if (state.caught.has(i)) return;
+          const d = dist(state.player, b);
+          if (d < .05 && (!best || d < best.d)) best = { i, b, d };
+        });
+        return best;
+      }
+      function makeQuestion() {
+        const category = nextQuizCategory();
+        return category === '수학' ? makeMathQuestion() : makeBankQuestion(category);
+      }
+      function isSpecialBird(b) {
+        return b.rarity === 'rare' || b.rarity === 'epic' || b.rarity === 'legendary' || state.combo >= 3;
+      }
+      function openQuiz(target) {
+        const q = makeQuestion();
+        const special = isSpecialBird(target.b);
+        state.quiz = { birdIndex: target.i, bird: target.b, q, special };
+        quizTitle.textContent = special ? '스페셜 문제' : '새 잡기 미션';
+        quizQuestion.textContent = q.text;
+        quizFeedback.textContent = special ? '맞히면 코스튬 보상을 얻을 수 있어!' : TXT.quiz;
+        quizOptions.innerHTML = '';
+        q.options.forEach(value => {
+          const btn = document.createElement('button');
+          btn.textContent = String(value);
+          btn.addEventListener('click', () => answerQuiz(value));
+          quizOptions.appendChild(btn);
+        });
+        quizModal.classList.add('show');
+      }
+      function answerQuiz(value) {
+        if (!state.quiz) return;
+        const { birdIndex, bird, q } = state.quiz;
+        if (String(value) === q.answer) {
+          state.caught.add(birdIndex);
+          state.discoveredBirds.add(birdKey(bird));
+          state.combo += 1;
+          const bonus = Math.min(18, (state.combo - 1) * 3);
+          const rarityBonus = Math.round(24 * (rarityInfo(bird).xp - 1));
+          awardXp(24 + bonus + rarityBonus, `${bird.icon} ${bird.name}${TXT.caught} 연속 ${state.combo}`);
+          if (state.quiz.special) {
+            const item = unlockCosmetic();
+            if (item) log(`스페셜 보상! ${item.name}을 착용했어.`);
+            else awardXp(30, '스페셜 보상');
+          }
+          quizModal.classList.remove('show');
+          state.quiz = null;
+          return;
+        }
+        state.hearts = Math.max(1, state.hearts - 1);
+        applyTimePenalty(8);
+        updateRewards();
+        quizFeedback.textContent = `${TXT.wrong} 제한 시간 -8초`;
+        if (state.timeLeft <= 0) handleTimeout(true);
+      }
+      function catchBird() {
+        const near = nearestBird();
+        if (!near) { log(TXT.near); return; }
+        openQuiz(near);
+      }
+      function setStick(dx, dy) {
+        state.joy.x = dx;
+        state.joy.y = dy;
+        stick.style.transform = `translate(${dx * 27}px, ${dy * 27}px)`;
+      }
+      function setupJoystick() {
+        function point(e) {
+          const t = e.touches ? e.touches[0] : e;
+          const r = joy.getBoundingClientRect();
+          const x = t.clientX - r.left - r.width / 2;
+          const y = t.clientY - r.top - r.height / 2;
+          const len = Math.max(1, Math.hypot(x, y));
+          const m = Math.min(1, len / 40);
+          return { x: x / len * m, y: y / len * m };
+        }
+        function start(e) { e.preventDefault(); joy.setPointerCapture?.(e.pointerId); const p = point(e); setStick(p.x, p.y); }
+        function move(e) { if (e.buttons === 0 && !e.touches) return; e.preventDefault(); const p = point(e); setStick(p.x, p.y); }
+        function end() { setStick(0, 0); }
+        joy.addEventListener('pointerdown', start);
+        joy.addEventListener('pointermove', move);
+        joy.addEventListener('pointerup', end);
+        joy.addEventListener('pointercancel', end);
+        joy.addEventListener('touchstart', start, { passive:false });
+        joy.addEventListener('touchmove', move, { passive:false });
+        joy.addEventListener('touchend', end);
+      }
+      window.addEventListener('keydown', e => {
+        const k = e.key.toLowerCase();
+        if (['arrowleft','arrowright','arrowup','arrowdown','a','d','w','s',' ','enter'].includes(k)) e.preventDefault();
+        if (k === ' ' || k === 'enter') catchBird();
+        else keys.add(k);
+      }, { passive:false });
+      window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+      window.addEventListener('resize', () => { resize(); renderSide(); });
+      catchBtn.addEventListener('click', catchBird);
+      missionBtn.addEventListener('click', () => {
+        renderInfoSheet();
+        infoModal.classList.add('show');
+      });
+      closeInfoBtn.addEventListener('click', () => infoModal.classList.remove('show'));
+      infoModal.addEventListener('click', e => {
+        if (e.target === infoModal) infoModal.classList.remove('show');
+      });
+      pauseBtn.addEventListener('click', () => {
+        state.paused = !state.paused;
+        pauseBtn.textContent = state.paused ? TXT.resumeBtn : TXT.pauseBtn;
+        log(state.paused ? TXT.pause : TXT.resume);
+      });
+      resetBtn.addEventListener('click', () => {
+        state.hearts = 3;
+        state.level = 1;
+        state.xp = 0;
+        state.combo = 0;
+        state.badges.clear();
+        state.cosmetics.clear();
+        state.activeCosmetic = null;
+        state.discoveredBirds.clear();
+        infoModal.classList.remove('show');
+        startMap(0);
+        log(TXT.reset);
+      });
+      resize();
+      setupJoystick();
+      renderSide();
+      requestAnimationFrame(draw);
+      requestAnimationFrame(update);
+    })();
+  </script>
+</body>
+</html>

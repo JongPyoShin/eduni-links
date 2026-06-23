@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>EDUNI 정글 새탐험</title>
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <style>
+    :root { --safe-top: env(safe-area-inset-top); --safe-bottom: env(safe-area-inset-bottom); --safe-left: env(safe-area-inset-left); --safe-right: env(safe-area-inset-right); }
+    html, body { width:100%; height:100%; margin:0; overflow:hidden; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#74c7ec; touch-action:none; user-select:none; }
+    #renderCanvas { width:100%; height:100%; display:block; outline:none; touch-action:none; }
+    .hud { position:absolute; z-index:10; color:#fff; font-weight:900; text-shadow: 0 2px 4px rgba(0,0,0,.35); }
+    #topBar { top:calc(8px + var(--safe-top)); left:calc(8px + var(--safe-left)); right:calc(8px + var(--safe-right)); display:flex; align-items:center; justify-content:space-between; gap:8px; pointer-events:none; }
+    #playerCard { display:flex; align-items:center; gap:8px; padding:7px 11px 7px 7px; border-radius:999px; background:rgba(20,60,35,.72); border:2px solid rgba(255,255,255,.55); box-shadow:0 8px 18px rgba(0,0,0,.18); }
+    #avatar { width:46px; height:46px; border-radius:50%; border:3px solid #ffdd76; background:#fff8e8; object-fit:cover; }
+    #playerName { font-size:15px; line-height:1.1; }
+    #playerName small { display:block; opacity:.9; font-size:11px; }
+    #statPills { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+    .pill { background:rgba(20,60,35,.72); border:2px solid rgba(255,255,255,.45); border-radius:999px; padding:9px 11px; font-size:15px; box-shadow:0 6px 15px rgba(0,0,0,.17); white-space:nowrap; }
+    #zoneBanner { top:calc(74px + var(--safe-top)); left:50%; transform:translateX(-50%); max-width:min(92vw, 560px); padding:9px 15px; text-align:center; background:rgba(255,247,220,.94); color:#4b2e18; border:3px solid rgba(255,203,90,.92); border-radius:22px; font-size:16px; box-shadow:0 10px 25px rgba(0,0,0,.18); text-shadow:none; }
+    #questPanel { top:calc(128px + var(--safe-top)); right:calc(10px + var(--safe-right)); width:220px; max-width:40vw; padding:12px; background:rgba(255,248,232,.94); color:#4b2e18; border:3px solid rgba(255,203,90,.92); border-radius:22px; box-shadow:0 10px 25px rgba(0,0,0,.18); text-shadow:none; font-size:13px; }
+    #questPanel b { font-size:15px; }
+    #nearPrompt { left:50%; bottom:calc(172px + var(--safe-bottom)); transform:translateX(-50%); padding:10px 16px; background:rgba(230,255,225,.96); color:#1e6236; border:3px solid rgba(106,215,120,.86); border-radius:22px; font-size:16px; text-align:center; box-shadow:0 10px 24px rgba(0,0,0,.18); text-shadow:none; display:none; }
+    #toast { left:50%; top:46%; transform:translate(-50%,-50%); padding:17px 24px; background:rgba(19,38,25,.9); color:#fff; border-radius:24px; font-size:23px; box-shadow:0 14px 38px rgba(0,0,0,.35); text-align:center; display:none; z-index:50; }
+    #joystickZone { position:absolute; z-index:20; left:calc(0px + var(--safe-left)); bottom:calc(0px + var(--safe-bottom)); width:210px; height:210px; touch-action:none; }
+    #joystick { position:absolute; left:34px; bottom:34px; width:142px; height:142px; border-radius:50%; background:rgba(255,255,255,.30); border:5px solid rgba(255,255,255,.50); box-shadow:0 10px 28px rgba(0,0,0,.20); backdrop-filter:blur(5px); }
+    #stick { position:absolute; left:43px; top:43px; width:54px; height:54px; border-radius:50%; background:rgba(255,255,255,.94); border:3px solid rgba(32,96,48,.65); box-shadow:0 7px 14px rgba(0,0,0,.25); }
+    #actionButtons { right:calc(12px + var(--safe-right)); bottom:calc(12px + var(--safe-bottom)); display:flex; flex-direction:column; gap:9px; align-items:flex-end; pointer-events:auto; z-index:21; }
+    .actionButton { border:0; color:white; font-weight:1000; cursor:pointer; box-shadow:0 7px 0 rgba(0,0,0,.18),0 10px 22px rgba(0,0,0,.24); text-shadow:0 2px 4px rgba(0,0,0,.35); }
+    #catchButton { width:116px; height:116px; border-radius:50%; background:linear-gradient(180deg,#ffe067,#f59d22); border:5px solid rgba(255,255,255,.82); font-size:23px; }
+    .smallButton { border-radius:19px; padding:10px 14px; font-size:14px; background:rgba(21,72,39,.88); border:2px solid rgba(255,255,255,.56); min-width:82px; }
+    #mapButton { background:rgba(54,105,184,.9); }
+    #dexButton { background:rgba(116,76,190,.9); }
+    .panel { position:absolute; z-index:45; left:50%; transform:translateX(-50%); width:min(680px, calc(100vw - 22px)); background:rgba(255,248,232,.985); color:#51371e; border:4px solid rgba(255,203,90,.94); border-radius:28px; box-shadow:0 18px 42px rgba(0,0,0,.30); text-align:center; text-shadow:none; display:none; }
+    #quizBox { bottom:calc(14px + var(--safe-bottom)); padding:15px 16px 14px; }
+    #npcName { font-size:16px; color:#1e7c45; font-weight:1000; margin-bottom:4px; }
+    #questionText { font-size:28px; line-height:1.25; font-weight:1000; margin:4px 0 12px; }
+    #answerButtons { display:flex; justify-content:center; gap:8px; flex-wrap:wrap; }
+    #answerButtons button, .panelButton { cursor:pointer; font-weight:1000; border:0; border-radius:16px; padding:12px 18px; margin:4px; font-size:20px; box-shadow:0 6px 0 rgba(0,0,0,.16); }
+    #answerButtons button:nth-child(1) { background:#76cf5b; color:#fff; } #answerButtons button:nth-child(2) { background:#39a5f5; color:#fff; } #answerButtons button:nth-child(3) { background:#f5a13b; color:#fff; }
+    .panelButton.purple { background:#8b5cf6; color:white; } .panelButton.brown { background:#80624a; color:white; } .panelButton.green { background:#22a55a; color:white; } .panelButton.blue { background:#3b82f6; color:white; }
+    #resultText { margin-top:8px; min-height:26px; font-size:18px; font-weight:900; color:#1c6b3e; line-height:1.35; }
+    #dexPanel, #mapPanel { top:calc(12px + var(--safe-top)); bottom:calc(12px + var(--safe-bottom)); padding:16px; overflow:auto; }
+    #dexGrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(142px, 1fr)); gap:10px; margin-top:10px; }
+    .birdCard { border-radius:18px; padding:12px; background:rgba(255,255,255,.90); border:3px solid rgba(255,211,93,.86); text-align:left; box-shadow:0 6px 14px rgba(0,0,0,.12); min-height:145px; }
+    .birdIcon { font-size:34px; float:right; }
+    .birdName { font-weight:1000; font-size:15px; } .birdDesc { font-size:12px; margin-top:6px; color:#5d4730; line-height:1.35; }
+    .rarity { display:inline-block; margin-top:4px; border-radius:999px; padding:3px 7px; font-size:12px; color:#fff; font-weight:1000; }
+    .common{background:#60a65a}.uncommon{background:#2f91e8}.rare{background:#9357e8}.epic{background:#e2732f}.legendary{background:#e4335e}.locked{filter:grayscale(.9);opacity:.55}
+    #mapGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin-top:12px; }
+    .zoneCard { border-radius:20px; padding:13px; background:rgba(255,255,255,.9); border:3px solid rgba(119,188,104,.75); text-align:left; }
+    .zoneTitle { font-size:18px; font-weight:1000; color:#285f2e; } .zoneMeta { font-size:12px; color:#5c4a35; line-height:1.4; min-height:50px; }
+    #landscapeTip { position:absolute; z-index:80; inset:0; display:none; align-items:center; justify-content:center; padding:24px; background:rgba(8,23,14,.92); color:#fff; text-align:center; font-size:24px; font-weight:900; line-height:1.5; }
+    @media (orientation: portrait) and (max-width:900px) { #landscapeTip { display:flex; } }
+    @media (max-width:760px) {
+      #avatar{width:40px;height:40px} #playerName{font-size:13px} #playerName small{font-size:10px}.pill{font-size:12px;padding:7px 8px} #statPills .hideSmall{display:none}
+      #zoneBanner{top:calc(64px + var(--safe-top));font-size:13px;padding:8px 10px} #questPanel{display:none} #nearPrompt{bottom:calc(154px + var(--safe-bottom));font-size:13px}
+      #joystickZone{width:180px;height:180px} #joystick{width:124px;height:124px;left:28px;bottom:28px} #stick{width:48px;height:48px;left:36px;top:36px}
+      #catchButton{width:96px;height:96px;font-size:19px}.smallButton{font-size:12px;padding:8px 10px;min-width:74px}.actionButtons{gap:6px}
+      #questionText{font-size:22px} #answerButtons button,.panelButton{font-size:17px;padding:10px 13px} #dexGrid{grid-template-columns:repeat(auto-fill,minmax(126px,1fr))}
+    }
+  </style>
+</head>
+<body>
+<canvas id="renderCanvas"></canvas>
+
+<div id="topBar" class="hud">
+  <div id="playerCard">
+    <img id="avatar" src="/jungle-static/assets/player/uijun_avatar.png" alt="의준 탐험가" />
+    <div id="playerName">의준 탐험가<small>등 뒤 시점 · 자연 탐험</small></div>
+  </div>
+  <div id="statPills">
+    <div class="pill">⭐ <span id="score">0</span></div>
+    <div class="pill">🦜 <span id="birdCount">0</span>/12</div>
+    <div class="pill hideSmall">📚 500문제</div>
+    <div class="pill hideSmall">🎮 부드러운 턴 v5.4</div>
+  </div>
+</div>
+<div id="zoneBanner" class="hud">시작 캠프: 등 뒤 시점으로 자연 풍경을 보며 새를 찾아요.</div>
+<div id="questPanel" class="hud"><b>오늘의 모험</b><br>① 새 12마리 찾기<br>② 5개 구역 둘러보기<br>③ 희귀 새 도감 채우기<br>④ 문제를 풀어 길 열기</div>
+<div id="nearPrompt" class="hud"></div>
+<div id="toast" class="hud"></div>
+<div id="joystickZone"><div id="joystick"><div id="stick"></div></div></div>
+<div id="actionButtons" class="hud">
+  <button id="catchButton" class="actionButton">🦜<br>잡기</button>
+  <button id="talkButton" class="actionButton smallButton">💬 대화</button>
+  <button id="mapButton" class="actionButton smallButton">🗺️ 지도</button>
+  <button id="viewButton" class="actionButton smallButton">👁️ 시점</button>
+  <button id="dexButton" class="actionButton smallButton">📖 도감</button>
+  <button id="soundButton" class="actionButton smallButton">🔊 음성</button>
+  <button id="parentButton" class="actionButton smallButton">📊 부모</button>
+</div>
+
+<div id="quizBox" class="panel">
+  <div id="npcName">동물 친구</div>
+  <div id="questionText">문제</div>
+  <div id="answerButtons"></div>
+  <button id="micButton" class="panelButton purple">🎤 말로 대답하기</button>
+  <button id="closeButton" class="panelButton brown">닫기</button>
+  <div id="resultText"></div>
+</div>
+
+<div id="dexPanel" class="panel">
+  <h2 style="margin:0 0 4px;">📖 정글 새 도감</h2>
+  <div style="font-weight:900;color:#6b4a25;">잡은 새는 선명하게, 아직 못 잡은 새는 흐리게 보여요.</div>
+  <div id="dexGrid"></div>
+  <button id="dexCloseButton" class="panelButton brown">닫기</button>
+</div>
+
+<div id="mapPanel" class="panel">
+  <h2 style="margin:0 0 4px;">🗺️ 정글 확장 지도</h2>
+  <div style="font-weight:900;color:#6b4a25;">아이 조작이 쉽도록 구역 이동 버튼을 넣었어요.</div>
+  <div id="mapGrid"></div>
+  <button id="mapCloseButton" class="panelButton brown">닫기</button>
+</div>
+
+<div id="landscapeTip">📱 모바일은 가로 화면이 좋아요.<br>휴대폰을 옆으로 돌리면 조작이 훨씬 쉬워요.</div>
+
+<script>
+let scene, camera, playerRoot, engine, nearestBird=null, nearestNpc=null;
+let ambientAnimals=[];
+let joyX=0, joyY=0, score=0, birdCount=0, soundOn=true, currentQuestionId='', currentZone='camp';
+let cameraMode='chase', lastMoveDir=new BABYLON.Vector3(0,0,1);
+let cameraYaw=Math.PI, cameraLookTargetSmooth=null;
+let birdCatalog={}, caughtSpecies={}, visitedZones={camp:true};
+const birds=[], npcList=[], keys={}, colliders=[];
+const PLAYER_RADIUS = 0.62; // v5.3: 작아진 의준 캐릭터 기준 충돌 반경
+const canvas=document.getElementById('renderCanvas');
+const ZONES={
+  camp:{name:'시작 캠프', icon:'🏕️', pos:{x:-34,z:-34}, color:'#8bcf7a', cats:['math','common'], desc:'조작 연습과 쉬운 새가 나오는 안전한 시작 지점'},
+  meadow:{name:'햇살 초원길', icon:'🌼', pos:{x:32,z:-34}, color:'#b6e26f', cats:['math','english'], desc:'느린 새와 숫자·영어 문제가 나오는 밝은 길'},
+  jungle:{name:'깊은 정글숲', icon:'🌿', pos:{x:-38,z:24}, color:'#3fa65a', cats:['korean','science'], desc:'나무가 많고 숨어 있는 새가 많은 지역'},
+  waterfall:{name:'폭포 계곡', icon:'💧', pos:{x:35,z:24}, color:'#4db3e6', cats:['science','society'], desc:'희귀한 파랑 새와 물 관련 과학 퀴즈가 나오는 곳'},
+  ruins:{name:'고대 유적지', icon:'🗿', pos:{x:0,z:58}, color:'#d0b07a', cats:['hanja','common'], desc:'한자 퍼즐과 전설 새가 등장하는 모험 구역'},
+  observatory:{name:'새 관찰소', icon:'🔭', pos:{x:0,z:-2}, color:'#e5a950', cats:['common','korean'], desc:'도감과 새 상식을 확인하는 중심 거점'}
+};
+const speciesByRarity={common:['green_parrot','red_macaw'],uncommon:['blue_kingfisher','yellow_canary'],rare:['purple_starling','emerald_toucan'],epic:['silver_owl'],legendary:['rainbow_phoenix']};
+const spawnPlan=[
+  ['camp','green_parrot'],['camp','red_macaw'],['meadow','yellow_canary'],['meadow','green_parrot'],['meadow','red_macaw'],
+  ['jungle','purple_starling'],['jungle','emerald_toucan'],['jungle','green_parrot'],['waterfall','blue_kingfisher'],['waterfall','silver_owl'],
+  ['ruins','rainbow_phoenix'],['ruins','silver_owl'],['observatory','blue_kingfisher'],['observatory','yellow_canary']
+];
+const npcDisplay={monkey:'원숭이 선생님',parrot:'앵무새 대장',tiger:'호랑이 박사',frog:'한자 개구리',owl:'도감 부엉이'};
+const npcCats={monkey:['math','common'],parrot:['korean','english'],tiger:['science','society'],frog:['hanja','common'],owl:['common','science']};
+
+function el(id){return document.getElementById(id)}
+function hexColor(hex){const n=parseInt(hex.replace('#',''),16);return new BABYLON.Color3(((n>>16)&255)/255,((n>>8)&255)/255,(n&255)/255)}
+function material(name,color,alpha=1,emissive=null){const m=new BABYLON.StandardMaterial(name,scene);m.diffuseColor=color;m.alpha=alpha;if(emissive)m.emissiveColor=emissive;return m}
+function showToast(msg,ms=1800){const t=el('toast');t.innerText=msg;t.style.display='block';clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>t.style.display='none',ms);speak(msg)}
+function speak(text){ if(!soundOn || !('speechSynthesis' in window)) return; window.speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(String(text).replace(/[⭐🦜📚🗺️🏕️🌼🌿💧🗿🔭]/g,'')); u.lang='ko-KR'; u.rate=0.95; window.speechSynthesis.speak(u); }
+function distXZ(a,b){const dx=a.x-b.x,dz=a.z-b.z;return Math.sqrt(dx*dx+dz*dz)}
+function angleDelta(target,current){return Math.atan2(Math.sin(target-current),Math.cos(target-current))}
+function smoothAngle(current,target,response,dt){return current + angleDelta(target,current)*(1-Math.exp(-response*dt))}
+function smoothValue(current,target,response,dt){return current + (target-current)*(1-Math.exp(-response*dt))}
+function forwardFromYaw(yaw){return new BABYLON.Vector3(-Math.sin(yaw),0,-Math.cos(yaw))}
+function rightFromYaw(yaw){const f=forwardFromYaw(yaw);return new BABYLON.Vector3(f.z,0,-f.x)}
+function yawFromDir(x,z){return Math.atan2(-x,-z)}
+function zoneByPosition(pos){let best='camp',bd=9999;Object.entries(ZONES).forEach(([id,z])=>{const d=distXZ(pos,z.pos);if(d<bd){bd=d;best=id}});return best}
+
+function addCircleCollider(id,x,z,r,type='solid'){
+  colliders.push({id,x,z,r,type});
+}
+function isBlockedAt(x,z){
+  // 맵 가장자리 밖으로 나가지 않게 막기
+  if(x < -58 || x > 58 || z < -58 || z > 70) return true;
+  for(const c of colliders){
+    const dx=x-c.x, dz=z-c.z;
+    if(Math.sqrt(dx*dx+dz*dz) < PLAYER_RADIUS + c.r) return true;
+  }
+  return false;
+}
+function moveWithCollision(dx,dz){
+  const cur=playerRoot.position;
+  const nx=cur.x+dx, nz=cur.z+dz;
+  if(!isBlockedAt(nx,nz)){ cur.x=nx; cur.z=nz; return; }
+  // 벽이나 나무에 비스듬히 닿으면 완전히 멈추지 않고 미끄러지듯 이동
+  if(!isBlockedAt(nx,cur.z)) cur.x=nx;
+  if(!isBlockedAt(cur.x,nz)) cur.z=nz;
+}
+function randomOf(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function catForZone(){return randomOf(ZONES[currentZone]?.cats || ['math'])}
+
+async function loadCatalog(){
+  try{const r=await fetch('/jungle/api/birds/catalog');const j=await r.json();birdCatalog=j.species||{};}catch(e){birdCatalog={};}
+  if(!birdCatalog.green_parrot){birdCatalog={
+    green_parrot:{name:'초록 앵무',rarity:'common',rarity_ko:'일반',points:1,color:'#37c66a',emoji:'🦜',desc:'정글 입구에서 자주 만나는 밝은 새예요.'},red_macaw:{name:'빨강 금강앵무',rarity:'common',rarity_ko:'일반',points:1,color:'#ef4444',emoji:'🦜',desc:'날개를 크게 펄럭이며 길을 안내해요.'},blue_kingfisher:{name:'파랑 물총새',rarity:'uncommon',rarity_ko:'고급',points:2,color:'#38bdf8',emoji:'🐦',desc:'폭포 근처에서 반짝이는 파란 새예요.'},yellow_canary:{name:'노랑 카나리아',rarity:'uncommon',rarity_ko:'고급',points:2,color:'#facc15',emoji:'🐤',desc:'노래를 좋아해서 소리 힌트를 알려줘요.'},purple_starling:{name:'보라 찌르레기',rarity:'rare',rarity_ko:'희귀',points:4,color:'#a855f7',emoji:'🐦',desc:'보랏빛 꼬리를 가진 희귀한 새예요.'},emerald_toucan:{name:'에메랄드 큰부리새',rarity:'rare',rarity_ko:'희귀',points:4,color:'#10b981',emoji:'🦜',desc:'큰 부리로 보물 상자를 톡톡 두드려요.'},silver_owl:{name:'은빛 부엉이',rarity:'epic',rarity_ko:'영웅',points:7,color:'#cbd5e1',emoji:'🦉',desc:'조용히 나타나 어려운 문제 힌트를 줘요.'},rainbow_phoenix:{name:'무지개 불새',rarity:'legendary',rarity_ko:'전설',points:12,color:'#fb7185',emoji:'🔥',desc:'아주 가끔 나타나는 전설의 새예요.'}
+  };}
+}
+
+function addLabel(text,x,z,y=2.5,scale=1){
+  const tex=new BABYLON.DynamicTexture('label_'+text,{width:512,height:128},scene,true); const ctx=tex.getContext(); ctx.clearRect(0,0,512,128); ctx.fillStyle='rgba(255,248,226,.92)'; ctx.roundRect?.(8,18,496,92,22); if(ctx.roundRect)ctx.fill(); else ctx.fillRect(8,18,496,92); ctx.strokeStyle='rgba(95,65,28,.35)'; ctx.lineWidth=8; if(ctx.roundRect){ctx.roundRect(8,18,496,92,22);ctx.stroke()} ctx.fillStyle='#3b2a17'; ctx.font='bold 42px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(text,256,64); tex.update();
+  const plane=BABYLON.MeshBuilder.CreatePlane('labelPlane',{width:5.2*scale,height:1.3*scale},scene); plane.position=new BABYLON.Vector3(x,y,z); plane.billboardMode=BABYLON.Mesh.BILLBOARDMODE_ALL; const m=new BABYLON.StandardMaterial('labelMat',scene); m.diffuseTexture=tex; m.emissiveTexture=tex; m.opacityTexture=tex; m.backFaceCulling=false; plane.material=m; return plane;
+}
+
+function createScene(){
+  scene=new BABYLON.Scene(engine); scene.clearColor=new BABYLON.Color4(.54,.79,.96,1); scene.fogMode=BABYLON.Scene.FOGMODE_EXP2; scene.fogDensity=.0052; scene.fogColor=new BABYLON.Color3(.70,.86,.86);
+  camera=new BABYLON.FreeCamera('uijunSafariCamera',new BABYLON.Vector3(-34,2.8,-43),scene); camera.minZ=.08; camera.maxZ=520; camera.fov=1.05;
+  new BABYLON.HemisphericLight('skyLight',new BABYLON.Vector3(.2,1,.2),scene).intensity=.92; const sun=new BABYLON.DirectionalLight('sun',new BABYLON.Vector3(-.4,-1,.3),scene); sun.position=new BABYLON.Vector3(40,60,-20); sun.intensity=.55;
+  const shadowGen=new BABYLON.ShadowGenerator(1024,sun); shadowGen.useBlurExponentialShadowMap=true; shadowGen.blurKernel=24;
+  const groundMat=material('groundMat',new BABYLON.Color3(.33,.66,.35)); const ground=BABYLON.MeshBuilder.CreateGround('worldGround',{width:126,height:126,subdivisions:8},scene); ground.material=groundMat; ground.receiveShadows=true;
+  makeEnvironment(shadowGen); createPlayer(shadowGen); cameraYaw=playerRoot.rotation.y; cameraLookTargetSmooth=null; createNPCs(shadowGen); createBirds(shadowGen); createAmbientAnimals(shadowGen); renderCodex(); renderMap();
+  return scene;
+}
+
+
+function makeDistantScenery(){
+  // v5.3: 예시처럼 멀리 산/호수/숲이 보이는 원경 레이어. 실제 플레이 영역 밖에 배치해서 가볍게 공간감을 만듭니다.
+  const skyMat=material('softSkyMat',new BABYLON.Color3(.58,.80,.97),1,new BABYLON.Color3(.18,.32,.45));
+  skyMat.backFaceCulling=false;
+  const sky=BABYLON.MeshBuilder.CreateSphere('skyDome',{diameter:430,segments:20},scene);
+  sky.position.set(0,74,35); sky.scaling.y=.58; sky.material=skyMat; sky.isPickable=false;
+
+  const mountainMats=[material('farMountainA',new BABYLON.Color3(.32,.48,.43)),material('farMountainB',new BABYLON.Color3(.39,.55,.49)),material('farMountainC',new BABYLON.Color3(.45,.60,.54))];
+  const mountains=[[-70,112,48,55,1.45],[-35,132,66,72,1.65],[10,126,56,62,1.5],[52,116,46,54,1.35],[82,138,64,74,1.7]];
+  mountains.forEach((m,i)=>{const [x,z,w,h,sz]=m; const mt=BABYLON.MeshBuilder.CreateCylinder('farMountain'+i,{diameterTop:0,diameterBottom:w,height:h,tessellation:5},scene); mt.position.set(x,h/2-2,z); mt.scaling.z=sz; mt.rotation.y=(i%2)*.25; mt.material=mountainMats[i%mountainMats.length]; mt.isPickable=false;});
+
+  const waterMat=material('farLakeMat',new BABYLON.Color3(.25,.64,.86),.68,new BABYLON.Color3(.03,.18,.25));
+  const lake=BABYLON.MeshBuilder.CreateGround('farLake',{width:118,height:34,subdivisions:1},scene); lake.position.set(6,.075,88); lake.material=waterMat; lake.isPickable=false;
+  for(let i=0;i<9;i++){const wave=BABYLON.MeshBuilder.CreateBox('farWave'+i,{width:8+Math.random()*10,height:.035,depth:.08},scene); wave.position.set(-54+i*14,.11,82+Math.sin(i)*4); wave.material=material('waveMat'+i,new BABYLON.Color3(.72,.92,1),.55,new BABYLON.Color3(.08,.18,.2)); wave.isPickable=false;}
+
+  const forestMatA=material('farForestA',new BABYLON.Color3(.12,.36,.20));
+  const forestMatB=material('farForestB',new BABYLON.Color3(.17,.46,.24));
+  for(let i=0;i<90;i++){
+    const x=-86+i*2; const z=66+(i%8)*2.6; const h=4+(i%7)*.7;
+    const t=BABYLON.MeshBuilder.CreateCylinder('farPine'+i,{diameterTop:0,diameterBottom:2.8+(i%5)*.4,height:h,tessellation:5},scene);
+    t.position.set(x,h/2,z); t.material=(i%2?forestMatA:forestMatB); t.isPickable=false;
+  }
+}
+
+function makeEnvironment(shadowGen){
+  makeDistantScenery();
+  const pathMat=material('pathMat',new BABYLON.Color3(.63,.46,.25)); const stoneMat=material('stoneMat',new BABYLON.Color3(.55,.55,.50)); const waterMat=material('waterMat',new BABYLON.Color3(.22,.68,.95),.68,new BABYLON.Color3(.05,.25,.32));
+  function path(x,z,w,d,rot=0){const p=BABYLON.MeshBuilder.CreateBox('path',{width:w,height:.08,depth:d},scene);p.position.set(x,.03,z);p.rotation.y=rot;p.material=pathMat;p.receiveShadows=true;return p}
+  path(-16,-34,40,6,0); path(16,-34,40,6,0); path(-34,-6,6,58,0); path(34,-6,6,58,0); path(0,-16,7,42,Math.PI/2); path(0,28,70,6,0); path(0,44,7,34,0); path(-12,8,31,5,.75); path(14,8,31,5,-.75);
+  Object.entries(ZONES).forEach(([id,z])=>{ const disk=BABYLON.MeshBuilder.CreateCylinder('zone_'+id,{diameter:15,height:.1,tessellation:48},scene); disk.position.set(z.pos.x,.09,z.pos.z); disk.material=material('zoneMat_'+id,hexColor(z.color),.28,hexColor(z.color).scale(.12)); addLabel(z.icon+' '+z.name,z.pos.x,z.pos.z,4.2,.9); });
+  // 캠프 텐트
+  const tentMat=material('tentMat',new BABYLON.Color3(.95,.48,.18)); const tent=BABYLON.MeshBuilder.CreateCylinder('campTent',{diameterTop:0,diameterBottom:8,height:5,tessellation:4},scene); tent.position.set(-42,2.5,-42); tent.rotation.y=Math.PI/4; tent.scaling.z=.8; tent.material=tentMat; shadowGen.addShadowCaster(tent); addCircleCollider('campTent',-42,-42,4.4);
+  addLabel('튜토리얼 캠프',-43,-48,3.8,.7);
+  // 새 관찰소
+  const pole=BABYLON.MeshBuilder.CreateCylinder('observatoryPole',{diameter:.8,height:5},scene); pole.position.set(7,2.5,-2); pole.material=stoneMat; shadowGen.addShadowCaster(pole); addCircleCollider('observatoryPole',7,-2,1.1); const house=BABYLON.MeshBuilder.CreateBox('birdHouse',{width:5,height:4,depth:4},scene); house.position.set(7,6,-2); house.material=material('houseMat',new BABYLON.Color3(.74,.43,.20)); shadowGen.addShadowCaster(house); addCircleCollider('birdHouse',7,-2,3.0); const roof=BABYLON.MeshBuilder.CreateCylinder('roof',{diameterTop:0,diameterBottom:6,height:3,tessellation:4},scene); roof.position.set(7,9,-2); roof.rotation.y=Math.PI/4; roof.material=material('roofMat',new BABYLON.Color3(.85,.28,.20)); shadowGen.addShadowCaster(roof);
+  // 폭포
+  for(let i=0;i<3;i++){const r=BABYLON.MeshBuilder.CreateSphere('waterRock'+i,{diameter:5+2*i},scene);r.position.set(45+i*4,2,18+i*4);r.scaling.y=.45;r.material=stoneMat;shadowGen.addShadowCaster(r); addCircleCollider('waterRock'+i,45+i*4,18+i*4,2.2+i*.9)}
+  const fall=BABYLON.MeshBuilder.CreatePlane('waterfall',{width:12,height:18},scene); fall.position.set(50,10,35); fall.rotation.x=Math.PI/2; fall.material=waterMat; addLabel('물소리가 나는 폭포',48,43,6,.68);
+  // 유적
+  for(let i=0;i<6;i++){const p=BABYLON.MeshBuilder.CreateCylinder('pillar'+i,{diameter:1.5,height:8},scene); p.position.set(-8+i*3.2,4,66+(i%2)*5); p.material=stoneMat; shadowGen.addShadowCaster(p); addCircleCollider('pillar'+i,p.position.x,p.position.z,1.1); const cap=BABYLON.MeshBuilder.CreateBox('cap'+i,{width:2.4,height:.6,depth:2.4},scene); cap.position.set(p.position.x,8.3,p.position.z); cap.material=stoneMat; shadowGen.addShadowCaster(cap)}
+  const arch1=BABYLON.MeshBuilder.CreateBox('ruinsArch',{width:21,height:1.3,depth:2.5},scene); arch1.position.set(0,9.2,68); arch1.material=stoneMat; shadowGen.addShadowCaster(arch1); addLabel('고대 한자 유적',0,72,5,.72);
+  // 나무와 풀
+  const trunkMat=material('trunkMat',new BABYLON.Color3(.36,.20,.10)); const leafMats=[material('leafA',new BABYLON.Color3(.18,.55,.22)),material('leafB',new BABYLON.Color3(.12,.43,.20)),material('leafC',new BABYLON.Color3(.32,.70,.25))];
+  const treePoints=[];
+  for(let i=0;i<95;i++){
+    let x=0,z=0,tries=0;
+    do{
+      x=-60+Math.random()*120;
+      z=-60+Math.random()*120;
+      tries++;
+    }while(tries<45 && (
+      Object.values(ZONES).some(zone=>distXZ({x,z}, zone.pos)<11) ||
+      Math.abs(z+34)<7 || Math.abs(z-24)<7 || Math.abs(x)<6 ||
+      (z>45 && Math.abs(x)<12)
+    ));
+    treePoints.push([x,z]);
+  }
+  treePoints.forEach(([x,z],i)=>{const h=3+Math.random()*3; const tr=BABYLON.MeshBuilder.CreateCylinder('trunk'+i,{diameter:.55+Math.random()*.35,height:h},scene); tr.position.set(x,h/2,z); tr.material=trunkMat; const leaf=BABYLON.MeshBuilder.CreateSphere('leaf'+i,{diameter:4+Math.random()*2.2,segments:8},scene); leaf.position.set(x,h+1.5,z); leaf.scaling.y=.72; leaf.material=leafMats[i%leafMats.length]; shadowGen.addShadowCaster(tr); shadowGen.addShadowCaster(leaf); addCircleCollider('tree'+i,x,z,.82);});
+  // v5.3: 자연스러운 숲 느낌을 위해 주변부에 큰 나무와 겹잎을 추가 배치
+  for(let i=0;i<42;i++){
+    const edge=i%4; const x=edge===0?-61+Math.random()*8:edge===1?53+Math.random()*8:-58+Math.random()*116;
+    const z=edge===2?-61+Math.random()*10:edge===3?56+Math.random()*16:-58+Math.random()*126;
+    const h=5.2+Math.random()*4.6; const trunk=BABYLON.MeshBuilder.CreateCylinder('naturalTrunk'+i,{diameter:.8+Math.random()*.35,height:h,tessellation:8},scene); trunk.position.set(x,h/2,z); trunk.material=trunkMat; shadowGen.addShadowCaster(trunk);
+    for(let j=0;j<3;j++){const leaf=BABYLON.MeshBuilder.CreateSphere('naturalCrown'+i+'_'+j,{diameter:4.6+Math.random()*2.8,segments:10},scene); leaf.position.set(x+(j-1)*1.15,h+1.1+Math.random()*1.2,z+(Math.random()-.5)*1.3); leaf.scaling.y=.62+Math.random()*.18; leaf.material=leafMats[(i+j)%leafMats.length]; shadowGen.addShadowCaster(leaf);}
+    addCircleCollider('naturalTree'+i,x,z,1.05);
+  }
+  const grassMats=[material('grassBladeA',new BABYLON.Color3(.24,.64,.22)),material('grassBladeB',new BABYLON.Color3(.32,.72,.28)),material('grassBladeC',new BABYLON.Color3(.16,.48,.20))];
+  for(let i=0;i<180;i++){const g=BABYLON.MeshBuilder.CreatePlane('grassBlade'+i,{width:.18+Math.random()*.16,height:.9+Math.random()*.7},scene); g.position.set(-59+Math.random()*118,.45,-58+Math.random()*124); g.rotation.y=Math.random()*Math.PI; g.rotation.x=(Math.random()-.5)*.35; g.material=grassMats[i%grassMats.length]; g.billboardMode=0; g.isPickable=false;}
+
+  // 꽃/토큰
+  for(let i=0;i<40;i++){const fl=BABYLON.MeshBuilder.CreateSphere('flower'+i,{diameter:.55,segments:6},scene); fl.position.set(-58+Math.random()*116,.32,-58+Math.random()*116); fl.material=material('flowerMat'+i,hexColor(['#ff7aa5','#facc15','#a78bfa','#fb923c'][i%4]));}
+}
+
+function createPlayer(shadowGen){
+  playerRoot=new BABYLON.TransformNode('의준 탐험가',scene); playerRoot.position.set(-34,0,-34); playerRoot.rotation.y=Math.PI; playerRoot.scaling.set(.52,.52,.52);
+  const skin=material('skin',new BABYLON.Color3(1,.72,.55)); const hair=material('hair',new BABYLON.Color3(.07,.045,.025)); const blue=material('capBlue',new BABYLON.Color3(.05,.26,.78)); const white=material('shirtWhite',new BABYLON.Color3(.95,.90,.82)); const pants=material('pantsBlue',new BABYLON.Color3(.45,.68,.88)); const shoe=material('shoe',new BABYLON.Color3(.88,.80,.68)); const brown=material('bagBrown',new BABYLON.Color3(.50,.29,.13)); const tan=material('bagTan',new BABYLON.Color3(.72,.49,.25));
+  const body=BABYLON.MeshBuilder.CreateCylinder('body',{diameterTop:1.8,diameterBottom:2.1,height:2.8,tessellation:16},scene); body.position.y=2.6; body.material=white; body.parent=playerRoot; shadowGen.addShadowCaster(body);
+  const head=BABYLON.MeshBuilder.CreateSphere('roundFace',{diameter:2.25,segments:24},scene); head.position.y=4.55; head.scaling.x=1.05; head.scaling.y=.95; head.material=skin; head.parent=playerRoot; shadowGen.addShadowCaster(head);
+  const hairCap=BABYLON.MeshBuilder.CreateSphere('hairCap',{diameter:2.32,segments:16},scene); hairCap.position.set(0,4.92,-.08); hairCap.scaling.set(1.05,.42,1.02); hairCap.material=hair; hairCap.parent=playerRoot; shadowGen.addShadowCaster(hairCap);
+  const capTop=BABYLON.MeshBuilder.CreateSphere('blueCapTop',{diameter:2.45,segments:16},scene); capTop.position.set(0,5.25,-.05); capTop.scaling.set(1.03,.34,1.02); capTop.material=blue; capTop.parent=playerRoot; shadowGen.addShadowCaster(capTop);
+  const brim=BABYLON.MeshBuilder.CreateBox('capBrim',{width:1.8,height:.18,depth:1.05},scene); brim.position.set(0,5.18,-1.02); brim.rotation.x=.12; brim.material=blue; brim.parent=playerRoot; shadowGen.addShadowCaster(brim);
+  const eyeMat=material('eye',new BABYLON.Color3(.02,.018,.012)); [['L',-.43],['R',.43]].forEach(([n,x])=>{const e=BABYLON.MeshBuilder.CreateSphere('eye'+n,{diameter:.18,segments:12},scene); e.position.set(x,4.58,-1.08); e.material=eyeMat; e.parent=playerRoot;});
+  const cheekMat=material('cheek',new BABYLON.Color3(1,.45,.37),.45); [-.62,.62].forEach((x,i)=>{const c=BABYLON.MeshBuilder.CreateSphere('cheek'+i,{diameter:.30,segments:12},scene); c.position.set(x,4.38,-1.10); c.scaling.y=.45; c.material=cheekMat; c.parent=playerRoot;});
+  const smile=BABYLON.MeshBuilder.CreateTorus('smile',{diameter:.55,thickness:.035,tessellation:32},scene); smile.position.set(0,4.24,-1.13); smile.rotation.x=Math.PI/2; smile.scaling.y=.35; smile.material=material('smileMat',new BABYLON.Color3(.42,.10,.08)); smile.parent=playerRoot;
+  // 팔/다리/신발
+  [-1,1].forEach(side=>{const arm=BABYLON.MeshBuilder.CreateCylinder('arm'+side,{diameter:.42,height:2.2,tessellation:12},scene); arm.position.set(side*1.25,2.95,-.02); arm.rotation.z=side*.16; arm.material=skin; arm.parent=playerRoot; shadowGen.addShadowCaster(arm); const leg=BABYLON.MeshBuilder.CreateCylinder('leg'+side,{diameter:.62,height:1.9,tessellation:12},scene); leg.position.set(side*.52,1.0,0); leg.material=pants; leg.parent=playerRoot; shadowGen.addShadowCaster(leg); const foot=BABYLON.MeshBuilder.CreateBox('shoe'+side,{width:.75,height:.38,depth:1.02},scene); foot.position.set(side*.52,.2,-.25); foot.material=shoe; foot.parent=playerRoot; shadowGen.addShadowCaster(foot);});
+  const strap=BABYLON.MeshBuilder.CreateBox('strap',{width:.22,height:3.35,depth:.15},scene); strap.position.set(.2,3.0,-1.04); strap.rotation.z=-.45; strap.material=brown; strap.parent=playerRoot;
+  const bag=BABYLON.MeshBuilder.CreateBox('satchel',{width:1.25,height:1.0,depth:.45},scene); bag.position.set(.95,2.1,-.92); bag.rotation.z=.08; bag.material=tan; bag.parent=playerRoot; shadowGen.addShadowCaster(bag);
+  const compass=BABYLON.MeshBuilder.CreateTorus('compass',{diameter:.45,thickness:.055},scene); compass.position.set(-.15,2.68,-1.13); compass.material=material('compassGold',new BABYLON.Color3(.95,.70,.20),1,new BABYLON.Color3(.15,.08,.01)); compass.parent=playerRoot;
+  const cam=BABYLON.MeshBuilder.CreateBox('camera',{width:.65,height:.42,depth:.28},scene); cam.position.set(-1.45,3.25,-.72); cam.material=material('cameraMat',new BABYLON.Color3(.18,.18,.19)); cam.parent=playerRoot; const lens=BABYLON.MeshBuilder.CreateCylinder('lens',{diameter:.26,height:.18,tessellation:16},scene); lens.rotation.x=Math.PI/2; lens.position.set(-1.45,3.25,-.92); lens.material=material('lensMat',new BABYLON.Color3(.02,.03,.04)); lens.parent=playerRoot;
+}
+
+function createNPCs(shadowGen){
+  function npc(id,name,emoji,x,z,color){ const root=new BABYLON.TransformNode(id,scene); root.position.set(x,0,z); const m=material(id+'mat',hexColor(color)); const body=BABYLON.MeshBuilder.CreateSphere(id+'body',{diameter:2.4,segments:16},scene); body.position.y=1.45; body.scaling.y=.82; body.material=m; body.parent=root; const head=BABYLON.MeshBuilder.CreateSphere(id+'head',{diameter:1.7,segments:16},scene); head.position.set(0,2.8,-.25); head.material=m; head.parent=root; addLabel(emoji+' '+name,x,z-2.4,4.2,.62); shadowGen.addShadowCaster(body); shadowGen.addShadowCaster(head); addCircleCollider('npc_'+id,x,z,1.45); npcList.push({id,name,root}); }
+  npc('monkey','원숭이', '🐵', -24,-35,'#9a5a25'); npc('parrot','앵무새 대장','🦜',30,-22,'#e94f37'); npc('tiger','호랑이 박사','🐯',30,28,'#f59e0b'); npc('frog','한자 개구리','🐸',-34,28,'#49a66f'); npc('owl','도감 부엉이','🦉',6,4,'#9aa4b2');
+}
+
+
+function createAmbientAnimals(shadowGen){
+  // v5.3: 새만 있는 느낌을 줄이고, 멀리 보이는 사슴/토끼/다람쥐를 배치합니다. 잡는 대상이 아니라 자연 분위기용입니다.
+  function deer(id,x,z,scale=1){
+    const root=new BABYLON.TransformNode(id,scene); root.position.set(x,0,z); root.metadata={home:new BABYLON.Vector3(x,0,z),phase:Math.random()*6.28,range:2.5+Math.random()*2,speed:.22+Math.random()*.12,type:'deer'};
+    const mat=material(id+'deerMat',new BABYLON.Color3(.67,.38,.18)); const dark=material(id+'dark',new BABYLON.Color3(.30,.16,.08));
+    const body=BABYLON.MeshBuilder.CreateSphere(id+'body',{diameter:1.55*scale,segments:16},scene); body.scaling.set(1.8,.85,.65); body.position.y=1.2*scale; body.material=mat; body.parent=root;
+    const neck=BABYLON.MeshBuilder.CreateCylinder(id+'neck',{diameter:.42*scale,height:1.0*scale,tessellation:10},scene); neck.position.set(.95*scale,1.85*scale,0); neck.rotation.z=-.35; neck.material=mat; neck.parent=root;
+    const head=BABYLON.MeshBuilder.CreateSphere(id+'head',{diameter:.72*scale,segments:12},scene); head.position.set(1.38*scale,2.18*scale,0); head.scaling.set(1.25,.75,.72); head.material=mat; head.parent=root;
+    [-1,1].forEach(side=>{const ear=BABYLON.MeshBuilder.CreateCylinder(id+'ear'+side,{diameterTop:0,diameterBottom:.22*scale,height:.55*scale,tessellation:8},scene); ear.position.set(1.45*scale,2.68*scale,side*.22*scale); ear.rotation.z=-.25; ear.material=mat; ear.parent=root;});
+    [-.65,.65].forEach(px=>[-.38,.38].forEach(pz=>{const leg=BABYLON.MeshBuilder.CreateCylinder(id+'leg'+px+'_'+pz,{diameter:.16*scale,height:1.25*scale,tessellation:8},scene); leg.position.set(px*scale,.48*scale,pz*scale); leg.material=dark; leg.parent=root;}));
+    [-1,1].forEach(side=>{const ant=BABYLON.MeshBuilder.CreateCylinder(id+'antler'+side,{diameter:.045*scale,height:.85*scale,tessellation:6},scene); ant.position.set(1.55*scale,2.82*scale,side*.24*scale); ant.rotation.z=side*.35; ant.material=dark; ant.parent=root;});
+    [body,neck,head].forEach(m=>shadowGen.addShadowCaster(m)); ambientAnimals.push(root); return root;
+  }
+  function rabbit(id,x,z){
+    const root=new BABYLON.TransformNode(id,scene); root.position.set(x,0,z); root.metadata={home:new BABYLON.Vector3(x,0,z),phase:Math.random()*6.28,range:1.6,speed:.55,type:'rabbit'};
+    const mat=material(id+'rabbitMat',new BABYLON.Color3(.82,.76,.65));
+    const body=BABYLON.MeshBuilder.CreateSphere(id+'body',{diameter:1.0,segments:12},scene); body.scaling.set(1.25,.75,.65); body.position.y=.55; body.material=mat; body.parent=root;
+    const head=BABYLON.MeshBuilder.CreateSphere(id+'head',{diameter:.62,segments:12},scene); head.position.set(.68,.85,0); head.material=mat; head.parent=root;
+    [-1,1].forEach(side=>{const ear=BABYLON.MeshBuilder.CreateCylinder(id+'ear'+side,{diameterTop:.08,diameterBottom:.18,height:.78,tessellation:8},scene); ear.position.set(.75,1.35,side*.16); ear.rotation.z=-.1; ear.material=mat; ear.parent=root;});
+    shadowGen.addShadowCaster(body); shadowGen.addShadowCaster(head); ambientAnimals.push(root); return root;
+  }
+  function squirrel(id,x,z){
+    const root=new BABYLON.TransformNode(id,scene); root.position.set(x,0,z); root.metadata={home:new BABYLON.Vector3(x,0,z),phase:Math.random()*6.28,range:1.2,speed:.75,type:'squirrel'};
+    const mat=material(id+'sqMat',new BABYLON.Color3(.62,.32,.12));
+    const body=BABYLON.MeshBuilder.CreateSphere(id+'body',{diameter:.8,segments:12},scene); body.position.y=.65; body.scaling.set(.85,1.05,.65); body.material=mat; body.parent=root;
+    const head=BABYLON.MeshBuilder.CreateSphere(id+'head',{diameter:.46,segments:10},scene); head.position.set(.36,1.15,0); head.material=mat; head.parent=root;
+    const tail=BABYLON.MeshBuilder.CreateTorus(id+'tail',{diameter:.9,thickness:.16,tessellation:20},scene); tail.position.set(-.42,1.0,0); tail.rotation.z=Math.PI/2.6; tail.material=mat; tail.parent=root;
+    shadowGen.addShadowCaster(body); shadowGen.addShadowCaster(tail); ambientAnimals.push(root); return root;
+  }
+  deer('deer_meadow_1',-5,42,1.08); deer('deer_lake_far',22,54,.82); rabbit('rabbit_camp_1',-23,-26); rabbit('rabbit_meadow_2',16,35); squirrel('squirrel_jungle_1',-40,18); squirrel('squirrel_ruins_1',-7,52);
+}
+
+function updateAmbientAnimals(t){
+  ambientAnimals.forEach(a=>{const md=a.metadata; const h=md.home; const step=Math.sin(t*md.speed+md.phase)*md.range; a.position.x=h.x+step; a.position.z=h.z+Math.cos(t*md.speed*.7+md.phase)*md.range*.35; a.rotation.y=Math.atan2(Math.cos(t*md.speed+md.phase), .6); if(md.type==='rabbit'){a.position.y=Math.max(0, Math.sin(t*md.speed*4+md.phase))*0.16;} });
+}
+
+function createBirdMesh(id,speciesId,position,shadowGen){
+  const spec=birdCatalog[speciesId]; const root=new BABYLON.TransformNode(id,scene); root.position=new BABYLON.Vector3(position.x,position.y,position.z); root.metadata={id,speciesId,spec,caught:false,home:root.position.clone(),phase:Math.random()*6.28,speed:.55+Math.random()*.42,amp:2.8+Math.random()*2.0};
+  const c=hexColor(spec.color); const bodyMat=material(id+'bodyMat',c,1,c.scale(.12)); const wingMat=material(id+'wingMat',c.scale(.82)); const beakMat=material(id+'beakMat',new BABYLON.Color3(1,.67,.10),1,new BABYLON.Color3(.18,.08,0));
+  const body=BABYLON.MeshBuilder.CreateSphere(id+'body',{diameter:1.15,segments:16},scene); body.scaling.set(1.15,.85,.75); body.material=bodyMat; body.parent=root;
+  const head=BABYLON.MeshBuilder.CreateSphere(id+'head',{diameter:.72,segments:12},scene); head.position.set(.72,.28,-.04); head.material=bodyMat; head.parent=root;
+  const beak=BABYLON.MeshBuilder.CreateCylinder(id+'beak',{diameterTop:0,diameterBottom:.28,height:.55,tessellation:12},scene); beak.rotation.z=Math.PI/2; beak.position.set(1.22,.29,-.04); beak.material=beakMat; beak.parent=root;
+  [-1,1].forEach(side=>{const w=BABYLON.MeshBuilder.CreateBox(id+'wing'+side,{width:.18,height:.68,depth:1.25},scene); w.position.set(-.05,0,side*.72); w.rotation.x=side*.35; w.material=wingMat; w.parent=root; root.metadata['wing'+side]=w;});
+  const tail=BABYLON.MeshBuilder.CreateCylinder(id+'tail',{diameterTop:0,diameterBottom:.55,height:1.05,tessellation:3},scene); tail.rotation.z=-Math.PI/2; tail.position.set(-.82,-.05,0); tail.material=wingMat; tail.parent=root;
+  const ring=BABYLON.MeshBuilder.CreateTorus(id+'rarityRing',{diameter:2.0,thickness:.045},scene); ring.rotation.x=Math.PI/2; ring.position.y=-.9; ring.material=material(id+'ringMat',c,1,c.scale(.7)); ring.parent=root;
+  [body,head,beak,tail,ring].forEach(mesh=>shadowGen.addShadowCaster(mesh)); birds.push(root); return root;
+}
+
+function createBirds(shadowGen){
+  spawnPlan.forEach((it,i)=>{ const [zoneId,speciesId]=it; const zp=ZONES[zoneId].pos; const ang=(i*2.399)%6.28; const r=4+((i*5)%8); const pos={x:zp.x+Math.cos(ang)*r,y:2.4+(i%3)*.7,z:zp.z+Math.sin(ang)*r}; createBirdMesh('bird_'+i,speciesId,pos,shadowGen); });
+}
+
+function updateBirds(t){
+  birds.forEach(b=>{ if(b.metadata.caught)return; const md=b.metadata; b.position.x=md.home.x+Math.sin(t*md.speed+md.phase)*md.amp; b.position.z=md.home.z+Math.cos(t*md.speed+md.phase)*md.amp*.65; b.position.y=md.home.y+Math.sin(t*2.2+md.phase)*.35; b.rotation.y=Math.sin(t*md.speed+md.phase)*.5; if(md.wing1){md.wing1.rotation.y=Math.sin(t*9+md.phase)*.5; md['wing-1'].rotation.y=-Math.sin(t*9+md.phase)*.5;} });
+}
+
+function movePlayer(dt){
+  // v5.4: 조이스틱은 이제 월드 고정이 아니라 '현재 화면/카메라 기준'입니다.
+  // 위로 밀면 화면 안쪽으로 전진하고, 좌/우로 밀면 의준이가 자연스럽게 몸을 돌리며 이동합니다.
+  let inputX=joyX, inputY=joyY;
+  if(keys.ArrowLeft||keys.a)inputX-=1;
+  if(keys.ArrowRight||keys.d)inputX+=1;
+  if(keys.ArrowUp||keys.w)inputY+=1;
+  if(keys.ArrowDown||keys.s)inputY-=1;
+
+  const len=Math.hypot(inputX,inputY);
+  if(len>.05){
+    const mag=Math.min(1,len);
+    inputX/=len; inputY/=len;
+
+    const camForward=forwardFromYaw(cameraYaw);
+    const camRight=rightFromYaw(cameraYaw);
+    let desiredDir=camForward.scale(inputY).add(camRight.scale(inputX));
+    desiredDir.y=0;
+    const dlen=Math.hypot(desiredDir.x,desiredDir.z);
+    if(dlen>.001){desiredDir.x/=dlen; desiredDir.z/=dlen;}
+
+    const desiredYaw=yawFromDir(desiredDir.x,desiredDir.z);
+
+    // 턴 속도를 낮춰 급격한 화면 회전을 줄입니다.
+    // 근접 시점은 더 민감하므로 살짝 더 천천히 돌립니다.
+    const turnResponse=cameraMode==='shoulder'?3.2:3.8;
+    playerRoot.rotation.y=smoothAngle(playerRoot.rotation.y,desiredYaw,turnResponse,dt);
+
+    // 이동은 캐릭터가 실제로 바라보는 방향으로 하여 '미끄러지는 느낌'을 줄입니다.
+    const facing=forwardFromYaw(playerRoot.rotation.y);
+    const speed=8.0;
+    moveWithCollision(facing.x*speed*mag*dt, facing.z*speed*mag*dt);
+    lastMoveDir.set(facing.x,0,facing.z);
+  }
+  const newZone=zoneByPosition(playerRoot.position); if(newZone!==currentZone){currentZone=newZone; visitedZones[currentZone]=true; const zinfo=ZONES[currentZone]; el('zoneBanner').innerText=`${zinfo.icon} ${zinfo.name}: ${zinfo.desc}`; showToast(`${zinfo.name} 도착!`,1200);}
+  el('zoneBanner').innerText=`${ZONES[currentZone].icon} ${ZONES[currentZone].name}: ${ZONES[currentZone].desc}`;
+}
+
+function cameraBlockedAt(x,z){
+  if(x < -60 || x > 60 || z < -60 || z > 72) return false; // 원경을 보기 위해 바깥은 막지 않음
+  for(const c of colliders){ const dx=x-c.x, dz=z-c.z; if(Math.sqrt(dx*dx+dz*dz) < c.r + .55) return true; }
+  return false;
+}
+
+function resolveCameraPosition(desired, focus){
+  // 카메라가 나무/바위 안으로 들어가 화면이 가려지는 것을 줄입니다.
+  for(let t=1; t>=.30; t-=.07){
+    const p=BABYLON.Vector3.Lerp(focus, desired, t);
+    if(!cameraBlockedAt(p.x,p.z)) return p;
+  }
+  return focus.add(new BABYLON.Vector3(0,1.9,0));
+}
+
+function updateCamera(dt){
+  // v5.4: 카메라는 캐릭터 회전을 즉시 따라가지 않고 늦게 따라갑니다.
+  // 그래서 전진 후 좌회전/우회전할 때 화면이 휙 꺾이지 않고 자연스럽게 돌아갑니다.
+  const yawResponse=cameraMode==='shoulder'?2.2:1.7;
+  cameraYaw=smoothAngle(cameraYaw,playerRoot.rotation.y,yawResponse,dt);
+  const forward=forwardFromYaw(cameraYaw);
+
+  // chase: 먼 풍경이 잘 보이는 자연 탐험 시점 / shoulder: 더 가까운 1인칭 느낌.
+  const targetHeight=cameraMode==='shoulder'?1.48:1.30;
+  const backDistance=cameraMode==='shoulder'?3.9:8.8;
+  const cameraHeight=cameraMode==='shoulder'?2.18:3.10;
+  const lookAhead=cameraMode==='shoulder'?10.5:18.0;
+
+  const focus=playerRoot.position.add(new BABYLON.Vector3(0,targetHeight,0));
+  const target=focus.add(forward.scale(lookAhead));
+  const rawDesired=playerRoot.position.add(new BABYLON.Vector3(0,cameraHeight,0)).subtract(forward.scale(backDistance));
+  const desired=resolveCameraPosition(rawDesired, focus);
+
+  const posAlpha=1-Math.exp(-(cameraMode==='shoulder'?4.5:3.8)*dt);
+  const targetAlpha=1-Math.exp(-(cameraMode==='shoulder'?3.8:3.2)*dt);
+  camera.position=BABYLON.Vector3.Lerp(camera.position,desired,posAlpha);
+  if(!cameraLookTargetSmooth) cameraLookTargetSmooth=target.clone();
+  else cameraLookTargetSmooth=BABYLON.Vector3.Lerp(cameraLookTargetSmooth,target,targetAlpha);
+  camera.setTarget(cameraLookTargetSmooth);
+}
+
+function updateNearest(){
+  nearestBird=null; let bd=999; birds.forEach(b=>{ if(b.metadata.caught)return; const d=distXZ(playerRoot.position,b.position); if(d<bd){bd=d;nearestBird=b;} });
+  nearestNpc=null; let nd=999; npcList.forEach(n=>{ const d=distXZ(playerRoot.position,n.root.position); if(d<nd){nd=d;nearestNpc=n;} });
+  const p=el('nearPrompt'); if(nearestBird && bd<5.0){ const s=nearestBird.metadata.spec; p.style.display='block'; p.innerText=`가까운 새: ${s.rarity_ko} ${s.name} · 잡기 버튼!`; }
+  else if(nearestNpc && nd<6.0){ p.style.display='block'; p.innerText=`${nearestNpc.name}와 대화할 수 있어요.`; }
+  else { p.style.display='none'; }
+}
+
+async function catchNearestBird(){
+  if(!nearestBird || distXZ(playerRoot.position,nearestBird.position)>5.0){ showToast('새에게 조금 더 가까이 가볼까?',1200); return; }
+  const md=nearestBird.metadata; md.caught=true; nearestBird.setEnabled(false); birdCount++; caughtSpecies[md.speciesId]=(caughtSpecies[md.speciesId]||0)+1; score+=md.spec.points||1; el('score').innerText=score; el('birdCount').innerText=birdCount; renderCodex();
+  try{ const res=await fetch('/jungle/api/event/catch-bird',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({bird_id:md.id,species_id:md.speciesId,count:birdCount,source:'portal_unified_jungle_v4'})}); const j=await res.json(); showToast(j.message||`${md.spec.name} 발견!`); }catch(e){showToast(`${md.spec.name} 발견!`)}
+  if(birdCount===4 || birdCount===8 || birdCount===12 || ['rare','epic','legendary'].includes(md.spec.rarity)){ setTimeout(()=>openRandomQuiz(catForZone(),`새 관찰 퀴즈 · ${md.spec.name}`),700); }
+}
+
+async function talkNpc(){
+  if(!nearestNpc || distXZ(playerRoot.position,nearestNpc.root.position)>6.2){ showToast('동물 친구에게 가까이 가보자.',1200); return; }
+  const cat=randomOf(npcCats[nearestNpc.id]||ZONES[currentZone].cats); openRandomQuiz(cat, npcDisplay[nearestNpc.id]||nearestNpc.name);
+}
+
+async function openRandomQuiz(category,title){
+  try{const r=await fetch(`/jungle/api/quiz/random?category=${encodeURIComponent(category)}`); const q=await r.json(); currentQuestionId=q.question_id; el('npcName').innerText=`${title} · ${category}`; el('questionText').innerText=q.question; const a=el('answerButtons'); a.innerHTML=''; (q.answers||[]).forEach(ans=>{const b=document.createElement('button'); b.innerText=ans; b.onclick=()=>checkAnswer(ans); a.appendChild(b);}); el('resultText').innerText=''; el('quizBox').style.display='block'; speak(q.question);}catch(e){showToast('문제를 불러오지 못했어.');}
+}
+async function checkAnswer(answer){
+  try{const r=await fetch('/jungle/api/quiz/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question_id:currentQuestionId,answer,source:'portal_unified_jungle_v4'})}); const j=await r.json(); el('resultText').innerText=j.message||''; if(j.correct){score+=j.stars_delta||1; el('score').innerText=score;} speak(j.message||'');}catch(e){el('resultText').innerText='서버 연결을 확인해줘.';}
+}
+function voiceAnswer(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR){el('resultText').innerText='이 브라우저는 음성 인식을 지원하지 않아요.';return;} const rec=new SR(); rec.lang='ko-KR'; rec.onresult=e=>{const text=e.results[0][0].transcript; checkAnswer(text);}; rec.onerror=()=>{el('resultText').innerText='마이크 권한을 확인해줘.'}; rec.start(); el('resultText').innerText='듣고 있어요...';
+}
+function renderCodex(){ const g=el('dexGrid'); if(!g)return; g.innerHTML=''; Object.entries(birdCatalog).forEach(([id,s])=>{const caught=caughtSpecies[id]||0; const card=document.createElement('div'); card.className='birdCard '+(caught?'':'locked'); card.innerHTML=`<div class="birdIcon">${caught?s.emoji:'❔'}</div><div class="birdName">${caught?s.name:'???'}</div><span class="rarity ${s.rarity}">${s.rarity_ko}</span><div class="birdDesc">${caught?`${s.desc}<br><b>발견 ${caught}회</b>`:'아직 발견하지 못했어요. 해당 구역을 탐험해봐요.'}</div>`; g.appendChild(card);}); }
+function renderMap(){ const g=el('mapGrid'); g.innerHTML=''; Object.entries(ZONES).forEach(([id,z])=>{const c=document.createElement('div'); c.className='zoneCard'; c.innerHTML=`<div class="zoneTitle">${z.icon} ${z.name}</div><div class="zoneMeta">${z.desc}<br><b>문제:</b> ${z.cats.join(', ')}</div><button class="panelButton blue" style="font-size:15px;padding:8px 12px;" data-zone="${id}">이동</button>`; g.appendChild(c); c.querySelector('button').onclick=()=>warpTo(id);}); }
+function warpTo(id){ const z=ZONES[id]; playerRoot.position.x=z.pos.x; playerRoot.position.z=z.pos.z; currentZone=id; visitedZones[id]=true; el('mapPanel').style.display='none'; showToast(`${z.name}로 이동!`,1100); }
+
+function setupJoystick(){
+  const zone=el('joystickZone'), stick=el('stick'); let active=false, rect=null;
+  function setJoy(clientX,clientY){rect=zone.getBoundingClientRect(); const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2; let dx=clientX-cx, dy=clientY-cy; const max=56; const len=Math.hypot(dx,dy); if(len>max){dx=dx/len*max; dy=dy/len*max;} stick.style.transform=`translate(${dx}px,${dy}px)`; joyX=dx/max; joyY=-dy/max; }
+  function reset(){active=false;joyX=0;joyY=0;stick.style.transform='translate(0px,0px)'}
+  zone.addEventListener('pointerdown',e=>{active=true;zone.setPointerCapture(e.pointerId);setJoy(e.clientX,e.clientY);}); zone.addEventListener('pointermove',e=>{if(active)setJoy(e.clientX,e.clientY);}); zone.addEventListener('pointerup',reset); zone.addEventListener('pointercancel',reset);
+}
+
+function toggleCameraMode(){
+  cameraMode = cameraMode === 'chase' ? 'shoulder' : 'chase';
+  el('viewButton').innerText = cameraMode === 'shoulder' ? '👁️ 근접' : '👁️ 풍경';
+  showToast(cameraMode === 'shoulder' ? '의준이 뒤에 가까이 붙는 근접 시점!' : '부드럽게 따라오는 풍경 시점!', 1200);
+}
+
+async function boot(){ await loadCatalog(); engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:true,stencil:true,antialias:true}); createScene(); setupJoystick(); el('catchButton').onclick=catchNearestBird; el('talkButton').onclick=talkNpc; el('dexButton').onclick=()=>{renderCodex();el('dexPanel').style.display='block'}; el('dexCloseButton').onclick=()=>el('dexPanel').style.display='none'; el('mapButton').onclick=()=>{renderMap();el('mapPanel').style.display='block'}; el('viewButton').onclick=toggleCameraMode; el('mapCloseButton').onclick=()=>el('mapPanel').style.display='none'; el('soundButton').onclick=()=>{soundOn=!soundOn;el('soundButton').innerText=soundOn?'🔊 음성':'🔇 음소거'}; el('parentButton').onclick=()=>location.href='/parent'; el('closeButton').onclick=()=>el('quizBox').style.display='none'; el('micButton').onclick=voiceAnswer; window.addEventListener('keydown',e=>{keys[e.key]=true;if(e.code==='Space')catchNearestBird();}); window.addEventListener('keyup',e=>keys[e.key]=false); window.addEventListener('resize',()=>engine.resize()); let last=performance.now(); engine.runRenderLoop(()=>{const now=performance.now(), dt=Math.min(.05,(now-last)/1000); last=now; const t=now/1000; movePlayer(dt); updateBirds(t); updateAmbientAnimals(t); updateNearest(); updateCamera(dt); scene.render();}); showToast('의준 탐험가 출발! 조이스틱 방향대로 부드럽게 몸을 돌리며 탐험해요.',2300); }
+boot();
+</script>
+</body>
+</html>

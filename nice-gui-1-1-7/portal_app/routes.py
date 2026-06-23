@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from nicegui import ui
+from pathlib import Path
+import random
+
+from fastapi import Body, Query
+from fastapi.responses import HTMLResponse, JSONResponse
+from nicegui import app, ui
 
 from .content_loader import load_activities
 from .database import configured_parent_pin_hash, initialize_database, verify_parent_pin
@@ -10,8 +15,137 @@ from .registry import get_world
 
 
 HANJA_URL = "http://100.75.214.95:8080/hanja"
-EDUNI_LINK_URL = "http://100.75.214.95:8092/"
-EDUNI_OMOK_URL = "http://100.75.214.95:8093/"
+EDUNI_LINK_URL = "/link"
+EDUNI_OMOK_URL = "/omok"
+EDUNI_JUNGLE_URL = "/jungle"
+GAME_STATIC_DIR = Path(__file__).resolve().parent / "static_games"
+JUNGLE_STATIC_DIR = Path(__file__).resolve().parent / "jungle_static"
+app.add_static_files("/jungle-static", JUNGLE_STATIC_DIR)
+app.add_static_files("/jungle-assets", GAME_STATIC_DIR / "assets")
+
+
+def _game_html_response(filename: str) -> HTMLResponse:
+    path = GAME_STATIC_DIR / filename
+    if not path.exists():
+        return HTMLResponse(
+            """
+            <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+            <title>게임 파일 없음</title></head><body style="font-family:system-ui,'Malgun Gothic',sans-serif;padding:24px">
+            <h1>게임 파일을 찾을 수 없습니다</h1><p>static_games 폴더에 게임 HTML이 있는지 확인해 주세요.</p>
+            </body></html>
+            """,
+            status_code=404,
+        )
+    return HTMLResponse(path.read_text(encoding="utf-8"))
+
+
+def _redirect_html(title: str, url: str) -> HTMLResponse:
+    return HTMLResponse(
+        f"""
+        <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+        <meta http-equiv="refresh" content="0; url={url}"><title>{title}</title></head>
+        <body style="font-family:system-ui,'Malgun Gothic',sans-serif;padding:24px">
+        <h1>{title}</h1><p>잠시 후 이동합니다.</p><a href="{url}">바로 열기</a>
+        <script>window.location.replace('{url}');</script></body></html>
+        """
+    )
+
+
+BIRD_SPECIES = {
+    "green_parrot": {"name": "초록 앵무", "rarity": "common", "rarity_ko": "일반", "points": 1, "color": "#37c66a", "emoji": "🦜", "desc": "정글 입구에서 자주 만나는 밝은 새예요."},
+    "red_macaw": {"name": "빨강 금강앵무", "rarity": "common", "rarity_ko": "일반", "points": 1, "color": "#ef4444", "emoji": "🦜", "desc": "날개를 크게 펄럭이며 길을 안내해요."},
+    "blue_kingfisher": {"name": "파랑 물총새", "rarity": "uncommon", "rarity_ko": "고급", "points": 2, "color": "#38bdf8", "emoji": "🐦", "desc": "폭포 근처에서 반짝이는 파란 새예요."},
+    "yellow_canary": {"name": "노랑 카나리아", "rarity": "uncommon", "rarity_ko": "고급", "points": 2, "color": "#facc15", "emoji": "🐤", "desc": "노래를 좋아해서 소리 힌트를 알려줘요."},
+    "purple_starling": {"name": "보라 찌르레기", "rarity": "rare", "rarity_ko": "희귀", "points": 4, "color": "#a855f7", "emoji": "🐦", "desc": "보랏빛 꼬리를 가진 희귀한 새예요."},
+    "emerald_toucan": {"name": "에메랄드 큰부리새", "rarity": "rare", "rarity_ko": "희귀", "points": 4, "color": "#10b981", "emoji": "🦜", "desc": "큰 부리로 보물 상자를 톡톡 두드려요."},
+    "silver_owl": {"name": "은빛 부엉이", "rarity": "epic", "rarity_ko": "영웅", "points": 7, "color": "#cbd5e1", "emoji": "🦉", "desc": "조용히 나타나 어려운 문제 힌트를 줘요."},
+    "rainbow_phoenix": {"name": "무지개 불새", "rarity": "legendary", "rarity_ko": "전설", "points": 12, "color": "#fb7185", "emoji": "🔥", "desc": "아주 가끔 나타나는 전설의 새예요."},
+}
+
+QUESTION_BANK = [
+    {"question_id": "math_001", "category": "math", "npc": "원숭이", "question": "7 + 5 = ?", "answers": ["10", "12", "13"], "correct": "12", "hint": "7에서 5칸 더 가보자."},
+    {"question_id": "math_002", "category": "math", "npc": "원숭이", "question": "15 - 6 = ?", "answers": ["8", "9", "11"], "correct": "9", "hint": "15개에서 6개를 빼보자."},
+    {"question_id": "math_003", "category": "math", "npc": "코끼리", "question": "4개씩 3묶음이면 모두 몇 개?", "answers": ["7", "12", "14"], "correct": "12", "hint": "4 + 4 + 4를 생각해봐."},
+    {"question_id": "korean_001", "category": "korean", "npc": "앵무새", "question": "“나무”의 첫 글자는?", "answers": ["나", "무", "다"], "correct": "나", "hint": "나-무라고 천천히 말해봐."},
+    {"question_id": "korean_002", "category": "korean", "npc": "앵무새", "question": "“바다”의 첫 글자는?", "answers": ["다", "바", "마"], "correct": "바", "hint": "바-다라고 천천히 말해봐."},
+    {"question_id": "english_001", "category": "english", "npc": "토끼", "question": "apple은 무슨 뜻일까?", "answers": ["사과", "바나나", "포도"], "correct": "사과", "hint": "빨갛고 아삭한 과일이야."},
+    {"question_id": "english_002", "category": "english", "npc": "토끼", "question": "cat은 무슨 동물일까?", "answers": ["강아지", "고양이", "토끼"], "correct": "고양이", "hint": "야옹 하고 우는 동물이야."},
+    {"question_id": "science_001", "category": "science", "npc": "부엉이", "question": "식물이 자라는 데 꼭 필요한 것은?", "answers": ["햇빛", "모래만", "종이"], "correct": "햇빛", "hint": "식물은 빛을 좋아해."},
+    {"question_id": "common_001", "category": "common", "npc": "판다", "question": "빨간불일 때 길을 건너도 될까?", "answers": ["된다", "안 된다", "뛰면 된다"], "correct": "안 된다", "hint": "안전이 제일 중요해."},
+]
+QUESTION_BY_ID = {q["question_id"]: q for q in QUESTION_BANK}
+
+
+@app.get("/jungle", response_class=HTMLResponse)
+@app.get("/jungle/", response_class=HTMLResponse)
+def eduni_jungle_game() -> HTMLResponse:
+    return _game_html_response("eduni_jungle.html")
+
+
+@app.get("/jungle-3d", response_class=HTMLResponse)
+@app.get("/jungle-3d/", response_class=HTMLResponse)
+def eduni_jungle_3d_game() -> HTMLResponse:
+    return _game_html_response("eduni_jungle_3d.html")
+
+
+@app.get("/games/eduni-jungle", response_class=HTMLResponse)
+@app.get("/games/eduni-jungle/", response_class=HTMLResponse)
+def eduni_jungle_redirect() -> HTMLResponse:
+    return _redirect_html("정글 새탐험으로 이동", EDUNI_JUNGLE_URL)
+
+
+@app.get("/jungle/api/birds/catalog")
+def jungle_bird_catalog() -> JSONResponse:
+    return JSONResponse({"species": BIRD_SPECIES})
+
+
+@app.post("/jungle/api/event/catch-bird")
+def jungle_catch_bird(payload: dict | None = Body(default=None)) -> JSONResponse:
+    data = payload or {}
+    species_id = data.get("species_id") or data.get("speciesId") or "green_parrot"
+    spec = BIRD_SPECIES.get(species_id, BIRD_SPECIES["green_parrot"])
+    count = data.get("count", 1)
+    return JSONResponse({"ok": True, "message": f"{spec['emoji']} {spec['name']} 채집 성공! 지금까지 {count}마리 찾았어.", "species": spec})
+
+
+@app.get("/jungle/api/quiz/random")
+def jungle_random_quiz(category: str = Query(default="math")) -> JSONResponse:
+    candidates = [q for q in QUESTION_BANK if q["category"] == category] or QUESTION_BANK
+    q = random.choice(candidates)
+    return JSONResponse({k: v for k, v in q.items() if k != "correct"})
+
+
+@app.post("/jungle/api/quiz/check")
+def jungle_check_quiz(payload: dict | None = Body(default=None)) -> JSONResponse:
+    data = payload or {}
+    q = QUESTION_BY_ID.get(str(data.get("question_id", "")))
+    answer = str(data.get("answer", ""))
+    correct = bool(q and answer == q["correct"])
+    return JSONResponse({"correct": correct, "stars_delta": 1 if correct else 0, "message": "정답이야! 별을 얻었어!" if correct else "아쉬워! 힌트를 보고 다시 생각해보자."})
+
+
+@app.get("/link", response_class=HTMLResponse)
+@app.get("/link/", response_class=HTMLResponse)
+def eduni_link_game() -> HTMLResponse:
+    return _game_html_response("eduni_link.html")
+
+
+@app.get("/omok", response_class=HTMLResponse)
+@app.get("/omok/", response_class=HTMLResponse)
+def eduni_omok_game() -> HTMLResponse:
+    return _game_html_response("eduni_omok.html")
+
+
+@app.get("/games/eduni-link", response_class=HTMLResponse)
+@app.get("/games/eduni-link/", response_class=HTMLResponse)
+def eduni_link_redirect() -> HTMLResponse:
+    return _redirect_html("의준 링크로 이동", EDUNI_LINK_URL)
+
+
+@app.get("/games/eduni-omok", response_class=HTMLResponse)
+@app.get("/games/eduni-omok/", response_class=HTMLResponse)
+def eduni_omok_redirect() -> HTMLResponse:
+    return _redirect_html("EDUNI 오목으로 이동", EDUNI_OMOK_URL)
 
 
 def _head() -> None:
@@ -58,6 +192,7 @@ def _head() -> None:
           .portal-game-green { background:linear-gradient(135deg,#ecfdf5,#fff); }
           .portal-game-pink { background:linear-gradient(135deg,#fdf2f8,#fff); }
           .portal-game-violet { background:linear-gradient(135deg,#ede9fe,#fff); }
+          .portal-game-jungle { background:linear-gradient(135deg,#dcfce7,#fff); }
           .portal-pill { width:fit-content; min-height:34px; display:inline-flex; align-items:center; padding:0 12px; border-radius:999px; background:rgba(255,255,255,.78); border:1px solid rgba(16,24,39,.1); font-size:13px; font-weight:1000; }
           .portal-notice { padding:14px 16px; border:1px solid #bfdbfe; border-radius:8px; background:#eff6ff; color:#1e3a8a; font-weight:850; line-height:1.5; }
           .portal-card strong { display:block; font-size:24px; letter-spacing:0; }
@@ -101,22 +236,6 @@ def _portal_card(
 
 
 def register_pages() -> None:
-    @ui.page("/games/eduni-link")
-    @ui.page("/games/eduni-link/")
-    def eduni_link_redirect() -> None:
-        ui.add_head_html(f'<meta http-equiv="refresh" content="0; url={EDUNI_LINK_URL}">')
-        with ui.element("main").classes("portal-shell"):
-            ui.label("의준 링크로 이동합니다.").classes("text-h4 text-weight-bold q-mt-lg")
-            ui.link("게임 열기", EDUNI_LINK_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-dark text-white q-mt-md")
-
-    @ui.page("/games/eduni-omok")
-    @ui.page("/games/eduni-omok/")
-    def eduni_omok_redirect() -> None:
-        ui.add_head_html(f'<meta http-equiv="refresh" content="0; url={EDUNI_OMOK_URL}">')
-        with ui.element("main").classes("portal-shell"):
-            ui.label("EDUNI 오목으로 이동합니다.").classes("text-h4 text-weight-bold q-mt-lg")
-            ui.link("AI 오목 열기", EDUNI_OMOK_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-dark text-white q-mt-md")
-
     @ui.page("/portal")
     def portal_home() -> None:
         _head()
@@ -131,19 +250,21 @@ def register_pages() -> None:
                         ui.link("수학 바로가기", "/portal/world/math").classes("portal-action q-btn q-btn-item q-btn--standard bg-dark text-white q-px-md")
                         ui.link("의준 링크", EDUNI_LINK_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-positive text-white q-px-md")
                         ui.link("AI 오목", EDUNI_OMOK_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-deep-purple text-white q-px-md")
+                        ui.link("정글 새탐험", EDUNI_JUNGLE_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-teal text-white q-px-md")
                         ui.link("부모 화면", "/portal/parent").classes("portal-action q-btn q-btn-item q-btn--outline q-px-md")
                 with ui.element("div").classes("portal-console"):
                     with ui.element("div").classes("portal-tiles"):
-                        for text in ("漢", "A", "+", "오목"):
+                        for text in ("漢", "A", "오목", "정글"):
                             ui.label(text).classes("portal-tile")
                     with ui.element("div").classes("portal-stats"):
-                        for value, label in (("8", "학습 세계"), ("5", "게임 링크"), ("1", "서버 포털")):
+                        for value, label in (("8", "학습 세계"), ("6", "게임 링크"), ("1", "서버 포털")):
                             ui.html(f"<div class='portal-stat'><b>{value}</b><span>{label}</span></div>")
 
             ui.label("외부에서 바로 접속하려면 해당 기기에 Tailscale이 연결되어 있어야 합니다. 같은 Wi-Fi 여부와는 별개로, Tailscale 가족망 안이면 이 서버 주소가 통합니다.").classes("portal-notice q-mt-md")
 
             _section_title("빠른 시작", "자주 쓰는 학습과 게임으로 바로 이동합니다.")
             with ui.element("section").classes("portal-quick"):
+                _portal_card(EDUNI_JUNGLE_URL, "정글 새탐험", "정글 맵을 탐험하며 새를 채집하는 모험", "탐험", "portal-game-jungle")
                 _portal_card(EDUNI_OMOK_URL, "AI 오목", "AI 친구와 오목을 두는 두뇌 게임", "신규", "portal-game-violet")
                 _portal_card(EDUNI_LINK_URL, "의준 링크", "의준 얼굴 블럭을 연결하는 모바일 퍼즐", "신규", "portal-game-pink")
                 _portal_card("/bubble-shooter", "한자 슈터", "목표 한자를 맞히는 버블 슈터 게임", "게임", "portal-game-blue")
@@ -177,7 +298,8 @@ def register_pages() -> None:
                             ui.label(activity.title).classes("text-h6 text-weight-bold")
                             ui.label(activity.prompt).classes("muted")
                             ui.label(f"{activity.difficulty} · {activity.estimated_minutes}분").classes("muted q-mt-sm")
-                            ui.link("시작하기", f"/portal/activity/{activity.id}").classes("portal-action q-btn q-btn-item q-btn--standard bg-dark text-white q-mt-md")
+                            activity_href = EDUNI_JUNGLE_URL if activity.id == JUNGLE_EXPEDITION_ACTIVITY_ID else f"/portal/activity/{activity.id}"
+                            ui.link("시작하기", activity_href).classes("portal-action q-btn q-btn-item q-btn--standard bg-dark text-white q-mt-md")
             else:
                 ui.label("아직 준비 중입니다. 새로운 활동이 곧 추가됩니다.").classes("muted")
 
@@ -185,8 +307,7 @@ def register_pages() -> None:
     def activity_page(activity_id: str) -> None:
         _head()
         if activity_id == JUNGLE_EXPEDITION_ACTIVITY_ID:
-            with ui.element("main").classes("portal-shell"):
-                render_jungle_expedition()
+            ui.navigate.to(EDUNI_JUNGLE_URL)
             return
         activities = {activity.id: activity for activity in load_activities()}
         activity = activities.get(activity_id)

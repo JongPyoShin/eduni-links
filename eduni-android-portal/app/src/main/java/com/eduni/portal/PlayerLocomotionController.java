@@ -33,6 +33,14 @@ public final class PlayerLocomotionController {
 
     public void stop() { vx = 0f; vy = 0f; }
 
+    /** Digital D-pad input is a discrete facing intent; do not wait for movement acceleration. */
+    public void faceImmediately(float x, float y) {
+        float length = (float) Math.hypot(x, y);
+        if (length <= .001f) return;
+        facingX = x / length;
+        facingY = y / length;
+    }
+
     public static final class Step {
         public final float dx, dy, facingX, facingY;
         public final boolean moving;

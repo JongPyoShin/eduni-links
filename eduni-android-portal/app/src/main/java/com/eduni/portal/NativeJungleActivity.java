@@ -88,6 +88,7 @@ public class NativeJungleActivity extends Activity {
         final PlayerLocomotionController locomotion = new PlayerLocomotionController();
         final AdventureCameraController adventureCamera = new AdventureCameraController();
         final EncounterDirector campEncounter = new EncounterDirector();
+        final CampBirdInteractionRouter campBirdRouter = new CampBirdInteractionRouter();
         final StageWorldData campWorld = StageWorldData.camp();
         AdventureCameraController.Frame adventureFrame;
         long lastMovementUpdateMs = 0L;
@@ -282,6 +283,7 @@ public class NativeJungleActivity extends Activity {
                 if(dn) eduniTouchTargetActiveV26_4 = false;
                 inputActions.setKey(mapped, dn);
                 left = inputActions.moveX() < 0; right = inputActions.moveX() > 0; up = inputActions.moveY() < 0; down = inputActions.moveY() > 0;
+                if (dn) locomotion.faceImmediately(mapped == InputActionMapper.Action.MOVE_LEFT ? -1f : mapped == InputActionMapper.Action.MOVE_RIGHT ? 1f : 0f, mapped == InputActionMapper.Action.MOVE_UP ? -1f : mapped == InputActionMapper.Action.MOVE_DOWN ? 1f : 0f);
                 if (dn) nav((mapped == InputActionMapper.Action.MOVE_LEFT ? -1 : mapped == InputActionMapper.Action.MOVE_RIGHT ? 1 : 0), (mapped == InputActionMapper.Action.MOVE_UP ? -1 : mapped == InputActionMapper.Action.MOVE_DOWN ? 1 : 0));
                 return true;
             }
@@ -673,9 +675,11 @@ public class NativeJungleActivity extends Activity {
         }
 
         void catchBird() {
-            Bird b = stageIndex == 0 ? campBird() : nearest();
-            if (stageIndex == 0 && !campEncounter.canInteract()) { log = "파랑새의 노랫소리를 따라 등불 길 가까이 가보자."; return; }
-            if (stageIndex == 0) {
+            Bird b = nearest();
+            if (b == null) { log = "새에게 더 가까이 가서 A!"; return; }
+            CampBirdInteractionRouter.Route route = campBirdRouter.route(stageIndex == 0, nearestBirdIndex(), !birds.isEmpty() && birds.get(0).caught);
+            if (route == CampBirdInteractionRouter.Route.AUTHORED_CAMP_BIRD) {
+                if (!campEncounter.canInteract()) { log = "파랑새의 노랫소리를 따라 등불 길 가까이 가보자."; return; }
                 campEncounter.beginLearning();
                 quiz = campQuiz(b);
                 select = 0;
@@ -683,12 +687,12 @@ public class NativeJungleActivity extends Activity {
                 log = "파랑새를 다시 보고 색을 골라보자.";
                 return;
             }
-            if (b == null) { log = "새에게 더 가까이 가서 A!"; return; }
             log = "문제 불러오는 중...";
             new Thread(() -> { Quiz q = fetchQuiz(); if (q == null) q = localQuiz(); Quiz qq = q; main.post(() -> { quiz = qq; quiz.bird = b; select = 0; mode = QUIZ; log = "방향키로 정답 선택, A 확인"; }); }).start();
         }
-        Bird nearest() { Bird best = null; double bd = 99; for (Bird b: birds) if (!b.caught) { double d = Math.hypot(px-b.x, py-b.y); if (d < .09 && d < bd) { best = b; bd = d; } } return best; }
-        Bird campBird() { return birds.isEmpty() || birds.get(0).caught ? null : (Math.hypot(px-campWorld.birdX, py-campWorld.birdY) < .095 ? birds.get(0) : null); }
+        int nearestBirdIndex() { int best = -1; double bd = 99; for (int i=0;i<birds.size();i++) { Bird b = birds.get(i); if (!b.caught) { double d = Math.hypot(px-b.x, py-b.y); if (d < .09 && d < bd) { best = i; bd = d; } } } return best; }
+        Bird nearest() { int index = nearestBirdIndex(); return index < 0 ? null : birds.get(index); }
+        boolean isCampBird(Bird bird) { return stageIndex == 0 && bird != null && !birds.isEmpty() && bird == birds.get(0); }
         Quiz campQuiz(Bird bird) { Quiz q = new Quiz(campWorld.quizQuestion, campWorld.quizOptions, campWorld.quizAnswer); q.bird = bird; return q; }
         void answerJng001() {
             if (stageIndex != 0 || campEncounter.state() != EncounterDirector.State.LEARNING) { answer(); return; }
@@ -1323,9 +1327,9 @@ public class NativeJungleActivity extends Activity {
 
         void drawInteractionHint(Canvas c,int w,int h) {
             if (mode != FIELD) return;
-            if (stageIndex == 0) { drawJng001InteractionHint(c,w,h); return; }
             Bird b = nearest();
             if (b == null) return;
+            if (stageIndex == 0 && isCampBird(b)) { drawJng001InteractionHint(c,w,h); return; }
 
             float x = px*w;
             float y = py*h - 72;

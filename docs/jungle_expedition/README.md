@@ -1,8 +1,24 @@
 # 정글 대탐험 개발 진입 문서
 
+> **Jungle 2.0 전환 중**
+>
+> 현재 저장소에는 초기 트럭형 MVP와 캐릭터 직접 이동형 Adventure 구현이 함께 존재한다.
+> 신규 개발은 먼저 `JUNGLE_2_COLLAB.md`와 GitHub Issue `JNG-000`을 읽고 진행한다.
+> 아래 Phase A~D 내용은 JNG-000에서 canonical runtime이 확정될 때까지 **legacy planning reference**로만 사용한다.
+
+## Jungle 2.0 작업 진입 순서
+
+1. 루트 `AGENTS.md`
+2. `nice-gui-1-1-7/AGENTS.md`
+3. `docs/jungle_expedition/JUNGLE_2_COLLAB.md`
+4. 현재 `JNG-xxx` GitHub Issue
+5. 해당 Issue에서 지정한 target files만 읽기
+
+---
+
 이 폴더는 `정글 대탐험`을 CODEX가 짧은 컨텍스트로 단계별 구현하기 위한 단일 진입점이다.
 
-## CODEX가 먼저 읽을 파일
+## 기존 CODEX 진입 순서 · Legacy
 
 정글 대탐험 작업을 시작할 때 전체 저장소를 스캔하지 말고 아래 순서만 읽는다.
 
@@ -14,7 +30,7 @@
 
 Phase A를 수행할 때는 `docs/jungle_expedition/phase_a_kickoff_prompt.md`만 추가로 읽는다.
 
-## 확정된 게임 방향
+## 초기 확정 게임 방향 · Legacy
 
 - 게임명: `정글 대탐험`
 - 우선 기기: 세로형 모바일 화면
@@ -32,7 +48,7 @@ Phase A를 수행할 때는 `docs/jungle_expedition/phase_a_kickoff_prompt.md`�
 - 오답 패널티: 없음. 재도전과 힌트 제공
 - 초기 이미지: 이모지 또는 단순 일러스트. 이미지 교체가 쉬운 `asset_key` 구조 사용
 
-## 핵심 사용자 흐름
+## 초기 핵심 사용자 흐름 · Legacy
 
 ```text
 전진
@@ -47,16 +63,17 @@ Phase A를 수행할 때는 `docs/jungle_expedition/phase_a_kickoff_prompt.md`�
 → 탐험 재개
 ```
 
-## MVP 원칙
+## 공통 개발 원칙
 
-- 각 Phase는 별도 브랜치와 Draft PR로 진행한다.
-- 현재 Phase 범위를 넘는 코드는 만들지 않는다.
+- 각 기능은 별도 브랜치와 Draft PR로 진행한다.
+- 현재 Issue 범위를 넘는 코드는 만들지 않는다.
 - 기존 게임 `/`, `/bubble`, `/bubble-shooter`, 기존 포털, 한자 시험 경로를 유지한다.
 - Nextcloud 컨테이너와 배포 설정은 건드리지 않는다.
 - 분석, 광고, 위치, 카메라, 음성, 외부 업로드를 추가하지 않는다.
 
 ## 문서 목록
 
-- `phase_plan.md`: 전체 Phase 경계와 파일 계획
-- `phase_a_kickoff_prompt.md`: 첫 구현을 위한 CODEX 최소 지시문
-- `acceptance_checklist.md`: Phase별 완료 조건
+- `JUNGLE_2_COLLAB.md`: Jungle 2.0 3-Agent 협업 규약 및 현재 진입점
+- `phase_plan.md`: 초기 트럭형 MVP Phase 경계 · legacy
+- `phase_a_kickoff_prompt.md`: 초기 Phase A CODEX 지시문 · legacy
+- `acceptance_checklist.md`: 초기 Phase별 완료 조건 · legacy

@@ -134,6 +134,8 @@ public class NativeJungleActivity extends Activity {
         Quiz quiz;
         final QuizExitController quizExit = new QuizExitController();
         volatile boolean remoteQuizPreloadInFlight = false;
+        final DigitalMovementPolicy digitalMovement = new DigitalMovementPolicy();
+        long digitalDpadDownAtMs = -1L;
 
         final Runnable tick = new Runnable() { @Override public void run() { update(); invalidate(); if (running) main.postDelayed(this, 16); } };
 
@@ -144,7 +146,7 @@ public class NativeJungleActivity extends Activity {
         void reset() {
             eduniApplyStageSpawnV26_3(); foundStars = 0; caughtBirds = 0; hearts = 3; mode = FIELD; select = 0;
             stars.clear(); birds.clear(); sparks.clear(); starClearBonus=false; birdClearBonus=false;
-            campEncounter.reset(); locomotion.stop(); inputActions.reset(); campTouchStickHeld = false; eduniTouchTargetActiveV26_4 = false; lastMovementUpdateMs = 0L;
+            campEncounter.reset(); locomotion.stop(); inputActions.reset(); campTouchStickHeld = false; eduniTouchTargetActiveV26_4 = false; lastMovementUpdateMs = 0L; digitalDpadDownAtMs = -1L;
             quiz = null; quizExit.reset();
             eduniPopulateStageObjectsV26_5();
             log = "새 근처에서 A를 눌러 문제를 풀어봐.";
@@ -295,8 +297,11 @@ public class NativeJungleActivity extends Activity {
                 if(dn) eduniTouchTargetActiveV26_4 = false;
                 inputActions.setKey(mapped, dn);
                 left = inputActions.moveX() < 0; right = inputActions.moveX() > 0; up = inputActions.moveY() < 0; down = inputActions.moveY() > 0;
-                if (dn) locomotion.faceImmediately(mapped == InputActionMapper.Action.MOVE_LEFT ? -1f : mapped == InputActionMapper.Action.MOVE_RIGHT ? 1f : 0f, mapped == InputActionMapper.Action.MOVE_UP ? -1f : mapped == InputActionMapper.Action.MOVE_DOWN ? 1f : 0f);
-                if (!dn && !inputActions.hasDigitalDpadIntent()) locomotion.stop();
+                if (dn) {
+                    digitalDpadDownAtMs = android.os.SystemClock.uptimeMillis();
+                    locomotion.faceImmediately(mapped == InputActionMapper.Action.MOVE_LEFT ? -1f : mapped == InputActionMapper.Action.MOVE_RIGHT ? 1f : 0f, mapped == InputActionMapper.Action.MOVE_UP ? -1f : mapped == InputActionMapper.Action.MOVE_DOWN ? 1f : 0f);
+                }
+                if (!dn && !inputActions.hasKeyDpadIntent()) { digitalDpadDownAtMs = -1L; locomotion.stop(); }
                 if (dn) nav((mapped == InputActionMapper.Action.MOVE_LEFT ? -1 : mapped == InputActionMapper.Action.MOVE_RIGHT ? 1 : 0), (mapped == InputActionMapper.Action.MOVE_UP ? -1 : mapped == InputActionMapper.Action.MOVE_DOWN ? 1 : 0));
                 return true;
             }
@@ -1037,8 +1042,10 @@ public class NativeJungleActivity extends Activity {
                     y = (float)(ty / tl);
                 }
             }
+            float digitalSpeedRatio = inputActions.hasKeyDpadIntent() && digitalDpadDownAtMs >= 0L
+                    ? digitalMovement.speedRatioForHeldMs(now - digitalDpadDownAtMs) : 1f;
             PlayerLocomotionController.Step step = inputActions.hasDigitalDpadIntent()
-                    ? locomotion.updateDigital(dt, x, y) : locomotion.update(dt, x, y);
+                    ? locomotion.updateDigital(dt, x, y, digitalSpeedRatio) : locomotion.update(dt, x, y);
             eduniLastMoveXV26_6 = step.facingX;
             eduniLastMoveYV26_6 = step.facingY;
             eduniMoveWithMaskV26_3(step.dx, step.dy);

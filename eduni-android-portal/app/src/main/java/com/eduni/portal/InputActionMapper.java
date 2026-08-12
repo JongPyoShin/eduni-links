@@ -100,6 +100,7 @@ public final class InputActionMapper {
     }
 
     public boolean hasDigitalDpadIntent() { return activeDigitalDirection() != Action.NONE; }
+    public boolean hasKeyDpadIntent() { return lastDigitalDirection != Action.NONE; }
 
     public float moveX() {
         if (inputMode == InputMode.TOUCH) return touchX;

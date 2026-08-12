@@ -57,4 +57,24 @@ public class PlayerLocomotionControllerTest {
         assertTrue(reversed.dx > 0f);
         assertEquals(1f, reversed.facingX, .0001f);
     }
+
+    @Test public void precisionTapDisplacementIsSmallerThanCruiseHold() {
+        PlayerLocomotionController player = new PlayerLocomotionController();
+        PlayerLocomotionController.Step precision = player.updateDigital(.016f, 1f, 0f, .55f);
+        PlayerLocomotionController.Step cruise = player.updateDigital(.016f, 1f, 0f, 1f);
+        assertTrue(precision.dx > 0f);
+        assertTrue(precision.dx < cruise.dx);
+        assertEquals(1f, precision.facingX, .0001f);
+    }
+
+    @Test public void repeatedPrecisionTapsStaySmallAndReverseImmediately() {
+        PlayerLocomotionController player = new PlayerLocomotionController();
+        PlayerLocomotionController.Step first = player.updateDigital(.016f, -1f, 0f, .55f);
+        PlayerLocomotionController.Step released = player.updateDigital(.016f, 0f, 0f, .55f);
+        PlayerLocomotionController.Step reversed = player.updateDigital(.016f, 1f, 0f, .55f);
+        assertTrue(first.dx < 0f);
+        assertEquals(0f, released.dx, .0001f);
+        assertTrue(reversed.dx > 0f);
+        assertEquals(1f, reversed.facingX, .0001f);
+    }
 }

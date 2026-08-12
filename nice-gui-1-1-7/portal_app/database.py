@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import os
 import secrets
 import sqlite3
+from contextlib import contextmanager
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = APP_ROOT / "data"
@@ -66,11 +70,140 @@ def connect_database(path: Path | None = None) -> sqlite3.Connection:
     return conn
 
 
+@contextmanager
+def database_connection(path: Path | None = None):
+    conn = connect_database(path)
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
 def initialize_database(path: Path | None = None) -> Path:
     db_path = path or get_database_path()
-    with connect_database(db_path) as conn:
+    with database_connection(db_path) as conn:
         conn.executescript(SCHEMA_SQL)
     return db_path
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def default_child_profile_id(path: Path | None = None) -> int:
+    """Return the local default profile used until profile selection is added."""
+    initialize_database(path)
+    with database_connection(path) as conn:
+        row = conn.execute(
+            "SELECT id FROM child_profile WHERE active = 1 ORDER BY id LIMIT 1"
+        ).fetchone()
+        if row is not None:
+            return int(row[0])
+        cursor = conn.execute(
+            "INSERT INTO child_profile (display_name, created_at, active) VALUES (?, ?, 1)",
+            ("EDUNI learner", utc_now()),
+        )
+        return int(cursor.lastrowid)
+
+
+def start_activity_session(activity_id: str, difficulty: str, path: Path | None = None) -> int:
+    """Create one reusable Portal activity session and return its identifier."""
+    profile_id = default_child_profile_id(path)
+    with database_connection(path) as conn:
+        cursor = conn.execute(
+            """
+            INSERT INTO activity_session (child_profile_id, activity_id, difficulty, started_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (profile_id, activity_id, difficulty, utc_now()),
+        )
+        return int(cursor.lastrowid)
+
+
+def complete_activity_session(
+    session_id: int,
+    *,
+    score: int,
+    result_summary: dict[str, Any],
+    hint_count: int = 0,
+    retry_count: int = 0,
+    path: Path | None = None,
+) -> None:
+    """Persist the terminal result for an existing activity session exactly once."""
+    with database_connection(path) as conn:
+        cursor = conn.execute(
+            """
+            UPDATE activity_session
+               SET completed_at = ?, completed = 1, hint_count = ?, retry_count = ?,
+                   result_summary_json = ?
+             WHERE id = ? AND completed = 0
+            """,
+            (
+                utc_now(), hint_count, retry_count,
+                json.dumps({"score": score, **result_summary}, ensure_ascii=False, sort_keys=True),
+                session_id,
+            ),
+        )
+        if cursor.rowcount != 1:
+            raise ValueError(f"activity session {session_id} cannot be completed")
+
+
+def latest_completed_activity_session(
+    activity_id: str, path: Path | None = None
+) -> dict[str, Any] | None:
+    initialize_database(path)
+    with database_connection(path) as conn:
+        row = conn.execute(
+            """
+            SELECT id, child_profile_id, activity_id, difficulty, started_at, completed_at,
+                   completed, hint_count, retry_count, result_summary_json
+              FROM activity_session
+             WHERE activity_id = ? AND completed = 1
+             ORDER BY completed_at DESC, id DESC
+             LIMIT 1
+            """,
+            (activity_id,),
+        ).fetchone()
+    return activity_session_from_row(row) if row is not None else None
+
+
+def recent_activity_sessions(limit: int = 10, path: Path | None = None) -> list[dict[str, Any]]:
+    if limit < 1:
+        raise ValueError("limit must be positive")
+    initialize_database(path)
+    with database_connection(path) as conn:
+        rows = conn.execute(
+            """
+            SELECT id, child_profile_id, activity_id, difficulty, started_at, completed_at,
+                   completed, hint_count, retry_count, result_summary_json
+              FROM activity_session
+             ORDER BY COALESCE(completed_at, started_at) DESC, id DESC
+             LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return [activity_session_from_row(row) for row in rows]
+
+
+def activity_session_from_row(row: sqlite3.Row | tuple[Any, ...]) -> dict[str, Any]:
+    summary_json = row[9]
+    summary = json.loads(summary_json) if summary_json else {}
+    return {
+        "id": int(row[0]),
+        "child_profile_id": int(row[1]),
+        "activity_id": str(row[2]),
+        "difficulty": str(row[3]),
+        "started_at": str(row[4]),
+        "completed_at": str(row[5]) if row[5] is not None else None,
+        "status": "completed" if bool(row[6]) else "in_progress",
+        "hint_count": int(row[7]),
+        "retry_count": int(row[8]),
+        "result_summary": summary,
+    }
 
 
 def hash_parent_pin(pin: str, salt: bytes | None = None, iterations: int = PIN_ITERATIONS) -> str:

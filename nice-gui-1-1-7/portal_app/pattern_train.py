@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from .database import (
+    complete_activity_session,
+    default_child_profile_id,
+    latest_completed_activity_session,
+    start_activity_session,
+)
 from .schemas import Activity
 
 PATTERN_TRAIN_ACTIVITY_ID = "math.pattern_train.001"
@@ -71,6 +77,27 @@ def group_pattern_train_levels(items: list[dict[str, Any]]) -> list[tuple[int, l
     return [(level, grouped[level]) for level in sorted(grouped)]
 
 
+def build_pattern_train_result_summary(
+    *,
+    correct_answers: int,
+    first_try_correct_answers: int,
+    total_questions: int,
+    retry_count: int,
+    hint_count: int,
+    levels_completed: int,
+) -> dict[str, int]:
+    score = round((first_try_correct_answers / total_questions) * 100) if total_questions else 0
+    return {
+        "score": score,
+        "correct_answers": correct_answers,
+        "first_try_correct_answers": first_try_correct_answers,
+        "total_questions": total_questions,
+        "retry_count": retry_count,
+        "hint_count": hint_count,
+        "levels_completed": levels_completed,
+    }
+
+
 def validate_activity_content(activity: Activity) -> None:
     if activity.activity_type == "pattern_sequence":
         get_pattern_train_items(activity)
@@ -81,10 +108,27 @@ def render_pattern_train(activity: Activity) -> None:
 
     items = get_pattern_train_items(activity)
     levels = group_pattern_train_levels(items)
-    state = {"level_index": 0, "item_index": 0, "hint_level": 0, "answered": False}
+    child_profile_id = default_child_profile_id()
+    previous_result = latest_completed_activity_session(activity.id, child_profile_id=child_profile_id)
+    session_id = start_activity_session(activity.id, activity.difficulty, child_profile_id=child_profile_id)
+    state = {
+        "level_index": 0,
+        "item_index": 0,
+        "hint_level": 0,
+        "answered": False,
+        "correct_count": 0,
+        "first_try_correct_count": 0,
+        "attempted_current_question": False,
+        "hint_count": 0,
+        "retry_count": 0,
+        "completed": False,
+    }
 
     ui.label("규칙 기차").classes("text-h4 text-weight-bold")
     ui.label("한 레벨씩 깨고, 준비되면 다음 레벨에 도전해 보자!").classes("muted text-subtitle1")
+    if previous_result is not None:
+        previous_score = previous_result["result_summary"].get("score", 0)
+        ui.label(f"지난 완료 기록: {previous_score}점 · {previous_result['completed_at']}").classes("muted q-mt-sm")
     stage = ui.label("").classes("text-subtitle2 text-weight-bold q-mt-md")
     progress = ui.label("").classes("text-weight-bold")
     train = ui.label("").classes("pattern-train-track q-mt-md")
@@ -115,6 +159,7 @@ def render_pattern_train(activity: Activity) -> None:
                 ui.button("다음 레벨 도전", on_click=start_next_level).classes("portal-action")
                 ui.link("여기까지 하기", "/portal/world/math").classes("portal-action q-btn q-btn-item q-btn--outline q-px-md")
             return
+        complete_pattern_train_session()
         question_prompt.set_text("어떤 규칙이 가장 재미있었는지 이야기해 보자.")
         feedback.set_text("모든 레벨 완료! 끝까지 규칙을 찾아낸 과정이 정말 멋져.")
         hint_text.set_text(f"화면 밖 미션: {activity.offline_mission}")
@@ -127,6 +172,7 @@ def render_pattern_train(activity: Activity) -> None:
         item = level_items[state["item_index"]]
         state["hint_level"] = 0
         state["answered"] = False
+        state["attempted_current_question"] = False
         action_row.set_visibility(True)
         level_actions.clear()
         stage.set_text(f"레벨 {level} · {item['level_title']}")
@@ -143,10 +189,15 @@ def render_pattern_train(activity: Activity) -> None:
                 return
             if symbol == item["answer"]:
                 state["answered"] = True
+                state["correct_count"] += 1
+                if not state["attempted_current_question"]:
+                    state["first_try_correct_count"] += 1
                 feedback.set_text("정답! 규칙을 잘 찾았네!")
                 next_button.set_text("레벨 완료 보기" if state["item_index"] == len(level_items) - 1 else "다음 문제")
                 next_button.set_visibility(True)
                 return
+            state["retry_count"] += 1
+            state["attempted_current_question"] = True
             feedback.set_text("괜찮아. 규칙을 다시 천천히 살펴보자.")
             if state["hint_level"] == 0:
                 state["hint_level"] = 1
@@ -163,7 +214,29 @@ def render_pattern_train(activity: Activity) -> None:
         item = level_items[state["item_index"]]
         index = min(state["hint_level"], len(item["hints"]) - 1)
         state["hint_level"] = min(state["hint_level"] + 1, len(item["hints"]))
+        state["hint_count"] += 1
         hint_text.set_text(f"힌트 {index + 1}: {item['hints'][index]}")
+
+    def complete_pattern_train_session() -> None:
+        if state["completed"]:
+            return
+        total_questions = len(items)
+        result_summary = build_pattern_train_result_summary(
+            correct_answers=state["correct_count"],
+            first_try_correct_answers=state["first_try_correct_count"],
+            total_questions=total_questions,
+            retry_count=state["retry_count"],
+            hint_count=state["hint_count"],
+            levels_completed=len(levels),
+        )
+        complete_activity_session(
+            session_id,
+            score=result_summary["score"],
+            hint_count=state["hint_count"],
+            retry_count=state["retry_count"],
+            result_summary=result_summary,
+        )
+        state["completed"] = True
 
     def next_question() -> None:
         if not state["answered"]:

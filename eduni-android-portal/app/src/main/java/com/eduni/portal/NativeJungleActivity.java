@@ -88,6 +88,9 @@ public class NativeJungleActivity extends Activity {
         final PlayerLocomotionController locomotion = new PlayerLocomotionController();
         final AdventureCameraController adventureCamera = new AdventureCameraController();
         final EncounterDirector campEncounter = new EncounterDirector();
+        final CampBirdInteractionRouter campBirdRouter = new CampBirdInteractionRouter();
+        final QuizLoadPolicy<Quiz> remoteQuizCache = new QuizLoadPolicy<>();
+        final QuizModalPolicy quizModalPolicy = new QuizModalPolicy();
         final StageWorldData campWorld = StageWorldData.camp();
         AdventureCameraController.Frame adventureFrame;
         long lastMovementUpdateMs = 0L;
@@ -129,6 +132,10 @@ public class NativeJungleActivity extends Activity {
         long lastNav = 0;
         String log = "Native 정글탐험 시작! 방향키 이동, A 잡기";
         Quiz quiz;
+        final QuizExitController quizExit = new QuizExitController();
+        volatile boolean remoteQuizPreloadInFlight = false;
+        final DigitalMovementPolicy digitalMovement = new DigitalMovementPolicy();
+        long digitalDpadDownAtMs = -1L;
 
         final Runnable tick = new Runnable() { @Override public void run() { update(); invalidate(); if (running) main.postDelayed(this, 16); } };
 
@@ -139,7 +146,8 @@ public class NativeJungleActivity extends Activity {
         void reset() {
             eduniApplyStageSpawnV26_3(); foundStars = 0; caughtBirds = 0; hearts = 3; mode = FIELD; select = 0;
             stars.clear(); birds.clear(); sparks.clear(); starClearBonus=false; birdClearBonus=false;
-            campEncounter.reset(); locomotion.stop(); inputActions.reset(); campTouchStickHeld = false; eduniTouchTargetActiveV26_4 = false; lastMovementUpdateMs = 0L;
+            campEncounter.reset(); locomotion.stop(); inputActions.reset(); campTouchStickHeld = false; eduniTouchTargetActiveV26_4 = false; lastMovementUpdateMs = 0L; digitalDpadDownAtMs = -1L;
+            quiz = null; quizExit.reset();
             eduniPopulateStageObjectsV26_5();
             log = "새 근처에서 A를 눌러 문제를 풀어봐.";
         }
@@ -277,11 +285,23 @@ public class NativeJungleActivity extends Activity {
 
             if (e.getRepeatCount() > 0 && isAction(e.getKeyCode())) return true;
             if (mapped == InputActionMapper.Action.NONE) return false;
+            if (mode == QUIZ) {
+                QuizModalPolicy.Decision decision = quizModalPolicy.decide(mapped, dn);
+                if (decision == QuizModalPolicy.Decision.NAVIGATE) nav(mapped == InputActionMapper.Action.MOVE_LEFT ? -1 : mapped == InputActionMapper.Action.MOVE_RIGHT ? 1 : 0, mapped == InputActionMapper.Action.MOVE_UP ? -1 : mapped == InputActionMapper.Action.MOVE_DOWN ? 1 : 0);
+                else if (decision == QuizModalPolicy.Decision.ANSWER) pressA();
+                else if (decision == QuizModalPolicy.Decision.REQUEST_EXIT) requestQuizExit();
+                return true;
+            }
             if (inputActions.isMovement(mapped)) {
                 if(eduniWorldMapActiveV20_10()) { if(dn) eduniMoveWorldMapStageV20_10((mapped == InputActionMapper.Action.MOVE_LEFT || mapped == InputActionMapper.Action.MOVE_UP) ? -1 : 1); return true; }
                 if(dn) eduniTouchTargetActiveV26_4 = false;
                 inputActions.setKey(mapped, dn);
                 left = inputActions.moveX() < 0; right = inputActions.moveX() > 0; up = inputActions.moveY() < 0; down = inputActions.moveY() > 0;
+                if (dn) {
+                    digitalDpadDownAtMs = android.os.SystemClock.uptimeMillis();
+                    locomotion.faceImmediately(mapped == InputActionMapper.Action.MOVE_LEFT ? -1f : mapped == InputActionMapper.Action.MOVE_RIGHT ? 1f : 0f, mapped == InputActionMapper.Action.MOVE_UP ? -1f : mapped == InputActionMapper.Action.MOVE_DOWN ? 1f : 0f);
+                }
+                if (!dn && !inputActions.hasKeyDpadIntent()) { digitalDpadDownAtMs = -1L; locomotion.stop(); }
                 if (dn) nav((mapped == InputActionMapper.Action.MOVE_LEFT ? -1 : mapped == InputActionMapper.Action.MOVE_RIGHT ? 1 : 0), (mapped == InputActionMapper.Action.MOVE_UP ? -1 : mapped == InputActionMapper.Action.MOVE_DOWN ? 1 : 0));
                 return true;
             }
@@ -299,11 +319,15 @@ public class NativeJungleActivity extends Activity {
             int s = e.getSource();
             boolean ctl = (s & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK || (s & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD || (s & InputDevice.SOURCE_DPAD) == InputDevice.SOURCE_DPAD;
             if (!ctl || e.getAction() != MotionEvent.ACTION_MOVE) return false;
-            ax = axis(e, MotionEvent.AXIS_HAT_X, MotionEvent.AXIS_X, MotionEvent.AXIS_RX, MotionEvent.AXIS_Z);
-            ay = axis(e, MotionEvent.AXIS_HAT_Y, MotionEvent.AXIS_Y, MotionEvent.AXIS_RY, MotionEvent.AXIS_RZ);
+            float hatX = e.getAxisValue(MotionEvent.AXIS_HAT_X), hatY = e.getAxisValue(MotionEvent.AXIS_HAT_Y);
+            inputActions.setHat(hatX, hatY);
+            ax = axis(e, MotionEvent.AXIS_X, MotionEvent.AXIS_RX, MotionEvent.AXIS_Z);
+            ay = axis(e, MotionEvent.AXIS_Y, MotionEvent.AXIS_RY, MotionEvent.AXIS_RZ);
             inputActions.setAnalog(ax, ay);
             ax = inputActions.moveX(); ay = inputActions.moveY();
-            if (mode != FIELD) {
+            if (mode == QUIZ) {
+                if (Math.hypot(ax, ay) >= .25) nav(Math.abs(ax) > Math.abs(ay) ? (ax > 0 ? 1 : -1) : 0, Math.abs(ay) >= Math.abs(ax) ? (ay > 0 ? 1 : -1) : 0);
+            } else if (mode != FIELD) {
                 long now = System.currentTimeMillis();
                 if (Math.hypot(ax, ay) < .25) lastNav = 0;
                 else if (now - lastNav > 230) { lastNav = now; if (Math.abs(ax) > Math.abs(ay)) nav(ax > 0 ? 1 : -1, 0); else nav(0, ay > 0 ? 1 : -1); }
@@ -316,6 +340,10 @@ public class NativeJungleActivity extends Activity {
             inputActions.useTouch();
             if(showStartScreen) {
                 if(e.getAction() == MotionEvent.ACTION_UP) pressA();
+                return true;
+            }
+            if(mode == QUIZ) {
+                if(e.getAction() == MotionEvent.ACTION_UP && e.getX() > getWidth()*.75f && e.getY() < getHeight()*.32f) requestQuizExit();
                 return true;
             }
             if(mode != FIELD || showStageSelect || stageCompleteShown) return true;
@@ -363,7 +391,7 @@ public class NativeJungleActivity extends Activity {
             int next = select + (Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : -1) : (dy > 0 ? 2 : -2));
             select = ((next % n) + n) % n;
         }
-        int count() { if (mode == QUIZ && quiz != null) return quiz.options.length; if (mode == MISSION) return 2; if (mode == CLOSET) return 4; return 0; }
+        int count() { if (mode == QUIZ && quiz != null) return quizExit.isConfirming() ? 2 : quiz.options.length; if (mode == MISSION) return 2; if (mode == CLOSET) return 4; return 0; }
 
 
         // EDUNI_NATIVE_JUNGLE_WORLDMAP_INPUT_FIX_V20_1
@@ -648,15 +676,35 @@ public class NativeJungleActivity extends Activity {
 
         void pressA() { if(showStageSelect){ if(mode != FIELD){ mode = FIELD; select = stageSelect; invalidate(); return; } eduniStartSelectedStageFromWorldMapV21_3(); return; }  if(showStageSelect && mode == FIELD){ startSelectedStage(); return; }  if(stageCompleteShown){ if(isFinalStage()){ finishFinalStageAndReturn(); return; } advanceStage(); stageInputLock = 18; return; } if(stageInputLock > 0){ return; }  if(showStartScreen){ startGameFromIntro(); return; }
             if (mode == FIELD) { catchBird(); return; }
-            if (mode == QUIZ) { answerJng001(); return; }
+            if (mode == QUIZ) { if (quizExit.isConfirming()) { resolveQuizExit(select == 1); } else answerJng001(); return; }
             if (mode == MISSION) { if (select == 0) mode = FIELD; else reset(); return; }
             if (mode == CLOSET) { String[] a = {"기본 복장","탐험 모자","반짝 안경","별빛 망토"}; outfitIndex = select; spawnSparks(px,py,Color.rgb(56,189,248),16); gameFeel("착용 완료", Color.rgb(56,189,248), 25); log = a[outfitIndex] + " 착용!"; postProgress("outfit_changed","옷장 착용"); playSfx(4); mode = FIELD; invalidate(); return; }
             if (mode == PAUSE) mode = FIELD;
+        }
+        void requestQuizExit() {
+            if (mode != QUIZ || quiz == null) return;
+            quizExit.requestExit();
+            select = 0; // Continue is deliberately the safe default.
+            log = "문제를 그만둘까요?";
+            invalidate();
+        }
+        void resolveQuizExit(boolean quit) {
+            QuizExitController.Decision decision = quizExit.confirm(quit);
+            if (decision == QuizExitController.Decision.CONTINUE) { log = "문제를 계속 풀어보자."; invalidate(); return; }
+            if (decision != QuizExitController.Decision.QUIT) return;
+            // Do not award, penalize, or complete an encounter merely by leaving its quiz.
+            quiz = null;
+            mode = FIELD;
+            select = 0;
+            if (stageIndex == 0 && campEncounter.state() == EncounterDirector.State.LEARNING) campEncounter.reset();
+            log = "탐험으로 돌아왔어. 새에게 다시 다가가서 A를 눌러봐.";
+            invalidate();
         }
         boolean back() {
             // EDUNI_NATIVE_JUNGLE_BACK_TO_PORTAL_PATCH_V3_1
             // Popup mode: close popup only.
             // Field mode: finish NativeJungleActivity and return to portal.
+            if (mode == QUIZ) { requestQuizExit(); return true; }
             if (mode != FIELD) { // EDUNI_NATIVE_JUNGLE_BACK_TO_PORTAL_PATCH_V3_2
                 mode = FIELD;
                 log = "탐험으로 돌아왔어.";
@@ -673,9 +721,11 @@ public class NativeJungleActivity extends Activity {
         }
 
         void catchBird() {
-            Bird b = stageIndex == 0 ? campBird() : nearest();
-            if (stageIndex == 0 && !campEncounter.canInteract()) { log = "파랑새의 노랫소리를 따라 등불 길 가까이 가보자."; return; }
-            if (stageIndex == 0) {
+            Bird b = nearest();
+            if (b == null) { log = "새에게 더 가까이 가서 A!"; return; }
+            CampBirdInteractionRouter.Route route = campBirdRouter.route(stageIndex == 0, nearestBirdIndex(), !birds.isEmpty() && birds.get(0).caught);
+            if (route == CampBirdInteractionRouter.Route.AUTHORED_CAMP_BIRD) {
+                if (!campEncounter.canInteract()) { log = "파랑새의 노랫소리를 따라 등불 길 가까이 가보자."; return; }
                 campEncounter.beginLearning();
                 quiz = campQuiz(b);
                 select = 0;
@@ -683,12 +733,17 @@ public class NativeJungleActivity extends Activity {
                 log = "파랑새를 다시 보고 색을 골라보자.";
                 return;
             }
-            if (b == null) { log = "새에게 더 가까이 가서 A!"; return; }
-            log = "문제 불러오는 중...";
-            new Thread(() -> { Quiz q = fetchQuiz(); if (q == null) q = localQuiz(); Quiz qq = q; main.post(() -> { quiz = qq; quiz.bird = b; select = 0; mode = QUIZ; log = "방향키로 정답 선택, A 확인"; }); }).start();
+            Quiz q = remoteQuizCache.takeOr(localQuiz());
+            q.bird = b;
+            quiz = q;
+            select = 0;
+            mode = QUIZ;
+            log = "방향키로 정답 선택, A 확인";
+            preloadRemoteQuiz();
         }
-        Bird nearest() { Bird best = null; double bd = 99; for (Bird b: birds) if (!b.caught) { double d = Math.hypot(px-b.x, py-b.y); if (d < .09 && d < bd) { best = b; bd = d; } } return best; }
-        Bird campBird() { return birds.isEmpty() || birds.get(0).caught ? null : (Math.hypot(px-campWorld.birdX, py-campWorld.birdY) < .095 ? birds.get(0) : null); }
+        int nearestBirdIndex() { int best = -1; double bd = 99; for (int i=0;i<birds.size();i++) { Bird b = birds.get(i); if (!b.caught) { double d = Math.hypot(px-b.x, py-b.y); if (d < .09 && d < bd) { best = i; bd = d; } } } return best; }
+        Bird nearest() { int index = nearestBirdIndex(); return index < 0 ? null : birds.get(index); }
+        boolean isCampBird(Bird bird) { return stageIndex == 0 && bird != null && !birds.isEmpty() && bird == birds.get(0); }
         Quiz campQuiz(Bird bird) { Quiz q = new Quiz(campWorld.quizQuestion, campWorld.quizOptions, campWorld.quizAnswer); q.bird = bird; return q; }
         void answerJng001() {
             if (stageIndex != 0 || campEncounter.state() != EncounterDirector.State.LEARNING) { answer(); return; }
@@ -767,6 +822,15 @@ public class NativeJungleActivity extends Activity {
                 String[] opts = new String[Math.min(4, arr.length())]; for (int i=0;i<opts.length;i++) opts[i] = arr.optString(i);
                 return new Quiz(text, opts, ans);
             } catch(Exception ex) { return null; } finally { if (c != null) c.disconnect(); }
+        }
+        void preloadRemoteQuiz() {
+            if (remoteQuizPreloadInFlight || remoteQuizCache.hasCachedRemote()) return;
+            remoteQuizPreloadInFlight = true;
+            new Thread(() -> {
+                Quiz remote = fetchQuiz();
+                remoteQuizCache.cacheRemote(remote);
+                remoteQuizPreloadInFlight = false;
+            }).start();
         }
         String first(String... xs) { for (String x: xs) if (x != null && x.trim().length() > 0) return x.trim(); return ""; }
         Quiz localQuiz() { Quiz[] qs = { new Quiz("[수학] 7 + 5 = ?", new String[]{"10","11","12","13"}, "12"), new Quiz("[상식] 신호등에서 건너도 되는 색은?", new String[]{"빨간색","초록색","노란색","검은색"}, "초록색"), new Quiz("[영어] apple의 뜻은?", new String[]{"사과","바나나","포도","수박"}, "사과") }; return qs[(int)(System.currentTimeMillis()%qs.length)]; }
@@ -978,7 +1042,10 @@ public class NativeJungleActivity extends Activity {
                     y = (float)(ty / tl);
                 }
             }
-            PlayerLocomotionController.Step step = locomotion.update(dt, x, y);
+            float digitalSpeedRatio = inputActions.hasKeyDpadIntent() && digitalDpadDownAtMs >= 0L
+                    ? digitalMovement.speedRatioForHeldMs(now - digitalDpadDownAtMs) : 1f;
+            PlayerLocomotionController.Step step = inputActions.hasDigitalDpadIntent()
+                    ? locomotion.updateDigital(dt, x, y, digitalSpeedRatio) : locomotion.update(dt, x, y);
             eduniLastMoveXV26_6 = step.facingX;
             eduniLastMoveYV26_6 = step.facingY;
             eduniMoveWithMaskV26_3(step.dx, step.dy);
@@ -1323,9 +1390,9 @@ public class NativeJungleActivity extends Activity {
 
         void drawInteractionHint(Canvas c,int w,int h) {
             if (mode != FIELD) return;
-            if (stageIndex == 0) { drawJng001InteractionHint(c,w,h); return; }
             Bird b = nearest();
             if (b == null) return;
+            if (stageIndex == 0 && isCampBird(b)) { drawJng001InteractionHint(c,w,h); return; }
 
             float x = px*w;
             float y = py*h - 72;
@@ -2501,7 +2568,18 @@ public class NativeJungleActivity extends Activity {
             c.drawText("방향키/스틱: 이동   A: 선택   B: 닫기",w*.18f,h*.76f,p);
         }
 
-        void quiz(Canvas c,int w,int h) { if (quiz==null) return; panel(c,w,h,"새 잡기 문제"); p.setColor(Color.rgb(15,23,42)); uiText(30); c.drawText(quiz.text,w*.22f,h*.33f,p); for(int i=0;i<quiz.options.length;i++){int col=i%2,row=i/2; option(c,new RectF(w*(.22f+col*.29f),h*(.43f+row*.16f),w*(.47f+col*.29f),h*(.54f+row*.16f)),quiz.options[i],i==select);} }
+        void quiz(Canvas c,int w,int h) {
+            if (quiz==null) return;
+            if (quizExit.isConfirming()) { quizExitConfirm(c,w,h); return; }
+            panel(c,w,h,"새 잡기 문제"); p.setColor(Color.rgb(15,23,42)); uiText(30); c.drawText(quiz.text,w*.22f,h*.33f,p); for(int i=0;i<quiz.options.length;i++){int col=i%2,row=i/2; option(c,new RectF(w*(.22f+col*.29f),h*(.43f+row*.16f),w*(.47f+col*.29f),h*(.54f+row*.16f)),quiz.options[i],i==select);}
+            p.setColor(Color.rgb(71,85,105)); uiText(18); c.drawText("닫기",w*.77f,h*.27f,p);
+        }
+        void quizExitConfirm(Canvas c,int w,int h) {
+            panel(c,w,h,"문제를 그만둘까요?");
+            p.setColor(Color.rgb(15,23,42)); uiText(24); c.drawText("지금 문제와 선택은 그대로 둘 수 있어요.",w*.25f,h*.38f,p);
+            option(c,new RectF(w*.26f,h*.52f,w*.46f,h*.64f),"계속 풀기",select==0);
+            option(c,new RectF(w*.54f,h*.52f,w*.74f,h*.64f),"문제 나가기",select==1);
+        }
         void mission(Canvas c,int w,int h) { panel(c,w,h,"오늘의 미션"); p.setColor(Color.rgb(15,23,42)); uiText(25); c.drawText("새 4마리 도감 등록: "+caughtBirds+"/4",w*.26f,h*.35f,p); c.drawText("별 5개 수집: "+foundStars+"/5",w*.26f,h*.43f,p); option(c,new RectF(w*.26f,h*.55f,w*.46f,h*.66f),"닫기",select==0); option(c,new RectF(w*.54f,h*.55f,w*.74f,h*.66f),"처음부터",select==1); }
         void closet(Canvas c,int w,int h) { panel(c,w,h,"옷장"); String[] it={"기본 복장","탐험 모자","반짝 안경","별빛 망토"}; for(int i=0;i<it.length;i++){int col=i%2,row=i/2; option(c,new RectF(w*(.22f+col*.29f),h*(.38f+row*.16f),w*(.47f+col*.29f),h*(.49f+row*.16f)),it[i],i==select);} }
         void option(Canvas c, RectF r, String t, boolean f) {

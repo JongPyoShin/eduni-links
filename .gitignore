@@ -2,3 +2,24 @@ __pycache__/
 *.pyc
 nice-gui-1-1-7/data/*.sqlite3
 nice-gui-1-1-7/data/*.db
+
+# Android local configuration and generated output
+eduni-android-portal/.gradle/
+eduni-android-portal/.idea/
+eduni-android-portal/build/
+eduni-android-portal/app/build/
+eduni-android-portal/local.properties
+eduni-android-portal/.kotlin/
+eduni-android-portal/.cxx/
+eduni-android-portal/.externalNativeBuild/
+eduni-android-portal/captures/
+eduni-android-portal/**/*.iml
+eduni-android-portal/**/*.apk
+eduni-android-portal/**/*.aab
+eduni-android-portal/**/*.jks
+eduni-android-portal/**/*.keystore
+eduni-android-portal/keystore.properties
+eduni-android-portal/signing.properties
+eduni-android-portal/qa_*
+eduni-android-portal/**/*.bak*
+eduni-android-portal/**/*.log

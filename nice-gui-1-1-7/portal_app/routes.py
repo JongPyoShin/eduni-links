@@ -18,6 +18,7 @@ from .database import (
 from .jungle_expedition import JUNGLE_EXPEDITION_ACTIVITY_ID, render_jungle_expedition
 from .pattern_train import render_pattern_train
 from .registry import get_world
+from .schemas import Activity
 
 
 HANJA_URL = "http://100.75.214.95:8080/hanja"
@@ -241,6 +242,19 @@ def _portal_card(
             ui.label(pill).classes("portal-pill")
 
 
+def activity_launch_path(activity: Activity) -> str:
+    """Return the canonical Portal launch path for an enabled activity."""
+    if activity.id == JUNGLE_EXPEDITION_ACTIVITY_ID:
+        return EDUNI_JUNGLE_URL
+    return f"/portal/activity/{activity.id}"
+
+
+def parent_activity_sessions(limit: int = 10, path: Path | None = None) -> list[dict[str, object]]:
+    """Read Parent progress from the active/default child's canonical session stream."""
+    child_profile_id = default_child_profile_id(path)
+    return recent_activity_sessions(limit, path, child_profile_id=child_profile_id)
+
+
 def register_pages() -> None:
     @ui.page("/portal")
     def portal_home() -> None:
@@ -304,7 +318,7 @@ def register_pages() -> None:
                             ui.label(activity.title).classes("text-h6 text-weight-bold")
                             ui.label(activity.prompt).classes("muted")
                             ui.label(f"{activity.difficulty} · {activity.estimated_minutes}분").classes("muted q-mt-sm")
-                            activity_href = EDUNI_JUNGLE_URL if activity.id == JUNGLE_EXPEDITION_ACTIVITY_ID else f"/portal/activity/{activity.id}"
+                            activity_href = activity_launch_path(activity)
                             ui.link("시작하기", activity_href).classes("portal-action q-btn q-btn-item q-btn--standard bg-dark text-white q-mt-md")
             else:
                 ui.label("아직 준비 중입니다. 새로운 활동이 곧 추가됩니다.").classes("muted")
@@ -352,8 +366,7 @@ def register_pages() -> None:
                     with ui.card().classes("portal-card"):
                         ui.label("최근 학습 기록").classes("text-h6 text-weight-bold")
                         activity_titles = {activity.id: activity.title for activity in load_activities()}
-                        child_profile_id = default_child_profile_id()
-                        sessions = recent_activity_sessions(child_profile_id=child_profile_id)
+                        sessions = parent_activity_sessions()
                         if not sessions:
                             ui.label("아직 저장된 학습 기록이 없습니다.").classes("muted")
                             return

@@ -139,7 +139,7 @@ public class NativeJungleActivity extends Activity {
         void reset() {
             eduniApplyStageSpawnV26_3(); foundStars = 0; caughtBirds = 0; hearts = 3; mode = FIELD; select = 0;
             stars.clear(); birds.clear(); sparks.clear(); starClearBonus=false; birdClearBonus=false;
-            campEncounter.reset(); locomotion.stop(); lastMovementUpdateMs = 0L;
+            campEncounter.reset(); locomotion.stop(); inputActions.reset(); campTouchStickHeld = false; eduniTouchTargetActiveV26_4 = false; lastMovementUpdateMs = 0L;
             eduniPopulateStageObjectsV26_5();
             log = "새 근처에서 A를 눌러 문제를 풀어봐.";
         }
@@ -321,6 +321,12 @@ public class NativeJungleActivity extends Activity {
             if(mode != FIELD || showStageSelect || stageCompleteShown) return true;
 
             int action = e.getActionMasked();
+            if (action == MotionEvent.ACTION_CANCEL || action == MotionEvent.ACTION_OUTSIDE || (action == MotionEvent.ACTION_POINTER_UP && campTouchStickHeld)) {
+                campTouchStickHeld = false;
+                inputActions.releaseTouch();
+                eduniTouchTargetActiveV26_4 = false;
+                return true;
+            }
             if(action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE || action == MotionEvent.ACTION_UP) {
                 float stickX = getWidth() * .16f, stickY = getHeight() * .80f, stickRadius = Math.min(getWidth(), getHeight()) * .12f;
                 float actionX = getWidth() * .86f, actionY = getHeight() * .80f;
@@ -668,13 +674,13 @@ public class NativeJungleActivity extends Activity {
 
         void catchBird() {
             Bird b = stageIndex == 0 ? campBird() : nearest();
-            if (stageIndex == 0 && !campEncounter.canInteract()) { log = "Listen for the bird, then move closer to the lantern path."; return; }
+            if (stageIndex == 0 && !campEncounter.canInteract()) { log = "파랑새의 노랫소리를 따라 등불 길 가까이 가보자."; return; }
             if (stageIndex == 0) {
                 campEncounter.beginLearning();
                 quiz = campQuiz(b);
                 select = 0;
                 mode = QUIZ;
-                log = "Look again, then choose the bird's color.";
+                log = "파랑새를 다시 보고 색을 골라보자.";
                 return;
             }
             if (b == null) { log = "새에게 더 가까이 가서 A!"; return; }
@@ -683,7 +689,7 @@ public class NativeJungleActivity extends Activity {
         }
         Bird nearest() { Bird best = null; double bd = 99; for (Bird b: birds) if (!b.caught) { double d = Math.hypot(px-b.x, py-b.y); if (d < .09 && d < bd) { best = b; bd = d; } } return best; }
         Bird campBird() { return birds.isEmpty() || birds.get(0).caught ? null : (Math.hypot(px-campWorld.birdX, py-campWorld.birdY) < .095 ? birds.get(0) : null); }
-        Quiz campQuiz(Bird bird) { Quiz q = new Quiz("Which color did the Camp robin show?", new String[]{"Red", "Blue"}, "Red"); q.bird = bird; return q; }
+        Quiz campQuiz(Bird bird) { Quiz q = new Quiz(campWorld.quizQuestion, campWorld.quizOptions, campWorld.quizAnswer); q.bird = bird; return q; }
         void answerJng001() {
             if (stageIndex != 0 || campEncounter.state() != EncounterDirector.State.LEARNING) { answer(); return; }
             boolean correct = quiz != null && quiz.options[select].equals(quiz.answer);
@@ -691,20 +697,20 @@ public class NativeJungleActivity extends Activity {
             postQuizAttemptDetailed(correct);
             if (!correct) {
                 playSfx(4);
-                gameFeel("Look at the robin's warm color again.", Color.rgb(56,189,248), 25);
-                log = "No penalty — follow the clue and try again.";
+                gameFeel("파랑새의 색을 다시 살펴보자.", Color.rgb(56,189,248), 25);
+                log = "괜찮아. 파랑새를 다시 보고 골라보자.";
                 return;
             }
             quiz.bird.caught = true;
             caughtBirds++;
-            postProgress("camp_robin_discovered", "first Camp bird");
+            postProgress("camp_bluebird_discovered", campWorld.birdId);
             spawnSparks(quiz.bird.x, quiz.bird.y, Color.rgb(34,197,94), 24);
             playSfx(2);
-            gameFeel("Camp bird added to your collection!", Color.rgb(34,197,94), 45);
-            log = "The robin is now in your collection.";
-            try { getContext().getSharedPreferences("eduni_jungle_reward_v24", 0).edit().putBoolean("camp_robin_collection", true).apply(); } catch(Exception ignored) {}
+            gameFeel(campWorld.birdDisplayName + "을 도감에 담았어!", Color.rgb(34,197,94), 45);
+            log = campWorld.birdDisplayName + "이 도감에 들어왔어.";
+            try { getContext().getSharedPreferences("eduni_jungle_reward_v24", 0).edit().putBoolean(campWorld.collectionKey, true).apply(); } catch(Exception ignored) {}
             campEncounter.finishCelebration();
-            showRewardScreen("Camp bird discovered!", "You noticed, observed, and identified the robin.", "ROBIN", Color.rgb(34,197,94));
+            showRewardScreen(campWorld.rewardTitle, campWorld.rewardDescription, campWorld.rewardBadge, Color.rgb(34,197,94));
             mode = FIELD;
             quiz = null;
         }
@@ -981,7 +987,7 @@ public class NativeJungleActivity extends Activity {
                 campEncounter.observeDistance((float)Math.hypot(px - campWorld.birdX, py - campWorld.birdY));
                 if (before == EncounterDirector.State.EXPLORE && campEncounter.state() == EncounterDirector.State.NOTICE) {
                     playSfx(4);
-                    log = "A small song comes from the lantern path.";
+                    log = campWorld.discoveryCue;
                 }
             }
             adventureFrame = adventureCamera.update(px, py, campWorld, campEncounter.state() == EncounterDirector.State.COMPLETE);
@@ -1170,7 +1176,7 @@ public class NativeJungleActivity extends Activity {
             int s = stageIndex % 3;
             if(s == 0) {
                 stars.add(new Dot(.48f,.22f)); stars.add(new Dot(.18f,.30f)); stars.add(new Dot(.32f,.54f)); stars.add(new Dot(.64f,.54f)); stars.add(new Dot(.84f,.42f));
-                birds.add(new Bird(.48f,.16f,"파랑새","🐦")); birds.add(new Bird(.14f,.42f,"초록새","🦜")); birds.add(new Bird(.47f,.66f,"노랑새","🐤")); birds.add(new Bird(.83f,.54f,"빨강새","🐦"));
+                birds.add(new Bird(campWorld.birdX,campWorld.birdY,campWorld.birdDisplayName,campWorld.birdIcon)); birds.add(new Bird(.14f,.42f,"초록새","🦜")); birds.add(new Bird(.47f,.66f,"노랑새","🐤")); birds.add(new Bird(.83f,.54f,"빨강새","🐦"));
             } else if(s == 1) {
                 stars.add(new Dot(.24f,.42f)); stars.add(new Dot(.30f,.66f)); stars.add(new Dot(.48f,.28f)); stars.add(new Dot(.68f,.38f)); stars.add(new Dot(.78f,.64f));
                 birds.add(new Bird(.22f,.72f,"파랑새","🐦")); birds.add(new Bird(.38f,.58f,"초록새","🦜")); birds.add(new Bird(.58f,.34f,"노랑새","🐤")); birds.add(new Bird(.72f,.52f,"빨강새","🐦"));
@@ -1378,28 +1384,29 @@ public class NativeJungleActivity extends Activity {
             p.setStyle(Paint.Style.FILL); p.setColor(Color.argb(230,255,255,255)); c.drawRoundRect(bubble,22,22,p);
             p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(4); p.setColor(Color.rgb(250,204,21)); c.drawRoundRect(bubble,22,22,p);
             p.setStyle(Paint.Style.FILL); p.setColor(Color.rgb(15,23,42)); uiText(17); p.setFakeBoldText(true);
-            c.drawText(inputActions.inputMode() == InputActionMapper.InputMode.TOUCH ? "Tap A to observe" : "A  Observe robin",bubble.left+20,bubble.top+29,p);
+            c.drawText(inputActions.inputMode() == InputActionMapper.InputMode.TOUCH ? "A를 눌러 관찰하기" : "A  파랑새 관찰",bubble.left+20,bubble.top+29,p);
         }
 
         void drawJng001Objective(Canvas c,int w,int h) {
             RectF chip = new RectF(w*.27f,24,w*.73f,72);
             p.setStyle(Paint.Style.FILL); p.setColor(Color.argb(225,255,255,255)); c.drawRoundRect(chip,24,24,p);
             p.setColor(Color.rgb(15,118,110)); uiText(16); p.setFakeBoldText(true);
-            String text = campEncounter.state() == EncounterDirector.State.COMPLETE ? "Objective complete — return to the Camp lantern" : "Objective — follow the lantern path to the robin";
+            String text;
+            text = campEncounter.state() == EncounterDirector.State.COMPLETE ? "목표 완료 — 캠프 등불로 돌아가자" : campWorld.objective;
             c.drawText(text,chip.left+18,chip.top+31,p);
         }
 
         void drawJng001Controls(Canvas c,int w,int h) {
             if (inputActions.inputMode() == InputActionMapper.InputMode.CONTROLLER) {
                 RectF r = new RectF(24,86,420,150); p.setStyle(Paint.Style.FILL); p.setColor(Color.argb(185,15,23,42)); c.drawRoundRect(r,22,22,p);
-                p.setColor(Color.WHITE); uiText(14); p.setFakeBoldText(true); c.drawText("A Observe   B Back   X Mission   Y Closet   Start Pause",r.left+14,r.top+32,p); return;
+                p.setColor(Color.WHITE); uiText(14); p.setFakeBoldText(true); c.drawText("A 관찰   B 돌아가기   X 미션   Y 옷장   Start 일시정지",r.left+14,r.top+32,p); return;
             }
             float radius = Math.min(w,h)*.12f, sx = w*.16f, sy = h*.80f, ax = w*.86f, ay = h*.80f;
             p.setStyle(Paint.Style.FILL); p.setColor(Color.argb(95,15,23,42)); c.drawCircle(sx,sy,radius,p);
             p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(4); p.setColor(Color.argb(190,255,255,255)); c.drawCircle(sx,sy,radius,p);
-            p.setStyle(Paint.Style.FILL); p.setColor(Color.WHITE); uiText(14); p.setFakeBoldText(true); c.drawText("MOVE",sx-21,sy+6,p);
+            p.setStyle(Paint.Style.FILL); p.setColor(Color.WHITE); uiText(14); p.setFakeBoldText(true); c.drawText("이동",sx-21,sy+6,p);
             p.setColor(Color.rgb(14,165,233)); c.drawCircle(ax,ay,radius*.72f,p); p.setColor(Color.WHITE); uiText(22); c.drawText("A",ax-8,ay+8,p);
-            uiText(11); c.drawText("OBSERVE",ax-29,ay+radius*.72f+18,p);
+            uiText(11); c.drawText("관찰",ax-14,ay+radius*.72f+18,p);
         }
 
         void ensureEduniSprites() {

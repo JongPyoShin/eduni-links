@@ -15,4 +15,13 @@ public class AdventureCameraControllerTest {
         assertEquals(camp.landmarkX, landmark.landmarkX, .0001f);
         assertEquals(camp.landmarkY, landmark.landmarkY, .0001f);
     }
+
+    @Test public void campIdentityIsACompleteSingleSourceOfTruth() {
+        StageWorldData camp = StageWorldData.camp();
+        assertEquals("camp_bluebird", camp.birdId);
+        assertEquals("파랑새", camp.birdDisplayName);
+        assertEquals("파란색", camp.quizAnswer);
+        assertEquals("파란색", camp.quizOptions[0]);
+        assertEquals("collection_camp_bluebird", camp.collectionKey);
+    }
 }

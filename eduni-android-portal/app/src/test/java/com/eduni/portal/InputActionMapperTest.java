@@ -26,4 +26,16 @@ public class InputActionMapperTest {
         assertEquals(InputActionMapper.InputMode.CONTROLLER, mapper.inputMode());
         assertEquals(.5f, mapper.moveX(), .0001f);
     }
+
+    @Test public void releaseTouchAndResetClearStaleMovement() {
+        InputActionMapper mapper = new InputActionMapper();
+        mapper.setTouchVector(.7f, -.6f);
+        mapper.releaseTouch();
+        assertEquals(0f, mapper.moveX(), .0001f);
+        assertEquals(0f, mapper.moveY(), .0001f);
+        mapper.setTouchVector(-.7f, .6f);
+        mapper.reset();
+        assertEquals(0f, mapper.moveX(), .0001f);
+        assertEquals(0f, mapper.moveY(), .0001f);
+    }
 }

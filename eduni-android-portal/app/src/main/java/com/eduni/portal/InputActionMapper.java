@@ -60,6 +60,16 @@ public final class InputActionMapper {
         touchY = deadZone(y);
     }
 
+    /** Releases only touch movement after a cancel or interrupted gesture. */
+    public void releaseTouch() { touchX = 0f; touchY = 0f; }
+
+    /** Clears every movement source before a new stage/session starts. */
+    public void reset() {
+        left = false; right = false; up = false; down = false;
+        analogX = 0f; analogY = 0f;
+        releaseTouch();
+    }
+
     public float moveX() { return inputMode == InputMode.TOUCH ? touchX : analogX + (left ? -1f : 0f) + (right ? 1f : 0f); }
     public float moveY() { return inputMode == InputMode.TOUCH ? touchY : analogY + (up ? -1f : 0f) + (down ? 1f : 0f); }
 

@@ -110,9 +110,15 @@ def default_child_profile_id(path: Path | None = None) -> int:
         return int(cursor.lastrowid)
 
 
-def start_activity_session(activity_id: str, difficulty: str, path: Path | None = None) -> int:
-    """Create one reusable Portal activity session and return its identifier."""
-    profile_id = default_child_profile_id(path)
+def start_activity_session(
+    activity_id: str,
+    difficulty: str,
+    path: Path | None = None,
+    *,
+    child_profile_id: int | None = None,
+) -> int:
+    """Create one Portal activity session for the selected child profile."""
+    profile_id = child_profile_id if child_profile_id is not None else default_child_profile_id(path)
     with database_connection(path) as conn:
         cursor = conn.execute(
             """
@@ -153,38 +159,60 @@ def complete_activity_session(
 
 
 def latest_completed_activity_session(
-    activity_id: str, path: Path | None = None
+    activity_id: str,
+    path: Path | None = None,
+    *,
+    child_profile_id: int | None = None,
 ) -> dict[str, Any] | None:
+    """Return the latest completed session, optionally scoped to one child profile."""
     initialize_database(path)
+    where_clause = "activity_id = ? AND completed = 1"
+    parameters: list[Any] = [activity_id]
+    if child_profile_id is not None:
+        where_clause += " AND child_profile_id = ?"
+        parameters.append(child_profile_id)
     with database_connection(path) as conn:
         row = conn.execute(
-            """
+            f"""
             SELECT id, child_profile_id, activity_id, difficulty, started_at, completed_at,
                    completed, hint_count, retry_count, result_summary_json
               FROM activity_session
-             WHERE activity_id = ? AND completed = 1
+             WHERE {where_clause}
              ORDER BY completed_at DESC, id DESC
              LIMIT 1
             """,
-            (activity_id,),
+            parameters,
         ).fetchone()
     return activity_session_from_row(row) if row is not None else None
 
 
-def recent_activity_sessions(limit: int = 10, path: Path | None = None) -> list[dict[str, Any]]:
+def recent_activity_sessions(
+    limit: int = 10,
+    path: Path | None = None,
+    *,
+    child_profile_id: int | None = None,
+) -> list[dict[str, Any]]:
+    """Return recent sessions for one child, or all children when explicitly desired."""
     if limit < 1:
         raise ValueError("limit must be positive")
     initialize_database(path)
+    where_clause = ""
+    parameters: list[Any] = []
+    if child_profile_id is not None:
+        where_clause = "WHERE child_profile_id = ?"
+        parameters.append(child_profile_id)
+    parameters.append(limit)
     with database_connection(path) as conn:
         rows = conn.execute(
-            """
+            f"""
             SELECT id, child_profile_id, activity_id, difficulty, started_at, completed_at,
                    completed, hint_count, retry_count, result_summary_json
               FROM activity_session
+             {where_clause}
              ORDER BY COALESCE(completed_at, started_at) DESC, id DESC
              LIMIT ?
             """,
-            (limit,),
+            parameters,
         ).fetchall()
     return [activity_session_from_row(row) for row in rows]
 

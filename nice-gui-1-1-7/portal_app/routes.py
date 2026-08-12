@@ -8,7 +8,13 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from nicegui import app, ui
 
 from .content_loader import load_activities
-from .database import configured_parent_pin_hash, initialize_database, recent_activity_sessions, verify_parent_pin
+from .database import (
+    configured_parent_pin_hash,
+    default_child_profile_id,
+    initialize_database,
+    recent_activity_sessions,
+    verify_parent_pin,
+)
 from .jungle_expedition import JUNGLE_EXPEDITION_ACTIVITY_ID, render_jungle_expedition
 from .pattern_train import render_pattern_train
 from .registry import get_world
@@ -346,7 +352,8 @@ def register_pages() -> None:
                     with ui.card().classes("portal-card"):
                         ui.label("최근 학습 기록").classes("text-h6 text-weight-bold")
                         activity_titles = {activity.id: activity.title for activity in load_activities()}
-                        sessions = recent_activity_sessions()
+                        child_profile_id = default_child_profile_id()
+                        sessions = recent_activity_sessions(child_profile_id=child_profile_id)
                         if not sessions:
                             ui.label("아직 저장된 학습 기록이 없습니다.").classes("muted")
                             return

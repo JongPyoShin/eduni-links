@@ -8,6 +8,7 @@ from pathlib import Path
 from portal_app.database import (
     complete_activity_session,
     connect_database,
+    default_child_profile_id,
     hash_parent_pin,
     initialize_database,
     latest_completed_activity_session,
@@ -70,10 +71,17 @@ class DatabaseTests(unittest.TestCase):
 
             complete_activity_session(
                 session_id,
-                score=100,
+                score=93,
                 hint_count=2,
                 retry_count=1,
-                result_summary={"correct_answers": 15, "total_questions": 15, "levels_completed": 3},
+                result_summary={
+                    "correct_answers": 15,
+                    "first_try_correct_answers": 14,
+                    "total_questions": 15,
+                    "levels_completed": 3,
+                    "retry_count": 1,
+                    "hint_count": 2,
+                },
                 path=db_path,
             )
 
@@ -84,8 +92,10 @@ class DatabaseTests(unittest.TestCase):
             self.assertTrue(saved["completed_at"])
             self.assertEqual(2, saved["hint_count"])
             self.assertEqual(1, saved["retry_count"])
-            self.assertEqual(100, saved["result_summary"]["score"])
+            self.assertEqual(93, saved["result_summary"]["score"])
             self.assertEqual(15, saved["result_summary"]["correct_answers"])
+            self.assertEqual(1, saved["result_summary"]["retry_count"])
+            self.assertEqual(2, saved["result_summary"]["hint_count"])
 
     def test_recent_sessions_supply_parent_summary_readback(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -102,6 +112,41 @@ class DatabaseTests(unittest.TestCase):
             self.assertEqual("math.pattern_train.001", sessions[0]["activity_id"])
             self.assertEqual("completed", sessions[0]["status"])
             self.assertEqual(80, sessions[0]["result_summary"]["score"])
+
+    def test_profile_scoped_queries_do_not_mix_other_child_results(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "portal.sqlite3"
+            first_profile_id = default_child_profile_id(db_path)
+            conn = connect_database(db_path)
+            try:
+                second_profile_id = int(
+                    conn.execute(
+                        "INSERT INTO child_profile (display_name, created_at, active) VALUES (?, ?, 0)",
+                        ("Another learner", "2026-08-12T00:00:00+00:00"),
+                    ).lastrowid
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
+            first_session = start_activity_session(
+                "math.pattern_train.001", "normal", db_path, child_profile_id=first_profile_id
+            )
+            complete_activity_session(first_session, score=100, result_summary={}, path=db_path)
+            second_session = start_activity_session(
+                "math.pattern_train.001", "normal", db_path, child_profile_id=second_profile_id
+            )
+            complete_activity_session(second_session, score=60, result_summary={}, path=db_path)
+
+            first_latest = latest_completed_activity_session(
+                "math.pattern_train.001", db_path, child_profile_id=first_profile_id
+            )
+            first_recent = recent_activity_sessions(path=db_path, child_profile_id=first_profile_id)
+            self.assertIsNotNone(first_latest)
+            assert first_latest is not None
+            self.assertEqual(first_profile_id, first_latest["child_profile_id"])
+            self.assertEqual(100, first_latest["result_summary"]["score"])
+            self.assertEqual([first_profile_id], [session["child_profile_id"] for session in first_recent])
 
 
 if __name__ == "__main__":

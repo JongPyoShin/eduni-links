@@ -41,9 +41,13 @@
 ## 3. 현재 기준선 이슈
 
 - `JNG-000` · Jungle 2.0 Baseline Audit & Canonical Runtime
-- 현재 저장소에는 최소 두 정글 구현이 공존한다.
-  - `portal_app/jungle_expedition.py`: 트럭형 채집 MVP 계열
-  - `portal_app/static_games/eduni_jungle.html`: 캐릭터 직접 이동 Adventure 계열
+- 현재 저장소에는 최소 세 정글 구현이 공존한다.
+  - `portal_app/jungle_expedition.py`: 트럭형 채집 MVP 계열. 현재 activity route에서는 `/jungle`로 redirect되므로 legacy 가능성이 높다.
+  - `portal_app/static_games/eduni_jungle.html`: `/jungle`의 현재 production entry. 2D 캐릭터 직접 이동 Adventure 계열.
+  - `portal_app/static_games/eduni_jungle_3d.html`: `/jungle-3d`의 Babylon.js 3D 구현. character/camera/joystick/world exploration 구조가 가장 발전해 있다.
+- JNG-000에서는 다음 두 개를 구분해서 결정한다.
+  - **production entry canonical**: 현재 사용자가 실제로 들어가는 경로
+  - **Jungle 2.0 target canonical**: 앞으로 완성도를 높일 기준 구현
 - JNG-000 완료 전에는 대규모 신규 기능을 추가하지 않는다.
 
 ## 4. 작업 단위
@@ -94,7 +98,8 @@ focused test + repository validation.
 ## 7. Jungle 2.0 Track
 
 ### P0 · Baseline
-- canonical runtime
+- production entry canonical
+- Jungle 2.0 target canonical
 - legacy/keep/migrate 분류
 - route/data/save/test 기준선
 
@@ -157,18 +162,19 @@ Read only:
 - targeted jungle files discovered from those documents
 
 Do not implement new gameplay yet.
+Audit all three current implementations.
 Produce:
 1. actual jungle routes and entry points
-2. canonical runtime recommendation
+2. production entry canonical and Jungle 2.0 target canonical recommendation
 3. `keep / migrate / legacy / delete-later` file classification
 4. state/save/question/collection dependency map
-5. movement/camera/game-loop technical risks
+5. 2D vs 3D movement/camera/game-loop technical risks
 6. test coverage and missing tests
 7. P0/P1 backlog ordered by impact and risk
 
 ## 9. Manus JNG-000 Audit Prompt
 
-Evaluate the currently used character-movement Jungle game as a game for a young child.
+Evaluate the current character-movement Jungle implementations, with special focus on the 3D `/jungle-3d` experience as the likely Jungle 2.0 candidate.
 Do not redesign unrelated portal screens.
 Report:
 1. first 30-second comprehension
@@ -180,7 +186,8 @@ Report:
 7. quiz interruption cost
 8. HUD clutter/readability
 9. portrait/landscape mobile usability
-10. top 10 improvements ranked P0/P1/P2
+10. 2D vs 3D direction recommendation
+11. top 10 improvements ranked P0/P1/P2
 
 For every item use:
 `problem / why it matters / recommended change / priority`.

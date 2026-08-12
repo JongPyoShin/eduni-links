@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -20,8 +21,22 @@ def connect(db_path: Path = DEFAULT_DB_PATH) -> sqlite3.Connection:
     return conn
 
 
+@contextmanager
+def database_connection(db_path: Path = DEFAULT_DB_PATH):
+    """Commit or roll back and always close the SQLite handle."""
+    conn = connect(db_path)
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
 def init_jungle_storage(db_path: Path = DEFAULT_DB_PATH) -> None:
-    with connect(db_path) as conn:
+    with database_connection(db_path) as conn:
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS jungle_bird_collection (
@@ -60,7 +75,7 @@ def record_capture(
     init_jungle_storage(db_path)
     now = utc_now()
     bird_id = str(bird_info["id"])
-    with connect(db_path) as conn:
+    with database_connection(db_path) as conn:
         conn.execute(
             """
             INSERT INTO jungle_bird_collection (
@@ -113,7 +128,7 @@ def record_capture(
 
 def load_collection(db_path: Path = DEFAULT_DB_PATH) -> list[dict[str, str | int]]:
     init_jungle_storage(db_path)
-    with connect(db_path) as conn:
+    with database_connection(db_path) as conn:
         rows = conn.execute(
             """
             SELECT bird_id, bird_name, emoji, rarity, rarity_label, stars,
@@ -127,13 +142,13 @@ def load_collection(db_path: Path = DEFAULT_DB_PATH) -> list[dict[str, str | int
 
 def count_total_captures(db_path: Path = DEFAULT_DB_PATH) -> int:
     init_jungle_storage(db_path)
-    with connect(db_path) as conn:
+    with database_connection(db_path) as conn:
         row = conn.execute("SELECT COALESCE(SUM(capture_count), 0) AS total FROM jungle_bird_collection").fetchone()
     return int(row["total"])
 
 
 def clear_jungle_storage(db_path: Path = DEFAULT_DB_PATH) -> None:
     init_jungle_storage(db_path)
-    with connect(db_path) as conn:
+    with database_connection(db_path) as conn:
         conn.execute("DELETE FROM jungle_capture_history")
         conn.execute("DELETE FROM jungle_bird_collection")

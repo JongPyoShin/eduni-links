@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import sys
 import unittest
 from types import SimpleNamespace
@@ -160,9 +161,20 @@ class JungleQuestionSelectorTests(unittest.TestCase):
     def test_jungle_correct_answer_is_counted_once_and_cargo_groups_persisted_duplicates(self) -> None:
         fake_ui.created.clear()
         fake_ui.contexts.clear()
+        original_nicegui = sys.modules.get("nicegui")
         sys.modules["nicegui"] = SimpleNamespace(ui=fake_ui)
 
         import portal_app.jungle_expedition as jungle_expedition
+        jungle_expedition = importlib.reload(jungle_expedition)
+
+        def restore_nicegui_module() -> None:
+            if original_nicegui is None:
+                sys.modules.pop("nicegui", None)
+            else:
+                sys.modules["nicegui"] = original_nicegui
+            importlib.reload(jungle_expedition)
+
+        self.addCleanup(restore_nicegui_module)
 
         pigeon = dict(BIRDS[2])
         question = {
@@ -205,7 +217,13 @@ class JungleQuestionSelectorTests(unittest.TestCase):
         jungle_expedition.render_jungle_expedition()
 
         def visible_buttons(label):
-            return [element for element in fake_ui.created if element.kind == "button" and element.visible and element.label == label]
+            return [
+                element
+                for element in fake_ui.created
+                if element.kind == "button"
+                and element.visible
+                and (element.label == label or element.label.endswith(f" {label}"))
+            ]
 
         def click(label):
             matches = visible_buttons(label)

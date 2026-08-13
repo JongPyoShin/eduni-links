@@ -68,6 +68,9 @@ public class NativeJungleActivity extends Activity {
         // EDUNI_NATIVE_JUNGLE_SPRITE_ASSETS_PATCH_V11
         android.graphics.Bitmap eduniPlayerSprite, eduniBirdSprite, eduniStarSprite, eduniSparkleSprite;
         android.graphics.Bitmap[] eduniPlayerFrontSprites, eduniPlayerSideSprites, eduniPlayerBackSprites, eduniBirdTargetSprites;
+        android.graphics.Bitmap[] playerMvpFrontIdle, playerMvpBackIdle, playerMvpLeftIdle, playerMvpRightIdle;
+        android.graphics.Bitmap[] playerMvpFrontWalk, playerMvpBackWalk, playerMvpLeftWalk, playerMvpRightWalk;
+        boolean playerMvpSpritesLoaded = false;
         // EDUNI_NATIVE_JUNGLE_MOVE_MASK_PATCH_V26_3
         android.graphics.Bitmap[] eduniMoveMasksV26_3;
         boolean eduniMoveMaskLoadedV26_3 = false;
@@ -86,6 +89,8 @@ public class NativeJungleActivity extends Activity {
         // JNG-001: keep Android events at the edge; the Canvas loop consumes intents and state.
         final InputActionMapper inputActions = new InputActionMapper();
         final PlayerLocomotionController locomotion = new PlayerLocomotionController();
+        final PlayerSpriteMvpState playerMvpState = new PlayerSpriteMvpState();
+        final PlayerSpriteMvpLayout playerMvpLayout = new PlayerSpriteMvpLayout();
         final AdventureCameraController adventureCamera = new AdventureCameraController();
         final EncounterDirector campEncounter = new EncounterDirector();
         final CampBirdInteractionRouter campBirdRouter = new CampBirdInteractionRouter();
@@ -94,6 +99,7 @@ public class NativeJungleActivity extends Activity {
         final StageWorldData campWorld = StageWorldData.camp();
         AdventureCameraController.Frame adventureFrame;
         long lastMovementUpdateMs = 0L;
+        boolean playerMvpWalking = false;
         int mode = FIELD, select = 0, outfitIndex = 0, foundStars = 0, caughtBirds = 0, hearts = 3;
         // EDUNI_NATIVE_JUNGLE_START_REWARD_PATCH_V12
         boolean showStartScreen = true;
@@ -1048,6 +1054,7 @@ public class NativeJungleActivity extends Activity {
                     ? locomotion.updateDigital(dt, x, y, digitalSpeedRatio) : locomotion.update(dt, x, y);
             eduniLastMoveXV26_6 = step.facingX;
             eduniLastMoveYV26_6 = step.facingY;
+            playerMvpWalking = step.moving;
             eduniMoveWithMaskV26_3(step.dx, step.dy);
             if (stageIndex == 0 && !birds.isEmpty()) {
                 EncounterDirector.State before = campEncounter.state();
@@ -1477,7 +1484,8 @@ public class NativeJungleActivity extends Activity {
         }
 
         void ensureEduniSprites() {
-            if (eduniPlayerSprite != null) return;
+            if (playerMvpSpritesLoaded) return;
+            playerMvpSpritesLoaded = true;
             android.content.res.Resources res = getResources();
             String pkg = getContext().getPackageName();
             int playerId = res.getIdentifier("eduni_jungle_player","drawable",pkg);
@@ -1492,6 +1500,14 @@ public class NativeJungleActivity extends Activity {
             eduniPlayerSideSprites = eduniLoadSpriteSetV26_6("eduni_player_side_", 2);
             eduniPlayerBackSprites = eduniLoadSpriteSetV26_6("eduni_player_back_", 2);
             eduniBirdTargetSprites = eduniLoadSpriteSetV26_6("eduni_bird_target_", 24);
+            playerMvpFrontIdle = eduniLoadNamedSpriteSet("player_front_idle_00_v01", 1);
+            playerMvpBackIdle = eduniLoadNamedSpriteSet("player_back_idle_00_v01", 1);
+            playerMvpLeftIdle = eduniLoadNamedSpriteSet("player_left_idle_00_v01", 1);
+            playerMvpRightIdle = eduniLoadNamedSpriteSet("player_right_idle_00_v01", 1);
+            playerMvpFrontWalk = eduniLoadNamedSpriteSet("player_front_walk_", 4);
+            playerMvpBackWalk = eduniLoadNamedSpriteSet("player_back_walk_", 4);
+            playerMvpLeftWalk = eduniLoadNamedSpriteSet("player_left_walk_", 4);
+            playerMvpRightWalk = eduniLoadNamedSpriteSet("player_right_walk_", 4);
             if(eduniPlayerFrontSprites.length > 0) eduniPlayerSprite = eduniPlayerFrontSprites[0];
             if(eduniBirdTargetSprites.length > 0) eduniBirdSprite = eduniBirdTargetSprites[0];
         }
@@ -1508,6 +1524,22 @@ public class NativeJungleActivity extends Activity {
                     android.graphics.Bitmap b = android.graphics.BitmapFactory.decodeResource(res, id);
                     if(b != null) list.add(b);
                 } catch(Exception ignored) {}
+            }
+            return list.toArray(new android.graphics.Bitmap[0]);
+        }
+
+        android.graphics.Bitmap[] eduniLoadNamedSpriteSet(String prefix, int count) {
+            java.util.ArrayList<android.graphics.Bitmap> list = new java.util.ArrayList<>();
+            android.content.res.Resources res = getResources();
+            String pkg = getContext().getPackageName();
+            for (int i = 0; i < count; i++) {
+                String name = count == 1 ? prefix : prefix + "0" + i + "_v01";
+                int id = res.getIdentifier(name, "drawable", pkg);
+                if (id == 0) continue;
+                try {
+                    android.graphics.Bitmap frame = android.graphics.BitmapFactory.decodeResource(res, id);
+                    if (frame != null) list.add(frame);
+                } catch (Exception ignored) {}
             }
             return list.toArray(new android.graphics.Bitmap[0]);
         }
@@ -1550,6 +1582,27 @@ public class NativeJungleActivity extends Activity {
             return eduniPickBitmapV26_6(eduniPlayerSideSprites, frame);
         }
 
+        android.graphics.Bitmap playerMvpFrame() {
+            PlayerSpriteMvpState.Facing facing = playerMvpState.facingFor(eduniLastMoveXV26_6, eduniLastMoveYV26_6);
+            int frame = playerMvpState.frameFor(playerMvpWalking, System.currentTimeMillis());
+            android.graphics.Bitmap[] frames;
+            if (facing == PlayerSpriteMvpState.Facing.BACK) frames = playerMvpWalking ? playerMvpBackWalk : playerMvpBackIdle;
+            else if (facing == PlayerSpriteMvpState.Facing.LEFT) frames = playerMvpWalking ? playerMvpLeftWalk : playerMvpLeftIdle;
+            else if (facing == PlayerSpriteMvpState.Facing.RIGHT) frames = playerMvpWalking ? playerMvpRightWalk : playerMvpRightIdle;
+            else frames = playerMvpWalking ? playerMvpFrontWalk : playerMvpFrontIdle;
+            return eduniPickBitmapV26_6(frames, frame);
+        }
+
+        void drawPlayerMvpAtFoot(Canvas c, android.graphics.Bitmap frame, float footX, float footY, float width) {
+            if (frame == null) return;
+            // Source contract: 192x256 frame, foot-center pivot (96,232).
+            float height = playerMvpLayout.heightForWidth(width);
+            float left = playerMvpLayout.leftForFoot(footX, width);
+            float top = playerMvpLayout.topForFoot(footY, width);
+            android.graphics.Paint bp = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG | android.graphics.Paint.FILTER_BITMAP_FLAG | android.graphics.Paint.DITHER_FLAG);
+            c.drawBitmap(frame, null, new RectF(left, top, left + width, top + height), bp);
+        }
+
         void drawEduniSpriteAssets(Canvas c,int w,int h) {
             ensureEduniSprites();
             RectF mr = eduniMapRectV26_4(w,h);
@@ -1575,9 +1628,12 @@ public class NativeJungleActivity extends Activity {
             p.setStyle(Paint.Style.FILL);
             p.setColor(Color.argb(50,0,0,0));
             c.drawOval(new RectF(x-unit*.036f,y+unit*.038f,x+unit*.036f,y+unit*.053f),p);
-            android.graphics.Bitmap playerSprite = eduniPickPlayerSpriteV26_6();
+            android.graphics.Bitmap playerSprite = playerMvpFrame();
+            boolean usingPlayerMvp = playerSprite != null;
+            if (playerSprite == null) playerSprite = eduniPickPlayerSpriteV26_6();
             if(playerSprite == null) playerSprite = eduniPlayerSprite;
-            drawEduniBitmapCentered(c, playerSprite, x, y-unit*.012f, unit * .105f, eduniLastMoveXV26_6 < 0 && Math.abs(eduniLastMoveXV26_6) > Math.abs(eduniLastMoveYV26_6));
+            if (usingPlayerMvp) drawPlayerMvpAtFoot(c, playerSprite, x, y, Math.max(60f, Math.min(72f, unit * .057f)));
+            else drawEduniBitmapCentered(c, playerSprite, x, y-unit*.012f, unit * .105f, eduniLastMoveXV26_6 < 0 && Math.abs(eduniLastMoveXV26_6) > Math.abs(eduniLastMoveYV26_6));
         }
 
 

@@ -2,7 +2,7 @@ package com.eduni.portal;
 
 import android.view.KeyEvent;
 
-/** Maps physical keys, sticks, and touch affordances to the same game intent. */
+/** Maps physical keys, sticks, and touch affordances to game intents. */
 public final class InputActionMapper {
     public static final float TOUCH_DEAD_ZONE = 0.12f;
 
@@ -10,6 +10,9 @@ public final class InputActionMapper {
     public enum InputMode { TOUCH, CONTROLLER }
 
     private boolean left, right, up, down;
+    private boolean keyDpadObserved;
+    private Action lastDigitalDirection = Action.NONE;
+    private Action hatDigitalDirection = Action.NONE;
     private float analogX, analogY;
     private float touchX, touchY;
     private InputMode inputMode = InputMode.CONTROLLER;
@@ -30,8 +33,7 @@ public final class InputActionMapper {
     }
 
     public boolean isMovement(Action action) {
-        return action == Action.MOVE_LEFT || action == Action.MOVE_RIGHT
-                || action == Action.MOVE_UP || action == Action.MOVE_DOWN;
+        return action == Action.MOVE_LEFT || action == Action.MOVE_RIGHT || action == Action.MOVE_UP || action == Action.MOVE_DOWN;
     }
 
     public void setKey(Action action, boolean pressed) {
@@ -40,12 +42,34 @@ public final class InputActionMapper {
         else if (action == Action.MOVE_RIGHT) right = pressed;
         else if (action == Action.MOVE_UP) up = pressed;
         else if (action == Action.MOVE_DOWN) down = pressed;
+        else return;
+
+        keyDpadObserved = true;
+
+        if (pressed) {
+            // A D-pad is a four-way control: the most recently pressed direction is authoritative.
+            lastDigitalDirection = action;
+            analogX = 0f;
+            analogY = 0f;
+        } else if (lastDigitalDirection == action) {
+            lastDigitalDirection = latestHeldDirection();
+        }
+        if (keyDpadObserved) hatDigitalDirection = Action.NONE;
     }
 
     public void setAnalog(float x, float y) {
         inputMode = InputMode.CONTROLLER;
+        if (hasDigitalDpadIntent()) return;
         analogX = deadZone(x);
         analogY = deadZone(y);
+    }
+
+    /** Handles controllers that emit HAT events instead of D-pad KeyEvents. */
+    public void setHat(float x, float y) {
+        if (keyDpadObserved) return;
+        if (Math.abs(x) < TOUCH_DEAD_ZONE && Math.abs(y) < TOUCH_DEAD_ZONE) hatDigitalDirection = Action.NONE;
+        else if (Math.abs(x) >= Math.abs(y)) hatDigitalDirection = x < 0f ? Action.MOVE_LEFT : Action.MOVE_RIGHT;
+        else hatDigitalDirection = y < 0f ? Action.MOVE_UP : Action.MOVE_DOWN;
     }
 
     public void useTouch() { inputMode = InputMode.TOUCH; }
@@ -64,16 +88,45 @@ public final class InputActionMapper {
     public void releaseTouch() { touchX = 0f; touchY = 0f; }
 
     /** Clears every movement source before a new stage/session starts. */
-    public void reset() {
+    public void reset() { clearMovement(); }
+
+    public void clearMovement() {
         left = false; right = false; up = false; down = false;
+        lastDigitalDirection = Action.NONE;
+        hatDigitalDirection = Action.NONE;
+        keyDpadObserved = false;
         analogX = 0f; analogY = 0f;
         releaseTouch();
     }
 
-    public float moveX() { return inputMode == InputMode.TOUCH ? touchX : analogX + (left ? -1f : 0f) + (right ? 1f : 0f); }
-    public float moveY() { return inputMode == InputMode.TOUCH ? touchY : analogY + (up ? -1f : 0f) + (down ? 1f : 0f); }
+    public boolean hasDigitalDpadIntent() { return activeDigitalDirection() != Action.NONE; }
+    public boolean hasKeyDpadIntent() { return lastDigitalDirection != Action.NONE; }
 
-    public static float deadZone(float value) {
-        return Math.abs(value) < TOUCH_DEAD_ZONE ? 0f : value;
+    public float moveX() {
+        if (inputMode == InputMode.TOUCH) return touchX;
+        Action digital = activeDigitalDirection();
+        if (digital != Action.NONE) return digital == Action.MOVE_LEFT ? -1f : digital == Action.MOVE_RIGHT ? 1f : 0f;
+        return analogX;
     }
+
+    public float moveY() {
+        if (inputMode == InputMode.TOUCH) return touchY;
+        Action digital = activeDigitalDirection();
+        if (digital != Action.NONE) return digital == Action.MOVE_UP ? -1f : digital == Action.MOVE_DOWN ? 1f : 0f;
+        return analogY;
+    }
+
+    private Action latestHeldDirection() {
+        if (left) return Action.MOVE_LEFT;
+        if (right) return Action.MOVE_RIGHT;
+        if (up) return Action.MOVE_UP;
+        if (down) return Action.MOVE_DOWN;
+        return Action.NONE;
+    }
+
+    private Action activeDigitalDirection() {
+        return lastDigitalDirection != Action.NONE ? lastDigitalDirection : hatDigitalDirection;
+    }
+
+    public static float deadZone(float value) { return Math.abs(value) < TOUCH_DEAD_ZONE ? 0f : value; }
 }

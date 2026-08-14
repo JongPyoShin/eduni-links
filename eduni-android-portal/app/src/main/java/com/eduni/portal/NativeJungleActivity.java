@@ -96,7 +96,10 @@ public class NativeJungleActivity extends Activity {
         final CampBirdInteractionRouter campBirdRouter = new CampBirdInteractionRouter();
         final QuizLoadPolicy<Quiz> remoteQuizCache = new QuizLoadPolicy<>();
         final QuizModalPolicy quizModalPolicy = new QuizModalPolicy();
+        final EncounterDirector waterfallEncounter = new EncounterDirector();
+        final AuthoredStageBirdRouter authoredBirdRouter = new AuthoredStageBirdRouter();
         final StageWorldData campWorld = StageWorldData.camp();
+        final StageWorldData waterfallWorld = StageWorldData.waterfall();
         AdventureCameraController.Frame adventureFrame;
         long lastMovementUpdateMs = 0L;
         boolean playerMvpWalking = false;
@@ -152,7 +155,7 @@ public class NativeJungleActivity extends Activity {
         void reset() {
             eduniApplyStageSpawnV26_3(); foundStars = 0; caughtBirds = 0; hearts = 3; mode = FIELD; select = 0;
             stars.clear(); birds.clear(); sparks.clear(); starClearBonus=false; birdClearBonus=false;
-            campEncounter.reset(); locomotion.stop(); inputActions.reset(); campTouchStickHeld = false; eduniTouchTargetActiveV26_4 = false; lastMovementUpdateMs = 0L; digitalDpadDownAtMs = -1L;
+            campEncounter.reset(); waterfallEncounter.reset(); locomotion.stop(); inputActions.reset(); campTouchStickHeld = false; eduniTouchTargetActiveV26_4 = false; lastMovementUpdateMs = 0L; digitalDpadDownAtMs = -1L;
             quiz = null; quizExit.reset();
             eduniPopulateStageObjectsV26_5();
             log = "새 근처에서 A를 눌러 문제를 풀어봐.";
@@ -703,6 +706,7 @@ public class NativeJungleActivity extends Activity {
             mode = FIELD;
             select = 0;
             if (stageIndex == 0 && campEncounter.state() == EncounterDirector.State.LEARNING) campEncounter.reset();
+            if (stageIndex == 1 && waterfallEncounter.state() == EncounterDirector.State.LEARNING) waterfallEncounter.reset();
             log = "탐험으로 돌아왔어. 새에게 다시 다가가서 A를 눌러봐.";
             invalidate();
         }
@@ -729,6 +733,18 @@ public class NativeJungleActivity extends Activity {
         void catchBird() {
             Bird b = nearest();
             if (b == null) { log = "새에게 더 가까이 가서 A!"; return; }
+            if (stageIndex == 1) {
+                AuthoredStageBirdRouter.Route waterfallRoute = authoredBirdRouter.route(waterfallWorld, nearestBirdIndex(), !birds.isEmpty() && birds.get(0).caught);
+                if (waterfallRoute == AuthoredStageBirdRouter.Route.AUTHORED) {
+                    if (!waterfallEncounter.canInteract()) { log = waterfallWorld.birdDisplayName + "의 노랫소리를 따라 " + waterfallWorld.landmark + " 가까이 가보자."; return; }
+                    waterfallEncounter.beginLearning();
+                    quiz = authoredQuiz(b, waterfallWorld);
+                    select = 0;
+                    mode = QUIZ;
+                    log = waterfallWorld.birdDisplayName + "를 다시 보고 골라보자.";
+                    return;
+                }
+            }
             CampBirdInteractionRouter.Route route = campBirdRouter.route(stageIndex == 0, nearestBirdIndex(), !birds.isEmpty() && birds.get(0).caught);
             if (route == CampBirdInteractionRouter.Route.AUTHORED_CAMP_BIRD) {
                 if (!campEncounter.canInteract()) { log = "파랑새의 노랫소리를 따라 등불 길 가까이 가보자."; return; }
@@ -751,7 +767,9 @@ public class NativeJungleActivity extends Activity {
         Bird nearest() { int index = nearestBirdIndex(); return index < 0 ? null : birds.get(index); }
         boolean isCampBird(Bird bird) { return stageIndex == 0 && bird != null && !birds.isEmpty() && bird == birds.get(0); }
         Quiz campQuiz(Bird bird) { Quiz q = new Quiz(campWorld.quizQuestion, campWorld.quizOptions, campWorld.quizAnswer); q.bird = bird; return q; }
+        Quiz authoredQuiz(Bird bird, StageWorldData world) { Quiz q = new Quiz(world.quizQuestion, world.quizOptions, world.quizAnswer); q.bird = bird; return q; }
         void answerJng001() {
+            if (stageIndex == 1 && waterfallEncounter.state() == EncounterDirector.State.LEARNING) { answerWaterfallBird(); return; }
             if (stageIndex != 0 || campEncounter.state() != EncounterDirector.State.LEARNING) { answer(); return; }
             boolean correct = quiz != null && quiz.options[select].equals(quiz.answer);
             campEncounter.answer(correct);
@@ -772,6 +790,30 @@ public class NativeJungleActivity extends Activity {
             try { getContext().getSharedPreferences("eduni_jungle_reward_v24", 0).edit().putBoolean(campWorld.collectionKey, true).apply(); } catch(Exception ignored) {}
             campEncounter.finishCelebration();
             showRewardScreen(campWorld.rewardTitle, campWorld.rewardDescription, campWorld.rewardBadge, Color.rgb(34,197,94));
+            mode = FIELD;
+            quiz = null;
+        }
+
+        void answerWaterfallBird() {
+            boolean correct = quiz != null && quiz.options[select].equals(quiz.answer);
+            waterfallEncounter.answer(correct);
+            postQuizAttemptDetailed(correct);
+            if (!correct) {
+                playSfx(4);
+                gameFeel(waterfallWorld.birdDisplayName + "를 다시 살펴보자.", Color.rgb(56,189,248), 25);
+                log = "괜찮아. " + waterfallWorld.birdDisplayName + "를 다시 보고 골라보자.";
+                return;
+            }
+            quiz.bird.caught = true;
+            caughtBirds++;
+            postProgress(waterfallWorld.id + "_bird_discovered", waterfallWorld.birdId);
+            spawnSparks(quiz.bird.x, quiz.bird.y, Color.rgb(34,197,94), 24);
+            playSfx(2);
+            gameFeel(waterfallWorld.birdDisplayName + "을 도감에 담았어!", Color.rgb(34,197,94), 45);
+            log = waterfallWorld.birdDisplayName + "이 도감에 들어왔어.";
+            try { getContext().getSharedPreferences("eduni_jungle_reward_v24", 0).edit().putBoolean(waterfallWorld.collectionKey, true).apply(); } catch(Exception ignored) {}
+            waterfallEncounter.finishCelebration();
+            showRewardScreen(waterfallWorld.rewardTitle, waterfallWorld.rewardDescription, waterfallWorld.rewardBadge, Color.rgb(34,197,94));
             mode = FIELD;
             quiz = null;
         }
@@ -1063,8 +1105,17 @@ public class NativeJungleActivity extends Activity {
                     playSfx(4);
                     log = campWorld.discoveryCue;
                 }
+            } else if (stageIndex == 1 && !birds.isEmpty()) {
+                EncounterDirector.State before = waterfallEncounter.state();
+                waterfallEncounter.observeDistance((float)Math.hypot(px - waterfallWorld.birdX, py - waterfallWorld.birdY));
+                if (before == EncounterDirector.State.EXPLORE && waterfallEncounter.state() == EncounterDirector.State.NOTICE) {
+                    playSfx(4);
+                    log = waterfallWorld.discoveryCue;
+                }
             }
-            adventureFrame = adventureCamera.update(px, py, campWorld, campEncounter.state() == EncounterDirector.State.COMPLETE);
+            StageWorldData activeWorld = stageIndex == 1 ? waterfallWorld : campWorld;
+            EncounterDirector activeEncounter = stageIndex == 1 ? waterfallEncounter : campEncounter;
+            adventureFrame = adventureCamera.update(px, py, activeWorld, activeEncounter.state() == EncounterDirector.State.COMPLETE);
             for (Dot d: stars) if (!d.done && Math.hypot(px-d.x, py-d.y) < .055) { d.done = true; foundStars++; postProgress("star_found","별 획득"); spawnSparks(d.x,d.y,Color.rgb(250,204,21),18); /* EDUNI_NATIVE_JUNGLE_PARTICLES_PATCH_V6_2 */ log = "별을 찾았어! " + foundStars + "/5"; playSfx(1); gameFeel("별 +1", Color.rgb(250,204,21), 28); }
         }
         float clamp(float v, float a, float b) { return Math.max(a, Math.min(b, v)); }
@@ -1253,6 +1304,7 @@ public class NativeJungleActivity extends Activity {
                 birds.add(new Bird(campWorld.birdX,campWorld.birdY,campWorld.birdDisplayName,campWorld.birdIcon)); birds.add(new Bird(.14f,.42f,"초록새","🦜")); birds.add(new Bird(.47f,.66f,"노랑새","🐤")); birds.add(new Bird(.83f,.54f,"빨강새","🐦"));
             } else if(s == 1) {
                 stars.add(new Dot(.24f,.42f)); stars.add(new Dot(.30f,.66f)); stars.add(new Dot(.48f,.28f)); stars.add(new Dot(.68f,.38f)); stars.add(new Dot(.78f,.64f));
+                birds.add(new Bird(waterfallWorld.birdX,waterfallWorld.birdY,waterfallWorld.birdDisplayName,waterfallWorld.birdIcon));
                 birds.add(new Bird(.22f,.72f,"파랑새","🐦")); birds.add(new Bird(.38f,.58f,"초록새","🦜")); birds.add(new Bird(.58f,.34f,"노랑새","🐤")); birds.add(new Bird(.72f,.52f,"빨강새","🐦"));
             } else {
                 stars.add(new Dot(.34f,.44f)); stars.add(new Dot(.54f,.48f)); stars.add(new Dot(.74f,.30f)); stars.add(new Dot(.66f,.78f)); stars.add(new Dot(.30f,.78f));
@@ -1397,6 +1449,7 @@ public class NativeJungleActivity extends Activity {
 
         void drawInteractionHint(Canvas c,int w,int h) {
             if (mode != FIELD) return;
+            if (stageIndex == 1 && nearestBirdIndex() == 0 && !birds.isEmpty() && !birds.get(0).caught) { drawWaterfallInteractionHint(c,w,h); return; }
             Bird b = nearest();
             if (b == null) return;
             if (stageIndex == 0 && isCampBird(b)) { drawJng001InteractionHint(c,w,h); return; }
@@ -1423,6 +1476,7 @@ public class NativeJungleActivity extends Activity {
 
         void drawQuestChips(Canvas c,int w,int h) {
             if (stageIndex == 0 && !showStartScreen && !showStageSelect) { drawJng001Objective(c,w,h); return; }
+            if (stageIndex == 1 && !showStartScreen && !showStageSelect) { drawWaterfallObjective(c,w,h); return; }
             float y = 84;
             RectF chip = new RectF(w-330,y,w-28,y+46);
             p.setStyle(Paint.Style.FILL);
@@ -1461,12 +1515,30 @@ public class NativeJungleActivity extends Activity {
             c.drawText(inputActions.inputMode() == InputActionMapper.InputMode.TOUCH ? "A를 눌러 관찰하기" : "A  파랑새 관찰",bubble.left+20,bubble.top+29,p);
         }
 
+        void drawWaterfallInteractionHint(Canvas c,int w,int h) {
+            if (mode != FIELD || !waterfallEncounter.canInteract()) return;
+            float x = eduniScreenXV26_4(px,w,h), y = eduniScreenYV26_4(py,w,h) - 72;
+            RectF bubble = new RectF(x-116,y-34,x+116,y+12);
+            p.setStyle(Paint.Style.FILL); p.setColor(Color.argb(230,255,255,255)); c.drawRoundRect(bubble,22,22,p);
+            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(4); p.setColor(Color.rgb(250,204,21)); c.drawRoundRect(bubble,22,22,p);
+            p.setStyle(Paint.Style.FILL); p.setColor(Color.rgb(15,23,42)); uiText(17); p.setFakeBoldText(true);
+            c.drawText(inputActions.inputMode() == InputActionMapper.InputMode.TOUCH ? "A를 눌러 관찰하기" : "A  " + waterfallWorld.birdDisplayName + " 관찰",bubble.left+20,bubble.top+29,p);
+        }
+
         void drawJng001Objective(Canvas c,int w,int h) {
             RectF chip = new RectF(w*.27f,24,w*.73f,72);
             p.setStyle(Paint.Style.FILL); p.setColor(Color.argb(225,255,255,255)); c.drawRoundRect(chip,24,24,p);
             p.setColor(Color.rgb(15,118,110)); uiText(16); p.setFakeBoldText(true);
             String text;
             text = campEncounter.state() == EncounterDirector.State.COMPLETE ? "목표 완료 — 캠프 등불로 돌아가자" : campWorld.objective;
+            c.drawText(text,chip.left+18,chip.top+31,p);
+        }
+
+        void drawWaterfallObjective(Canvas c,int w,int h) {
+            RectF chip = new RectF(w*.27f,24,w*.73f,72);
+            p.setStyle(Paint.Style.FILL); p.setColor(Color.argb(225,255,255,255)); c.drawRoundRect(chip,24,24,p);
+            p.setColor(Color.rgb(15,118,110)); uiText(16); p.setFakeBoldText(true);
+            String text = waterfallEncounter.state() == EncounterDirector.State.COMPLETE ? "목표 완료 — " + waterfallWorld.landmark + "로 돌아가자" : waterfallWorld.objective;
             c.drawText(text,chip.left+18,chip.top+31,p);
         }
 
@@ -2160,6 +2232,8 @@ public class NativeJungleActivity extends Activity {
             foundStars = 0;
             caughtBirds = 0;
             hearts = 3; eduniApplyStageSpawnV26_3(); ax = 0; ay = 0;
+            campEncounter.reset(); waterfallEncounter.reset(); adventureCamera.reset();
+            locomotion.stop(); inputActions.reset(); campTouchStickHeld = false; eduniTouchTargetActiveV26_4 = false; digitalDpadDownAtMs = -1L;
             stars.clear(); birds.clear(); eduniPopulateStageObjectsV26_5();
             select = 0;
             mode = FIELD;

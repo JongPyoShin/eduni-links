@@ -23,16 +23,17 @@ public class EncounterDirectorTest {
         assertEquals(EncounterDirector.State.COMPLETE, director.state());
     }
 
-    @Test public void resetClearsCompletedEncounterForTheNextStage() {
+    @Test public void resetMakesTheSameEncounterReusableForWaterfall() {
         EncounterDirector director = new EncounterDirector();
         director.observeDistance(.08f);
         director.beginLearning();
         director.answer(true);
         director.finishCelebration();
-
+        assertEquals(EncounterDirector.State.COMPLETE, director.state());
         director.reset();
-
         assertEquals(EncounterDirector.State.EXPLORE, director.state());
         assertFalse(director.canInteract());
+        director.observeDistance(.08f);
+        assertTrue(director.canInteract());
     }
 }

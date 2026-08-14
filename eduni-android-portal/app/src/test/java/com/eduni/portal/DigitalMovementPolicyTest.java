@@ -14,6 +14,7 @@ public class DigitalMovementPolicyTest {
 
     @Test public void holdTransitionsDirectlyToCruiseSpeed() {
         assertEquals(DigitalMovementPolicy.Phase.CRUISE, policy.phaseForHeldMs(100));
-        assertEquals(1f, policy.speedRatioForHeldMs(100), .0001f);
+        assertEquals(.85f, policy.speedRatioForHeldMs(100), .0001f);
+        assertEquals(.85f, policy.speedRatioForHeldMs(1000), .0001f);
     }
 }

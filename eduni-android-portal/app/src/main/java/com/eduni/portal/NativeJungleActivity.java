@@ -68,6 +68,10 @@ public class NativeJungleActivity extends Activity {
         // EDUNI_NATIVE_JUNGLE_SPRITE_ASSETS_PATCH_V11
         android.graphics.Bitmap eduniPlayerSprite, eduniBirdSprite, eduniStarSprite, eduniSparkleSprite;
         android.graphics.Bitmap[] eduniPlayerFrontSprites, eduniPlayerSideSprites, eduniPlayerBackSprites, eduniBirdTargetSprites;
+        // Slice A: render-only Waterfall assets; encounter semantics remain in StageWorldData/EncounterDirector.
+        android.graphics.Bitmap[] waterfallKingfisherIdleSprites, waterfallKingfisherAttentionSprites;
+        android.graphics.Bitmap waterfallKingfisherObserveSprite, waterfallKingfisherRewardSprite;
+        android.graphics.Bitmap waterfallPerchSprite, waterfallFeatherCueSprite, waterfallPulseCueSprite;
         // EDUNI_NATIVE_JUNGLE_MOVE_MASK_PATCH_V26_3
         android.graphics.Bitmap[] eduniMoveMasksV26_3;
         boolean eduniMoveMaskLoadedV26_3 = false;
@@ -1377,12 +1381,14 @@ public class NativeJungleActivity extends Activity {
             RectF map = eduniMapRectV26_4(w,h);
             float pxs = map.left + px * map.width(), pys = map.top + py * map.height();
             float goalX = map.left + adventureFrame.cueX * map.width(), goalY = map.top + adventureFrame.cueY * map.height();
-            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(Math.max(3f, Math.min(w,h)*.004f)); p.setColor(Color.argb(110,250,204,21));
-            c.drawLine(pxs,pys,goalX,goalY,p);
-            p.setStyle(Paint.Style.FILL); p.setColor(Color.argb(110,255,250,205)); c.drawCircle(goalX,goalY,Math.min(w,h)*.022f,p);
-            if (stageEncounter.state() == EncounterDirector.State.NOTICE || stageEncounter.state() == EncounterDirector.State.READY) {
-                p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(Math.max(3f, Math.min(w,h)*.004f)); p.setColor(Color.argb(190, 251,113,133));
-                c.drawCircle(goalX,goalY,Math.min(w,h)*.032f,p);
+            if (stageIndex != 1) {
+                p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(Math.max(3f, Math.min(w,h)*.004f)); p.setColor(Color.argb(110,250,204,21));
+                c.drawLine(pxs,pys,goalX,goalY,p);
+                p.setStyle(Paint.Style.FILL); p.setColor(Color.argb(110,255,250,205)); c.drawCircle(goalX,goalY,Math.min(w,h)*.022f,p);
+                if (stageEncounter.state() == EncounterDirector.State.NOTICE || stageEncounter.state() == EncounterDirector.State.READY) {
+                    p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(Math.max(3f, Math.min(w,h)*.004f)); p.setColor(Color.argb(190, 251,113,133));
+                    c.drawCircle(goalX,goalY,Math.min(w,h)*.032f,p);
+                }
             }
             p.setColor(Color.rgb(120,53,15)); float lx = map.left + adventureFrame.landmarkX * map.width(), ly = map.top + adventureFrame.landmarkY * map.height();
             if (stageIndex == 1) {
@@ -1447,8 +1453,27 @@ public class NativeJungleActivity extends Activity {
             eduniPlayerSideSprites = eduniLoadSpriteSetV26_6("eduni_player_side_", 2);
             eduniPlayerBackSprites = eduniLoadSpriteSetV26_6("eduni_player_back_", 2);
             eduniBirdTargetSprites = eduniLoadSpriteSetV26_6("eduni_bird_target_", 24);
+            waterfallKingfisherIdleSprites = waterfallLoadSpriteSet("waterfall_kingfisher_idle_", 2);
+            waterfallKingfisherAttentionSprites = waterfallLoadSpriteSet("waterfall_kingfisher_attention_", 2);
+            waterfallKingfisherObserveSprite = waterfallLoadSprite("waterfall_kingfisher_observe_00_v01");
+            waterfallKingfisherRewardSprite = waterfallLoadSprite("waterfall_kingfisher_reward_00_v01");
+            waterfallPerchSprite = waterfallLoadSprite("waterfall_perch_wet_branch_v01");
+            waterfallFeatherCueSprite = waterfallLoadSprite("waterfall_perch_feather_spark_v01");
+            waterfallPulseCueSprite = waterfallLoadSprite("waterfall_perch_pulse_ring_v01");
             if(eduniPlayerFrontSprites.length > 0) eduniPlayerSprite = eduniPlayerFrontSprites[0];
             if(eduniBirdTargetSprites.length > 0) eduniBirdSprite = eduniBirdTargetSprites[0];
+        }
+
+        android.graphics.Bitmap waterfallLoadSprite(String name) {
+            int id = getResources().getIdentifier(name, "drawable", getContext().getPackageName());
+            if (id == 0) return null;
+            try { return android.graphics.BitmapFactory.decodeResource(getResources(), id); } catch(Exception ignored) { return null; }
+        }
+
+        android.graphics.Bitmap[] waterfallLoadSpriteSet(String prefix, int count) {
+            android.graphics.Bitmap[] sprites = new android.graphics.Bitmap[count];
+            for (int i = 0; i < count; i++) sprites[i] = waterfallLoadSprite(prefix + (i < 10 ? "0" : "") + i + "_v01");
+            return sprites;
         }
 
         android.graphics.Bitmap[] eduniLoadSpriteSetV26_6(String prefix, int count) {
@@ -1491,6 +1516,15 @@ public class NativeJungleActivity extends Activity {
             c.restore();
         }
 
+        void drawEduniBitmapAtPivot(Canvas c, android.graphics.Bitmap bmp, float pivotX, float pivotY, float anchorX, float anchorY, float width) {
+            if (bmp == null || bmp.getWidth() <= 0 || bmp.getHeight() <= 0) return;
+            float scale = width / bmp.getWidth();
+            RectF dst = new RectF(anchorX - pivotX * scale, anchorY - pivotY * scale,
+                    anchorX + (bmp.getWidth() - pivotX) * scale, anchorY + (bmp.getHeight() - pivotY) * scale);
+            android.graphics.Paint bp = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG | android.graphics.Paint.FILTER_BITMAP_FLAG | android.graphics.Paint.DITHER_FLAG);
+            c.drawBitmap(bmp, null, dst, bp);
+        }
+
         android.graphics.Bitmap eduniPickBitmapV26_6(android.graphics.Bitmap[] set, int seed) {
             if(set == null || set.length == 0) return null;
             return set[Math.abs(seed) % set.length];
@@ -1515,14 +1549,17 @@ public class NativeJungleActivity extends Activity {
                 drawEduniBitmapCentered(c, eduniStarSprite, mr.left + s.x*mr.width(), mr.top + s.y*mr.height(), unit * .052f);
             }
 
-            int bi = 0;
-            for (Bird b: birds) {
+            for (int bi = 0; bi < birds.size(); bi++) {
+                Bird b = birds.get(bi);
+                if (stageIndex == 1 && bi == 0 && (!b.caught || rewardLife > 0)) {
+                    drawWaterfallKingfisher(c, mr, unit, b, b.caught);
+                    continue;
+                }
                 if(b.caught) continue;
                 float bob = (float)(Math.sin(System.currentTimeMillis()/180.0 + b.x*9.0)*4.0);
                 android.graphics.Bitmap birdSprite = eduniPickBitmapV26_6(eduniBirdTargetSprites, stageIndex * 7 + bi);
                 if(birdSprite == null) birdSprite = eduniBirdSprite;
                 drawEduniBitmapCentered(c, birdSprite, mr.left + b.x*mr.width(), mr.top + b.y*mr.height() + bob, unit * .085f);
-                bi++;
             }
 
             float x = mr.left + px*mr.width();
@@ -1533,6 +1570,43 @@ public class NativeJungleActivity extends Activity {
             android.graphics.Bitmap playerSprite = eduniPickPlayerSpriteV26_6();
             if(playerSprite == null) playerSprite = eduniPlayerSprite;
             drawEduniBitmapCentered(c, playerSprite, x, y-unit*.012f, unit * .105f, eduniLastMoveXV26_6 < 0 && Math.abs(eduniLastMoveXV26_6) > Math.abs(eduniLastMoveYV26_6));
+        }
+
+        void drawWaterfallKingfisher(Canvas c, RectF map, float unit, Bird bird, boolean rewardVisible) {
+            float birdX = map.left + bird.x * map.width();
+            float birdY = map.top + bird.y * map.height();
+            // The authored bird position is its manifest foot pivot, not a new gameplay location.
+            float perchScale = .75f;
+            float perchAnchorX = birdX - (171f - 110f) * perchScale;
+            float perchAnchorY = birdY - (18f - 135f) * perchScale;
+            drawEduniBitmapAtPivot(c, waterfallPerchSprite, 110f, 135f, perchAnchorX, perchAnchorY, 220f * perchScale);
+
+            EncounterDirector.State encounter = rewardVisible ? EncounterDirector.State.CELEBRATE : stageEncounter.state();
+            WaterfallKingfisherVisualState.Frame frame = WaterfallKingfisherVisualState.forEncounter(encounter);
+            if (frame == WaterfallKingfisherVisualState.Frame.ATTENTION) {
+                float cueSize = Math.min(132f, Math.max(96f, unit * .14f));
+                drawEduniBitmapCentered(c, waterfallPulseCueSprite, birdX, birdY + 3f, cueSize);
+                drawEduniBitmapCentered(c, waterfallFeatherCueSprite, birdX + 18f, birdY - 22f, cueSize);
+            }
+
+            android.graphics.Bitmap sprite = waterfallKingfisherSprite(frame);
+            if (sprite == null) {
+                sprite = eduniPickBitmapV26_6(eduniBirdTargetSprites, 7);
+                if (sprite == null) sprite = eduniBirdSprite;
+            }
+            // 128px source at the manifest's .65x scale: 83.2px, within the 64–84px target range.
+            float targetWidth = 128f * WaterfallKingfisherVisualState.RECOMMENDED_SCALE;
+            drawEduniBitmapAtPivot(c, sprite, WaterfallKingfisherVisualState.SOURCE_PIVOT_X,
+                    WaterfallKingfisherVisualState.SOURCE_PIVOT_Y, birdX, birdY, targetWidth);
+        }
+
+        android.graphics.Bitmap waterfallKingfisherSprite(WaterfallKingfisherVisualState.Frame frame) {
+            if (frame == WaterfallKingfisherVisualState.Frame.ATTENTION) {
+                return eduniPickBitmapV26_6(waterfallKingfisherAttentionSprites, (int)(System.currentTimeMillis() / 260L));
+            }
+            if (frame == WaterfallKingfisherVisualState.Frame.OBSERVE) return waterfallKingfisherObserveSprite;
+            if (frame == WaterfallKingfisherVisualState.Frame.REWARD) return waterfallKingfisherRewardSprite;
+            return eduniPickBitmapV26_6(waterfallKingfisherIdleSprites, (int)(System.currentTimeMillis() / 360L));
         }
 
 

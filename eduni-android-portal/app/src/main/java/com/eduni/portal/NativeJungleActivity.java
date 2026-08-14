@@ -73,6 +73,9 @@ public class NativeJungleActivity extends Activity {
         android.graphics.Bitmap waterfallPerchSprite, waterfallFeatherCueSprite, waterfallPulseCueSprite;
         android.graphics.Bitmap[] playerMvpFrontIdle, playerMvpBackIdle, playerMvpLeftIdle, playerMvpRightIdle;
         android.graphics.Bitmap[] playerMvpFrontWalk, playerMvpBackWalk, playerMvpLeftWalk, playerMvpRightWalk;
+        android.graphics.Bitmap campGroundSprite, campPathSprite, campRockSprite, campTreeSprite, campHutSprite;
+        android.graphics.BitmapShader campGroundShader, campPathShader;
+        final android.graphics.Matrix campShaderMatrix = new android.graphics.Matrix();
         boolean playerMvpSpritesLoaded = false;
         // EDUNI_NATIVE_JUNGLE_MOVE_MASK_PATCH_V26_3
         android.graphics.Bitmap[] eduniMoveMasksV26_3;
@@ -1126,7 +1129,7 @@ public class NativeJungleActivity extends Activity {
         RectF eduniMapRectV26_4(int w, int h) {
             if(w <= 0 || h <= 0) return new RectF(0, 0, w, h);
             float aspect = 16f / 9f;
-            try {
+            if (stageIndex != 0) try {
                 android.graphics.Bitmap b = eduniPickHardMapV26_2();
                 if(b != null && !b.isRecycled() && b.getWidth() > 0 && b.getHeight() > 0) {
                     aspect = b.getWidth() / (float)b.getHeight();
@@ -1220,11 +1223,9 @@ public class NativeJungleActivity extends Activity {
             float[] best = new float[] { nx, ny, eduniCanStandV26_3(nx, ny) ? 0f : 999f };
             int s = stageIndex % 3;
             if(s == 0) {
-                eduniNearestSegmentV26_5(nx,ny,.13f,.78f,.13f,.30f,best);
-                eduniNearestSegmentV26_5(nx,ny,.13f,.30f,.48f,.28f,best);
-                eduniNearestSegmentV26_5(nx,ny,.48f,.12f,.48f,.92f,best);
-                eduniNearestSegmentV26_5(nx,ny,.13f,.54f,.84f,.54f,best);
-                eduniNearestSegmentV26_5(nx,ny,.84f,.35f,.84f,.58f,best);
+                for (CampVisualGeometry.Segment segment : CampVisualGeometry.pathSegments()) {
+                    eduniNearestSegmentV26_5(nx, ny, segment.ax, segment.ay, segment.bx, segment.by, best);
+                }
             } else if(s == 1) {
                 eduniNearestSegmentV26_5(nx,ny,.16f,.78f,.30f,.66f,best);
                 eduniNearestSegmentV26_5(nx,ny,.30f,.66f,.22f,.42f,best);
@@ -1249,11 +1250,7 @@ public class NativeJungleActivity extends Activity {
             int s = stageIndex % 3;
             float r = .070f;
             if(s == 0) {
-                return eduniDistToSegmentV26_5(nx,ny,.13f,.78f,.13f,.30f) < r
-                        || eduniDistToSegmentV26_5(nx,ny,.13f,.30f,.48f,.28f) < r
-                        || eduniDistToSegmentV26_5(nx,ny,.48f,.12f,.48f,.92f) < r
-                        || eduniDistToSegmentV26_5(nx,ny,.13f,.54f,.84f,.54f) < r
-                        || eduniDistToSegmentV26_5(nx,ny,.84f,.35f,.84f,.58f) < r;
+                return CampVisualGeometry.contains(nx, ny);
             }
             if(s == 1) {
                 return eduniDistToSegmentV26_5(nx,ny,.16f,.78f,.30f,.66f) < r
@@ -1494,18 +1491,7 @@ public class NativeJungleActivity extends Activity {
 
         void drawJng001AdventureFraming(Canvas c,int w,int h) {
             if (stageIndex != 0 || showStartScreen || showStageSelect || adventureFrame == null) return;
-            RectF map = eduniMapRectV26_4(w,h);
-            float pxs = map.left + px * map.width(), pys = map.top + py * map.height();
-            float goalX = map.left + adventureFrame.cueX * map.width(), goalY = map.top + adventureFrame.cueY * map.height();
-            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(Math.max(3f, Math.min(w,h)*.004f)); p.setColor(Color.argb(110,250,204,21));
-            c.drawLine(pxs,pys,goalX,goalY,p);
-            p.setStyle(Paint.Style.FILL); p.setColor(Color.argb(110,255,250,205)); c.drawCircle(goalX,goalY,Math.min(w,h)*.022f,p);
-            if (campEncounter.state() == EncounterDirector.State.NOTICE || campEncounter.state() == EncounterDirector.State.READY) {
-                p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(Math.max(3f, Math.min(w,h)*.004f)); p.setColor(Color.argb(190, 251,113,133));
-                c.drawCircle(goalX,goalY,Math.min(w,h)*.032f,p);
-            }
-            p.setColor(Color.rgb(120,53,15)); float lx = map.left + adventureFrame.landmarkX * map.width(), ly = map.top + adventureFrame.landmarkY * map.height();
-            c.drawRect(lx-8,ly-18,lx+8,ly+10,p); p.setColor(Color.rgb(250,204,21)); c.drawCircle(lx,ly-24,12,p);
+            // Camp landmark and discovery read are rendered at their authored world coordinates.
         }
 
         void drawJng001InteractionHint(Canvas c,int w,int h) {
@@ -1590,6 +1576,15 @@ public class NativeJungleActivity extends Activity {
             waterfallPerchSprite = waterfallLoadSprite("waterfall_perch_wet_branch_v01");
             waterfallFeatherCueSprite = waterfallLoadSprite("waterfall_perch_feather_spark_v01");
             waterfallPulseCueSprite = waterfallLoadSprite("waterfall_perch_pulse_ring_v01");
+            campGroundSprite = waterfallLoadSprite("camp_ground_grass_v01");
+            campPathSprite = waterfallLoadSprite("camp_path_trail_v01");
+            campRockSprite = waterfallLoadSprite("camp_rock_moss_v01");
+            campTreeSprite = waterfallLoadSprite("camp_foliage_tree_v01");
+            campHutSprite = waterfallLoadSprite("camp_prop_learning_hut_v01");
+            if (campGroundSprite != null) campGroundShader = new android.graphics.BitmapShader(campGroundSprite,
+                    android.graphics.Shader.TileMode.REPEAT, android.graphics.Shader.TileMode.REPEAT);
+            if (campPathSprite != null) campPathShader = new android.graphics.BitmapShader(campPathSprite,
+                    android.graphics.Shader.TileMode.REPEAT, android.graphics.Shader.TileMode.REPEAT);
             if(eduniPlayerFrontSprites.length > 0) eduniPlayerSprite = eduniPlayerFrontSprites[0];
             if(eduniBirdTargetSprites.length > 0) eduniBirdSprite = eduniBirdTargetSprites[0];
         }
@@ -1738,7 +1733,8 @@ public class NativeJungleActivity extends Activity {
             boolean usingPlayerMvp = playerSprite != null;
             if (playerSprite == null) playerSprite = eduniPickPlayerSpriteV26_6();
             if(playerSprite == null) playerSprite = eduniPlayerSprite;
-            if (usingPlayerMvp) drawPlayerMvpAtFoot(c, playerSprite, x, y, Math.max(60f, Math.min(72f, unit * .057f)));
+            if (usingPlayerMvp) drawPlayerMvpAtFoot(c, playerSprite, x, y,
+                    stageIndex == 0 ? CampVisualGeometry.DEFAULT_PLAYER_TARGET : Math.max(60f, Math.min(72f, unit * .057f)));
             else drawEduniBitmapCentered(c, playerSprite, x, y-unit*.012f, unit * .105f, eduniLastMoveXV26_6 < 0 && Math.abs(eduniLastMoveXV26_6) > Math.abs(eduniLastMoveYV26_6));
         }
 
@@ -2968,12 +2964,89 @@ public class NativeJungleActivity extends Activity {
             return eduniHardMapBitmapsV26_2[stage % eduniHardMapBitmapsV26_2.length];
         }
 
+        void drawCampBitmapAtWorld(Canvas canvas, android.graphics.Bitmap bitmap, RectF map,
+                                   float worldX, float worldY, float width, float footRatio) {
+            if (bitmap == null || bitmap.getWidth() <= 0 || bitmap.getHeight() <= 0) return;
+            float height = width * bitmap.getHeight() / bitmap.getWidth();
+            float x = map.left + worldX * map.width();
+            float y = map.top + worldY * map.height();
+            canvas.drawBitmap(bitmap, null, new RectF(x - width * .5f, y - height * footRatio,
+                    x + width * .5f, y + height * (1f - footRatio)), p);
+        }
+
+        void drawCampGeometryBackground(Canvas canvas, int w, int h) {
+            RectF map = eduniMapRectV26_4(w, h);
+            p.setStyle(Paint.Style.FILL);
+            if (campGroundShader != null) {
+                campShaderMatrix.reset();
+                campShaderMatrix.setTranslate(map.left, map.top);
+                campGroundShader.setLocalMatrix(campShaderMatrix);
+                p.setShader(campGroundShader);
+                canvas.drawRect(map, p);
+                p.setShader(null);
+            } else {
+                p.setColor(Color.rgb(74, 201, 120));
+                canvas.drawRect(map, p);
+            }
+
+            // Decoration stays off the route; path and interaction coordinates remain the front-facing read.
+            drawCampBitmapAtWorld(canvas, campTreeSprite, map, .07f, .19f, 150f, .86f);
+            drawCampBitmapAtWorld(canvas, campTreeSprite, map, .91f, .19f, 148f, .86f);
+            drawCampBitmapAtWorld(canvas, campTreeSprite, map, .10f, .88f, 166f, .86f);
+            drawCampBitmapAtWorld(canvas, campTreeSprite, map, .88f, .86f, 164f, .86f);
+            drawCampBitmapAtWorld(canvas, campRockSprite, map, .30f, .16f, 66f, .72f);
+            drawCampBitmapAtWorld(canvas, campRockSprite, map, .73f, .78f, 72f, .72f);
+            drawCampBitmapAtWorld(canvas, campHutSprite, map, .70f, .24f, 104f, .80f);
+
+            // Perch is anchored to the authored Camp landmark, behind the walkable trail and bird.
+            float perchX = map.left + campWorld.landmarkX * map.width();
+            float perchY = map.top + campWorld.landmarkY * map.height();
+            p.setColor(Color.rgb(120, 73, 34));
+            canvas.drawRoundRect(new RectF(perchX - 7f, perchY - 34f, perchX + 7f, perchY + 15f), 7f, 7f, p);
+            p.setColor(Color.rgb(250, 204, 21));
+            canvas.drawCircle(perchX, perchY - 36f, 13f, p);
+
+            float pathWidth = map.height() * CampVisualGeometry.WALKABLE_RADIUS * 2f;
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeCap(Paint.Cap.ROUND);
+            p.setStrokeJoin(Paint.Join.ROUND);
+            p.setStrokeWidth(pathWidth + 14f);
+            p.setColor(Color.rgb(135, 102, 55));
+            drawCampPathSegments(canvas, map, p);
+            p.setStrokeWidth(pathWidth);
+            if (campPathShader != null) {
+                campShaderMatrix.reset();
+                campShaderMatrix.setTranslate(map.left, map.top);
+                campPathShader.setLocalMatrix(campShaderMatrix);
+                p.setShader(campPathShader);
+                drawCampPathSegments(canvas, map, p);
+                p.setShader(null);
+            } else {
+                p.setColor(Color.rgb(239, 210, 139));
+                drawCampPathSegments(canvas, map, p);
+            }
+            p.setStyle(Paint.Style.FILL);
+        }
+
+        void drawCampPathSegments(Canvas canvas, RectF map, Paint paint) {
+            for (CampVisualGeometry.Segment segment : CampVisualGeometry.pathSegments()) {
+                canvas.drawLine(map.left + segment.ax * map.width(), map.top + segment.ay * map.height(),
+                        map.left + segment.bx * map.width(), map.top + segment.by * map.height(), paint);
+            }
+        }
+
         private void drawEduniHardMapBackgroundV26_2(android.graphics.Canvas c, int w, int h) {
             if (w <= 0 || h <= 0) return;
 
             boolean start = eduniBoolFieldV26_2("showStartScreen", false);
             boolean select = eduniBoolFieldV26_2("showStageSelect", false);
             if (start || select) return;
+
+            if (stageIndex == 0) {
+                ensureEduniSprites();
+                drawCampGeometryBackground(c, w, h);
+                return;
+            }
 
             android.graphics.Paint mp = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG | android.graphics.Paint.FILTER_BITMAP_FLAG | android.graphics.Paint.DITHER_FLAG);
             android.graphics.Bitmap map = eduniPickHardMapV26_2();

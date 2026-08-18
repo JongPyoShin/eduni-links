@@ -19,6 +19,7 @@ from .jungle_expedition import JUNGLE_EXPEDITION_ACTIVITY_ID, render_jungle_expe
 from .pattern_train import render_pattern_train
 from .registry import get_world
 from .schemas import Activity
+from .world_home import render_portal_world_home
 
 
 HANJA_URL = "http://100.75.214.95:8080/hanja"
@@ -27,8 +28,10 @@ EDUNI_OMOK_URL = "/omok"
 EDUNI_JUNGLE_URL = "/jungle"
 GAME_STATIC_DIR = Path(__file__).resolve().parent / "static_games"
 JUNGLE_STATIC_DIR = Path(__file__).resolve().parent / "jungle_static"
+PORTAL_WORLD_ASSET_DIR = Path(__file__).resolve().parent / "portal_world_assets"
 app.add_static_files("/jungle-static", JUNGLE_STATIC_DIR)
 app.add_static_files("/jungle-assets", GAME_STATIC_DIR / "assets")
+app.add_static_files("/portal-world-assets", PORTAL_WORLD_ASSET_DIR)
 
 
 def _game_html_response(filename: str) -> HTMLResponse:
@@ -256,8 +259,7 @@ def parent_activity_sessions(limit: int = 10, path: Path | None = None) -> list[
 
 
 def register_pages() -> None:
-    @ui.page("/portal")
-    def portal_home() -> None:
+    def _legacy_portal_home() -> None:
         _head()
         initialize_database()
         with ui.element("main").classes("portal-shell"):
@@ -297,6 +299,11 @@ def register_pages() -> None:
                 _portal_card("/portal/world/math", "수학탐험대", "패턴 기차와 정글 탐험 활동", "포털", icon="+", accent="#7c3aed")
                 _portal_card("/portal", "영어", "다음 단계에서 확장 예정", "준비 중", icon="A", accent="#2563eb")
                 _portal_card("/portal", "과학", "다음 단계에서 확장 예정", "준비 중", icon="S", accent="#14b8a6")
+
+    @ui.page("/portal")
+    def portal_world_home() -> None:
+        _head()
+        render_portal_world_home()
 
     @ui.page("/portal/world/{world_id}")
     def world_page(world_id: str) -> None:

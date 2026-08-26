@@ -30,7 +30,7 @@ node server.mjs
 
 ## Controls
 
-- Move: Arrow keys / WASD / on-screen D-pad
+- Move: Arrow keys / on-screen D-pad
 - Interact: `A` / `Enter` / `Space` (when near the Bluebird)
 - Close modal: `B` / `Escape`
 - Toggle geometry debug overlay: `` ` ``
@@ -80,7 +80,9 @@ node --test
 ```
 
 Covers: shared geometry single-source, movement ramp values, release = zero,
-reversal resets ramp, world↔screen roundtrip, Bluebird range, modal blocking.
+reversal resets ramp, world↔screen roundtrip, Bluebird range, modal blocking,
+and parse-validation of all shipped `src/*.js` modules (catches shipped
+SyntaxErrors that import-based unit tests can miss).
 
 ## Files
 

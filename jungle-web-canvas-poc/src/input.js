@@ -81,12 +81,12 @@ export class InputController {
 
   _bindDpad() {
     const map = {
-      dpad-left: "left",
-      dpad-right: "right",
-      dpad-up: "up",
-      dpad-down: "down",
-      dpad-a: "interact",
-      dpad-b: "close",
+      "dpad-left": "left",
+      "dpad-right": "right",
+      "dpad-up": "up",
+      "dpad-down": "down",
+      "dpad-a": "interact",
+      "dpad-b": "close",
     };
     for (const [id, action] of Object.entries(map)) {
       const el = document.getElementById(id);

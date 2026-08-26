@@ -118,13 +118,13 @@ def _add_world_home_head() -> None:
           }
           window.addEventListener('keydown', function (event) {
             var key = event.key;
-            var owned = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', ' ', 'Escape', 'Backspace'];
+            var owned = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', ' '];
             if (owned.indexOf(key) === -1 || event.defaultPrevented) return;
+            if (key.indexOf('Arrow') === 0 && event.repeat) return;
             event.preventDefault();
             event.stopImmediatePropagation();
             if (key.indexOf('Arrow') === 0) { move(key); return; }
             if (key === 'Enter' || key === ' ') { var selected = cards()[index]; if (selected) selected.click(); return; }
-            if (key === 'Escape' || key === 'Backspace') window.history.back();
           }, true);
           document.addEventListener('click', function (event) {
             var card = event.target.closest(selector);
@@ -142,7 +142,7 @@ def render_portal_world_home() -> None:
     """Render the Slice A Home shell without adding state, preview, or debug behavior."""
 
     _add_world_home_head()
-    with ui.element("main").classes("portal-world-shell"):
+    with ui.element("main").classes("portal-world-shell").props('data-eduni-portal-world-home=""'):
         with ui.element("header").classes("portal-world-header"):
             with ui.element("div").classes("portal-world-brand"):
                 ui.label("E").classes("portal-world-brand-mark")

@@ -115,23 +115,36 @@ export function drawPlayer(ctx, cam, viewW, viewH, px, py, facing, asset) {
   }
 }
 
-export function drawInteractionCue(ctx, cam, viewW, viewH, px, py) {
-  const s = worldToScreen(px, py, cam, viewW, viewH);
-  const x = s.x;
-  const y = s.y - 96 * cam.zoom;
+export function drawInteractionCue(ctx, cam, viewW, viewH, bx, by, t) {
+  const s = worldToScreen(bx, by, cam, viewW, viewH);
+  const pulse = (Math.sin((t || 0) / 220) + 1) / 2;
+  const baseR = 40 * cam.zoom;
+  const ringR = baseR + pulse * 10 * cam.zoom;
+
   ctx.save();
+  ctx.beginPath();
+  ctx.fillStyle = `rgba(255,255,255,${0.12 + pulse * 0.12})`;
+  ctx.arc(s.x, s.y - baseR * 0.4, ringR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(250,204,21,0.9)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(s.x, s.y - baseR * 0.4, ringR, 0, Math.PI * 2);
+  ctx.stroke();
+
+  const badgeY = s.y - ringR - 18 * cam.zoom;
   ctx.font = "bold 16px sans-serif";
   ctx.textAlign = "center";
-  const text = "A  대화";
-  const w = ctx.measureText(text).width + 28;
-  ctx.fillStyle = "rgba(255,255,255,0.92)";
-  ctx.strokeStyle = "rgba(250,204,21,1)";
+  const text = "A";
+  const w = 30;
+  ctx.fillStyle = "rgba(34,197,94,0.95)";
+  ctx.strokeStyle = "rgba(255,255,255,0.95)";
   ctx.lineWidth = 3;
-  roundRect(ctx, x - w / 2, y - 22, w, 32, 14);
+  roundRect(ctx, s.x - w / 2, badgeY - 16, w, 28, 10);
   ctx.fill();
   ctx.stroke();
-  ctx.fillStyle = "#0f172a";
-  ctx.fillText(text, x, y);
+  ctx.fillStyle = "#fff";
+  ctx.fillText(text, s.x, badgeY + 5);
   ctx.restore();
 }
 

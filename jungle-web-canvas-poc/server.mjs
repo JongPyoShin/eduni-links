@@ -1,8 +1,9 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
-import { extname, join, normalize } from "node:path";
+import { extname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const ROOT = new URL(".", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const PORT = process.env.PORT || 8123;
 
 const TYPES = {
@@ -20,7 +21,8 @@ createServer(async (req, res) => {
   try {
     let urlPath = decodeURIComponent(new URL(req.url, "http://x").pathname);
     if (urlPath === "/") urlPath = "/index.html";
-    const filePath = normalize(join(ROOT, urlPath));
+    const rel = urlPath.replace(/^\/+/, "");
+    const filePath = resolve(ROOT, rel);
     if (!filePath.startsWith(ROOT)) {
       res.writeHead(403).end("forbidden");
       return;

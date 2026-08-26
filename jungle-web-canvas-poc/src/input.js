@@ -49,23 +49,20 @@ export class InputController {
   _onKey(e, down) {
     switch (e.code) {
       case "ArrowLeft":
-      case "KeyA":
         this.left = down;
         break;
       case "ArrowRight":
-      case "KeyD":
         this.right = down;
         break;
       case "ArrowUp":
-      case "KeyW":
         this.up = down;
         break;
       case "ArrowDown":
-      case "KeyS":
         this.down = down;
         break;
       case "Enter":
       case "Space":
+      case "KeyA":
         if (down) this.interactEdge = true;
         e.preventDefault();
         break;

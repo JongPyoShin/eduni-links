@@ -46,3 +46,27 @@ test("continuing same direction keeps ramp accumulating", () => {
   mc.update(16.7, { x: 1, y: 0 });
   assert.ok(mc.ratio >= r1);
 });
+
+test("reset clears ramp so next move starts at precision (modal open)", () => {
+  const mc = new MovementController();
+  for (let i = 0; i < 40; i++) mc.update(16.7, { x: 1, y: 0 });
+  assert.ok(mc.ratio > 0.7, `expected cruise ratio, got ${mc.ratio}`);
+  mc.reset();
+  assert.equal(mc.heldMs, 0);
+  assert.equal(mc.ratio, 0);
+  mc.update(16.7, { x: 1, y: 0 });
+  assert.ok(Math.abs(mc.ratio - MOVEMENT.PRECISION_RATIO) < 1e-9);
+});
+
+test("reset while direction held restarts from precision, not old cruise", () => {
+  const mc = new MovementController();
+  for (let i = 0; i < 40; i++) mc.update(16.7, { x: 1, y: 0 });
+  const cruiseRatio = mc.ratio;
+  mc.reset();
+  assert.equal(mc.vx, 0);
+  assert.equal(mc.vy, 0);
+  const d = mc.update(16.7, { x: 1, y: 0 });
+  assert.ok(mc.ratio < cruiseRatio);
+  assert.ok(Math.abs(mc.ratio - MOVEMENT.PRECISION_RATIO) < 1e-9);
+  assert.ok(d.x > 0);
+});

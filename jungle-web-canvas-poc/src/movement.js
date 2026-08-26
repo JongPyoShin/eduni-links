@@ -17,6 +17,14 @@ export class MovementController {
     this.ratio = 0;
   }
 
+  reset() {
+    this.heldMs = 0;
+    this.lastSig = "0,0";
+    this.vx = 0;
+    this.vy = 0;
+    this.ratio = 0;
+  }
+
   update(dtMs, dir) {
     const sig = `${Math.sign(dir.x)},${Math.sign(dir.y)}`;
     if (sig === "0,0") {

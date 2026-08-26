@@ -5,6 +5,7 @@ import { InputController } from "./input.js";
 import { ModalController } from "./modal.js";
 import { loadImage, preload } from "./assets.js";
 import { isInRange } from "./bluebird.js";
+import { frameDelta } from "./loop.js";
 import { BLUEBIRD, ASSET_ROOT } from "./constants.js";
 import {
   drawGround,
@@ -50,9 +51,13 @@ export async function start(canvas, modalEl) {
     }
   }
 
-  function loop() {
+  let lastTs = null;
+
+  function loop(ts) {
     const viewW = canvas.width;
     const viewH = canvas.height;
+    const dt = frameDelta(lastTs, ts);
+    lastTs = ts;
 
     if (input.consumeDebug()) debug = !debug;
 
@@ -63,7 +68,6 @@ export async function start(canvas, modalEl) {
       }
     } else {
       const dir = input.direction();
-      const dt = 16.7;
       const delta = movement.update(dt, dir);
       if (dir.x !== 0) facing = dir.x < 0 ? -1 : 1;
 
@@ -74,6 +78,7 @@ export async function start(canvas, modalEl) {
 
       if (input.consumeInteract() && isInRange(player.x, player.y, geometry.bluebird)) {
         discovered = true;
+        movement.reset();
         modal.openModal({
           name: BLUEBIRD.NAME,
           fact: BLUEBIRD.FACT,
@@ -102,7 +107,7 @@ export async function start(canvas, modalEl) {
       },
     ]);
 
-    if (inRange) drawInteractionCue(ctx, camera.cam, viewW, viewH, player.x, player.y);
+    if (inRange) drawInteractionCue(ctx, camera.cam, viewW, viewH, geometry.bluebird.x, geometry.bluebird.y, ts || 0);
     if (debug) drawDebugOverlay(ctx, camera.cam, viewW, viewH, geometry, player, movement, geometry.bluebird);
 
     requestAnimationFrame(loop);

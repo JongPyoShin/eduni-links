@@ -6,14 +6,12 @@ export const WORLD = {
 };
 
 export const PLAYER = {
-  SRC_W: 432,
-  SRC_H: 1024,
-  PIVOT_FRAC: { x: 0.5, y: 0.90625 },
+  FRAME_W: 192,
+  FRAME_H: 256,
+  PIVOT: { x: 96, y: 232 },
   DISPLAY_W: 112,
-  DISPLAY_H: Math.round(112 * (1024 / 432)),
-  CONTRACT_REF_W: 192,
-  CONTRACT_REF_H: 256,
-  CONTRACT_PIVOT: { x: 96, y: 232 },
+  WALK_STEP_MS: 140,
+  ASSET_ROOT: "./assets/player/",
 };
 
 export const MOVEMENT = {

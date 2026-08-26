@@ -1,5 +1,4 @@
 import { worldToScreen } from "./transforms.js";
-import { PLAYER, BLUEBIRD } from "./constants.js";
 
 export function drawGround(ctx, cam, viewW, viewH, geometry) {
   const tl = screenToWorldTopLeft(cam, viewW, viewH);
@@ -82,36 +81,6 @@ export function drawBluebird(ctx, cam, viewW, viewH, bird, asset) {
     ctx.font = "10px sans-serif";
     ctx.textAlign = "center";
     ctx.fillText("PROTOTYPE", s.x, s.y - size / 2 + 3);
-  }
-}
-
-export function drawPlayer(ctx, cam, viewW, viewH, px, py, facing, asset) {
-  const s = worldToScreen(px, py, cam, viewW, viewH);
-  const w = PLAYER.DISPLAY_W * cam.zoom;
-  const h = PLAYER.DISPLAY_H * cam.zoom;
-  const pivotX = PLAYER.PIVOT_FRAC.x * w;
-  const pivotY = PLAYER.PIVOT_FRAC.y * h;
-  const dx = s.x - pivotX;
-  const dy = s.y - pivotY;
-  if (asset && asset.ok) {
-    if (facing < 0) {
-      ctx.save();
-      ctx.translate(s.x, 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(asset.img, -pivotX, dy, w, h);
-      ctx.restore();
-    } else {
-      ctx.drawImage(asset.img, dx, dy, w, h);
-    }
-  } else {
-    ctx.fillStyle = "#e2b35a";
-    ctx.beginPath();
-    ctx.ellipse(s.x, s.y - 26 * cam.zoom, 16 * cam.zoom, 30 * cam.zoom, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#fff";
-    ctx.font = `${Math.max(9, 11 * cam.zoom)}px sans-serif`;
-    ctx.textAlign = "center";
-    ctx.fillText("PROTOTYPE", s.x, s.y - 60 * cam.zoom);
   }
 }
 

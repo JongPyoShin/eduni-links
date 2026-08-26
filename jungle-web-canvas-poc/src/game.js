@@ -3,7 +3,7 @@ import { Camera } from "./camera.js";
 import { MovementController } from "./movement.js";
 import { InputController } from "./input.js";
 import { ModalController } from "./modal.js";
-import { loadImage, preload } from "./assets.js";
+import { preload } from "./assets.js";
 import { isInRange } from "./bluebird.js";
 import { frameDelta } from "./loop.js";
 import { BLUEBIRD, ASSET_ROOT } from "./constants.js";
@@ -11,10 +11,10 @@ import {
   drawGround,
   drawWalkablePath,
   drawBluebird,
-  drawPlayer,
   drawInteractionCue,
   depthSortDraw,
 } from "./render.js";
+import { PlayerSprite } from "./player.js";
 import { drawDebugOverlay } from "./debug.js";
 
 export async function start(canvas, modalEl) {
@@ -25,13 +25,11 @@ export async function start(canvas, modalEl) {
   const input = new InputController();
   const modal = new ModalController();
 
-  const [playerAsset, bluebirdAsset] = await preload([
-    ASSET_ROOT + "player.jpg",
-    ASSET_ROOT + "bluebird.png",
-  ]);
+  const [bluebirdAsset] = await preload([ASSET_ROOT + "bluebird.png"]);
+  const playerSprite = new PlayerSprite();
+  await playerSprite.load();
 
   const player = { x: geometry.clearings[0].x, y: geometry.clearings[0].y };
-  let facing = 1;
   let debug = false;
   let discovered = false;
 
@@ -69,7 +67,8 @@ export async function start(canvas, modalEl) {
     } else {
       const dir = input.direction();
       const delta = movement.update(dt, dir);
-      if (dir.x !== 0) facing = dir.x < 0 ? -1 : 1;
+      const isMoving = Math.abs(delta.x) + Math.abs(delta.y) > 1e-6;
+      playerSprite.update(dt, isMoving, dir);
 
       const nx = player.x + delta.x;
       if (geometry.isWalkable(nx, player.y)) player.x = nx;
@@ -103,7 +102,7 @@ export async function start(canvas, modalEl) {
       },
       {
         footY: player.y,
-        draw: () => drawPlayer(ctx, camera.cam, viewW, viewH, player.x, player.y, facing, playerAsset),
+        draw: () => playerSprite.draw(ctx, camera.cam, viewW, viewH, player.x, player.y),
       },
     ]);
 

@@ -1,0 +1,11 @@
+{
+  "name": "jungle-web-canvas-poc",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Jungle Camp 2.5D Web Canvas PoC (single-source walkable geometry)",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test"
+  },
+  "private": true
+}

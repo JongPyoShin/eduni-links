@@ -1,13 +1,14 @@
 import { worldToScreen } from "../transforms.js";
 import { CLUES } from "./camp_chapter.js";
-import { hasClue } from "./chapter_state.js";
+import { clueCount, hasClue } from "./chapter_state.js";
 
 function screen(ctx, cam, viewW, viewH, point) {
   return worldToScreen(point.x, point.y, cam, viewW, viewH);
 }
 
-export function drawChapterWorld(ctx, cam, viewW, viewH, state, t, feedback) {
+export function drawChapterWorld(ctx, cam, viewW, viewH, state, t, feedback, directing = null) {
   ctx.save();
+  if (!state.questStarted) drawHutGuidance(ctx, screen(ctx, cam, viewW, viewH, { x: 430, y: 260 }), t, cam.zoom, directing?.type === "intro");
   for (const clue of CLUES) {
     const p = screen(ctx, cam, viewW, viewH, clue);
     const found = hasClue(state, clue.id);
@@ -16,9 +17,14 @@ export function drawChapterWorld(ctx, cam, viewW, viewH, state, t, feedback) {
     ctx.globalAlpha = alpha;
     drawClue(ctx, clue.type, p.x, p.y, t, cam.zoom);
   }
-  if (state.firePitComplete) drawWarmFireGlow(ctx, screen(ctx, cam, viewW, viewH, { x: 990, y: 935 }), t, cam.zoom);
+  if (clueCount(state) === CLUES.length) drawWarmFireGlow(ctx, screen(ctx, cam, viewW, viewH, { x: 990, y: 935 }), t, cam.zoom, state.firePitComplete ? 1 : 0.42);
+  if (state.firePitComplete) drawRidgeGlow(ctx, screen(ctx, cam, viewW, viewH, { x: 1410, y: 400 }), t, cam.zoom, directing?.type === "ridge");
   if (state.bluebirdComplete) drawCompletionAmbience(ctx, screen(ctx, cam, viewW, viewH, { x: 1410, y: 400 }), t, cam.zoom);
-  if (feedback && t < feedback.until) drawBurst(ctx, screen(ctx, cam, viewW, viewH, feedback), t, feedback.until, cam.zoom);
+  if (feedback && t < feedback.until) {
+    const point = screen(ctx, cam, viewW, viewH, feedback);
+    if (feedback.style === "embers") drawEmbers(ctx, point, t, feedback.until, cam.zoom);
+    else drawBurst(ctx, point, t, feedback.until, cam.zoom);
+  }
   ctx.restore();
 }
 
@@ -42,11 +48,30 @@ function drawClue(ctx, type, x, y, t, zoom) {
   ctx.restore();
 }
 
-function drawWarmFireGlow(ctx, p, t, zoom) {
+function drawHutGuidance(ctx, p, t, zoom, isPeeking) {
+  const pulse = 0.5 + Math.sin(t / 240) * 0.12 + (isPeeking ? 0.2 : 0);
+  const radius = (64 + Math.sin(t / 260) * 8) * zoom;
+  const glow = ctx.createRadialGradient(p.x, p.y, 4, p.x, p.y, radius);
+  glow.addColorStop(0, `rgba(255,222,139,${pulse})`);
+  glow.addColorStop(1, "rgba(255,184,89,0)");
+  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(p.x, p.y, radius, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "rgba(255,247,202,0.72)";
+  for (let i = 0; i < 4; i++) { const rise = (t / 900 + i * 0.24) % 1; ctx.beginPath(); ctx.arc(p.x + (i - 1.5) * 8 * zoom, p.y - (36 + rise * 36) * zoom, (2 + rise) * zoom, 0, Math.PI * 2); ctx.fill(); }
+}
+
+function drawWarmFireGlow(ctx, p, t, zoom, intensity) {
   const r = (56 + Math.sin(t / 130) * 8) * zoom;
   const g = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, r);
-  g.addColorStop(0, "rgba(255,225,128,0.42)"); g.addColorStop(1, "rgba(255,130,40,0)");
+  g.addColorStop(0, `rgba(255,225,128,${0.42 * intensity})`); g.addColorStop(1, "rgba(255,130,40,0)");
   ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawRidgeGlow(ctx, p, t, zoom, arriving) {
+  const r = (arriving ? 92 : 58) * zoom;
+  const glow = ctx.createRadialGradient(p.x, p.y - 22 * zoom, 3, p.x, p.y, r);
+  glow.addColorStop(0, arriving ? "rgba(231,245,174,0.42)" : "rgba(210,236,145,0.2)"); glow.addColorStop(1, "rgba(210,236,145,0)");
+  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill();
+  if (arriving) { ctx.fillStyle = "rgba(245,255,204,0.82)"; for (let i = 0; i < 7; i++) { const a = t / 360 + i; ctx.beginPath(); ctx.arc(p.x + Math.cos(a) * 42 * zoom, p.y - 15 * zoom + Math.sin(a * 1.3) * 24 * zoom, 2 * zoom, 0, Math.PI * 2); ctx.fill(); } }
 }
 
 function drawCompletionAmbience(ctx, p, t, zoom) {
@@ -59,4 +84,14 @@ function drawBurst(ctx, p, t, until, zoom) {
   ctx.globalAlpha = 1 - progress;
   ctx.fillStyle = "#fff3a5";
   for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; ctx.beginPath(); ctx.arc(p.x + Math.cos(a) * progress * 34 * zoom, p.y + Math.sin(a) * progress * 34 * zoom, 2.5 * zoom, 0, Math.PI * 2); ctx.fill(); }
+}
+
+function drawEmbers(ctx, p, t, until, zoom) {
+  const progress = Math.max(0, Math.min(1, 1 - (until - t) / 760));
+  ctx.globalAlpha = 1 - progress;
+  ctx.fillStyle = "#ffe6a5";
+  for (let i = 0; i < 6; i++) {
+    const sway = Math.sin(progress * 8 + i) * 9;
+    ctx.beginPath(); ctx.arc(p.x + (i - 2.5) * 8 * zoom + sway * zoom, p.y - progress * (48 + i * 7) * zoom, (2.3 - progress) * zoom, 0, Math.PI * 2); ctx.fill();
+  }
 }

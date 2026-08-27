@@ -13,6 +13,12 @@ export class Camera {
     clampCamera(this.cam, this.world, viewW, viewH);
   }
 
+  focus(px, py, viewW, viewH, strength = 0.1) {
+    this.cam.x += (px - this.cam.x) * strength;
+    this.cam.y += (py - this.cam.y) * strength;
+    clampCamera(this.cam, this.world, viewW, viewH);
+  }
+
   snap(px, py, viewW, viewH) {
     this.cam.x = px;
     this.cam.y = py;

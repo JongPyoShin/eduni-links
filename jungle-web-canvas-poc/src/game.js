@@ -17,10 +17,11 @@ import {
 } from "./scene.js";
 import { drawDebugOverlay } from "./debug.js";
 import { createChapterState, resetChapter } from "./content/chapter_state.js";
-import { CLUES, chapterObjective, collectClue, completeBluebird, completeFirePit, startQuest } from "./content/camp_chapter.js";
+import { CLUES, FIRE_PIT_ROUNDS, answerFirePitRound, chapterObjective, collectClue, completeBluebird, startQuest } from "./content/camp_chapter.js";
 import { nearestInteractable } from "./content/interactables.js";
 import { ContentPanelController, renderContentPanel } from "./content/content_panel.js";
 import { drawChapterWorld } from "./content/feedback.js";
+import { activeDirection, advanceSequences, beginIntro, beginRewardReveal, beginRidgeArrival, createSequenceState, scriptedCameraFocus } from "./content/sequence_controller.js";
 
 export async function start(canvas, modalEl) {
   const ctx = canvas.getContext("2d");
@@ -47,12 +48,38 @@ export async function start(canvas, modalEl) {
   let debug = false;
   let chapter = createChapterState();
   let feedback = null;
+  let sequences = createSequenceState();
+  let pendingFireAdvanceAt = null;
 
   camera.snap(player.x, player.y, canvas.width, canvas.height);
 
   function updateUi() {
     renderContentPanel(panel, modalEl);
-    document.querySelector("#objective-hud").textContent = chapterObjective(chapter);
+    const hud = document.querySelector("#objective-hud");
+    const objective = chapterObjective(chapter);
+    if (hud.textContent !== objective) {
+      hud.textContent = objective;
+      hud.classList.remove("objective-change");
+      void hud.offsetWidth;
+      hud.classList.add("objective-change");
+    }
+  }
+
+  function clueLabel(id) {
+    const clue = CLUES.find((entry) => entry.id === id);
+    return clue.title.replace(" 발견!", "").replace("짹짹! ", "").replace("가 들려!", "");
+  }
+
+  function openFireRound() {
+    const round = FIRE_PIT_ROUNDS[chapter.firePitRound];
+    panel.openPanel({
+      kind: "firePit",
+      title: "흔적 탐정 퀴즈",
+      body: round.question,
+      progress: `${chapter.firePitRound + 1} / ${FIRE_PIT_ROUNDS.length}`,
+      choices: round.choices.map((id) => ({ id, label: clueLabel(id) })),
+      choiceMode: "single",
+    });
   }
 
   function openInteraction(item) {
@@ -60,7 +87,7 @@ export async function start(canvas, modalEl) {
     if (item.type === "hut") {
       panel.openPanel({ kind: "hut", title: "오늘의 탐험", body: "숲에 파랑새가 다녀간 흔적이 있대!\n세 가지 흔적을 찾아보자.", progress: "파랑새의 흔적 0 / 3", confirmLabel: "탐험 시작!" });
     } else if (item.type === "firePit") {
-      panel.openPanel({ kind: "firePit", title: "우리가 찾은 흔적은?", body: "찾은 흔적을 모두 골라 보자.", choices: CLUES.map((clue) => ({ id: clue.id, label: clue.title.replace(" 발견!", "").replace("짹짹! ", "").replace("가 들려!", "") })) });
+      openFireRound();
     } else if (item.type === "bluebird") {
       panel.openPanel({ kind: "bluebird", title: "파랑새를 만났어!", body: "깃털, 발자국, 새소리.\n숲의 작은 흔적을 잘 관찰했구나!", img: ASSET_ROOT + "bluebird_portrait.png", confirmLabel: "만나서 반가워!" });
     } else {
@@ -72,10 +99,16 @@ export async function start(canvas, modalEl) {
   function handlePanelActivate(ts) {
     const result = panel.activate();
     if (result.type === "choice") {
-      if (result.complete) {
-        chapter = completeFirePit(chapter, [...panel.selected]);
-        feedback = { x: 920, y: 820, until: ts + 650 };
-        panel.openPanel({ kind: "fireComplete", title: "모두 기억했구나!", body: "모닥불이 더 따뜻하게 빛나고 있어.", confirmLabel: "전망대로 가기" });
+      if (result.kind === "firePit") {
+        const answer = answerFirePitRound(chapter, result.choice.id);
+        if (!answer.correct) {
+          panel.setResponse("한 번 더 생각해 볼까?", "gentle");
+        } else {
+          chapter = answer.state;
+          feedback = { x: 990, y: 935, until: ts + 760, style: "embers" };
+          panel.openPanel({ kind: "fireFeedback", title: "찾아냈어!", body: answer.feedback, autoProgress: true });
+          pendingFireAdvanceAt = ts + 720;
+        }
       }
     } else if (result.type === "confirm") {
       if (result.kind === "hut") chapter = startQuest(chapter);
@@ -86,7 +119,8 @@ export async function start(canvas, modalEl) {
       }
       if (result.kind === "bluebird") {
         chapter = completeBluebird(chapter);
-        panel.openPanel({ kind: "reward", title: "탐험 완료!", body: "오늘 발견한 것\n✓ 파란 깃털\n✓ 작은 발자국\n✓ 새소리\n✓ 파랑새", badge: true, confirmLabel: "다시 둘러보기" });
+        sequences = beginRewardReveal(sequences, ts);
+        panel.openPanel({ kind: "reward", title: "탐험 완료!", body: "오늘 발견한 것", badge: true, checklist: ["파란 깃털", "작은 발자국", "새소리", "파랑새"], confirmLabel: "다시 둘러보기", revealReady: false });
         updateUi();
         return;
       }
@@ -106,12 +140,34 @@ export async function start(canvas, modalEl) {
     if (input.consumeDebug()) debug = !debug;
     if (debug && input.consumeReset()) {
       chapter = resetChapter();
+      sequences = createSequenceState();
       panel.closePanel();
       feedback = null;
+      pendingFireAdvanceAt = null;
       movement.reset();
       updateUi();
     } else {
       input.consumeReset();
+    }
+
+    if (sequences.introStartedAt === null && !sequences.introPlayed) sequences = beginIntro(sequences, ts || 0);
+    sequences = advanceSequences(sequences, ts || 0);
+    if (sequences.rewardShown && panel.payload?.kind === "reward" && !panel.payload.revealReady) {
+      panel.payload = { ...panel.payload, revealReady: true };
+      updateUi();
+    }
+    if (!panel.blocksMovement()) sequences = beginRidgeArrival(sequences, chapter, player, ts || 0);
+    const directing = activeDirection(sequences, ts || 0);
+    document.querySelector("#objective-hud").classList.toggle("softened", Boolean(directing));
+
+    if (pendingFireAdvanceAt !== null && (ts || 0) >= pendingFireAdvanceAt) {
+      pendingFireAdvanceAt = null;
+      if (chapter.firePitComplete) {
+        panel.openPanel({ kind: "fireComplete", title: "흔적 탐정 성공!", body: "모닥불이 더 따뜻하게 빛나고 있어.", confirmLabel: "전망대로 가기" });
+      } else {
+        openFireRound();
+      }
+      updateUi();
     }
 
     if (panel.blocksMovement()) {
@@ -119,11 +175,19 @@ export async function start(canvas, modalEl) {
       panel.moveChoice(navigate);
       if (navigate) updateUi();
       if (input.consumeClose()) {
-        panel.closePanel();
-        updateUi();
-      } else if (input.consumeInteract()) {
+        if (!(panel.payload?.kind === "reward" && !panel.payload.revealReady)) {
+          panel.closePanel();
+          pendingFireAdvanceAt = null;
+          updateUi();
+        }
+      } else if (input.consumeInteract() && panel.payload?.kind !== "fireFeedback") {
         handlePanelActivate(ts || 0);
       }
+    } else if (directing) {
+      movement.reset();
+      input.consumeNavigate();
+      input.consumeInteract();
+      input.consumeClose();
     } else {
       const dir = input.direction();
       const delta = movement.update(dt, dir);
@@ -137,20 +201,22 @@ export async function start(canvas, modalEl) {
 
       input.consumeNavigate();
       if (input.consumeInteract()) {
-        const item = nearestInteractable(player, chapter);
+        const item = nearestInteractable(player, chapter, { bluebirdReady: sequences.ridgeArrivalPlayed });
         if (item) openInteraction(item);
       }
       input.consumeClose();
     }
 
-    camera.follow(player.x, player.y, viewW, viewH);
+    const cameraFocus = scriptedCameraFocus(directing, player);
+    if (cameraFocus) camera.focus(cameraFocus.x, cameraFocus.y, viewW, viewH, 0.12);
+    else camera.follow(player.x, player.y, viewW, viewH);
 
     ctx.clearRect(0, 0, viewW, viewH);
     drawGroundLayer(ctx, camera.cam, viewW, viewH, geometry);
     drawPathLayer(ctx, camera.cam, viewW, viewH, geometry);
 
-    drawChapterWorld(ctx, camera.cam, viewW, viewH, chapter, ts || 0, feedback);
-    const nearby = !panel.blocksMovement() ? nearestInteractable(player, chapter) : null;
+    drawChapterWorld(ctx, camera.cam, viewW, viewH, chapter, ts || 0, feedback, directing);
+    const nearby = !panel.blocksMovement() && !directing ? nearestInteractable(player, chapter, { bluebirdReady: sequences.ridgeArrivalPlayed }) : null;
     const drawables = [];
     for (const p of props) {
       drawables.push({
@@ -161,17 +227,18 @@ export async function start(canvas, modalEl) {
     drawables.push({
       footY: birdVisual.y,
       draw: () => {
+        const birdRender = directing?.type === "ridge" ? { x: birdVisual.x, y: birdVisual.y + Math.sin((ts || 0) / 115) * 5 } : birdVisual;
         drawProp(
           ctx,
           camera.cam,
           viewW,
           viewH,
-          { type: "rock", x: birdVisual.x, y: birdVisual.y + 20, scale: 0.9 },
+          { type: "rock", x: birdRender.x, y: birdRender.y + 20, scale: 0.9 },
           images,
           ts || 0
         );
-        drawContactShadow(ctx, camera.cam, viewW, viewH, birdVisual.x, birdVisual.y, 18);
-        drawBluebird(ctx, camera.cam, viewW, viewH, birdVisual, bluebirdAsset);
+        drawContactShadow(ctx, camera.cam, viewW, viewH, birdRender.x, birdRender.y, 18);
+        drawBluebird(ctx, camera.cam, viewW, viewH, birdRender, bluebirdAsset);
       },
     });
     drawables.push({

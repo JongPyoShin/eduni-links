@@ -72,9 +72,11 @@ export class InputController {
         break;
       case "ArrowUp":
         this.up = down;
+        if (down) this.navigateEdge = -1;
         break;
       case "ArrowDown":
         this.down = down;
+        if (down) this.navigateEdge = 1;
         break;
       case "Enter":
       case "Space":
@@ -119,6 +121,8 @@ export class InputController {
           this[action] = v;
           if (v && action === "left") this.navigateEdge = -1;
           if (v && action === "right") this.navigateEdge = 1;
+          if (v && action === "up") this.navigateEdge = -1;
+          if (v && action === "down") this.navigateEdge = 1;
         }
       };
       el.addEventListener("pointerdown", (e) => {

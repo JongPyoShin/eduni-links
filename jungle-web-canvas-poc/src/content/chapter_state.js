@@ -2,6 +2,7 @@ export function createChapterState() {
   return {
     questStarted: false,
     discoveredClues: [],
+    firePitRound: 0,
     firePitComplete: false,
     bluebirdComplete: false,
   };

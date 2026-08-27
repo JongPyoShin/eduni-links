@@ -37,6 +37,27 @@ export const LANDMARKS = {
   bluebird: { id: "bluebird", type: "bluebird", x: BLUEBIRD.WORLD.x, y: BLUEBIRD.WORLD.y, radius: BLUEBIRD.INTERACT_RADIUS },
 };
 
+export const FIRE_PIT_ROUNDS = [
+  {
+    question: "새가 어느 쪽으로 갔는지 알려준 흔적은?",
+    choices: ["feather", "footprints", "birdcall"],
+    correct: "footprints",
+    feedback: "맞아! 발자국의 방향을 보면 알 수 있어.",
+  },
+  {
+    question: "새가 가까이 있다는 걸 귀로 알게 해 준 것은?",
+    choices: ["birdcall", "footprints", "feather"],
+    correct: "birdcall",
+    feedback: "딩동! 소리를 들으면 보이지 않아도 찾을 수 있어.",
+  },
+  {
+    question: "빛을 받으면 반짝여 보일 수 있는 것은?",
+    choices: ["footprints", "feather", "birdcall"],
+    correct: "feather",
+    feedback: "정답! 파란 깃털을 잘 기억했구나.",
+  },
+];
+
 export function chapterObjective(state) {
   if (state.bluebirdComplete) return "탐험 완료!";
   if (state.firePitComplete) return "전망대로 가 보자!";
@@ -58,9 +79,21 @@ export function canUseFirePit(state) {
   return state.questStarted && clueCount(state) === CLUES.length && !state.firePitComplete;
 }
 
-export function completeFirePit(state, selected) {
-  const allFound = CLUES.every((clue) => selected.includes(clue.id));
-  if (!canUseFirePit(state) || !allFound) return state;
+export function answerFirePitRound(state, answerId) {
+  if (!canUseFirePit(state)) return { state, correct: false, completed: false };
+  const round = FIRE_PIT_ROUNDS[state.firePitRound];
+  if (!round || answerId !== round.correct) return { state, correct: false, completed: false };
+  const nextRound = state.firePitRound + 1;
+  const nextState = {
+    ...state,
+    firePitRound: nextRound,
+    firePitComplete: nextRound === FIRE_PIT_ROUNDS.length,
+  };
+  return { state: nextState, correct: true, completed: nextState.firePitComplete, feedback: round.feedback };
+}
+
+export function completeFirePit(state) {
+  if (!canUseFirePit(state) || state.firePitRound !== FIRE_PIT_ROUNDS.length) return state;
   return { ...state, firePitComplete: true };
 }
 

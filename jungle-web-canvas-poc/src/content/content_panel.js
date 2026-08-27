@@ -35,8 +35,16 @@ export class ContentPanelController {
     if (!this.open) return { type: "none" };
     if (!choices.length) return { type: "confirm", kind: this.payload.kind };
     const choice = choices[this.focusIndex];
+    if (this.payload.choiceMode === "single") {
+      this.selected = new Set([choice.id]);
+      return { type: "choice", kind: this.payload.kind, choice, complete: true };
+    }
     this.selected.add(choice.id);
     return { type: "choice", kind: this.payload.kind, choice, complete: this.selected.size === choices.length };
+  }
+
+  setResponse(text, tone = "neutral") {
+    this.payload = { ...this.payload, response: text, responseTone: tone };
   }
 }
 
@@ -44,6 +52,7 @@ export function renderContentPanel(panel, modalEl) {
   modalEl.style.display = panel.open ? "flex" : "none";
   if (!panel.open) return;
   const p = panel.payload;
+  modalEl.querySelector(".card").className = `card${p.responseTone === "gentle" ? " gentle-shake" : ""}${p.kind === "reward" ? " reward-reveal" : ""}`;
   modalEl.querySelector("#modal-title").textContent = p.title;
   modalEl.querySelector("#modal-body").textContent = p.body || "";
   modalEl.querySelector("#modal-progress").textContent = p.progress || "";
@@ -60,8 +69,22 @@ export function renderContentPanel(panel, modalEl) {
     row.textContent = `${panel.selected.has(choice.id) ? "✓" : "○"} ${choice.label}`;
     choices.append(row);
   }
+  const response = modalEl.querySelector("#modal-response");
+  response.textContent = p.response || "";
+  response.className = p.response ? `response ${p.responseTone || ""}` : "response";
+  const summary = modalEl.querySelector("#reward-summary");
+  summary.replaceChildren();
+  if (p.checklist) {
+    for (const [index, item] of p.checklist.entries()) {
+      const line = document.createElement("div");
+      line.className = "reward-item";
+      line.style.animationDelay = `${400 + index * 180}ms`;
+      line.textContent = `✓ ${item}`;
+      summary.append(line);
+    }
+  }
   const confirm = modalEl.querySelector("#modal-confirm");
   confirm.textContent = p.confirmLabel || (p.choices ? "선택하기" : "계속");
-  confirm.style.display = p.choices ? "none" : "inline-flex";
-  modalEl.querySelector("#modal-hint").textContent = p.choices ? "방향키로 고르고 A로 선택 · B / Escape로 닫기" : "A / Enter로 계속 · B / Escape로 닫기";
+  confirm.style.display = p.choices || (p.kind === "reward" && !p.revealReady) || p.autoProgress ? "none" : "inline-flex";
+  modalEl.querySelector("#modal-hint").textContent = p.autoProgress ? "잠깐만 기다려 줘!" : p.choices ? "어느 방향키로도 고르고 A로 선택 · B / Escape로 닫기" : p.kind === "reward" && !p.revealReady ? "배지를 준비하고 있어…" : "A / Enter로 계속 · B / Escape로 닫기";
 }

@@ -12,31 +12,38 @@ SPACE_GAME_FILE = Path(__file__).resolve().parent / "static_games" / "eduni_spac
 SPACE_QUESTION_BANK_FILE = Path(__file__).resolve().parent / "static_games" / "eduni_space_question_bank.js"
 
 
+def _replace_once(html: str, old: str, new: str) -> str:
+    if old not in html:
+        raise RuntimeError(f"EDUNI space integration marker missing: {old[:80]}")
+    return html.replace(old, new, 1)
+
+
 def _inject_question_bank(html: str) -> str:
-    html = html.replace(
+    html = _replace_once(
+        html,
         "거울, 회전, 쌓기나무, 위에서 본 모양을 10문제로 가볍게 연습해요. 시간 제한은 없어요.",
         "200문제 풀에서 매번 10문제를 랜덤으로 골라 연습해요. 시간 제한은 없어요.",
-        1,
     )
-    html = html.replace(
+    html = _replace_once(
+        html,
         "  <script>\n    (() => {",
         f'  <script src="{SPACE_QUESTION_BANK_URL}"></script>\n  <script>\n    (() => {{',
-        1,
     )
-    html = html.replace(
+    html = _replace_once(
+        html,
         "      const baseShapes = [",
         "      const extraQuestionBank = window.EDUNI_SPACE_BANK || { shapes: [], countMaps: [], projectionMaps: [] };\n"
         "      const baseShapes = [",
-        1,
     )
-    html = html.replace(
+    html = _replace_once(
+        html,
         "      ];\n\n      const randInt =",
         "      ];\n"
         "      const allShapes = baseShapes.concat(extraQuestionBank.shapes || []);\n\n"
         "      const randInt =",
-        1,
     )
-    html = html.replace(
+    html = _replace_once(
+        html,
         "      const matrixKey = (m) => m.map((row) => row.join('')).join('|');",
         "      const matrixKey = (m) => m.map((row) => row.join('')).join('|');\n"
         "      const bankBags = Object.create(null);\n"
@@ -47,29 +54,28 @@ def _inject_question_bank(html: str) -> str:
         "        }\n"
         "        return cloneMatrix(pool[bankBags[name].pop()]);\n"
         "      };",
-        1,
     )
-    html = html.replace(
+    html = _replace_once(
+        html,
         "        const source = cloneMatrix(pick(baseShapes));",
         "        const source = drawBankMatrix('mirror', allShapes, () => cloneMatrix(pick(baseShapes)));",
-        1,
     )
-    html = html.replace(
+    html = _replace_once(
+        html,
         "        const source = cloneMatrix(pick(baseShapes));",
         "        const source = drawBankMatrix('rotate', allShapes, () => cloneMatrix(pick(baseShapes)));",
-        1,
     )
-    html = html.replace(
+    html = _replace_once(
+        html,
         "      function makeCountQuestion() {\n        const map = randomHeightMap();",
         "      function makeCountQuestion() {\n"
         "        const map = drawBankMatrix('count', extraQuestionBank.countMaps || [], randomHeightMap);",
-        1,
     )
-    html = html.replace(
+    html = _replace_once(
+        html,
         "      function makeProjectionQuestion() {\n        const map=randomHeightMap();",
         "      function makeProjectionQuestion() {\n"
         "        const map=drawBankMatrix('projection', extraQuestionBank.projectionMaps || [], randomHeightMap);",
-        1,
     )
     return html
 

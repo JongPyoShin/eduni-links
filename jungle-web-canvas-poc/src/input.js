@@ -1,5 +1,5 @@
 export class InputController {
-  constructor() {
+  constructor({ gamepadProvider } = {}) {
     this.left = false;
     this.right = false;
     this.up = false;
@@ -9,6 +9,13 @@ export class InputController {
     this.debugEdge = false;
     this.resetEdge = false;
     this.navigateEdge = 0;
+    this.activityEdge = false;
+    this.gamepadIndex = null;
+    this.gamepadDirection = { x: 0, y: 0 };
+    this.gamepadNavHeld = false;
+    this.gamepadButtons = { a: false, b: false };
+    this.keyboardNavHeld = new Set();
+    this.gamepadProvider = gamepadProvider || (() => (typeof navigator !== "undefined" && navigator.getGamepads ? navigator.getGamepads() : []));
     this._bind();
   }
 
@@ -20,7 +27,46 @@ export class InputController {
   }
 
   direction() {
-    return this._dir();
+    const keyboard = this._dir();
+    if (keyboard.x || keyboard.y) return keyboard;
+    return this.gamepadDirection;
+  }
+
+  pollGamepad() {
+    const pads = this.gamepadProvider() || [];
+    let pad = this.gamepadIndex !== null ? pads[this.gamepadIndex] : null;
+    if (!pad || !pad.connected) {
+      this.gamepadIndex = null;
+      pad = Array.from(pads || []).find((candidate) => candidate?.connected) || null;
+      if (pad) this.gamepadIndex = pad.index;
+    }
+    if (!pad) {
+      this.gamepadDirection = { x: 0, y: 0 };
+      this.gamepadNavHeld = false;
+      return;
+    }
+    const axisX = pad.axes?.[0] || 0;
+    const axisY = pad.axes?.[1] || 0;
+    const magnitude = Math.hypot(axisX, axisY);
+    const deadzone = 0.25;
+    const analog = magnitude > deadzone ? { x: axisX / magnitude * Math.min(1, (magnitude - deadzone) / (1 - deadzone)), y: axisY / magnitude * Math.min(1, (magnitude - deadzone) / (1 - deadzone)) } : { x: 0, y: 0 };
+    const dpadX = (pad.buttons?.[15]?.pressed ? 1 : 0) - (pad.buttons?.[14]?.pressed ? 1 : 0);
+    const dpadY = (pad.buttons?.[13]?.pressed ? 1 : 0) - (pad.buttons?.[12]?.pressed ? 1 : 0);
+    this.gamepadDirection = magnitude > deadzone ? analog : { x: dpadX, y: dpadY };
+    const menuDirection = Math.abs(this.gamepadDirection.x) >= Math.abs(this.gamepadDirection.y) ? Math.sign(this.gamepadDirection.x) : Math.sign(this.gamepadDirection.y);
+    if (menuDirection && !this.gamepadNavHeld) {
+      this.navigateEdge = menuDirection;
+      this.gamepadNavHeld = true;
+      this.activityEdge = true;
+    } else if (!menuDirection) {
+      this.gamepadNavHeld = false;
+    }
+    const a = Boolean(pad.buttons?.[0]?.pressed);
+    const b = Boolean(pad.buttons?.[1]?.pressed);
+    if (a && !this.gamepadButtons.a) this.interactEdge = true;
+    if (b && !this.gamepadButtons.b) this.closeEdge = true;
+    if (a !== this.gamepadButtons.a || b !== this.gamepadButtons.b || menuDirection) this.activityEdge = true;
+    this.gamepadButtons = { a, b };
   }
 
   consumeInteract() {
@@ -53,6 +99,12 @@ export class InputController {
     return v;
   }
 
+  consumeActivity() {
+    const value = this.activityEdge;
+    this.activityEdge = false;
+    return value;
+  }
+
   _bind() {
     if (typeof window === "undefined") return;
     window.addEventListener("keydown", (e) => this._onKey(e, true));
@@ -64,35 +116,43 @@ export class InputController {
     switch (e.code) {
       case "ArrowLeft":
         this.left = down;
-        if (down) this.navigateEdge = -1;
+        if (down && !this.keyboardNavHeld.has(e.code)) this.navigateEdge = -1;
+        if (down) this.keyboardNavHeld.add(e.code); else this.keyboardNavHeld.delete(e.code);
+        if (down) this.activityEdge = true;
         break;
       case "ArrowRight":
         this.right = down;
-        if (down) this.navigateEdge = 1;
+        if (down && !this.keyboardNavHeld.has(e.code)) this.navigateEdge = 1;
+        if (down) this.keyboardNavHeld.add(e.code); else this.keyboardNavHeld.delete(e.code);
+        if (down) this.activityEdge = true;
         break;
       case "ArrowUp":
         this.up = down;
-        if (down) this.navigateEdge = -1;
+        if (down && !this.keyboardNavHeld.has(e.code)) this.navigateEdge = -1;
+        if (down) this.keyboardNavHeld.add(e.code); else this.keyboardNavHeld.delete(e.code);
+        if (down) this.activityEdge = true;
         break;
       case "ArrowDown":
         this.down = down;
-        if (down) this.navigateEdge = 1;
+        if (down && !this.keyboardNavHeld.has(e.code)) this.navigateEdge = 1;
+        if (down) this.keyboardNavHeld.add(e.code); else this.keyboardNavHeld.delete(e.code);
+        if (down) this.activityEdge = true;
         break;
       case "Enter":
       case "Space":
       case "KeyA":
-        if (down) this.interactEdge = true;
+        if (down) { this.interactEdge = true; this.activityEdge = true; }
         e.preventDefault();
         break;
       case "Escape":
       case "KeyB":
-        if (down) this.closeEdge = true;
+        if (down) { this.closeEdge = true; this.activityEdge = true; }
         break;
       case "Backquote":
-        if (down) this.debugEdge = true;
+        if (down) { this.debugEdge = true; this.activityEdge = true; }
         break;
       case "KeyR":
-        if (down) this.resetEdge = true;
+        if (down) { this.resetEdge = true; this.activityEdge = true; }
         break;
       default:
         return;
@@ -114,15 +174,16 @@ export class InputController {
       if (!el) continue;
       const set = (v) => {
         if (action === "interact") {
-          if (v) this.interactEdge = true;
+          if (v) { this.interactEdge = true; this.activityEdge = true; }
         } else if (action === "close") {
-          if (v) this.closeEdge = true;
+          if (v) { this.closeEdge = true; this.activityEdge = true; }
         } else {
           this[action] = v;
-          if (v && action === "left") this.navigateEdge = -1;
-          if (v && action === "right") this.navigateEdge = 1;
-          if (v && action === "up") this.navigateEdge = -1;
-          if (v && action === "down") this.navigateEdge = 1;
+          if (v) {
+            if (action === "left" || action === "up") this.navigateEdge = -1;
+            if (action === "right" || action === "down") this.navigateEdge = 1;
+            this.activityEdge = true;
+          }
         }
       };
       el.addEventListener("pointerdown", (e) => {

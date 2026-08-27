@@ -266,6 +266,19 @@ function drawClearingSurface(ctx, s, clearing, zoom) {
   grd.addColorStop(1, "rgba(185,138,85,0)");
   ctx.fillStyle = grd;
   ctx.fill();
+
+  if (clearing.label === "Ridge Lookout") drawRidgeOpening(ctx, s, radius, zoom);
+}
+
+function drawRidgeOpening(ctx, s, radius, zoom) {
+  const light = ctx.createRadialGradient(s.x - radius * 0.14, s.y - radius * 0.18, 8 * zoom, s.x, s.y, radius * 1.16);
+  light.addColorStop(0, "rgba(246,211,139,0.18)");
+  light.addColorStop(0.58, "rgba(235,195,117,0.08)");
+  light.addColorStop(1, "rgba(235,195,117,0)");
+  ctx.fillStyle = light;
+  ctx.beginPath();
+  ctx.ellipse(s.x, s.y, radius * 1.04, radius * 0.82, 0, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 export function drawPathLayer(ctx, cam, viewW, viewH, geometry) {

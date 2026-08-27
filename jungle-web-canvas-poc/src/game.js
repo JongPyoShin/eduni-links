@@ -116,7 +116,15 @@ export async function start(canvas, modalEl) {
     drawables.push({
       footY: birdVisual.y,
       draw: () => {
-        drawProp(ctx, camera.cam, viewW, viewH, { type: "rock", x: 1385, y: 430, scale: 0.9 }, images, ts || 0);
+        drawProp(
+          ctx,
+          camera.cam,
+          viewW,
+          viewH,
+          { type: "rock", x: birdVisual.x, y: birdVisual.y + 20, scale: 0.9 },
+          images,
+          ts || 0
+        );
         drawContactShadow(ctx, camera.cam, viewW, viewH, birdVisual.x, birdVisual.y, 18);
         drawBluebird(ctx, camera.cam, viewW, viewH, birdVisual, bluebirdAsset);
       },

@@ -7,6 +7,8 @@ export class InputController {
     this.interactEdge = false;
     this.closeEdge = false;
     this.debugEdge = false;
+    this.resetEdge = false;
+    this.navigateEdge = 0;
     this._bind();
   }
 
@@ -39,6 +41,18 @@ export class InputController {
     return v;
   }
 
+  consumeReset() {
+    const v = this.resetEdge;
+    this.resetEdge = false;
+    return v;
+  }
+
+  consumeNavigate() {
+    const v = this.navigateEdge;
+    this.navigateEdge = 0;
+    return v;
+  }
+
   _bind() {
     if (typeof window === "undefined") return;
     window.addEventListener("keydown", (e) => this._onKey(e, true));
@@ -50,9 +64,11 @@ export class InputController {
     switch (e.code) {
       case "ArrowLeft":
         this.left = down;
+        if (down) this.navigateEdge = -1;
         break;
       case "ArrowRight":
         this.right = down;
+        if (down) this.navigateEdge = 1;
         break;
       case "ArrowUp":
         this.up = down;
@@ -72,6 +88,9 @@ export class InputController {
         break;
       case "Backquote":
         if (down) this.debugEdge = true;
+        break;
+      case "KeyR":
+        if (down) this.resetEdge = true;
         break;
       default:
         return;
@@ -98,6 +117,8 @@ export class InputController {
           if (v) this.closeEdge = true;
         } else {
           this[action] = v;
+          if (v && action === "left") this.navigateEdge = -1;
+          if (v && action === "right") this.navigateEdge = 1;
         }
       };
       el.addEventListener("pointerdown", (e) => {

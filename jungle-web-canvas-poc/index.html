@@ -23,18 +23,25 @@
       #dpad-a { position: fixed; right: 18px; bottom: 84px; width: 64px; height: 64px; border-radius: 50%; background: rgba(34,197,94,0.5); border: 2px solid rgba(34,197,94,0.9); }
       #dpad-b { position: fixed; right: 92px; bottom: 18px; width: 64px; height: 64px; border-radius: 50%; background: rgba(239,68,68,0.5); border: 2px solid rgba(239,68,68,0.9); }
       .dbtn:active { background: rgba(255,255,255,0.4); }
-      #help { position: fixed; top: 10px; left: 10px; color: #d7f0dd; font-size: 12px; background: rgba(0,0,0,0.35); padding: 6px 10px; border-radius: 8px; line-height: 1.5; }
+      #objective-hud { position: fixed; top: 14px; left: 14px; max-width: min(310px, calc(100vw - 28px)); color: #f8ffdf; font-size: clamp(13px, 2.1vw, 17px); font-weight: 800; background: rgba(15, 41, 27, 0.82); border: 1px solid rgba(215, 240, 180, 0.55); padding: 9px 13px; border-radius: 13px; box-shadow: 0 5px 18px rgba(0,0,0,0.24); z-index: 4; }
       #modal {
         position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
         background: rgba(0,0,0,0.55); z-index: 10;
       }
       #modal .card {
-        background: #fff; border-radius: 18px; padding: 22px; max-width: 340px; text-align: center;
+        background: #fffdf5; border-radius: 20px; padding: 21px; width: min(360px, calc(100vw - 36px)); max-height: calc(100vh - 36px); overflow-y: auto; text-align: center;
         box-shadow: 0 20px 60px rgba(0,0,0,0.5);
       }
       #modal .card img { width: 160px; height: 160px; object-fit: contain; margin-bottom: 10px; }
-      #modal .card h2 { margin: 6px 0; color: #0f172a; }
-      #modal .card p { color: #334155; font-size: 14px; line-height: 1.5; }
+      #modal .card h2 { margin: 6px 0; color: #153c32; }
+      #modal .card p { white-space: pre-line; color: #334155; font-size: 15px; line-height: 1.55; }
+      #modal-progress { min-height: 18px; color: #256b53; font-size: 13px; font-weight: 800; }
+      #modal-choices { display: grid; gap: 8px; margin: 14px 0; text-align: left; }
+      .choice { border: 2px solid #dce9dd; border-radius: 11px; padding: 10px 12px; color: #315246; font-weight: 750; }
+      .choice.focused { border-color: #f2a93b; box-shadow: 0 0 0 3px rgba(242,169,59,.18); }
+      .choice.selected { background: #e9f8e6; border-color: #72b96b; }
+      #modal-confirm { border: 0; border-radius: 12px; background: #2d8a5c; color: #fff; padding: 11px 17px; font-weight: 800; font-size: 15px; }
+      #reward-badge { display: none; place-items: center; margin: 0 auto 12px; width: 86px; height: 86px; border-radius: 50%; background: radial-gradient(circle at 30% 25%, #fff 0 7%, #7dd3fc 8% 28%, #2563eb 29% 72%, #163a78 73%); border: 4px solid #f6d365; box-shadow: 0 4px 0 #b57b24, 0 8px 18px rgba(37,99,235,.32); color: #fff; font-size: 40px; text-shadow: 0 1px 2px #123; }
       #modal .card .hint { margin-top: 12px; font-size: 12px; color: #64748b; }
     </style>
   </head>
@@ -49,13 +56,18 @@
     </div>
     <div class="dbtn" id="dpad-a">A</div>
     <div class="dbtn" id="dpad-b">B</div>
+    <div id="objective-hud" aria-live="polite">학습 오두막을 찾아가 보자</div>
 
     <div id="modal">
       <div class="card">
+        <div id="reward-badge" aria-label="파랑새 관찰 배지">🪶</div>
         <img id="modal-img" alt="bluebird" />
-        <h2 id="modal-title">Bluebird</h2>
-        <p id="modal-fact"></p>
-        <div class="hint">B / Escape to close</div>
+        <div id="modal-progress"></div>
+        <h2 id="modal-title">오늘의 탐험</h2>
+        <p id="modal-body"></p>
+        <div id="modal-choices"></div>
+        <button id="modal-confirm" type="button">계속</button>
+        <div id="modal-hint" class="hint">A / Enter로 계속 · B / Escape로 닫기</div>
       </div>
     </div>
 

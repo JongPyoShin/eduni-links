@@ -33,7 +33,7 @@ export const CLUES = [
 
 export const LANDMARKS = {
   hut: { id: "hut", type: "hut", x: 455, y: 320, radius: 88 },
-  firePit: { id: "firePit", type: "firePit", x: 920, y: 820, radius: 94 },
+  firePit: { id: "firePit", type: "firePit", x: 990, y: 900, radius: 120 },
   bluebird: { id: "bluebird", type: "bluebird", x: BLUEBIRD.WORLD.x, y: BLUEBIRD.WORLD.y, radius: BLUEBIRD.INTERACT_RADIUS },
 };
 

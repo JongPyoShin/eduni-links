@@ -81,6 +81,8 @@ ACCELERATION_MS   = 400
 - Active scene image set: `hut.png`, `tree_round.png`, `pine.png`, `rock.png`, and
   `tall_grass.png`. The former tile-like `grass.png` and `flower_bed.png` assets
   are not runtime props.
+- Ground, path, and clearing surfaces use deterministic Canvas layers; gameplay
+  geometry remains sourced exclusively from `CampWorldGeometry`.
 
 ## Tests
 

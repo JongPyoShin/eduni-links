@@ -30,7 +30,7 @@ export const CAMERA = {
 export const BLUEBIRD = {
   INTERACT_RADIUS: 64,
   WORLD: { x: 1300, y: 420 },
-  VISUAL: { x: 1385, y: 410 },
+  VISUAL: { x: 1410, y: 400 },
   NAME: "Bluebird",
   FACT: "Camp bluebirds nest in hollow logs near the ridge lookout.",
 };

@@ -19,18 +19,18 @@ export function buildProps() {
   const props = [];
   const add = (type, x, y, scale, footY) => props.push({ type, x, y, scale, footY: footY === undefined ? y : footY });
 
-  add("hut", 520, 320, 0.95);
-  add("firepit", 920, 820, 1.0);
+  add("hut", 430, 260, 0.95);
+  add("firepit", 990, 935, 1.0);
   add("rock", 180, 1078, 0.8);
   add("rock", 250, 1012, 0.7);
   add("rock", 900, 952, 0.8);
   add("rock", 1230, 360, 0.7);
 
-  add("tree_round", 320, 700, 1.0);
+  add("tree_round", 360, 900, 1.0);
   add("pine", 700, 520, 1.0);
   add("tree_round", 1050, 560, 1.0);
-  add("pine", 1180, 860, 1.0);
-  add("tree_round", 1392, 640, 1.0);
+  add("pine", 1450, 900, 1.0);
+  add("tree_round", 1470, 640, 1.0);
 
   add("tall_grass", 700, 1120, 1.1);
   add("tall_grass", 1100, 1145, 1.1);
@@ -151,11 +151,46 @@ export function drawGroundLayer(ctx, cam, viewW, viewH, geometry) {
   ctx.fillRect(tl.x, tl.y, wW, wH);
 }
 
+function drawClearingSurface(ctx, s, clearing, zoom) {
+  const radius = clearing.r * zoom;
+  const points = 24;
+  ctx.beginPath();
+  for (let i = 0; i < points; i++) {
+    const angle = (i / points) * Math.PI * 2;
+    const wobble = 0.9 + hash2(clearing.x + i * 17, clearing.y - i * 23) * 0.14;
+    const x = s.x + Math.cos(angle) * radius * wobble;
+    const y = s.y + Math.sin(angle) * radius * wobble;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+
+  const grd = ctx.createRadialGradient(
+    s.x - radius * 0.12,
+    s.y - radius * 0.1,
+    radius * 0.12,
+    s.x,
+    s.y,
+    radius * 1.02
+  );
+  grd.addColorStop(0, "rgba(185,138,85,0.42)");
+  grd.addColorStop(0.58, "rgba(185,138,85,0.30)");
+  grd.addColorStop(0.88, "rgba(185,138,85,0.12)");
+  grd.addColorStop(1, "rgba(185,138,85,0)");
+  ctx.fillStyle = grd;
+  ctx.fill();
+}
+
 export function drawPathLayer(ctx, cam, viewW, viewH, geometry) {
   const { paths, clearings, halfWidth } = pathBands(geometry);
   ctx.save();
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
+
+  for (const c of clearings) {
+    const s = worldToScreen(c.x, c.y, cam, viewW, viewH);
+    drawClearingSurface(ctx, s, c, cam.zoom);
+  }
 
   const strokePoly = (w, color, width) => {
     ctx.strokeStyle = color;
@@ -174,14 +209,6 @@ export function drawPathLayer(ctx, cam, viewW, viewH, geometry) {
   strokePoly(0, `rgba(36,50,26,0.55)`, (halfWidth + 18) * 2 * cam.zoom);
   strokePoly(0, "#b98a55", halfWidth * 2 * cam.zoom);
   strokePoly(0, "rgba(150,110,68,0.45)", (halfWidth - 16) * 2 * cam.zoom);
-
-  for (const c of clearings) {
-    const s = worldToScreen(c.x, c.y, cam, viewW, viewH);
-    ctx.fillStyle = "rgba(150,110,68,0.35)";
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, c.r * cam.zoom, 0, Math.PI * 2);
-    ctx.fill();
-  }
 
   for (const poly of paths) {
     for (let i = 0; i < poly.length - 1; i++) {

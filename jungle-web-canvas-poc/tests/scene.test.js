@@ -22,8 +22,8 @@ test("clearing identities are present at the correct world anchors", () => {
   const props = buildProps();
   const hut = props.find((p) => p.type === "hut");
   const fire = props.find((p) => p.type === "firepit");
-  assert.ok(hut && hut.x === 520 && hut.y === 320, "tent hut at Tent clearing");
-  assert.ok(fire && fire.x === 920 && fire.y === 820, "fire pit at Fire Pit clearing");
+  assert.ok(hut && hut.x === 430 && hut.y === 260, "tent hut framed within Tent clearing");
+  assert.ok(fire && fire.x === 990 && fire.y === 935, "fire pit framed within Fire Pit clearing");
   const perchOccluder = props.find(
     (p) => p.type === "rock" && Math.abs(p.x - BLUEBIRD.VISUAL.x) < 1 && Math.abs(p.y - 430) < 30
   );
@@ -45,6 +45,22 @@ test("tile-like grass and flower-bed assets are not depth-sorted props", () => {
   assert.equal("grass" in SCENE_IMAGES || "flower_bed" in SCENE_IMAGES, false);
 });
 
+test("landmark visuals frame the route without sitting on its centerline", () => {
+  const geometry = new CampWorldGeometry();
+  const props = buildProps();
+  for (const type of ["hut", "firepit"]) {
+    const prop = props.find((p) => p.type === type);
+    assert.ok(prop, `${type} exists`);
+    assert.ok(
+      geometry.distToPath(prop.x, prop.y) > geometry.pathHalfWidth,
+      `${type} is visually off the route centerline`
+    );
+  }
+  const movedTree = props.find((p) => p.type === "tree_round" && p.x === 360 && p.y === 900);
+  const movedPine = props.find((p) => p.type === "pine" && p.x === 1450 && p.y === 900);
+  assert.ok(movedTree && movedPine, "route-blocking trees remain framed off the route");
+});
+
 test("path rendering consumes CampWorldGeometry single source", () => {
   const g = new CampWorldGeometry();
   const bands = pathBands(g);
@@ -56,7 +72,7 @@ test("bluebird visual position is separated from interaction anchor", () => {
   const anchor = BLUEBIRD.WORLD;
   const vis = BLUEBIRD.VISUAL;
   const d = Math.hypot(vis.x - anchor.x, vis.y - anchor.y);
-  assert.ok(d > 80 && d < 100, `visual offset ~85-100, got ${d.toFixed(1)}`);
+  assert.ok(d > 100 && d < 130, `visual offset ~100-130, got ${d.toFixed(1)}`);
   const ridge = new CampWorldGeometry().clearings[3];
   assert.ok(
     Math.hypot(vis.x - ridge.x, vis.y - ridge.y) <= ridge.r,

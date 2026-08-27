@@ -56,13 +56,13 @@ ACCELERATION_MS   = 400
 
 ## Player
 
-- Asset: `assets/player.jpg` (reused approved Jungle player sprite from
-  `eduni-android-portal/.../eduni_jungle_player.jpg`).
+- Assets: `assets/player/player_*.png` — the approved 20-frame PNG set (4 idle
+  frames plus 16 directional walk frames).
 - Default display width: **112 px** (`PLAYER.DISPLAY_W`).
 - Foot pivot = world position; pivot fraction `(0.5, 0.90625)` of the source so the
   foot sits at the bottom-center of the drawn sprite. Changing visual size never
   changes gameplay geometry.
-- If the asset fails to load, a clearly marked prototype-only primitive is drawn.
+- If a frame fails to load, a clearly marked prototype-only primitive is drawn.
 
 ## Bluebird
 
@@ -72,6 +72,15 @@ ACCELERATION_MS   = 400
   closed with `B` / `Escape`.
 - Asset: `assets/bluebird.png` / `assets/bluebird_portrait.png`
   (reused approved Bluebird art).
+- Visual perch: `(1410, 400)`; interaction anchor remains `(1300, 420)`.
+
+## Scene
+
+- `buildProps()` currently places **13 depth-sorted props**: 1 hut, 1 procedural
+  firepit, 4 rocks, 3 round trees, 2 pines, and 2 tall-grass clusters.
+- Active scene image set: `hut.png`, `tree_round.png`, `pine.png`, `rock.png`, and
+  `tall_grass.png`. The former tile-like `grass.png` and `flower_bed.png` assets
+  are not runtime props.
 
 ## Tests
 
@@ -81,8 +90,9 @@ node --test
 
 Covers: shared geometry single-source, movement ramp values, release = zero,
 reversal resets ramp, world↔screen roundtrip, Bluebird range, modal blocking,
-and parse-validation of all shipped `src/*.js` modules (catches shipped
-SyntaxErrors that import-based unit tests can miss).
+landmark composition, tile-like prop exclusion, and parse-validation of all
+shipped `src/*.js` modules (catches shipped SyntaxErrors that import-based unit
+tests can miss). Current suite: **38 passing tests**.
 
 ## Files
 
@@ -105,13 +115,12 @@ jungle-web-canvas-poc/
     debug.js         geometry debug overlay
     game.js          main loop
   tests/             node --test suites
-  assets/            player.jpg, bluebird.png, bluebird_portrait.png
+  assets/player/     20 approved player PNG frames
+  assets/scene/      hut, tree_round, pine, rock, tall_grass PNGs
+  assets/            bluebird.png, bluebird_portrait.png
 ```
 
 ## Known risks
 
-- The approved player asset's native size (432×1024) differs from the contract's
-  reference 192×256; pivot is applied proportionally, so the foot stays correct
-  regardless of source size.
 - 2.5D is achieved via y-based depth sorting + foot-pivot sprites (no true
   perspective projection). Suitable for a Camp PoC.

@@ -24,8 +24,14 @@ test("clearing identities are present at the correct world anchors", () => {
   const fire = props.find((p) => p.type === "firepit");
   assert.ok(hut && hut.x === 520 && hut.y === 320, "tent hut at Tent clearing");
   assert.ok(fire && fire.x === 920 && fire.y === 820, "fire pit at Fire Pit clearing");
-  const ridgeRock = props.find((p) => p.type === "rock" && p.x === 1385);
-  assert.ok(ridgeRock, "ridge perch rock present");
+  const perchOccluder = props.find(
+    (p) => p.type === "rock" && Math.abs(p.x - BLUEBIRD.VISUAL.x) < 1 && Math.abs(p.y - 430) < 30
+  );
+  assert.equal(
+    perchOccluder,
+    undefined,
+    "no standalone perch rock in the depth list that would occlude the bird (now drawn behind the bird)"
+  );
 });
 
 test("path rendering consumes CampWorldGeometry single source", () => {

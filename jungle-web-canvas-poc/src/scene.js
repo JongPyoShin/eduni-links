@@ -23,7 +23,6 @@ export function buildProps() {
 
   add("hut", 520, 320, 0.95);
   add("firepit", 920, 820, 1.0);
-  add("rock", 1385, 428, 0.9);
   add("rock", 180, 1078, 0.8);
   add("rock", 250, 1012, 0.7);
   add("rock", 900, 952, 0.8);

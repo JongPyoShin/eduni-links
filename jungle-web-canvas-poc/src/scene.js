@@ -6,8 +6,6 @@ export const SCENE_IMAGES = {
   tree_round: "assets/scene/tree_round.png",
   pine: "assets/scene/pine.png",
   rock: "assets/scene/rock.png",
-  grass: "assets/scene/grass.png",
-  flower_bed: "assets/scene/flower_bed.png",
   tall_grass: "assets/scene/tall_grass.png",
 };
 
@@ -33,12 +31,6 @@ export function buildProps() {
   add("tree_round", 1050, 560, 1.0);
   add("pine", 1180, 860, 1.0);
   add("tree_round", 1392, 640, 1.0);
-
-  add("grass", 260, 940, 1.0);
-  add("grass", 620, 420, 1.0);
-  add("grass", 980, 720, 1.0);
-  add("grass", 1340, 520, 1.0);
-  add("flower_bed", 560, 250, 0.9);
 
   add("tall_grass", 700, 1120, 1.1);
   add("tall_grass", 1100, 1145, 1.1);
@@ -189,9 +181,6 @@ export function drawPathLayer(ctx, cam, viewW, viewH, geometry) {
     ctx.beginPath();
     ctx.arc(s.x, s.y, c.r * cam.zoom, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = "rgba(70,52,30,0.8)";
-    ctx.lineWidth = 3 * cam.zoom;
-    ctx.stroke();
   }
 
   for (const poly of paths) {

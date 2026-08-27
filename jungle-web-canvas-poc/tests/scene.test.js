@@ -34,6 +34,17 @@ test("clearing identities are present at the correct world anchors", () => {
   );
 });
 
+test("tile-like grass and flower-bed assets are not depth-sorted props", () => {
+  const props = buildProps();
+  assert.equal(props.some((p) => p.type === "grass" || p.type === "flower_bed"), false);
+  assert.equal(
+    props.some((p) => Math.abs(p.x - 1340) < 1 && Math.abs(p.y - 520) < 1),
+    false,
+    "nothing can be depth-sorted over the Bluebird from the former grass placement"
+  );
+  assert.equal("grass" in SCENE_IMAGES || "flower_bed" in SCENE_IMAGES, false);
+});
+
 test("path rendering consumes CampWorldGeometry single source", () => {
   const g = new CampWorldGeometry();
   const bands = pathBands(g);

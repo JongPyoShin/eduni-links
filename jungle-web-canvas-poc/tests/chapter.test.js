@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { InputController } from "../src/input.js";
 import { ContentPanelController } from "../src/content/content_panel.js";
 import { createChapterState, resetChapter } from "../src/content/chapter_state.js";
-import { CLUES, FIRE_PIT_ROUNDS, answerFirePitRound, canMeetBluebird, canUseFirePit, chapterObjective, collectClue, completeBluebird, startQuest } from "../src/content/camp_chapter.js";
+import { CLUES, FIRE_PIT_ROUNDS, LANDMARKS, answerFirePitRound, canMeetBluebird, canUseFirePit, chapterObjective, collectClue, completeBluebird, nextClueId, startQuest } from "../src/content/camp_chapter.js";
 import { buildInteractables } from "../src/content/interactables.js";
 import { INTRO_DURATION_MS, REWARD_REVEAL_MS, RIDGE_DURATION_MS, activeDirection, advanceSequences, beginIntro, beginRewardReveal, beginRidgeArrival, createSequenceState } from "../src/content/sequence_controller.js";
 
@@ -23,26 +23,51 @@ test("chapter begins at the learning-hut objective with dormant clues", () => {
   assert.deepEqual(buildInteractables(state).map((item) => item.id), ["hut"]);
 });
 
-test("quest start enables all three data-driven clues", () => {
-  const state = startQuest(createChapterState());
-  assert.equal(chapterObjective(state), "파랑새의 흔적 0 / 3");
-  assert.deepEqual(buildInteractables(state).filter((item) => CLUES.some((clue) => clue.id === item.id)).map((item) => item.id), CLUES.map((clue) => clue.id));
+test("quest start enables the authored clue sequence one step at a time", () => {
+  let state = startQuest(createChapterState());
+  assert.equal(nextClueId(state), "feather");
+  assert.equal(chapterObjective(state), "흔적 0 / 3 · 빛나는 깃털을 찾아보자");
+  assert.deepEqual(buildInteractables(state).map((item) => item.id), ["feather"]);
+
+  state = collectClue(state, "feather");
+  assert.equal(nextClueId(state), "footprints");
+  assert.equal(chapterObjective(state), "흔적 1 / 3 · 발자국을 따라가 보자");
+  assert.deepEqual(buildInteractables(state).map((item) => item.id), ["footprints"]);
+
+  state = collectClue(state, "footprints");
+  assert.equal(nextClueId(state), "birdcall");
+  assert.equal(chapterObjective(state), "흔적 2 / 3 · 새소리에 귀 기울여 보자");
+  assert.deepEqual(buildInteractables(state).map((item) => item.id), ["birdcall"]);
 });
 
-test("clues cannot be collected before quest start and collect idempotently", () => {
+test("clues cannot be collected before quest start, out of order, or twice", () => {
   const dormant = createChapterState();
   assert.equal(collectClue(dormant, "feather"), dormant);
   const started = startQuest(dormant);
+  assert.equal(collectClue(started, "footprints"), started);
   const once = collectClue(started, "feather");
   assert.equal(collectClue(once, "feather"), once);
 });
 
-test("objectives progress 0 through 3 then point to the fire pit", () => {
+test("objectives progress through authored clue beats then point to the fire pit", () => {
   let state = startQuest(createChapterState());
+  const expected = [
+    "흔적 1 / 3 · 발자국을 따라가 보자",
+    "흔적 2 / 3 · 새소리에 귀 기울여 보자",
+    "모닥불로 가 보자!",
+  ];
   for (let i = 0; i < CLUES.length; i++) {
     state = collectClue(state, CLUES[i].id);
-    assert.equal(chapterObjective(state), i === 2 ? "모닥불로 가 보자!" : `파랑새의 흔적 ${i + 1} / 3`);
+    assert.equal(chapterObjective(state), expected[i]);
   }
+  assert.equal(nextClueId(state), null);
+  assert.deepEqual(buildInteractables(state).map((item) => item.id), ["firePit"]);
+});
+
+test("Fire Pit interaction anchor is aligned with the rendered campfire zone", () => {
+  assert.equal(LANDMARKS.firePit.x, 990);
+  assert.equal(LANDMARKS.firePit.y, 900);
+  assert.ok(LANDMARKS.firePit.radius >= 110);
 });
 
 test("fire pit wrong answer stays on the same round without punishment", () => {

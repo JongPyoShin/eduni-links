@@ -62,7 +62,7 @@ class SpaceGameTests(unittest.TestCase):
         response = _space_game_html()
         self.assertEqual(200, response.status_code)
         html = response.body.decode("utf-8")
-        self.assertIn(SPACE_QUESTION_BANK_URL, html)
+        self.assertIn(f'<script src="{SPACE_QUESTION_BANK_URL}"></script>', html)
         self.assertIn("200문제 풀에서 매번 10문제를 랜덤으로 골라", html)
         self.assertIn("drawBankMatrix('mirror'", html)
         self.assertIn("drawBankMatrix('rotate'", html)

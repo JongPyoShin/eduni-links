@@ -58,12 +58,29 @@ export const FIRE_PIT_ROUNDS = [
   },
 ];
 
+export function nextClueId(state) {
+  if (!state.questStarted) return null;
+  const next = CLUES.find((clue) => !hasClue(state, clue.id));
+  return next ? next.id : null;
+}
+
+export function isClueActive(state, clueId) {
+  return nextClueId(state) === clueId;
+}
+
 export function chapterObjective(state) {
   if (state.bluebirdComplete) return "탐험 완료!";
   if (state.firePitComplete) return "전망대로 가 보자!";
   if (clueCount(state) === CLUES.length) return "모닥불로 가 보자!";
-  if (state.questStarted) return `파랑새의 흔적 ${clueCount(state)} / ${CLUES.length}`;
-  return "학습 오두막을 찾아가 보자";
+  if (!state.questStarted) return "학습 오두막을 찾아가 보자";
+
+  const missionByClue = {
+    feather: "빛나는 깃털을 찾아보자",
+    footprints: "발자국을 따라가 보자",
+    birdcall: "새소리에 귀 기울여 보자",
+  };
+  const next = nextClueId(state);
+  return `흔적 ${clueCount(state)} / ${CLUES.length} · ${missionByClue[next] || "숲을 살펴보자"}`;
 }
 
 export function startQuest(state) {
@@ -72,6 +89,7 @@ export function startQuest(state) {
 
 export function collectClue(state, clueId) {
   if (!state.questStarted || !CLUES.some((clue) => clue.id === clueId) || hasClue(state, clueId)) return state;
+  if (!isClueActive(state, clueId)) return state;
   return { ...state, discoveredClues: [...state.discoveredClues, clueId] };
 }
 

@@ -25,7 +25,7 @@ import { activeDirection, advanceSequences, beginIntro, beginRewardReveal, begin
 import { AudioManager } from "./audio.js";
 import { EffectSystem } from "./effects.js";
 import { drawWaterfallWorld } from "./waterfall_scene.js";
-import { createWaterfallState, waterfallObjective, completeStreamGate, completeSteppingStones, collectWaterfallClue, canUseLeafMatch, answerLeafMatchRound, completeLookout, completeKingfisher, completeWaterfallReward, LEAF_MATCH_ROUNDS } from "./content/waterfall_chapter.js";
+import { createWaterfallState, resetWaterfall, waterfallObjective, completeStreamGate, completeSteppingStones, collectWaterfallClue, answerLeafMatchRound, completeLookout, completeKingfisher, completeWaterfallReward, LEAF_MATCH_ROUNDS } from "./content/waterfall_chapter.js";
 import { nearestWaterfallInteractable } from "./content/waterfall_interactables.js";
 
 export async function start(canvas, modalEl) {
@@ -191,11 +191,12 @@ export async function start(canvas, modalEl) {
     input.pollGamepad();
     if (input.consumeActivity()) audio.unlock();
     audio.setAmbience("forest", audio.unlocked);
-    audio.setAmbience("fire", audio.unlocked && Math.hypot(player.x - 990, player.y - 935) < 230);
+    audio.setAmbience("fire", !waterfallStage && audio.unlocked && Math.hypot(player.x - 990, player.y - 935) < 230);
 
     if (input.consumeDebug()) debug = !debug;
     if (debug && input.consumeReset()) {
-      chapter = resetChapter();
+      if (waterfallStage) waterfall = resetWaterfall();
+      else chapter = resetChapter();
       sequences = createSequenceState();
       panel.closePanel();
       feedback = null;
@@ -208,21 +209,24 @@ export async function start(canvas, modalEl) {
       input.consumeReset();
     }
 
-    if (sequences.introStartedAt === null && !sequences.introPlayed) sequences = beginIntro(sequences, ts || 0);
-    sequences = advanceSequences(sequences, ts || 0);
-    if (sequences.rewardShown && panel.payload?.kind === "reward" && !panel.payload.revealReady) {
-      panel.payload = { ...panel.payload, revealReady: true };
-      updateUi();
+    let directing = null;
+    if (!waterfallStage) {
+      if (sequences.introStartedAt === null && !sequences.introPlayed) sequences = beginIntro(sequences, ts || 0);
+      sequences = advanceSequences(sequences, ts || 0);
+      if (sequences.rewardShown && panel.payload?.kind === "reward" && !panel.payload.revealReady) {
+        panel.payload = { ...panel.payload, revealReady: true };
+        updateUi();
+      }
+      if (!panel.blocksMovement()) sequences = beginRidgeArrival(sequences, chapter, player, ts || 0);
+      directing = activeDirection(sequences, ts || 0);
+      if (directing?.type === "ridge" && previousDirectionType !== "ridge") {
+        cue("ridgeArrival", "leaf", BLUEBIRD.VISUAL.x, BLUEBIRD.VISUAL.y, ts || 0, 3);
+      }
+      previousDirectionType = directing?.type || null;
     }
-    if (!panel.blocksMovement()) sequences = beginRidgeArrival(sequences, chapter, player, ts || 0);
-    const directing = activeDirection(sequences, ts || 0);
-    if (directing?.type === "ridge" && previousDirectionType !== "ridge") {
-      cue("ridgeArrival", "leaf", BLUEBIRD.VISUAL.x, BLUEBIRD.VISUAL.y, ts || 0, 3);
-    }
-    previousDirectionType = directing?.type || null;
     document.querySelector("#objective-hud").classList.toggle("softened", Boolean(directing));
 
-    if (pendingFireAdvanceAt !== null && (ts || 0) >= pendingFireAdvanceAt) {
+    if (!waterfallStage && pendingFireAdvanceAt !== null && (ts || 0) >= pendingFireAdvanceAt) {
       pendingFireAdvanceAt = null;
       if (chapter.firePitComplete) {
         cue("firePitComplete", "ember", 990, 935, ts || 0, 0.8);
@@ -265,49 +269,58 @@ export async function start(canvas, modalEl) {
 
       input.consumeNavigate();
       if (input.consumeInteract()) {
-        const item = nearestInteractable(player, chapter, { bluebirdReady: sequences.ridgeArrivalPlayed });
+        const item = waterfallStage
+          ? nearestWaterfallInteractable(player, waterfall)
+          : nearestInteractable(player, chapter, { bluebirdReady: sequences.ridgeArrivalPlayed });
         if (item) openInteraction(item);
       }
       input.consumeClose();
     }
 
-    const cameraFocus = scriptedCameraFocus(directing, player);
+    const cameraFocus = !waterfallStage ? scriptedCameraFocus(directing, player) : null;
     if (cameraFocus) camera.focus(cameraFocus.x, cameraFocus.y, viewW, viewH, 0.12);
     else camera.follow(player.x, player.y, viewW, viewH);
 
     effects.update(dt);
     const renderCam = camera.renderCamera(ts || 0);
     ctx.clearRect(0, 0, viewW, viewH);
-    drawGroundLayer(ctx, renderCam, viewW, viewH, geometry);
-    drawPathLayer(ctx, renderCam, viewW, viewH, geometry);
-    if (waterfallStage) drawWaterfallWorld(ctx, renderCam, viewW, viewH, ts || 0);
+    if (waterfallStage) {
+      drawWaterfallWorld(ctx, renderCam, viewW, viewH, ts || 0);
+    } else {
+      drawGroundLayer(ctx, renderCam, viewW, viewH, geometry);
+      drawPathLayer(ctx, renderCam, viewW, viewH, geometry);
+      drawChapterWorld(ctx, renderCam, viewW, viewH, chapter, ts || 0, feedback, directing);
+    }
 
-    drawChapterWorld(ctx, renderCam, viewW, viewH, chapter, ts || 0, feedback, directing);
-    const nearby = !panel.blocksMovement() && !directing ? (waterfallStage ? nearestWaterfallInteractable(player, waterfall) : nearestInteractable(player, chapter, { bluebirdReady: sequences.ridgeArrivalPlayed })) : null;
+    const nearby = !panel.blocksMovement() && !directing
+      ? (waterfallStage ? nearestWaterfallInteractable(player, waterfall) : nearestInteractable(player, chapter, { bluebirdReady: sequences.ridgeArrivalPlayed }))
+      : null;
     const drawables = [];
-    for (const p of props) {
+    if (!waterfallStage) {
+      for (const p of props) {
+        drawables.push({
+          footY: p.footY,
+          draw: () => drawProp(ctx, renderCam, viewW, viewH, p, images, ts || 0),
+        });
+      }
       drawables.push({
-        footY: p.footY,
-        draw: () => drawProp(ctx, renderCam, viewW, viewH, p, images, ts || 0),
+        footY: birdVisual.y,
+        draw: () => {
+          const birdRender = directing?.type === "ridge" ? { x: birdVisual.x, y: birdVisual.y + Math.sin((ts || 0) / 115) * 5 } : birdVisual;
+          drawProp(
+            ctx,
+            renderCam,
+            viewW,
+            viewH,
+            { type: "rock", x: birdRender.x, y: birdRender.y + 20, scale: 0.9 },
+            images,
+            ts || 0
+          );
+          drawContactShadow(ctx, renderCam, viewW, viewH, birdRender.x, birdRender.y, 18);
+          drawBluebird(ctx, renderCam, viewW, viewH, birdRender, bluebirdAsset);
+        },
       });
     }
-    drawables.push({
-      footY: birdVisual.y,
-      draw: () => {
-        const birdRender = directing?.type === "ridge" ? { x: birdVisual.x, y: birdVisual.y + Math.sin((ts || 0) / 115) * 5 } : birdVisual;
-        drawProp(
-          ctx,
-          renderCam,
-          viewW,
-          viewH,
-          { type: "rock", x: birdRender.x, y: birdRender.y + 20, scale: 0.9 },
-          images,
-          ts || 0
-        );
-        drawContactShadow(ctx, renderCam, viewW, viewH, birdRender.x, birdRender.y, 18);
-        drawBluebird(ctx, renderCam, viewW, viewH, birdRender, bluebirdAsset);
-      },
-    });
     drawables.push({
       footY: player.y,
       draw: () => {

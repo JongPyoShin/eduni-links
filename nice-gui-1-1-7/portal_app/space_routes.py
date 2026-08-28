@@ -171,7 +171,7 @@ def _inject_reasoning_modes(html: str) -> str:
         const x=col*cell+cell/2;
         const y=row*cell+cell/2+1;
         if (destinationOnly) {
-          body += `<circle cx="${x}" cy="${y}" r="10" fill="#7c3aed"/><text x="${x}" y="${y+5}" text-anchor="middle" font-size="14" font-weight="900" fill="#fff">★</text>`;
+          body += `<circle cx="${x}" cy="${y}" r="10" fill="#7c3aed"/><text x="${x}" y="${y+5}" text-anchor="middle" font-size="14" font-weight="900" fill="#fff">★</text><text x="${x+17}" y="${y+6}" font-size="18" font-weight="900" fill="#4338ca">${direction === null ? '' : DIRECTION_ARROWS[direction]}</text>`;
         } else {
           body += `<circle cx="${x}" cy="${y}" r="13" fill="#e0e7ff" stroke="#6366f1" stroke-width="2"/><text x="${x}" y="${y+7}" text-anchor="middle" font-size="24" font-weight="900" fill="#4338ca">${DIRECTION_ARROWS[direction]}</text>`;
         }
@@ -195,12 +195,12 @@ def _inject_reasoning_modes(html: str) -> str:
           candidates.push([r,c]);
           if (candidates.length===3) break;
         }
-        const options=shuffle(candidates).map(([r,c]) => ({key:`${r},${c}`,html:renderDirectionGrid(r,c,null,true)}));
+        const options=shuffle(candidates).map(([r,c]) => ({key:`${r},${c}`,html:renderDirectionGrid(r,c,scenario.finalDirection,true)}));
         const commands=scenario.commands.map((command,index) => `<span class="command-chip">${index+1}. ${COMMAND_LABELS[command]}</span>`).join('');
         return {
           badge:'🧭 방향 이동',
           title:'명령을 모두 따라가면 어디에 도착할까?',
-          copy:`시작 방향: ${DIRECTION_LABELS[scenario.startDirection]}<br>회전은 항상 90°씩 해요.<br>화살표가 보는 방향을 기억하면서 움직여보자.`,
+          copy:`시작 방향: ${DIRECTION_LABELS[scenario.startDirection]}<br>회전은 항상 90°씩 해요.<br>화살표가 보는 방향을 기억하면서 움직여보자. 마지막 화살표 방향도 확인해보자.`,
           visual:`<div class="reasoning-stage">${renderDirectionGrid(scenario.startRow,scenario.startCol,scenario.startDirection)}<div class="command-row">${commands}</div></div>`,
           options,
           correctKey,

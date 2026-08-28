@@ -35,6 +35,33 @@ export function buildProps() {
   add("tall_grass", 700, 1120, 1.1);
   add("tall_grass", 1100, 1145, 1.1);
 
+  // Authored landmark dressing: these are deliberately grouped around the
+  // route edges so they add storybook detail without changing walkability.
+  add("sign", 360, 360, 1);
+  add("lantern", 375, 300, 1);
+  add("lantern", 485, 300, 0.9);
+  add("bench", 505, 360, 1);
+  add("flowers", 350, 405, 1);
+  add("flowers", 540, 330, 0.8);
+  add("fence", 300, 390, 1);
+  add("stump", 590, 410, 0.8);
+  add("trail_stones", 150, 1080, 1);
+  add("trail_stones", 220, 1000, 0.9);
+  add("footprints", 760, 640, 1);
+  add("perch", 1180, 790, 1);
+  add("rope_posts", 1320, 520, 1);
+  add("rope_posts", 1500, 470, 1);
+  add("flowers", 1270, 690, 0.9);
+  add("foliage", 60, 210, 1.2);
+  add("foliage", 1540, 180, 1.1);
+  add("foliage", 1540, 1090, 1.2);
+  add("sign", 270, 1015, 0.85);
+  add("flowers", 330, 1040, 0.9);
+  add("foliage", 430, 1090, 0.8);
+  add("flowers", 545, 1070, 0.85);
+  add("stump", 660, 1040, 0.65);
+  add("trail_stones", 785, 1010, 0.7);
+
   return props;
 }
 
@@ -101,7 +128,54 @@ function drawFirepitGround(ctx, cam, viewW, viewH, x, y) {
   ctx.fill();
 }
 
+function worldEllipse(ctx, cam, viewW, viewH, x, y, rx, ry, fill, alpha = 1) {
+  const s = worldToScreen(x, y, cam, viewW, viewH);
+  ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = fill;
+  ctx.beginPath(); ctx.ellipse(s.x, s.y, rx * cam.zoom, ry * cam.zoom, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+}
+
+function drawStoryProp(ctx, cam, viewW, viewH, prop, t) {
+  const s = worldToScreen(prop.x, prop.y, cam, viewW, viewH);
+  const z = cam.zoom * (prop.scale || 1);
+  ctx.save();
+  if (prop.type === "sign") {
+    ctx.fillStyle = "#70452c"; ctx.fillRect(s.x - 4*z, s.y - 48*z, 8*z, 48*z);
+    ctx.fillStyle = "#c88b4a"; ctx.beginPath(); ctx.roundRect(s.x - 43*z, s.y - 72*z, 86*z, 29*z, 6*z); ctx.fill();
+    ctx.fillStyle = "#fff4cf"; ctx.font = `${12*z}px sans-serif`; ctx.textAlign = "center"; ctx.fillText("학습 오두막", s.x, s.y - 52*z);
+  } else if (prop.type === "lantern") {
+    ctx.strokeStyle = "#543823"; ctx.lineWidth = 3*z; ctx.beginPath(); ctx.moveTo(s.x, s.y - 28*z); ctx.lineTo(s.x, s.y - 8*z); ctx.stroke();
+    const glow = 14 + Math.sin((t || 0) / 220) * 2; ctx.fillStyle = "#ffd36b"; ctx.beginPath(); ctx.arc(s.x, s.y - 8*z, 7*z, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = `rgba(255,194,81,${0.16 + glow/100})`; ctx.beginPath(); ctx.arc(s.x, s.y - 8*z, glow*z, 0, Math.PI*2); ctx.fill();
+  } else if (prop.type === "bench") {
+    ctx.fillStyle = "#70452c"; ctx.fillRect(s.x - 36*z, s.y - 12*z, 72*z, 9*z); ctx.fillRect(s.x - 30*z, s.y - 3*z, 6*z, 18*z); ctx.fillRect(s.x + 24*z, s.y - 3*z, 6*z, 18*z);
+  } else if (prop.type === "fence") {
+    ctx.strokeStyle = "#9b6737"; ctx.lineWidth = 6*z; ctx.beginPath(); ctx.moveTo(s.x-38*z,s.y-22*z); ctx.lineTo(s.x+38*z,s.y-22*z); ctx.moveTo(s.x-38*z,s.y-7*z); ctx.lineTo(s.x+38*z,s.y-7*z); ctx.stroke();
+    for (const dx of [-34,0,34]) { ctx.fillStyle="#70452c"; ctx.fillRect(s.x+dx*z-3*z,s.y-34*z,6*z,38*z); }
+  } else if (prop.type === "flowers") {
+    for (let i=0;i<7;i++) { const dx=(i%4-1.5)*12, dy=(Math.floor(i/4)-.5)*8; ctx.fillStyle=i%2?"#f7b4c8":"#ffd166"; ctx.beginPath(); ctx.arc(s.x+dx*z,s.y+dy*z-6*z,4*z,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#4d7b45"; ctx.fillRect(s.x+dx*z-1*z,s.y+dy*z-4*z,2*z,12*z); }
+  } else if (prop.type === "stump") {
+    ctx.fillStyle="#75452d"; ctx.beginPath(); ctx.ellipse(s.x,s.y-12*z,22*z,13*z,0,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#c28a54"; ctx.beginPath(); ctx.ellipse(s.x,s.y-19*z,19*z,9*z,0,0,Math.PI*2); ctx.fill();
+  } else if (prop.type === "trail_stones") {
+    for (let i=0;i<5;i++) worldEllipse(ctx,cam,viewW,viewH,prop.x+i*18,prop.y-i*25,8,5,"#b5a27a",.85);
+  } else if (prop.type === "footprints") {
+    for (let i=0;i<6;i++) worldEllipse(ctx,cam,viewW,viewH,prop.x+(i%2)*18,prop.y-i*23,5,9,"rgba(103,75,49,.45)");
+  } else if (prop.type === "perch") {
+    ctx.strokeStyle="#70452c"; ctx.lineWidth=8*z; ctx.beginPath(); ctx.moveTo(s.x-45*z,s.y+8*z); ctx.quadraticCurveTo(s.x,s.y-25*z,s.x+48*z,s.y-4*z); ctx.stroke();
+    ctx.strokeStyle="#8a5a35"; ctx.lineWidth=4*z; ctx.beginPath(); ctx.moveTo(s.x+8*z,s.y-13*z); ctx.lineTo(s.x+24*z,s.y-34*z); ctx.stroke();
+  } else if (prop.type === "rope_posts") {
+    ctx.fillStyle="#70452c"; for (const dx of [-25,25]) ctx.fillRect(s.x+dx*z-4*z,s.y-42*z,8*z,42*z);
+    ctx.strokeStyle="#d4a86a"; ctx.lineWidth=3*z; ctx.beginPath(); ctx.moveTo(s.x-25*z,s.y-33*z); ctx.quadraticCurveTo(s.x,s.y-16*z,s.x+25*z,s.y-31*z); ctx.stroke();
+  } else if (prop.type === "foliage") {
+    for (let i=0;i<9;i++) { const dx=(i%3-1)*28, dy=(Math.floor(i/3)-1)*20; ctx.fillStyle=i%2?"#244f35":"#326947"; ctx.beginPath(); ctx.arc(s.x+dx*z,s.y+dy*z-20*z,24*z,0,Math.PI*2); ctx.fill(); }
+  }
+  ctx.restore();
+}
+
 export function drawProp(ctx, cam, viewW, viewH, prop, images, t = 0) {
+  if (["sign","lantern","bench","flowers","fence","stump","trail_stones","footprints","perch","rope_posts","foliage"].includes(prop.type)) {
+    drawStoryProp(ctx, cam, viewW, viewH, prop, t);
+    return;
+  }
   const shadowTypes = new Set(["hut", "tree_round", "pine", "rock", "firepit"]);
   if (shadowTypes.has(prop.type)) {
     drawContactShadow(ctx, cam, viewW, viewH, prop.x, prop.y, prop.type === "hut" ? 60 : 24);
@@ -132,6 +206,12 @@ export function drawProp(ctx, cam, viewW, viewH, prop, images, t = 0) {
     ctx.beginPath();
     ctx.moveTo(s.x - 21 * cam.zoom, s.y - 6 * cam.zoom);
     ctx.lineTo(s.x + 21 * cam.zoom, s.y + 6 * cam.zoom);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(126,78,39,0.78)";
+    ctx.lineWidth = 5 * cam.zoom;
+    ctx.beginPath();
+    ctx.moveTo(s.x - 32 * cam.zoom, s.y + 18 * cam.zoom);
+    ctx.lineTo(s.x + 8 * cam.zoom, s.y + 26 * cam.zoom);
     ctx.stroke();
     const flick = (Math.sin((t || 0) / 110) + 1) / 2;
     const grd = ctx.createRadialGradient(s.x, s.y - 6 * cam.zoom, 2, s.x, s.y - 6 * cam.zoom, 46 * cam.zoom);
@@ -215,6 +295,22 @@ export function drawGroundLayer(ctx, cam, viewW, viewH, geometry) {
   grd.addColorStop(1, "rgba(91,106,54,0.10)");
   ctx.fillStyle = grd;
   ctx.fillRect(tl.x, tl.y, wW, wH);
+
+  // Storybook sun pockets give the entrance and camp clear visual rhythm.
+  for (const [wx, wy, radius, color] of [
+    [300, 1030, 170, "rgba(255,220,137,0.10)"],
+    [980, 910, 210, "rgba(255,171,72,0.08)"],
+    [1370, 410, 220, "rgba(166,220,255,0.10)"],
+  ]) {
+    const p = worldToScreen(wx, wy, cam, viewW, viewH);
+    const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius * cam.zoom);
+    glow.addColorStop(0, color); glow.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(p.x, p.y, radius * cam.zoom, 0, Math.PI * 2); ctx.fill();
+  }
+
+  const vignette = ctx.createRadialGradient(viewW / 2, viewH / 2, viewH * 0.25, viewW / 2, viewH / 2, viewW * 0.72);
+  vignette.addColorStop(0, "rgba(0,0,0,0)"); vignette.addColorStop(1, "rgba(8,24,18,0.24)");
+  ctx.fillStyle = vignette; ctx.fillRect(0, 0, viewW, viewH);
 
   drawBackdropFoliage(ctx, cam, viewW, viewH, geometry);
 }

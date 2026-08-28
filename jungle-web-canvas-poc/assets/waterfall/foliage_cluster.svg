@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 300">
+<defs><linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6ba35b"/><stop offset="1" stop-color="#24543c"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#10261c" flood-opacity=".35"/></filter></defs>
+<g filter="url(#s)">
+<path d="M210 290 C190 220 168 165 120 95" stroke="#365d35" stroke-width="13" fill="none" stroke-linecap="round"/>
+<path d="M225 288 C245 225 276 163 325 104" stroke="#365d35" stroke-width="11" fill="none" stroke-linecap="round"/>
+<g fill="url(#leaf)">
+<ellipse cx="105" cy="82" rx="54" ry="24" transform="rotate(-27 105 82)"/><ellipse cx="142" cy="126" rx="57" ry="25" transform="rotate(24 142 126)"/><ellipse cx="170" cy="173" rx="55" ry="24" transform="rotate(-20 170 173)"/>
+<ellipse cx="327" cy="88" rx="58" ry="24" transform="rotate(27 327 88)"/><ellipse cx="289" cy="135" rx="57" ry="25" transform="rotate(-26 289 135)"/><ellipse cx="258" cy="180" rx="54" ry="23" transform="rotate(18 258 180)"/>
+<ellipse cx="208" cy="113" rx="48" ry="20" transform="rotate(90 208 113)"/><ellipse cx="218" cy="205" rx="56" ry="22" transform="rotate(86 218 205)"/>
+</g>
+<g fill="#214a33"><ellipse cx="54" cy="198" rx="44" ry="15" transform="rotate(-55 54 198)"/><ellipse cx="82" cy="220" rx="43" ry="15" transform="rotate(-38 82 220)"/><ellipse cx="354" cy="198" rx="44" ry="15" transform="rotate(55 354 198)"/><ellipse cx="330" cy="224" rx="43" ry="15" transform="rotate(38 330 224)"/></g>
+<g fill="#f6c86c"><circle cx="112" cy="210" r="8"/><circle cx="129" cy="225" r="7"/><circle cx="302" cy="214" r="8"/></g>
+<g fill="#d98baa"><circle cx="98" cy="240" r="9"/><circle cx="319" cy="241" r="9"/><circle cx="335" cy="226" r="6"/></g>
+<g fill="#9b80c6"><circle cx="154" cy="244" r="7"/><circle cx="277" cy="246" r="7"/></g>
+<g fill="#8cb67e" opacity=".7"><circle cx="48" cy="264" r="28"/><circle cx="91" cy="268" r="34"/><circle cx="344" cy="268" r="31"/><circle cx="383" cy="262" r="27"/></g>
+</g></svg>

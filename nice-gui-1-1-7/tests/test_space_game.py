@@ -70,6 +70,16 @@ class SpaceGameTests(unittest.TestCase):
         self.assertIn("drawBankMatrix('projection'", html)
         self.assertIn("bankBags[name] = shuffle", html)
 
+    def test_served_space_html_has_in_game_return_to_intro(self) -> None:
+        response = _space_game_html()
+        self.assertEqual(200, response.status_code)
+        html = response.body.decode("utf-8")
+        self.assertIn('id="spaceHomeBtn"', html)
+        self.assertIn("← 처음으로", html)
+        self.assertIn("function goToSpaceIntro()", html)
+        self.assertIn("$('intro').style.display='block'", html)
+        self.assertIn("$('game').style.display='none'", html)
+
 
 if __name__ == "__main__":
     unittest.main()

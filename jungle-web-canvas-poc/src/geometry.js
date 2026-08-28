@@ -84,5 +84,6 @@ export class WaterfallWorldGeometry extends CampWorldGeometry {
       { x: 1170, y: 560, r: 120, label: "Waterfall Basin" },
       { x: 1450, y: 330, r: 140, label: "Waterfall Lookout" },
     ];
+    this.bluebird = null;
   }
 }

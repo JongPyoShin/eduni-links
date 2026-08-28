@@ -24,6 +24,7 @@ import { drawChapterWorld } from "./content/feedback.js";
 import { activeDirection, advanceSequences, beginIntro, beginRewardReveal, beginRidgeArrival, createSequenceState, scriptedCameraFocus } from "./content/sequence_controller.js";
 import { AudioManager } from "./audio.js";
 import { EffectSystem } from "./effects.js";
+import { drawWaterfallWorld } from "./waterfall_scene.js";
 
 export async function start(canvas, modalEl) {
   const ctx = canvas.getContext("2d");
@@ -34,6 +35,7 @@ export async function start(canvas, modalEl) {
   const panel = new ContentPanelController();
   const audio = new AudioManager();
   const effects = new EffectSystem();
+  const waterfallStage = new URLSearchParams(globalThis.location?.search || "").get("stage") === "waterfall";
 
   const [bluebirdAsset, ...sceneImgs] = await preload([
     ASSET_ROOT + "bluebird.png",
@@ -61,7 +63,7 @@ export async function start(canvas, modalEl) {
   function updateUi() {
     renderContentPanel(panel, modalEl);
     const hud = document.querySelector("#objective-hud");
-    const objective = chapterObjective(chapter);
+    const objective = waterfallStage ? "물소리를 따라가 보자" : chapterObjective(chapter);
     if (hud.textContent !== objective) {
       hud.textContent = objective;
       hud.classList.remove("objective-change");
@@ -249,6 +251,7 @@ export async function start(canvas, modalEl) {
     ctx.clearRect(0, 0, viewW, viewH);
     drawGroundLayer(ctx, renderCam, viewW, viewH, geometry);
     drawPathLayer(ctx, renderCam, viewW, viewH, geometry);
+    if (waterfallStage) drawWaterfallWorld(ctx, renderCam, viewW, viewH, ts || 0);
 
     drawChapterWorld(ctx, renderCam, viewW, viewH, chapter, ts || 0, feedback, directing);
     const nearby = !panel.blocksMovement() && !directing ? nearestInteractable(player, chapter, { bluebirdReady: sequences.ridgeArrivalPlayed }) : null;

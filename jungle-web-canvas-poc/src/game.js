@@ -27,6 +27,7 @@ import { EffectSystem } from "./effects.js";
 import { drawWaterfallWorld, drawKingfisher } from "./waterfall_scene.js";
 import { createWaterfallState, resetWaterfall, waterfallObjective, completeStreamGate, completeSteppingStones, collectWaterfallClue, answerLeafMatchRound, completeLookout, completeKingfisher, completeWaterfallReward, LEAF_MATCH_ROUNDS } from "./content/waterfall_chapter.js";
 import { nearestWaterfallInteractable } from "./content/waterfall_interactables.js";
+import { WATERFALL_ART_IMAGES } from "./waterfall_art_manifest.js";
 
 const LEAF_LABELS = Object.freeze({
   round: "둥근 잎",
@@ -50,10 +51,16 @@ export async function start(canvas, modalEl) {
   const [bluebirdAsset, ...sceneImgs] = await preload([
     ASSET_ROOT + "bluebird.png",
     ...Object.values(SCENE_IMAGES),
+    ...Object.values(WATERFALL_ART_IMAGES),
   ]);
   const images = {};
   Object.keys(SCENE_IMAGES).forEach((k, i) => {
     images[k] = sceneImgs[i] && sceneImgs[i].ok ? sceneImgs[i].img : null;
+  });
+  const waterfallArtImages = {};
+  Object.keys(WATERFALL_ART_IMAGES).forEach((k, i) => {
+    const result = sceneImgs[Object.keys(SCENE_IMAGES).length + i];
+    waterfallArtImages[k] = result && result.ok ? result.img : null;
   });
   const playerSprite = new PlayerSprite();
   await playerSprite.load();
@@ -353,7 +360,7 @@ export async function start(canvas, modalEl) {
     const renderCam = camera.renderCamera(ts || 0);
     ctx.clearRect(0, 0, viewW, viewH);
     if (waterfallStage) {
-      drawWaterfallWorld(ctx, renderCam, viewW, viewH, ts || 0, images, waterfall);
+      drawWaterfallWorld(ctx, renderCam, viewW, viewH, ts || 0, { ...images, waterfallArt: waterfallArtImages }, waterfall);
       if (waterfall.lookoutComplete) drawKingfisher(ctx, renderCam, viewW, viewH, ts || 0);
     } else {
       drawGroundLayer(ctx, renderCam, viewW, viewH, geometry);

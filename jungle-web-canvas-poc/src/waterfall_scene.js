@@ -1,5 +1,6 @@
 import { worldToScreen } from "./transforms.js";
 import { WaterfallWorldGeometry } from "./geometry.js";
+import { WATERFALL_ART_PROPS, WATERFALL_FOREGROUND } from "./waterfall_art_manifest.js";
 
 const WATERFALL_GEOMETRY = new WaterfallWorldGeometry();
 
@@ -65,7 +66,11 @@ function drawSpriteBottom(ctx, img, s, widthWorld, cam, alpha = 1) {
   return true;
 }
 
-function drawParallaxBackdrop(ctx, cam, viewW, viewH, t) {
+function drawParallaxBackdrop(ctx, cam, viewW, viewH, t, backdrop = null) {
+  if (backdrop?.width && backdrop?.height) {
+    ctx.drawImage(backdrop, 0, 0, viewW, viewH);
+    return;
+  }
   const sky = ctx.createLinearGradient(0, 0, 0, viewH);
   sky.addColorStop(0, "#8fc8bf");
   sky.addColorStop(0.42, "#567f76");
@@ -115,6 +120,41 @@ function drawParallaxBackdrop(ctx, cam, viewW, viewH, t) {
     ctx.fill();
   }
   ctx.restore();
+}
+
+function drawAuthoredArtProps(ctx, p, cam, art) {
+  if (!art) return;
+  for (const prop of WATERFALL_ART_PROPS) {
+    const img = art[prop.asset];
+    if (!img?.width || !img.height) continue;
+    const s = p(prop.x, prop.y);
+    const width = (prop.asset === "cliff" ? 620 : 420) * prop.scale * cam.zoom;
+    const height = width * img.height / img.width;
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    ctx.drawImage(img, s.x - width / 2, s.y - height, width, height);
+    ctx.restore();
+  }
+}
+
+function drawAuthoredForeground(ctx, viewW, viewH, art) {
+  const img = art?.foregroundVines;
+  if (!img?.width || !img.height) return;
+  for (const prop of WATERFALL_FOREGROUND) {
+    const width = Math.min(viewW * 0.62, img.width);
+    const height = width * img.height / img.width;
+    const x = prop.anchor === "top-right" ? viewW - width : 0;
+    ctx.save();
+    ctx.globalAlpha = prop.alpha;
+    if (prop.mirrorX) {
+      ctx.translate(x + width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(img, 0, 0, width, height);
+    } else {
+      ctx.drawImage(img, x, 0, width, height);
+    }
+    ctx.restore();
+  }
 }
 
 function drawCliffTerraces(ctx, p, cam) {
@@ -493,7 +533,9 @@ export function drawWaterfallWorld(ctx, cam, viewW, viewH, t = 0, images = null,
   ctx.save();
   const p = (x, y) => worldToScreen(x, y, cam, viewW, viewH);
 
-  drawParallaxBackdrop(ctx, cam, viewW, viewH, t);
+  const art = images?.waterfallArt || {};
+  drawParallaxBackdrop(ctx, cam, viewW, viewH, t, art.backdrop);
+  drawAuthoredArtProps(ctx, p, cam, art);
   drawCliffTerraces(ctx, p, cam);
   const basin = drawWaterSystem(ctx, p, cam, t);
   drawWaterfall(ctx, p, cam, t);
@@ -521,6 +563,7 @@ export function drawWaterfallWorld(ctx, cam, viewW, viewH, t = 0, images = null,
   ctx.fillRect(0, 0, viewW, viewH);
 
   drawForegroundFrame(ctx, viewW, viewH, t);
+  drawAuthoredForeground(ctx, viewW, viewH, art);
   ctx.restore();
 }
 

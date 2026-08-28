@@ -24,7 +24,7 @@ import { drawChapterWorld } from "./content/feedback.js";
 import { activeDirection, advanceSequences, beginIntro, beginRewardReveal, beginRidgeArrival, createSequenceState, scriptedCameraFocus } from "./content/sequence_controller.js";
 import { AudioManager } from "./audio.js";
 import { EffectSystem } from "./effects.js";
-import { drawWaterfallWorld, drawKingfisher } from "./waterfall_scene.js";
+import { drawWaterfallWorld, drawWaterfallForeground, drawKingfisher } from "./waterfall_scene.js";
 import { createWaterfallState, resetWaterfall, waterfallObjective, completeStreamGate, completeSteppingStones, collectWaterfallClue, answerLeafMatchRound, completeLookout, completeKingfisher, completeWaterfallReward, LEAF_MATCH_ROUNDS } from "./content/waterfall_chapter.js";
 import { nearestWaterfallInteractable } from "./content/waterfall_interactables.js";
 import { WATERFALL_ART_IMAGES } from "./waterfall_art_manifest.js";
@@ -409,6 +409,13 @@ export async function start(canvas, modalEl) {
     if (nearby) drawInteractionCue(ctx, renderCam, viewW, viewH, nearby.x, nearby.y, ts || 0);
     effects.draw(ctx, renderCam, viewW, viewH);
     if (debug) drawDebugOverlay(ctx, renderCam, viewW, viewH, geometry, player, movement, geometry.bluebird);
+
+    // Waterfall-only screen-edge foreground. Sits after the player/effects so
+    // the vine overlay can correctly sit on top of the world, but before any
+    // DOM HUD/modal so it never bleeds into the UI layer.
+    if (waterfallStage) {
+      drawWaterfallForeground(ctx, viewW, viewH, waterfallArtImages, ts || 0);
+    }
 
     requestAnimationFrame(loop);
   }

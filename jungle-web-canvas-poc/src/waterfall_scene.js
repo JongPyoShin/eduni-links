@@ -1,6 +1,12 @@
 import { worldToScreen } from "./transforms.js";
 import { WaterfallWorldGeometry } from "./geometry.js";
-import { WATERFALL_ART_PROPS, WATERFALL_FOREGROUND } from "./waterfall_art_manifest.js";
+import {
+  WATERFALL_ART_BACK,
+  WATERFALL_ART_FRONT,
+  WATERFALL_ART_MID,
+  WATERFALL_FOREGROUND,
+  WATERFALL_VALID_LAYERS,
+} from "./waterfall_art_manifest.js";
 
 const WATERFALL_GEOMETRY = new WaterfallWorldGeometry();
 
@@ -122,17 +128,30 @@ function drawParallaxBackdrop(ctx, cam, viewW, viewH, t, backdrop = null) {
   ctx.restore();
 }
 
-function drawAuthoredArtProps(ctx, p, cam, art) {
+// Render a pre-bucketed layer of authored props. Every prop in the manifest is
+// honored: width, scale, alpha, mirrorX, and the layer bucket it was filed in.
+// Unknown / missing assets are skipped so a stale manifest cannot crash the
+// render loop.
+function drawAuthoredArtLayer(ctx, p, cam, art, layer) {
   if (!art) return;
-  for (const prop of WATERFALL_ART_PROPS) {
+  for (const prop of layer) {
+    if (!WATERFALL_VALID_LAYERS.has(prop.layer)) continue;
     const img = art[prop.asset];
-    if (!img?.width || !img.height) continue;
+    if (!img || !img.width || !img.height) continue;
+    const scale = Number.isFinite(prop.scale) ? prop.scale : 1;
+    const width = (prop.width || img.width) * scale * cam.zoom;
+    const height = width * (img.height / img.width);
     const s = p(prop.x, prop.y);
-    const width = (prop.asset === "cliff" ? 620 : 420) * prop.scale * cam.zoom;
-    const height = width * img.height / img.width;
+    const alpha = Number.isFinite(prop.alpha) ? prop.alpha : 1;
     ctx.save();
-    ctx.globalAlpha = 0.92;
-    ctx.drawImage(img, s.x - width / 2, s.y - height, width, height);
+    if (alpha < 1) ctx.globalAlpha = alpha;
+    if (prop.mirrorX) {
+      ctx.translate(s.x, s.y);
+      ctx.scale(-1, 1);
+      ctx.drawImage(img, -width / 2, -height, width, height);
+    } else {
+      ctx.drawImage(img, s.x - width / 2, s.y - height, width, height);
+    }
     ctx.restore();
   }
 }
@@ -529,33 +548,13 @@ function drawForegroundFrame(ctx, viewW, viewH, t) {
   ctx.restore();
 }
 
-export function drawWaterfallWorld(ctx, cam, viewW, viewH, t = 0, images = null, state = null) {
-  ctx.save();
-  const p = (x, y) => worldToScreen(x, y, cam, viewW, viewH);
-
-  const art = images?.waterfallArt || {};
-  drawParallaxBackdrop(ctx, cam, viewW, viewH, t, art.backdrop);
-  drawAuthoredArtProps(ctx, p, cam, art);
-  drawCliffTerraces(ctx, p, cam);
-  const basin = drawWaterSystem(ctx, p, cam, t);
-  drawWaterfall(ctx, p, cam, t);
-
-  // Keep the gameplay route on top of the water/terrain base so the child can
-  // always read where walking is allowed.
-  drawWalkableRoute(ctx, cam, viewW, viewH);
-
-  for (const [x, y, r] of [[760,560,38],[820,520,34],[930,590,28],[1080,620,38],[1220,570,30],[1350,520,34],[1440,455,30]]) {
-    drawWetRock(ctx, p, x, y, r, cam);
-  }
-
-  drawSteppingStones(ctx, p, cam, t, Boolean(state?.streamGateComplete && !state?.steppingStonesComplete));
-  drawGate(ctx, p, cam, !state?.streamGateComplete);
-  drawLookout(ctx, p, cam, Boolean(state?.leafMatchComplete && !state?.lookoutComplete));
-  drawArtProps(ctx, p, cam, images);
-  drawFlowersAndLeafBeds(ctx, p, cam, t, state);
-  drawStateCues(ctx, p, cam, t, state);
-  drawMist(ctx, basin, cam, t);
-
+// Screen-space foreground pass. The caller is expected to invoke this AFTER
+// the world render and the player/effects depth sort, but BEFORE the HUD/modal
+// DOM. It contains: the soft vignette, the procedural dark-leaf corner frame,
+// and the authored screen-edge vine overlays. None of these may cover the
+// center gameplay area; they live in the screen edges only.
+export function drawWaterfallForeground(ctx, viewW, viewH, art, t = 0) {
+  const images = art || {};
   const vignette = ctx.createRadialGradient(viewW / 2, viewH / 2, viewH * 0.18, viewW / 2, viewH / 2, viewW * 0.72);
   vignette.addColorStop(0, "rgba(0,0,0,0)");
   vignette.addColorStop(1, "rgba(3,20,27,.34)");
@@ -563,7 +562,48 @@ export function drawWaterfallWorld(ctx, cam, viewW, viewH, t = 0, images = null,
   ctx.fillRect(0, 0, viewW, viewH);
 
   drawForegroundFrame(ctx, viewW, viewH, t);
-  drawAuthoredForeground(ctx, viewW, viewH, art);
+  drawAuthoredForeground(ctx, viewW, viewH, images);
+}
+
+export function drawWaterfallWorld(ctx, cam, viewW, viewH, t = 0, images = null, state = null) {
+  ctx.save();
+  const p = (x, y) => worldToScreen(x, y, cam, viewW, viewH);
+
+  const art = images?.waterfallArt || {};
+
+  // BACK: sky / parallax + authored back layer (distant cliffs, rear foliage).
+  drawParallaxBackdrop(ctx, cam, viewW, viewH, t, art.backdrop);
+  drawAuthoredArtLayer(ctx, p, cam, art, WATERFALL_ART_BACK);
+
+  // WORLD BASE: procedural cliffs, basin / water, waterfall.
+  drawCliffTerraces(ctx, p, cam);
+  const basin = drawWaterSystem(ctx, p, cam, t);
+  drawWaterfall(ctx, p, cam, t);
+
+  // MID: authored mid layer (foliage/boulders/cliff terraces that frame the
+  // basin) plus procedural wet rocks and small authored sprite props.
+  drawAuthoredArtLayer(ctx, p, cam, art, WATERFALL_ART_MID);
+  for (const [x, y, r] of [[760,560,38],[820,520,34],[930,590,28],[1080,620,38],[1220,570,30],[1350,520,34],[1440,455,30]]) {
+    drawWetRock(ctx, p, x, y, r, cam);
+  }
+  drawArtProps(ctx, p, cam, images);
+
+  // WALKABLE: the route. Drawn on top of mid so the child can always read
+  // where walking is allowed, but before the front dressing so the path does
+  // not get visually buried by flowers or platform props.
+  drawWalkableRoute(ctx, cam, viewW, viewH);
+
+  // FRONT WORLD: interaction dressing (stones, gate sign, lookout sign),
+  // authored front layer (gate arch, flower banks, lookout platform), flowers
+  // and leaf beds, gameplay state cues, mist.
+  drawSteppingStones(ctx, p, cam, t, Boolean(state?.streamGateComplete && !state?.steppingStonesComplete));
+  drawGate(ctx, p, cam, !state?.streamGateComplete);
+  drawLookout(ctx, p, cam, Boolean(state?.leafMatchComplete && !state?.lookoutComplete));
+  drawAuthoredArtLayer(ctx, p, cam, art, WATERFALL_ART_FRONT);
+  drawFlowersAndLeafBeds(ctx, p, cam, t, state);
+  drawStateCues(ctx, p, cam, t, state);
+  drawMist(ctx, basin, cam, t);
+
   ctx.restore();
 }
 

@@ -5,6 +5,7 @@ import unittest
 from nicegui import app
 from starlette.routing import Match
 
+from portal_app.space_logic_reasoning import SPACE_LOGIC_BANK_FILE, SPACE_LOGIC_BANK_URL
 from portal_app.space_routes import (
     SPACE_GAME_FILE,
     SPACE_GAME_URL,
@@ -29,6 +30,7 @@ class SpaceGameTests(unittest.TestCase):
             SPACE_GAME_URL,
             f"{SPACE_GAME_URL}/",
             SPACE_QUESTION_BANK_URL,
+            SPACE_LOGIC_BANK_URL,
             "/games/eduni-space",
             "/games/eduni-space/",
         ):
@@ -43,7 +45,7 @@ class SpaceGameTests(unittest.TestCase):
         for marker in ("거울 찾기", "도형 회전", "블록 탐정", "위에서 보기", "const TOTAL = 10"):
             self.assertIn(marker, html)
 
-    def test_question_bank_contains_350_randomized_configurations(self) -> None:
+    def test_spatial_question_bank_keeps_350_validated_configurations(self) -> None:
         self.assertTrue(SPACE_QUESTION_BANK_FILE.exists())
         javascript = SPACE_QUESTION_BANK_FILE.read_text(encoding="utf-8")
         for marker in (
@@ -54,6 +56,8 @@ class SpaceGameTests(unittest.TestCase):
             "item.commands.includes('F')",
             "composeScenarios = shapes.map",
             "buildUnique(50, 12001",
+            "is_unambiguous_count_map",
+            "is_unambiguous_projection_map",
             "mirror:50",
             "rotate:50",
             "count:50",
@@ -65,12 +69,33 @@ class SpaceGameTests(unittest.TestCase):
         ):
             self.assertIn(marker, javascript)
 
-    def test_served_space_html_wires_all_seven_modes_and_shuffle_bags(self) -> None:
+    def test_logic_bank_adds_120_solver_validated_questions(self) -> None:
+        self.assertTrue(SPACE_LOGIC_BANK_FILE.exists())
+        javascript = SPACE_LOGIC_BANK_FILE.read_text(encoding="utf-8")
+        for marker in (
+            "solveSequenceScenario",
+            "validateSequenceScenario",
+            "solveConditionScenario",
+            "validateConditionScenario",
+            "solvePathScenario",
+            "validatePathScenario",
+            "buildValidated(\n    40,\n    21001",
+            "buildValidated(\n    40,\n    26001",
+            "buildValidated(\n    40,\n    31001",
+            "sequence:40",
+            "condition:40",
+            "pathlogic:40",
+            "total:120",
+        ):
+            self.assertIn(marker, javascript)
+
+    def test_served_space_html_wires_all_ten_modes_and_470_pool(self) -> None:
         response = _space_game_html()
         self.assertEqual(200, response.status_code)
         html = response.body.decode("utf-8")
         self.assertIn(f'<script src="{SPACE_QUESTION_BANK_URL}"></script>', html)
-        self.assertIn("350문제 풀에서 공간지각과 사고추론 문제 10개", html)
+        self.assertIn(f'<script src="{SPACE_LOGIC_BANK_URL}"></script>', html)
+        self.assertIn("470문제 풀에서 공간지각·규칙·조건·길찾기 문제 10개", html)
         self.assertIn("drawBankMatrix('mirror'", html)
         self.assertIn("drawBankMatrix('rotate'", html)
         self.assertIn("drawBankMatrix('count'", html)
@@ -78,20 +103,40 @@ class SpaceGameTests(unittest.TestCase):
         self.assertIn("drawBankItem('direction'", html)
         self.assertIn("drawBankItem('compose'", html)
         self.assertIn("drawBankItem('fold'", html)
-        self.assertIn("bankBags[name] = shuffle", html)
-        self.assertIn("'direction','compose','fold'", html)
-        for label in ("🧭 방향 이동", "🧩 조각 합치기", "📄 종이 접기"):
+        self.assertIn("drawBankItem('sequence'", html)
+        self.assertIn("drawBankItem('condition'", html)
+        self.assertIn("drawBankItem('pathlogic'", html)
+        self.assertIn("'sequence','condition','pathlogic'", html)
+        self.assertIn("shuffle(allTypes).slice(0,8)", html)
+        for label in (
+            "🧭 방향 이동",
+            "🧩 조각 합치기",
+            "📄 종이 접기",
+            "🧠 규칙 추론",
+            "🔐 조건 배치",
+            "🗺️ 조건 길찾기",
+        ):
             self.assertIn(label, html)
 
-    def test_reasoning_modes_expose_child_friendly_prompts(self) -> None:
+    def test_question_contract_requires_one_exact_answer_and_problem_id(self) -> None:
+        html = _space_game_html().body.decode("utf-8")
+        self.assertIn("function validateQuestionContract(question)", html)
+        self.assertIn("new Set(keys).size!==3", html)
+        self.assertIn("filter((key) => key===String(question.correctKey)).length!==1", html)
+        self.assertIn("function stampQuestion(type, question)", html)
+        self.assertIn("state.question.questionId", html)
+        self.assertIn("EDUNI could not build a single-answer question", html)
+
+    def test_new_logic_prompts_explain_task_and_rules(self) -> None:
         html = _space_game_html().body.decode("utf-8")
         for marker in (
-            "명령을 모두 따라가면 어디에 도착할까?",
-            "두 조각을 합치면 어떤 모양이 될까?",
-            "종이를 펼치면 구멍은 어디에 생길까?",
-            "먼저 몸의 방향을 돌린 다음",
-            "파란 칸과 분홍 칸을 하나의 격자에",
-            "접힌 선을 거울이라고 생각하고",
+            "다음에 올 그림은 무엇일까?",
+            "세 조건을 모두 만족하는 줄은?",
+            "규칙을 모두 지키며 갈 수 있는 보물은?",
+            "해야 할 일:",
+            "조건 하나만 맞는 답이 아니라",
+            "열쇠를 먼저 얻어야 합니다",
+            "반드시 문을 실제로 통과한 뒤",
         ):
             self.assertIn(marker, html)
 
@@ -99,7 +144,8 @@ class SpaceGameTests(unittest.TestCase):
         html = _space_game_html().body.decode("utf-8")
         self.assertIn("90° 반시계 방향으로 돌기", html)
         self.assertIn("90° 시계 방향으로 돌기", html)
-        self.assertIn("시작 방향:", html)
+        self.assertIn("시작 방향", html)
+        self.assertIn("앞으로 1칸 이동", html)
         self.assertNotIn("왼쪽으로 돌기", html)
         self.assertNotIn("오른쪽으로 돌기", html)
 

@@ -320,15 +320,18 @@
   for (const [type,count] of Object.entries(expected)) {
     if (counts[type] !== count) failures.push(`META-${type}: ${counts[type] ?? 0}/${count}`);
   }
-  const total = Object.values(expected).reduce((sum,value) => sum + value,0);
-  if (total !== 470) failures.push(`META-total: ${total}/470`);
+  const expectedTotal = Object.values(expected).reduce((sum,value) => sum + value,0);
+  const actualTotal = Object.values(counts).reduce((sum,value) => sum + (Number(value) || 0),0);
+  if (expectedTotal !== 470) failures.push(`META-expected-total: ${expectedTotal}/470`);
+  if (actualTotal !== 470) failures.push(`META-actual-total: ${actualTotal}/470`);
   if (spatial.meta && spatial.meta.total !== 350) failures.push(`META-spatial: ${spatial.meta.total}/350`);
   if (logic.meta && logic.meta.total !== 120) failures.push(`META-logic: ${logic.meta.total}/120`);
 
   const report = Object.freeze({
     ok:failures.length === 0,
-    total,
-    checked:total,
+    total:actualTotal,
+    checked:actualTotal,
+    expected:expectedTotal,
     counts:Object.freeze({...counts}),
     failures:Object.freeze([...failures]),
     method:'independent scenario solvers + uniqueness + visual-data invariants',

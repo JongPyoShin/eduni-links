@@ -28,7 +28,7 @@
 
   function visualMapIsClear(matrix) {
     if (!validMatrix(matrix, 3)) return false;
-    const projectionColumns = new Set();
+    const projected = new Set();
     let occupied = 0;
     for (let r = 0; r < 3; r += 1) {
       for (let c = 0; c < 3; c += 1) {
@@ -36,9 +36,9 @@
         if (!Number.isInteger(height) || height < 0 || height > 2) return false;
         if (height <= 0) continue;
         occupied += 1;
-        const projectedColumn = c - r;
-        if (projectionColumns.has(projectedColumn)) return false;
-        projectionColumns.add(projectedColumn);
+        const column = c - r;
+        if (projected.has(column)) return false;
+        projected.add(column);
       }
     }
     if (occupied < 4 || occupied > 5) return false;
@@ -57,18 +57,16 @@
     if (shapes.length !== 50) fail('MIR', 0, `shape pool ${shapes.length}/50`);
     shapes.forEach((shape, index) => {
       if (!validMatrix(shape, 4)) { fail('MIR', index, '4x4 shape expected'); return; }
-      const markerCount = shape.flat().filter((value) => value === 2).length;
-      const occupiedCount = shape.flat().filter((value) => value > 0).length;
-      if (markerCount !== 1) fail('MIR', index, `yellow marker count ${markerCount}`);
-      if (occupiedCount < 5) fail('MIR', index, `too few occupied cells ${occupiedCount}`);
+      if (shape.flat().filter((value) => value === 2).length !== 1) fail('MIR', index, 'yellow marker must appear exactly once');
+      if (shape.flat().filter((value) => value > 0).length < 5) fail('MIR', index, 'too few occupied cells');
       const mirror = flipX(shape);
       if (matrixKey(mirror) === matrixKey(shape)) fail('MIR', index, 'mirror answer equals source');
-      const mirrorCandidates = [mirror, flipY(shape), rotate90(shape), rotateN(shape,2), rotateN(shape,3), shape];
-      if (new Set(mirrorCandidates.map(matrixKey)).size < 3) fail('MIR', index, 'fewer than 3 unique mirror choices');
+      const mirrorChoices = [mirror, flipY(shape), rotate90(shape), rotateN(shape,2), rotateN(shape,3), shape];
+      if (new Set(mirrorChoices.map(matrixKey)).size < 3) fail('MIR', index, 'fewer than 3 unique mirror choices');
       for (let turns = 1; turns <= 3; turns += 1) {
         const correct = rotateN(shape, turns);
-        const candidates = [correct, rotateN(shape,(turns+1)%4), rotateN(shape,(turns+2)%4), flipX(shape), flipY(shape), shape];
-        if (new Set(candidates.map(matrixKey)).size < 3) fail('ROT', index, `${turns*90}° has fewer than 3 unique choices`);
+        const choices = [correct, rotateN(shape,(turns+1)%4), rotateN(shape,(turns+2)%4), flipX(shape), flipY(shape), shape];
+        if (new Set(choices.map(matrixKey)).size < 3) fail('ROT', index, `${turns*90}° has fewer than 3 unique choices`);
       }
     });
   }
@@ -80,6 +78,7 @@
     counts.projection = projectionMaps.length;
     if (countMaps.length !== 50) fail('CNT', 0, `count pool ${countMaps.length}/50`);
     if (projectionMaps.length !== 50) fail('TOP', 0, `projection pool ${projectionMaps.length}/50`);
+
     const countKeys = new Set();
     countMaps.forEach((map, index) => {
       if (!visualMapIsClear(map)) fail('CNT', index, 'visual clarity rule failed');
@@ -92,13 +91,14 @@
       for (const delta of [-2,-1,1,2,3]) if (total + delta > 1) choices.add(total + delta);
       if (choices.size < 3) fail('CNT', index, 'cannot construct 3 unique numeric choices');
     });
-    const projectionKeys = new Set();
+
+    const topKeys = new Set();
     projectionMaps.forEach((map, index) => {
       if (!visualMapIsClear(map)) fail('TOP', index, 'visual clarity rule failed');
       const top = occupancy(map);
       const key = matrixKey(top);
-      if (projectionKeys.has(key)) fail('TOP', index, 'duplicate top-view answer');
-      projectionKeys.add(key);
+      if (topKeys.has(key)) fail('TOP', index, 'duplicate top-view answer');
+      topKeys.add(key);
       const occupied = top.flat().reduce((sum, value) => sum + value, 0);
       if (occupied < 4 || occupied > 5) fail('TOP', index, `invalid occupied count ${occupied}`);
     });
@@ -145,10 +145,10 @@
           rebuilt[r][c] = a || b ? 1 : 0;
         }
       }
-      const normalizedCombined = scenario.combined.map((row) => row.map((value) => value ? 1 : 0));
-      if (!same(rebuilt, normalizedCombined)) fail('COM', index, 'piece union does not equal combined answer');
-      const candidates = [normalizedCombined, rotate90(normalizedCombined), rotateN(normalizedCombined,2), flipX(normalizedCombined), flipY(normalizedCombined)];
-      if (new Set(candidates.map(matrixKey)).size < 3) fail('COM', index, 'fewer than 3 unique compose choices');
+      const combined = scenario.combined.map((row) => row.map((value) => value ? 1 : 0));
+      if (!same(rebuilt, combined)) fail('COM', index, 'piece union does not equal combined answer');
+      const choices = [combined, rotate90(combined), rotateN(combined,2), flipX(combined), flipY(combined)];
+      if (new Set(choices.map(matrixKey)).size < 3) fail('COM', index, 'fewer than 3 unique compose choices');
     });
   }
 
@@ -169,11 +169,26 @@
       } else if (scenario.foldDirection === 'B2T') {
         out[r][c] = 1;
         out[3 - r][c] = 1;
-      } else {
-        return null;
-      }
+      } else return null;
     }
     return out;
+  }
+
+  function availableFoldChoiceCount(correct) {
+    const keys = new Set([correct,flipX(correct),flipY(correct),rotate90(correct),rotateN(correct,2)].map(matrixKey));
+    const occupied = [];
+    const empty = [];
+    correct.forEach((row,r) => row.forEach((value,c) => (value ? occupied : empty).push([r,c])));
+    for (const [fromR,fromC] of occupied) {
+      for (const [toR,toC] of empty) {
+        const moved = clone(correct);
+        moved[fromR][fromC] = 0;
+        moved[toR][toC] = 1;
+        keys.add(matrixKey(moved));
+        if (keys.size >= 3) return keys.size;
+      }
+    }
+    return keys.size;
   }
 
   function auditFolds() {
@@ -190,8 +205,7 @@
       for (const [r,c] of scenario.holes) {
         if (r < 0 || r >= scenario.foldedRows || c < 0 || c >= scenario.foldedCols) fail('FLD', index, `hole out of folded paper ${r},${c}`);
       }
-      const candidates = [solved, flipX(solved), flipY(solved), rotate90(solved), rotateN(solved,2)];
-      if (new Set(candidates.map(matrixKey)).size < 3) fail('FLD', index, 'fewer than 3 unique fold choices');
+      if (availableFoldChoiceCount(solved) < 3) fail('FLD', index, 'fewer than 3 unique fold choices including fallback mutations');
     });
   }
 
@@ -220,8 +234,8 @@
         {...answer,color:(answer.color+1)%3},
         {...answer,count:Math.max(1,answer.count-scenario.rule.countStep)},
       ];
-      const optionKeys = new Set([answerKey,...distractors.map((item) => `${item.direction}:${item.color}:${item.count}`)]);
-      if (optionKeys.size < 3) fail('SEQ', index, 'fewer than 3 unique answer choices');
+      const keys = new Set([answerKey,...distractors.map((item) => `${item.direction}:${item.color}:${item.count}`)]);
+      if (keys.size < 3) fail('SEQ', index, 'fewer than 3 unique answer choices');
     });
   }
 

@@ -69,3 +69,20 @@ export class CampWorldGeometry {
     return { paths: this.paths, clearings: this.clearings, halfWidth: this.pathHalfWidth };
   }
 }
+
+export class WaterfallWorldGeometry extends CampWorldGeometry {
+  constructor() {
+    super();
+    this.paths = [[
+      { x: 200, y: 1040 }, { x: 460, y: 900 }, { x: 700, y: 900 },
+      { x: 900, y: 760 }, { x: 1080, y: 700 }, { x: 1170, y: 560 },
+      { x: 1020, y: 480 }, { x: 1250, y: 470 }, { x: 1450, y: 330 },
+    ]];
+    this.clearings = [
+      { x: 200, y: 1040, r: 130, label: "Waterfall Entrance" },
+      { x: 700, y: 900, r: 130, label: "Stream Gate" },
+      { x: 1170, y: 560, r: 120, label: "Waterfall Basin" },
+      { x: 1450, y: 330, r: 140, label: "Waterfall Lookout" },
+    ];
+  }
+}

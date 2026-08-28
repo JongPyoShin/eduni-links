@@ -23,3 +23,15 @@ export function drawWaterfallWorld(ctx, cam, viewW, viewH, t = 0) {
   const mist = ctx.createRadialGradient(basin.x, basin.y, 10, basin.x, basin.y, 300 * cam.zoom); mist.addColorStop(0,"rgba(220,255,255,.12)"); mist.addColorStop(1,"rgba(220,255,255,0)"); ctx.fillStyle=mist; ctx.beginPath(); ctx.arc(basin.x,basin.y,300*cam.zoom,0,Math.PI*2); ctx.fill();
   ctx.restore();
 }
+
+export function drawKingfisher(ctx, cam, viewW, viewH, t = 0) {
+  const s = worldToScreen(1410, 400 + Math.sin(t / 260) * 4, cam, viewW, viewH);
+  const z = cam.zoom;
+  ctx.save();
+  ctx.fillStyle = "#168aad"; ctx.beginPath(); ctx.ellipse(s.x, s.y - 22*z, 22*z, 28*z, -0.15, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = "#f28f3b"; ctx.beginPath(); ctx.ellipse(s.x, s.y - 8*z, 13*z, 18*z, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = "#123047"; ctx.beginPath(); ctx.arc(s.x+10*z,s.y-40*z,10*z,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = "#f7d154"; ctx.beginPath(); ctx.moveTo(s.x+18*z,s.y-39*z); ctx.lineTo(s.x+42*z,s.y-34*z); ctx.lineTo(s.x+18*z,s.y-30*z); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(s.x+13*z,s.y-43*z,3*z,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}

@@ -1,4 +1,4 @@
-import { CampWorldGeometry } from "./geometry.js";
+import { CampWorldGeometry, WaterfallWorldGeometry } from "./geometry.js";
 import { Camera } from "./camera.js";
 import { MovementController } from "./movement.js";
 import { InputController } from "./input.js";
@@ -24,20 +24,20 @@ import { drawChapterWorld } from "./content/feedback.js";
 import { activeDirection, advanceSequences, beginIntro, beginRewardReveal, beginRidgeArrival, createSequenceState, scriptedCameraFocus } from "./content/sequence_controller.js";
 import { AudioManager } from "./audio.js";
 import { EffectSystem } from "./effects.js";
-import { drawWaterfallWorld } from "./waterfall_scene.js";
+import { drawWaterfallWorld, drawKingfisher } from "./waterfall_scene.js";
 import { createWaterfallState, resetWaterfall, waterfallObjective, completeStreamGate, completeSteppingStones, collectWaterfallClue, answerLeafMatchRound, completeLookout, completeKingfisher, completeWaterfallReward, LEAF_MATCH_ROUNDS } from "./content/waterfall_chapter.js";
 import { nearestWaterfallInteractable } from "./content/waterfall_interactables.js";
 
 export async function start(canvas, modalEl) {
   const ctx = canvas.getContext("2d");
-  const geometry = new CampWorldGeometry();
+  const waterfallStage = new URLSearchParams(globalThis.location?.search || "").get("stage") === "waterfall";
+  const geometry = waterfallStage ? new WaterfallWorldGeometry() : new CampWorldGeometry();
   const camera = new Camera(geometry.world);
   const movement = new MovementController();
   const input = new InputController();
   const panel = new ContentPanelController();
   const audio = new AudioManager();
   const effects = new EffectSystem();
-  const waterfallStage = new URLSearchParams(globalThis.location?.search || "").get("stage") === "waterfall";
 
   const [bluebirdAsset, ...sceneImgs] = await preload([
     ASSET_ROOT + "bluebird.png",
@@ -286,6 +286,7 @@ export async function start(canvas, modalEl) {
     ctx.clearRect(0, 0, viewW, viewH);
     if (waterfallStage) {
       drawWaterfallWorld(ctx, renderCam, viewW, viewH, ts || 0);
+      if (waterfall.lookoutComplete) drawKingfisher(ctx, renderCam, viewW, viewH, ts || 0);
     } else {
       drawGroundLayer(ctx, renderCam, viewW, viewH, geometry);
       drawPathLayer(ctx, renderCam, viewW, viewH, geometry);

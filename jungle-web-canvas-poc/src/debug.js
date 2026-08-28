@@ -47,15 +47,17 @@ export function drawDebugOverlay(ctx, cam, viewW, viewH, geometry, player, movem
     ctx.stroke();
   }
 
-  // D. BLUEBIRD INTERACTION RADIUS — blue translucent
-  const bs = worldToScreen(bluebird.x, bluebird.y, cam, viewW, viewH);
-  ctx.fillStyle = "rgba(59,130,246,0.18)";
-  ctx.strokeStyle = "rgba(59,130,246,0.9)";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(bs.x, bs.y, BLUEBIRD.INTERACT_RADIUS * cam.zoom, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
+  // D. CAMP BLUEBIRD INTERACTION RADIUS — omitted for stages without Bluebird.
+  if (bluebird) {
+    const bs = worldToScreen(bluebird.x, bluebird.y, cam, viewW, viewH);
+    ctx.fillStyle = "rgba(59,130,246,0.18)";
+    ctx.strokeStyle = "rgba(59,130,246,0.9)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(bs.x, bs.y, BLUEBIRD.INTERACT_RADIUS * cam.zoom, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
 
   // C. PLAYER FOOT POINT — red
   const ps = worldToScreen(player.x, player.y, cam, viewW, viewH);
@@ -73,8 +75,8 @@ export function drawDebugOverlay(ctx, cam, viewW, viewH, geometry, player, movem
   const lines = [
     `DEBUG  player=(${player.x.toFixed(1)}, ${player.y.toFixed(1)})`,
     `ratio=${movement.ratio.toFixed(3)}  held=${movement.heldMs.toFixed(0)}ms`,
-    `green=walkable corridor  cyan=visible path  blue=bird range`,
-    `halfWidth=${halfWidth}  interactR=${BLUEBIRD.INTERACT_RADIUS}`,
+    `green=walkable corridor  cyan=visible path${bluebird ? "  blue=bird range" : ""}`,
+    `halfWidth=${halfWidth}${bluebird ? `  interactR=${BLUEBIRD.INTERACT_RADIUS}` : ""}`,
     `PRECISION=${MOVEMENT.PRECISION_RATIO} CRUISE=${MOVEMENT.CRUISE_RATIO}`,
   ];
   const bx = 12;

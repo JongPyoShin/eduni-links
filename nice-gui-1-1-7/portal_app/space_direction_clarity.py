@@ -22,9 +22,10 @@ def _clarify_direction_html(html: str) -> str:
             "          hint:'↺는 반시계 방향 90°, ↻는 시계 방향 90°야. 회전한 뒤 화살표가 보는 쪽으로 한 칸 이동해봐.',",
     }
     for old, new in replacements.items():
-        if old not in html:
-            raise RuntimeError(f"EDUNI direction clarity marker missing: {old[:80]}")
-        html = html.replace(old, new, 1)
+        # The base route may already contain the clarified copy; keep this
+        # compatibility wrapper idempotent across branch combinations.
+        if old in html:
+            html = html.replace(old, new, 1)
     return html
 
 

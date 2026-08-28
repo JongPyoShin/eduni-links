@@ -105,14 +105,128 @@
     return out;
   }
 
+  function directionScenarioFromSeed(seed) {
+    const rng = makeRng(seed * 71 + 23);
+    const startDirection = Math.floor(rng() * 4);
+    const commands = [];
+    const dr = [-1, 0, 1, 0];
+    const dc = [0, 1, 0, -1];
+    let row = 2;
+    let col = 2;
+    let direction = startDirection;
+    const commandCount = 3 + Math.floor(rng() * 2);
+    for (let i = 0; i < commandCount; i += 1) {
+      const roll = rng();
+      let command = roll < .3 ? 'L' : roll < .6 ? 'R' : 'F';
+      if (command === 'L') direction = (direction + 3) % 4;
+      if (command === 'R') direction = (direction + 1) % 4;
+      if (command === 'F') {
+        const nextRow = row + dr[direction];
+        const nextCol = col + dc[direction];
+        if (nextRow < 0 || nextRow >= 5 || nextCol < 0 || nextCol >= 5) {
+          command = 'R';
+          direction = (direction + 1) % 4;
+        } else {
+          row = nextRow;
+          col = nextCol;
+        }
+      }
+      commands.push(command);
+    }
+    return { startRow:2, startCol:2, startDirection, commands, finalRow:row, finalCol:col, finalDirection:direction };
+  }
+
+  function directionKey(item) {
+    return `${item.startDirection}:${item.commands.join('')}`;
+  }
+
+  function compositionScenarioFromShape(matrix, seed) {
+    const rng = makeRng(seed * 101 + 31);
+    const cells = [];
+    matrix.forEach((row, r) => row.forEach((value, c) => {
+      if (value) cells.push([r, c]);
+    }));
+    const shuffled = [...cells];
+    for (let i = shuffled.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(rng() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const split = Math.max(2, Math.min(shuffled.length - 2, Math.floor(shuffled.length / 2)));
+    const pieceA = Array.from({length:4}, () => Array(4).fill(0));
+    const pieceB = Array.from({length:4}, () => Array(4).fill(0));
+    const combined = Array.from({length:4}, () => Array(4).fill(0));
+    shuffled.forEach(([r, c], index) => {
+      combined[r][c] = 1;
+      (index < split ? pieceA : pieceB)[r][c] = 1;
+    });
+    return { pieceA, pieceB, combined };
+  }
+
+  function foldScenarioFromSeed(seed) {
+    const rng = makeRng(seed * 83 + 29);
+    const directions = ['L2R', 'R2L', 'T2B', 'B2T'];
+    const foldDirection = directions[Math.floor(rng() * directions.length)];
+    const foldedRows = foldDirection === 'L2R' || foldDirection === 'R2L' ? 4 : 2;
+    const foldedCols = foldDirection === 'L2R' || foldDirection === 'R2L' ? 2 : 4;
+    const holeCount = 1 + (rng() < .55 ? 1 : 0);
+    const holes = [];
+    const used = new Set();
+    while (holes.length < holeCount) {
+      const row = Math.floor(rng() * foldedRows);
+      const col = Math.floor(rng() * foldedCols);
+      const cellKey = `${row},${col}`;
+      if (used.has(cellKey)) continue;
+      used.add(cellKey);
+      holes.push([row, col]);
+    }
+    const unfolded = Array.from({length:4}, () => Array(4).fill(0));
+    holes.forEach(([r, c]) => {
+      if (foldDirection === 'L2R') {
+        const rightCol = c + 2;
+        unfolded[r][rightCol] = 1;
+        unfolded[r][3 - rightCol] = 1;
+      } else if (foldDirection === 'R2L') {
+        unfolded[r][c] = 1;
+        unfolded[r][3 - c] = 1;
+      } else if (foldDirection === 'T2B') {
+        const bottomRow = r + 2;
+        unfolded[bottomRow][c] = 1;
+        unfolded[3 - bottomRow][c] = 1;
+      } else {
+        unfolded[r][c] = 1;
+        unfolded[3 - r][c] = 1;
+      }
+    });
+    return { foldDirection, foldedRows, foldedCols, holes, unfolded };
+  }
+
+  function foldKey(item) {
+    return `${item.foldDirection}:${item.holes.map(([r,c]) => `${r},${c}`).sort().join(';')}`;
+  }
+
   const shapes = buildUnique(50, 101, shapeFromSeed, key, shapeIsUseful);
   const countMaps = buildUnique(50, 2001, (seed) => heightMapFromSeed(seed, false), key);
   const projectionMaps = buildUnique(50, 5001, (seed) => heightMapFromSeed(seed, true), occupancyKey);
+  const directionScenarios = buildUnique(50, 8001, directionScenarioFromSeed, directionKey);
+  const composeScenarios = shapes.map((matrix, index) => compositionScenarioFromShape(matrix, 9001 + index));
+  const foldScenarios = buildUnique(50, 12001, foldScenarioFromSeed, foldKey);
 
   window.EDUNI_SPACE_BANK = Object.freeze({
     shapes,
     countMaps,
     projectionMaps,
-    meta: Object.freeze({ mirror: 50, rotate: 50, count: 50, projection: 50, total: 200 }),
+    directionScenarios,
+    composeScenarios,
+    foldScenarios,
+    meta: Object.freeze({
+      mirror:50,
+      rotate:50,
+      count:50,
+      projection:50,
+      direction:50,
+      compose:50,
+      fold:50,
+      total:350,
+    }),
   });
 })();

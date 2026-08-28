@@ -13,7 +13,7 @@ export class AudioManager {
     this.gains = { ...DEFAULT_GAINS };
     this.unlocked = false;
     this.activeVoices = new Set();
-    this.ambience = { forest: false, fire: false };
+    this.ambience = { forest: false, fire: false, waterfall: false };
     this.eventCounts = new Map();
     this.lastEvent = null;
   }
@@ -55,6 +55,8 @@ export class AudioManager {
       uiNavigate: [520, 0.045, "sine"], uiConfirm: [720, 0.09, "sine"], questStart: [440, 0.16, "triangle"],
       clueFound: [660, 0.14, "sine"], correct: [820, 0.12, "triangle"], wrong: [180, 0.1, "sine"],
       firePitComplete: [520, 0.35, "triangle"], ridgeArrival: [760, 0.28, "sine"], bluebird: [980, 0.22, "sine"], rewardFanfare: [1040, 0.45, "triangle"],
+      waterGate: [420, 0.16, "triangle"], steppingStone: [560, 0.12, "triangle"], echoFound: [680, 0.28, "sine"], mistFound: [740, 0.2, "sine"],
+      lookoutFound: [820, 0.3, "triangle"], kingfisher: [1010, 0.25, "sine"], waterfallReward: [1120, 0.5, "triangle"],
     };
     const [frequency, duration, type] = presets[name] || [440, 0.08, "sine"];
     const now = this.context.currentTime;
@@ -78,16 +80,29 @@ export class AudioManager {
     if (this.ambience[name] === enabled) return;
     this.ambience[name] = enabled;
     if (enabled) this._startAmbience(name);
+    else this.stopAmbience(name);
   }
 
   _startAmbience(name) {
-    if (!this.context || !this.unlocked) return;
+    if (!this.context || !this.unlocked || this[`${name}Voice`]) return;
     const oscillator = this.context.createOscillator();
     const gain = this.context.createGain();
-    oscillator.type = name === "fire" ? "triangle" : "sine";
-    oscillator.frequency.value = name === "fire" ? 72 : 118;
-    gain.gain.value = 0.0001;
-    gain.gain.linearRampToValueAtTime(name === "fire" ? 0.08 : 0.035, this.context.currentTime + 0.35);
+    if (name === "fire") {
+      oscillator.type = "triangle";
+      oscillator.frequency.value = 72;
+      gain.gain.value = 0.0001;
+      gain.gain.linearRampToValueAtTime(0.08, this.context.currentTime + 0.35);
+    } else if (name === "waterfall") {
+      oscillator.type = "sawtooth";
+      oscillator.frequency.value = 54;
+      gain.gain.value = 0.0001;
+      gain.gain.linearRampToValueAtTime(0.026, this.context.currentTime + 0.55);
+    } else {
+      oscillator.type = "sine";
+      oscillator.frequency.value = 118;
+      gain.gain.value = 0.0001;
+      gain.gain.linearRampToValueAtTime(0.035, this.context.currentTime + 0.35);
+    }
     oscillator.connect(gain); gain.connect(this.ambienceGain);
     oscillator.start();
     this[`${name}Voice`] = { oscillator, gain };

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { CampWorldGeometry } from "../src/geometry.js";
+import { CampWorldGeometry, WaterfallWorldGeometry } from "../src/geometry.js";
 
 test("walkable shapes are the same source used for isWalkable", () => {
   const g = new CampWorldGeometry();
@@ -34,4 +34,29 @@ test("world bounds clamp walkability", () => {
   const g = new CampWorldGeometry();
   assert.equal(g.isWalkable(-5, 500), false);
   assert.equal(g.isWalkable(g.world.w + 5, 500), false);
+});
+
+test("Waterfall geometry exposes its own walkable source and no Camp Bluebird", () => {
+  const g = new WaterfallWorldGeometry();
+  const shapes = g.walkableShapes();
+  assert.equal(shapes.paths[0], g.paths[0]);
+  assert.equal(shapes.clearings, g.clearings);
+  assert.equal(shapes.halfWidth, g.pathHalfWidth);
+  assert.equal(g.bluebird, null);
+});
+
+test("all Waterfall progression anchors are reachable walkable points", () => {
+  const g = new WaterfallWorldGeometry();
+  const anchors = [
+    [700, 900],
+    [1080, 700],
+    [1170, 560],
+    [1020, 480],
+    [1250, 470],
+    [1450, 330],
+    [1410, 400],
+  ];
+  for (const [x, y] of anchors) {
+    assert.equal(g.isWalkable(x, y), true, `Waterfall anchor (${x}, ${y}) must be reachable`);
+  }
 });

@@ -34,6 +34,12 @@ def _inject_quality_guard(html: str) -> str:
     if marker not in html:
         raise RuntimeError("EDUNI spatial/full audit script marker missing")
     html = html.replace(marker, replacement, 1)
+    html = _replace_if_present(
+        html,
+        '        <p id="bestScore" class="best"></p>',
+        '        <p id="bestScore" class="best"></p>\n'
+        '        <p id="spaceAuditStatus" class="best">🔍 문제은행 전수검증 확인 중...</p>',
+    )
 
     replacements = {
         "          copy:'세로 거울의 반대편 모습을 찾아보자.',":

@@ -202,7 +202,7 @@ def _inject_reasoning_modes(html: str) -> str:
           visual:`<div class="reasoning-stage">${renderDirectionGrid(scenario.startRow,scenario.startCol,scenario.startDirection)}<div class="command-row">${commands}</div></div>`,
           options,
           correctKey,
-          hint:'먼저 몸의 방향을 돌린 다음, 그 방향으로 앞으로 한 칸 움직여봐.',
+          hint:'먼저 몸의 방향을 돌린 다음, 그 방향으로 앞으로 한 칸 움직여봐. ↺는 반시계 90°, ↻는 시계 90°예요.',
         };
       }
 

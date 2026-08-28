@@ -19,7 +19,7 @@ def _clarify_direction_html(html: str) -> str:
         "          visual:`<div class=\"reasoning-stage\">${renderDirectionGrid(scenario.startRow,scenario.startCol,scenario.startDirection)}<div class=\"command-row\">${commands}</div></div>`,":
             "          visual:`<div class=\"reasoning-stage\"><div class=\"fold-label\">시작 방향: ${DIRECTION_NAMES[scenario.startDirection]} ${DIRECTION_ARROWS[scenario.startDirection]}</div>${renderDirectionGrid(scenario.startRow,scenario.startCol,scenario.startDirection)}<div class=\"command-row\">${commands}</div></div>`,",
         "          hint:'먼저 몸의 방향을 돌린 다음, 그 방향으로 앞으로 한 칸 움직여봐.',":
-            "          hint:'↺는 반시계 방향 90°, ↻는 시계 방향 90°야. 회전한 뒤 화살표가 보는 쪽으로 한 칸 이동해봐.',",
+            "          hint:'먼저 몸의 방향을 돌린 다음, 그 방향으로 앞으로 한 칸 움직여봐. ↺는 반시계 방향 90°, ↻는 시계 방향 90°야.',",
     }
     for old, new in replacements.items():
         # The base route may already contain the clarified copy; keep this

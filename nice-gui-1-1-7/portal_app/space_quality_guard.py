@@ -10,6 +10,8 @@ from . import space_routes
 
 SPACE_SPATIAL_GUARD_URL = "/space-spatial-guard.js"
 SPACE_SPATIAL_GUARD_FILE = Path(__file__).resolve().parent / "static_games" / "eduni_space_spatial_guard.js"
+SPACE_FULL_AUDIT_URL = "/space-full-audit.js"
+SPACE_FULL_AUDIT_FILE = Path(__file__).resolve().parent / "static_games" / "eduni_space_full_audit.js"
 
 
 def _replace_if_present(html: str, old: str, new: str) -> str:
@@ -19,14 +21,18 @@ def _replace_if_present(html: str, old: str, new: str) -> str:
 
 
 def _inject_quality_guard(html: str) -> str:
-    marker = '<script src="/space-question-bank.js"></script>\n  <script src="/space-logic-bank.js"></script>'
+    marker = (
+        '<script src="/space-question-bank.js"></script>\n'
+        '  <script src="/space-logic-bank.js"></script>'
+    )
     replacement = (
         '<script src="/space-question-bank.js"></script>\n'
         f'  <script src="{SPACE_SPATIAL_GUARD_URL}"></script>\n'
-        '  <script src="/space-logic-bank.js"></script>'
+        '  <script src="/space-logic-bank.js"></script>\n'
+        f'  <script src="{SPACE_FULL_AUDIT_URL}"></script>'
     )
     if marker not in html:
-        raise RuntimeError("EDUNI spatial guard script marker missing")
+        raise RuntimeError("EDUNI spatial/full audit script marker missing")
     html = html.replace(marker, replacement, 1)
 
     replacements = {
@@ -61,8 +67,8 @@ def install_quality_guard() -> None:
         response = current()
         if response.status_code != 200:
             return response
-        if not SPACE_SPATIAL_GUARD_FILE.exists():
-            return HTMLResponse("EDUNI spatial guard missing", status_code=404)
+        if not SPACE_SPATIAL_GUARD_FILE.exists() or not SPACE_FULL_AUDIT_FILE.exists():
+            return HTMLResponse("EDUNI space audit file missing", status_code=404)
         html = response.body.decode("utf-8")
         return HTMLResponse(_inject_quality_guard(html), status_code=response.status_code)
 
@@ -75,3 +81,10 @@ def eduni_space_spatial_guard() -> Response:
     if not SPACE_SPATIAL_GUARD_FILE.exists():
         return Response("// spatial guard missing", status_code=404, media_type="application/javascript")
     return Response(SPACE_SPATIAL_GUARD_FILE.read_text(encoding="utf-8"), media_type="application/javascript")
+
+
+@app.get(SPACE_FULL_AUDIT_URL)
+def eduni_space_full_audit() -> Response:
+    if not SPACE_FULL_AUDIT_FILE.exists():
+        return Response("// full audit missing", status_code=404, media_type="application/javascript")
+    return Response(SPACE_FULL_AUDIT_FILE.read_text(encoding="utf-8"), media_type="application/javascript")

@@ -25,6 +25,8 @@ import { activeDirection, advanceSequences, beginIntro, beginRewardReveal, begin
 import { AudioManager } from "./audio.js";
 import { EffectSystem } from "./effects.js";
 import { drawWaterfallWorld } from "./waterfall_scene.js";
+import { createWaterfallState, waterfallObjective, completeStreamGate, completeSteppingStones, collectWaterfallClue, canUseLeafMatch, answerLeafMatchRound, completeLookout, completeKingfisher, completeWaterfallReward, LEAF_MATCH_ROUNDS } from "./content/waterfall_chapter.js";
+import { nearestWaterfallInteractable } from "./content/waterfall_interactables.js";
 
 export async function start(canvas, modalEl) {
   const ctx = canvas.getContext("2d");
@@ -53,6 +55,7 @@ export async function start(canvas, modalEl) {
   const player = { x: geometry.clearings[0].x, y: geometry.clearings[0].y };
   let debug = false;
   let chapter = createChapterState();
+  let waterfall = createWaterfallState();
   let feedback = null;
   let sequences = createSequenceState();
   let pendingFireAdvanceAt = null;
@@ -63,7 +66,7 @@ export async function start(canvas, modalEl) {
   function updateUi() {
     renderContentPanel(panel, modalEl);
     const hud = document.querySelector("#objective-hud");
-    const objective = waterfallStage ? "물소리를 따라가 보자" : chapterObjective(chapter);
+    const objective = waterfallStage ? waterfallObjective(waterfall) : chapterObjective(chapter);
     if (hud.textContent !== objective) {
       hud.textContent = objective;
       hud.classList.remove("objective-change");
@@ -98,6 +101,14 @@ export async function start(canvas, modalEl) {
   function openInteraction(item) {
     movement.reset();
     audio.play("uiConfirm");
+    if (waterfallStage) {
+      if (item.type === "leafMatch") {
+        const round = LEAF_MATCH_ROUNDS[waterfall.leafMatchRound];
+        panel.openPanel({ kind:"leafMatch", title:"잎사귀 짝 맞추기", body:round.question, progress:`${waterfall.leafMatchRound + 1} / ${LEAF_MATCH_ROUNDS.length}`, choices:round.choices.map((id)=>({id,label:id})), choiceMode:"single" });
+      } else panel.openPanel({ kind:item.type, title:item.label, body:waterfallObjective(waterfall), confirmLabel:"계속" });
+      updateUi();
+      return;
+    }
     if (item.type === "hut") {
       panel.openPanel({ kind: "hut", title: "오늘의 탐험", body: "숲에 파랑새가 다녀간 흔적이 있대!\n세 가지 흔적을 찾아보자.", progress: "파랑새의 흔적 0 / 3", confirmLabel: "탐험 시작!" });
     } else if (item.type === "firePit") {
@@ -113,6 +124,13 @@ export async function start(canvas, modalEl) {
   function handlePanelActivate(ts) {
     const result = panel.activate();
     if (result.type === "choice") {
+      if (waterfallStage && result.kind === "leafMatch") {
+        const answer = answerLeafMatchRound(waterfall, result.choice.id);
+        if (!answer.correct) panel.setResponse("다시 살펴보자!", "gentle");
+        else { waterfall = answer.state; cue("correct", "sparkle", 1250, 470, ts || 0, 1); panel.closePanel(); }
+        updateUi();
+        return;
+      }
       if (result.kind === "firePit") {
         const answer = answerFirePitRound(chapter, result.choice.id);
         if (!answer.correct) {
@@ -127,6 +145,17 @@ export async function start(canvas, modalEl) {
         }
       }
     } else if (result.type === "confirm") {
+      if (waterfallStage) {
+        const kind = panel.payload?.kind;
+        if (kind === "streamGate") waterfall = completeStreamGate(waterfall);
+        else if (kind === "steppingStones") waterfall = completeSteppingStones(waterfall);
+        else if (kind === "echo") waterfall = collectWaterfallClue(waterfall, "echo");
+        else if (kind === "mistTrail") waterfall = collectWaterfallClue(waterfall, "mistTrail");
+        else if (kind === "lookout") waterfall = completeLookout(waterfall);
+        else if (kind === "kingfisher") waterfall = completeKingfisher(waterfall);
+        else if (kind === "reward") waterfall = completeWaterfallReward(waterfall);
+        panel.closePanel(); updateUi(); return;
+      }
       if (result.kind === "hut") {
         chapter = startQuest(chapter);
         cue("questStart", "soft-burst", 455, 320, ts || 0, 2);
@@ -254,7 +283,7 @@ export async function start(canvas, modalEl) {
     if (waterfallStage) drawWaterfallWorld(ctx, renderCam, viewW, viewH, ts || 0);
 
     drawChapterWorld(ctx, renderCam, viewW, viewH, chapter, ts || 0, feedback, directing);
-    const nearby = !panel.blocksMovement() && !directing ? nearestInteractable(player, chapter, { bluebirdReady: sequences.ridgeArrivalPlayed }) : null;
+    const nearby = !panel.blocksMovement() && !directing ? (waterfallStage ? nearestWaterfallInteractable(player, waterfall) : nearestInteractable(player, chapter, { bluebirdReady: sequences.ridgeArrivalPlayed })) : null;
     const drawables = [];
     for (const p of props) {
       drawables.push({

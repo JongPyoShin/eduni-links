@@ -14,18 +14,18 @@ export const WATERFALL_CLUES = [
 export const LEAF_MATCH_ROUNDS = [
   {
     question: "폭포 옆에서 본 둥근 잎과 같은 모양은?",
-    choices: ["round", "needle", "split"],
-    correct: "round",
+    choices: ["둥근 잎", "바늘잎", "갈라진 잎"],
+    correct: "둥근 잎",
   },
   {
     question: "길쭉한 잎과 같은 모양을 골라보자!",
-    choices: ["fan", "long", "round"],
-    correct: "long",
+    choices: ["부채꼴 잎", "길쭉한 잎", "둥근 잎"],
+    correct: "길쭉한 잎",
   },
   {
     question: "끝이 세 갈래로 나뉜 잎과 같은 모양은?",
-    choices: ["split", "round", "long"],
-    correct: "split",
+    choices: ["세 갈래 잎", "둥근 잎", "길쭉한 잎"],
+    correct: "세 갈래 잎",
   },
 ];
 

@@ -207,7 +207,7 @@
   const shapes = buildUnique(50, 101, shapeFromSeed, key, shapeIsUseful);
   const countMaps = buildUnique(50, 2001, (seed) => heightMapFromSeed(seed, false), key);
   const projectionMaps = buildUnique(50, 5001, (seed) => heightMapFromSeed(seed, true), occupancyKey);
-  const directionScenarios = buildUnique(50, 8001, directionScenarioFromSeed, directionKey);
+  const directionScenarios = buildUnique(50, 8001, directionScenarioFromSeed, directionKey, (item) => item.commands.includes('F'));
   const composeScenarios = shapes.map((matrix, index) => compositionScenarioFromShape(matrix, 9001 + index));
   const foldScenarios = buildUnique(50, 12001, foldScenarioFromSeed, foldKey);
 

@@ -20,6 +20,7 @@
     }
     return out;
   };
+  const signature = (value) => JSON.stringify(value);
 
   const permutations = (items) => {
     if (items.length <= 1) return [items];
@@ -30,8 +31,6 @@
     });
     return out;
   };
-
-  const signature = (value) => JSON.stringify(value);
 
   function sequenceFrames(rule, start, count) {
     const frames = [];
@@ -57,7 +56,7 @@
       color: Math.floor(rng() * 3),
       count: 1 + Math.floor(rng() * 2),
     };
-    return { rule, start, frames: sequenceFrames(rule, start, 4) };
+    return {rule, start, frames:sequenceFrames(rule, start, 4)};
   }
 
   function solveSequenceScenario(scenario) {
@@ -73,7 +72,7 @@
       && answer.color !== scenario.frames[3].color;
   }
 
-  const CONDITION_TOKENS = ['🐶', '🐱', '🐰', '🐼'];
+  const CONDITION_TOKENS = ['🐶','🐱','🐰','🐼'];
 
   function conditionHolds(order, condition) {
     const indexOf = (token) => order.indexOf(token);
@@ -133,7 +132,7 @@
     const target = shuffled(CONDITION_TOKENS, rng);
     const conditions = chooseUniqueConditions(target, rng);
     if (!conditions) return null;
-    return { tokens:[...CONDITION_TOKENS], conditions, solution:target };
+    return {tokens:[...CONDITION_TOKENS], conditions, solution:target};
   }
 
   function validateConditionScenario(scenario) {
@@ -149,9 +148,9 @@
     const blocked = new Set(scenario.walls.map(([r,c]) => cellKey(r,c)));
     const keyCell = cellKey(scenario.key[0], scenario.key[1]);
     const doorCell = cellKey(scenario.door[0], scenario.door[1]);
-    const goalByCell = new Map(Object.entries(scenario.goals).map(([label, [r,c]]) => [cellKey(r,c), label]));
+    const goalByCell = new Map(Object.entries(scenario.goals).map(([label,[r,c]]) => [cellKey(r,c), label]));
     const queue = [{row:scenario.start[0], col:scenario.start[1], hasKey:false, passedDoor:false}];
-    const seen = new Set(['0:' + cellKey(scenario.start[0], scenario.start[1]) + ':0']);
+    const seen = new Set([`0:${cellKey(scenario.start[0], scenario.start[1])}:0`]);
     const qualified = new Set();
     const directions = [[-1,0],[1,0],[0,-1],[0,1]];
 
@@ -196,7 +195,8 @@
         const nr = row + dr;
         const nc = col + dc;
         const nextKey = cellKey(nr,nc);
-        if (nr < 0 || nr >= PATH_SIZE || nc < 0 || nc >= PATH_SIZE || blocked.has(nextKey) || seen.has(nextKey)) return;
+        if (nr < 0 || nr >= PATH_SIZE || nc < 0 || nc >= PATH_SIZE) return;
+        if (blocked.has(nextKey) || seen.has(nextKey)) return;
         seen.add(nextKey);
         queue.push([nr,nc]);
       });
@@ -204,45 +204,70 @@
     return false;
   }
 
+  function uniqueCells(cells) {
+    const seen = new Set();
+    return cells.filter(([r,c]) => {
+      const key = cellKey(r,c);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
   function pathScenarioFromSeed(seed) {
     const rng = makeRng(seed * 173 + 59);
     const vertical = rng() < .5;
-    const barrierIndex = 2;
-    const doorIndex = Math.floor(rng() * PATH_SIZE);
-    const walls = [];
-    for (let i = 0; i < PATH_SIZE; i += 1) {
-      if (i === doorIndex) continue;
-      walls.push(vertical ? [i, barrierIndex] : [barrierIndex, i]);
-    }
-    const door = vertical ? [doorIndex, barrierIndex] : [barrierIndex, doorIndex];
-
-    const nearCells = [];
-    const farCells = [];
-    for (let r = 0; r < PATH_SIZE; r += 1) {
-      for (let c = 0; c < PATH_SIZE; c += 1) {
-        if (vertical && c === barrierIndex) continue;
-        if (!vertical && r === barrierIndex) continue;
-        const near = vertical ? c < barrierIndex : r < barrierIndex;
-        (near ? nearCells : farCells).push([r,c]);
-      }
-    }
-    const near = shuffled(nearCells, rng);
-    const far = shuffled(farCells, rng);
-    const start = near[0];
-    const key = near[1];
-    const decoy1 = near[2];
-    const decoy2 = near[3];
-    const correct = far[0];
-
+    const doorIndex = 1 + Math.floor(rng() * 3);
     const labels = shuffled(['A','B','C'], rng);
     const correctLabel = labels[0];
-    const goals = {
-      [correctLabel]: correct,
-      [labels[1]]: decoy1,
-      [labels[2]]: decoy2,
-    };
 
-    return { size:PATH_SIZE, start, key, door, walls, goals, correctLabel };
+    if (vertical) {
+      const barrier = Array.from({length:PATH_SIZE}, (_,r) => [r,2]).filter(([r]) => r !== doorIndex);
+      const enclosure = [[0,1],[1,0],[4,1],[3,0]];
+      const nearChoices = shuffled([[1,1],[2,0],[2,1],[3,1]], rng);
+      const farChoices = shuffled([
+        [doorIndex,3],
+        [doorIndex,4],
+        [Math.max(0,doorIndex-1),4],
+        [Math.min(4,doorIndex+1),4],
+      ], rng);
+      return {
+        size:PATH_SIZE,
+        start:nearChoices[0],
+        key:nearChoices[1],
+        door:[doorIndex,2],
+        walls:uniqueCells([...barrier,...enclosure]),
+        goals:{
+          [correctLabel]:farChoices[0],
+          [labels[1]]:[0,0],
+          [labels[2]]:[4,0],
+        },
+        correctLabel,
+      };
+    }
+
+    const barrier = Array.from({length:PATH_SIZE}, (_,c) => [2,c]).filter(([,c]) => c !== doorIndex);
+    const enclosure = [[1,0],[0,1],[1,4],[0,3]];
+    const nearChoices = shuffled([[1,1],[1,2],[1,3],[0,2]], rng);
+    const farChoices = shuffled([
+      [3,doorIndex],
+      [4,doorIndex],
+      [4,Math.max(0,doorIndex-1)],
+      [4,Math.min(4,doorIndex+1)],
+    ], rng);
+    return {
+      size:PATH_SIZE,
+      start:nearChoices[0],
+      key:nearChoices[1],
+      door:[2,doorIndex],
+      walls:uniqueCells([...barrier,...enclosure]),
+      goals:{
+        [correctLabel]:farChoices[0],
+        [labels[1]]:[0,0],
+        [labels[2]]:[0,4],
+      },
+      correctLabel,
+    };
   }
 
   function validatePathScenario(scenario) {

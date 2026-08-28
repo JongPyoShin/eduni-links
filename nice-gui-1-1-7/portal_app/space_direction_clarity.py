@@ -15,7 +15,7 @@ def _clarify_direction_html(html: str) -> str:
             "      const DIRECTION_NAMES = ['위쪽','오른쪽','아래쪽','왼쪽'];\n"
             "      const COMMAND_LABELS = { L:'↺ 90° 반시계 방향으로 돌기', R:'↻ 90° 시계 방향으로 돌기', F:'↑ 앞으로 1칸 이동' };",
         "          copy:'화살표가 보는 방향을 기억하면서 한 단계씩 움직여보자.',":
-            "          copy:'시작 방향을 확인하고, 회전은 항상 90°씩 한 단계씩 따라가보자.',",
+            "          copy:'시작 방향을 확인하고, 회전은 항상 90°씩 한 단계씩 따라가보자. 화살표가 보는 방향을 기억하면서 움직여보자.',",
         "          visual:`<div class=\"reasoning-stage\">${renderDirectionGrid(scenario.startRow,scenario.startCol,scenario.startDirection)}<div class=\"command-row\">${commands}</div></div>`,":
             "          visual:`<div class=\"reasoning-stage\"><div class=\"fold-label\">시작 방향: ${DIRECTION_NAMES[scenario.startDirection]} ${DIRECTION_ARROWS[scenario.startDirection]}</div>${renderDirectionGrid(scenario.startRow,scenario.startCol,scenario.startDirection)}<div class=\"command-row\">${commands}</div></div>`,",
         "          hint:'먼저 몸의 방향을 돌린 다음, 그 방향으로 앞으로 한 칸 움직여봐.',":

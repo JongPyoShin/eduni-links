@@ -23,3 +23,8 @@ eduni-android-portal/signing.properties
 eduni-android-portal/qa_*
 eduni-android-portal/**/*.bak*
 eduni-android-portal/**/*.log
+
+# Third-party three.js asset packs are kept local/private. The provider license
+# permits use in shipped projects but does not permit redistributing raw model
+# files as a standalone asset library, so never commit the downloaded GLBs.
+jungle-web-canvas-poc/assets/vendor/threejsassets/

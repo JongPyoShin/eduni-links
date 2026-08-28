@@ -88,6 +88,21 @@ export class PlayerSprite {
     const { w, h, pivotX, pivotY } = playerLayout(PLAYER.DISPLAY_W);
     const img = this.currentImage();
     if (img) {
+      // A small warm value halo separates the explorer from dense foliage without
+      // changing sprite scale or collision. It is deliberately subtle so it reads
+      // as storybook lighting rather than a game-selection ring.
+      ctx.save();
+      const haloY = s.y - h * 0.42;
+      const halo = ctx.createRadialGradient(s.x, haloY, 2, s.x, haloY, w * 0.46);
+      halo.addColorStop(0, "rgba(255,246,200,0.20)");
+      halo.addColorStop(0.62, "rgba(255,239,174,0.08)");
+      halo.addColorStop(1, "rgba(255,239,174,0)");
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.ellipse(s.x, haloY, w * 0.46, h * 0.38, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
       ctx.drawImage(img, s.x - pivotX, s.y - pivotY, w, h);
       return;
     }

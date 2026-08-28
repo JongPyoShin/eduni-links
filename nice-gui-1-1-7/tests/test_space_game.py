@@ -95,6 +95,21 @@ class SpaceGameTests(unittest.TestCase):
         ):
             self.assertIn(marker, html)
 
+    def test_direction_prompts_are_explicit(self) -> None:
+        html = _space_game_html().body.decode("utf-8")
+        self.assertIn("90° 반시계 방향으로 돌기", html)
+        self.assertIn("90° 시계 방향으로 돌기", html)
+        self.assertIn("시작 방향:", html)
+        self.assertNotIn("왼쪽으로 돌기", html)
+        self.assertNotIn("오른쪽으로 돌기", html)
+
+    def test_count_projection_clarity_guards_and_floor_grid(self) -> None:
+        bank = SPACE_QUESTION_BANK_FILE.read_text(encoding="utf-8")
+        self.assertIn("is_unambiguous_count_map", bank)
+        self.assertIn("is_unambiguous_projection_map", bank)
+        html = SPACE_GAME_FILE.read_text(encoding="utf-8")
+        self.assertIn("바닥 격자 포함", html)
+
     def test_served_space_html_has_in_game_return_to_intro(self) -> None:
         response = _space_game_html()
         self.assertEqual(200, response.status_code)

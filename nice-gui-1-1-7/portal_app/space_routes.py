@@ -154,7 +154,8 @@ def _inject_reasoning_modes(html: str) -> str:
     )
 
     reasoning_javascript = r'''      const DIRECTION_ARROWS = ['↑','→','↓','←'];
-      const COMMAND_LABELS = { L:'↶ 왼쪽으로 돌기', R:'↷ 오른쪽으로 돌기', F:'↑ 앞으로 1칸' };
+      const COMMAND_LABELS = { L:'↺ 90° 반시계 방향으로 돌기', R:'↻ 90° 시계 방향으로 돌기', F:'↑ 앞으로 1칸' };
+      const DIRECTION_LABELS = ['위쪽 ↑','오른쪽 →','아래쪽 ↓','왼쪽 ←'];
 
       function renderDirectionGrid(row, col, direction = null, destinationOnly = false) {
         const cell=34;
@@ -197,7 +198,7 @@ def _inject_reasoning_modes(html: str) -> str:
         return {
           badge:'🧭 방향 이동',
           title:'명령을 모두 따라가면 어디에 도착할까?',
-          copy:'화살표가 보는 방향을 기억하면서 한 단계씩 움직여보자.',
+          copy:`시작 방향: ${DIRECTION_LABELS[scenario.startDirection]}<br>회전은 항상 90°씩 해요.<br>화살표가 보는 방향을 기억하면서 움직여보자.`,
           visual:`<div class="reasoning-stage">${renderDirectionGrid(scenario.startRow,scenario.startCol,scenario.startDirection)}<div class="command-row">${commands}</div></div>`,
           options,
           correctKey,

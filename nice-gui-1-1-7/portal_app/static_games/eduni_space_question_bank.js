@@ -86,6 +86,21 @@
     return matrix.map((row) => row.map((height) => height > 0 ? 1 : 0).join('')).join('|');
   }
 
+  // Reject layouts whose projected silhouette hides an independent base cell.
+  function is_unambiguous_count_map(matrix) {
+    return matrix.every((row) => row.every((height) => Number.isInteger(height) && height >= 0 && height <= 3));
+  }
+
+  function is_unambiguous_projection_map(matrix) {
+    const occupied = matrix.map((row) => row.map((height) => height > 0 ? 1 : 0));
+    for (let r = 0; r < occupied.length - 1; r += 1) {
+      for (let c = 0; c < occupied[r].length - 1; c += 1) {
+        if (occupied[r][c] && occupied[r + 1][c] && occupied[r][c + 1] && occupied[r + 1][c + 1]) return false;
+      }
+    }
+    return true;
+  }
+
   function buildUnique(count, startSeed, factory, keyFn, validator = () => true) {
     const out = [];
     const seen = new Set();
@@ -205,8 +220,8 @@
   }
 
   const shapes = buildUnique(50, 101, shapeFromSeed, key, shapeIsUseful);
-  const countMaps = buildUnique(50, 2001, (seed) => heightMapFromSeed(seed, false), key);
-  const projectionMaps = buildUnique(50, 5001, (seed) => heightMapFromSeed(seed, true), occupancyKey);
+  const countMaps = buildUnique(50, 2001, (seed) => heightMapFromSeed(seed, false), key, is_unambiguous_count_map);
+  const projectionMaps = buildUnique(50, 5001, (seed) => heightMapFromSeed(seed, true), occupancyKey, is_unambiguous_projection_map);
   const directionScenarios = buildUnique(50, 8001, directionScenarioFromSeed, directionKey, (item) => item.commands.includes('F'));
   const composeScenarios = shapes.map((matrix, index) => compositionScenarioFromShape(matrix, 9001 + index));
   const foldScenarios = buildUnique(50, 12001, foldScenarioFromSeed, foldKey);

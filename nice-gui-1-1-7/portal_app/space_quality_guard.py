@@ -29,7 +29,8 @@ def _inject_quality_guard(html: str) -> str:
         '<script src="/space-question-bank.js"></script>\n'
         f'  <script src="{SPACE_SPATIAL_GUARD_URL}"></script>\n'
         '  <script src="/space-logic-bank.js"></script>\n'
-        f'  <script src="{SPACE_FULL_AUDIT_URL}"></script>'
+        f'  <script src="{SPACE_FULL_AUDIT_URL}"></script>\n'
+        '  <script>(()=>{const e=document.getElementById("spaceAuditStatus");const a=window.EDUNI_SPACE_FULL_AUDIT;if(!e)return;if(a&&a.ok===true&&a.checked===470&&a.total===470){e.textContent="✅ 문제은행 전수검증 470/470 통과";e.style.color="#15803d";}else{e.textContent="⛔ 문제은행 검증 실패 · 문제 출제 차단";e.style.color="#b42318";}})();</script>'
     )
     if marker not in html:
         raise RuntimeError("EDUNI spatial/full audit script marker missing")

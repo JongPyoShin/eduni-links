@@ -71,8 +71,9 @@ class SpaceQualityGuardTests(unittest.TestCase):
             "independent unfold does not match stored answer",
             "independent solver found",
             "independent BFS found",
-            "checked:total",
-            "total !== 470",
+            "checked:actualTotal",
+            "expectedTotal !== 470",
+            "actualTotal !== 470",
             "spaceAudit = report.ok ? '470-pass' : 'failed'",
         ):
             self.assertIn(marker, javascript)

@@ -95,6 +95,14 @@ class SpaceQualityGuardTests(unittest.TestCase):
         self.assertLess(spatial_index, logic_index)
         self.assertLess(logic_index, audit_index)
 
+    def test_intro_shows_audit_pass_or_blocked_status(self) -> None:
+        html = _space_game_html().body.decode("utf-8")
+        self.assertIn('id="spaceAuditStatus"', html)
+        self.assertIn("✅ 문제은행 전수검증 470/470 통과", html)
+        self.assertIn("⛔ 문제은행 검증 실패 · 문제 출제 차단", html)
+        self.assertIn("a.checked===470", html)
+        self.assertIn("a.total===470", html)
+
     def test_existing_modes_have_detailed_task_and_rule_copy(self) -> None:
         html = _space_game_html().body.decode("utf-8")
         for marker in (

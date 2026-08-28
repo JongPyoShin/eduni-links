@@ -28,6 +28,14 @@ import { drawWaterfallWorld, drawKingfisher } from "./waterfall_scene.js";
 import { createWaterfallState, resetWaterfall, waterfallObjective, completeStreamGate, completeSteppingStones, collectWaterfallClue, answerLeafMatchRound, completeLookout, completeKingfisher, completeWaterfallReward, LEAF_MATCH_ROUNDS } from "./content/waterfall_chapter.js";
 import { nearestWaterfallInteractable } from "./content/waterfall_interactables.js";
 
+const LEAF_LABELS = Object.freeze({
+  round: "둥근 잎",
+  needle: "뾰족한 잎",
+  split: "세 갈래 잎",
+  fan: "부채꼴 잎",
+  long: "길쭉한 잎",
+});
+
 export async function start(canvas, modalEl) {
   const ctx = canvas.getContext("2d");
   const waterfallStage = new URLSearchParams(globalThis.location?.search || "").get("stage") === "waterfall";
@@ -86,6 +94,10 @@ export async function start(canvas, modalEl) {
     return clue.title.replace(" 발견!", "").replace("짹짹! ", "").replace("가 들려!", "");
   }
 
+  function leafLabel(id) {
+    return LEAF_LABELS[id] || id;
+  }
+
   function openFireRound() {
     const round = FIRE_PIT_ROUNDS[chapter.firePitRound];
     panel.openPanel({
@@ -98,24 +110,39 @@ export async function start(canvas, modalEl) {
     });
   }
 
+  function openLeafRound() {
+    const round = LEAF_MATCH_ROUNDS[waterfall.leafMatchRound];
+    if (!round) return false;
+    panel.openPanel({
+      kind: "leafMatch",
+      title: "잎사귀 짝 맞추기",
+      body: round.question,
+      progress: `${waterfall.leafMatchRound + 1} / ${LEAF_MATCH_ROUNDS.length}`,
+      choices: round.choices.map((id) => ({ id, label: leafLabel(id) })),
+      choiceMode: "single",
+    });
+    return true;
+  }
+
   function openInteraction(item) {
     movement.reset();
     audio.play("uiConfirm");
     if (waterfallStage) {
       if (item.type === "leafMatch") {
-        const round = LEAF_MATCH_ROUNDS[waterfall.leafMatchRound];
-        panel.openPanel({ kind:"leafMatch", title:"잎사귀 짝 맞추기", body:round.question, progress:`${waterfall.leafMatchRound + 1} / ${LEAF_MATCH_ROUNDS.length}`, choices:round.choices.map((id)=>({id,label:id})), choiceMode:"single" });
+        openLeafRound();
       } else if (item.type === "reward") {
         panel.openPanel({
           kind: "reward",
-          title: item.label,
+          title: "안개 폭포 탐험 완료!",
           body: "오늘의 폭포 탐험에서 발견한 것",
           badge: true,
-          checklist: ["계곡 입구", "징검다리", "폭포 소리", "안개 흔적", "잎사귀 짝", "물총새"],
+          checklist: ["징검다리", "폭포 소리", "안개 흔적", "잎사귀 관찰", "물총새"],
           confirmLabel: "다시 둘러보기",
           revealReady: true,
         });
-      } else panel.openPanel({ kind:item.type, title:item.label, body:waterfallObjective(waterfall), confirmLabel:"계속" });
+      } else {
+        panel.openPanel({ kind: item.type, title: item.label, body: waterfallObjective(waterfall), confirmLabel: "계속" });
+      }
       updateUi();
       return;
     }
@@ -136,8 +163,21 @@ export async function start(canvas, modalEl) {
     if (result.type === "choice") {
       if (waterfallStage && result.kind === "leafMatch") {
         const answer = answerLeafMatchRound(waterfall, result.choice.id);
-        if (!answer.correct) panel.setResponse("다시 살펴보자!", "gentle");
-        else { waterfall = answer.state; cue("correct", "sparkle", 1250, 470, ts || 0, 1); panel.closePanel(); }
+        if (!answer.correct) {
+          cue("wrong", "soft-burst", 1250, 470, ts || 0, 0.8);
+          panel.setResponse("다시 살펴보자!", "gentle");
+        } else {
+          waterfall = answer.state;
+          cue("correct", "sparkle", 1250, 470, ts || 0, 1);
+          if (answer.completed) {
+            panel.closePanel();
+          } else {
+            // Keep the mini-game continuous: a correct answer advances directly
+            // to the next authored round without forcing the child to walk away
+            // and reopen the same interaction target.
+            openLeafRound();
+          }
+        }
         updateUi();
         return;
       }
@@ -157,14 +197,31 @@ export async function start(canvas, modalEl) {
     } else if (result.type === "confirm") {
       if (waterfallStage) {
         const kind = panel.payload?.kind;
-        if (kind === "streamGate") waterfall = completeStreamGate(waterfall);
-        else if (kind === "steppingStones") waterfall = completeSteppingStones(waterfall);
-        else if (kind === "echo") waterfall = collectWaterfallClue(waterfall, "echo");
-        else if (kind === "mistTrail") waterfall = collectWaterfallClue(waterfall, "mistTrail");
-        else if (kind === "lookout") waterfall = completeLookout(waterfall);
-        else if (kind === "kingfisher") waterfall = completeKingfisher(waterfall);
-        else if (kind === "reward") waterfall = completeWaterfallReward(waterfall);
-        panel.closePanel(); updateUi(); return;
+        if (kind === "streamGate") {
+          waterfall = completeStreamGate(waterfall);
+          cue("waterGate", "soft-burst", 700, 900, ts || 0, 1.2);
+        } else if (kind === "steppingStones") {
+          waterfall = completeSteppingStones(waterfall);
+          cue("steppingStone", "sparkle", 1080, 700, ts || 0, 1);
+        } else if (kind === "echo") {
+          waterfall = collectWaterfallClue(waterfall, "echo");
+          cue("echoFound", "glow-pulse", 1170, 560, ts || 0, 1.1);
+        } else if (kind === "mistTrail") {
+          waterfall = collectWaterfallClue(waterfall, "mistTrail");
+          cue("mistFound", "leaf", 1020, 480, ts || 0, 0.8);
+        } else if (kind === "lookout") {
+          waterfall = completeLookout(waterfall);
+          cue("lookoutFound", "soft-burst", 1450, 330, ts || 0, 1.5);
+        } else if (kind === "kingfisher") {
+          waterfall = completeKingfisher(waterfall);
+          cue("kingfisher", "sparkle", 1410, 400, ts || 0, 1.4);
+        } else if (kind === "reward") {
+          waterfall = completeWaterfallReward(waterfall);
+          cue("waterfallReward", "soft-burst", 1410, 400, ts || 0, 2);
+        }
+        panel.closePanel();
+        updateUi();
+        return;
       }
       if (result.kind === "hut") {
         chapter = startQuest(chapter);
@@ -200,7 +257,8 @@ export async function start(canvas, modalEl) {
 
     input.pollGamepad();
     if (input.consumeActivity()) audio.unlock();
-    audio.setAmbience("forest", audio.unlocked);
+    audio.setAmbience("forest", !waterfallStage && audio.unlocked);
+    audio.setAmbience("waterfall", waterfallStage && audio.unlocked);
     audio.setAmbience("fire", !waterfallStage && audio.unlocked && Math.hypot(player.x - 990, player.y - 935) < 230);
 
     if (input.consumeDebug()) debug = !debug;
@@ -295,7 +353,7 @@ export async function start(canvas, modalEl) {
     const renderCam = camera.renderCamera(ts || 0);
     ctx.clearRect(0, 0, viewW, viewH);
     if (waterfallStage) {
-      drawWaterfallWorld(ctx, renderCam, viewW, viewH, ts || 0);
+      drawWaterfallWorld(ctx, renderCam, viewW, viewH, ts || 0, images, waterfall);
       if (waterfall.lookoutComplete) drawKingfisher(ctx, renderCam, viewW, viewH, ts || 0);
     } else {
       drawGroundLayer(ctx, renderCam, viewW, viewH, geometry);
@@ -341,8 +399,7 @@ export async function start(canvas, modalEl) {
     });
     depthSortDraw(ctx, camera.cam, viewW, viewH, drawables);
 
-    if (nearby)
-      drawInteractionCue(ctx, renderCam, viewW, viewH, nearby.x, nearby.y, ts || 0);
+    if (nearby) drawInteractionCue(ctx, renderCam, viewW, viewH, nearby.x, nearby.y, ts || 0);
     effects.draw(ctx, renderCam, viewW, viewH);
     if (debug) drawDebugOverlay(ctx, renderCam, viewW, viewH, geometry, player, movement, geometry.bluebird);
 

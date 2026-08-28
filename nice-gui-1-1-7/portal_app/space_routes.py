@@ -157,6 +157,7 @@ def _inject_reasoning_modes(html: str) -> str:
       const COMMAND_LABELS = { L:'↺ 90° 반시계 방향으로 돌기', R:'↻ 90° 시계 방향으로 돌기', F:'↑ 앞으로 1칸' };
       const DIRECTION_LABELS = ['위쪽 ↑','오른쪽 →','아래쪽 ↓','왼쪽 ←'];
       const DIRECTION_NAMES = ['위쪽','오른쪽','아래쪽','왼쪽'];
+      const DIRECTION_HELP_TEXT = '회전은 항상 90°씩 · 앞으로 1칸 이동';
 
       function renderDirectionGrid(row, col, direction = null, destinationOnly = false) {
         const cell=34;

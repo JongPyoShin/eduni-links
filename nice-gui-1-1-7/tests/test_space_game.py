@@ -37,38 +37,62 @@ class SpaceGameTests(unittest.TestCase):
             assert route is not None
             self.assertTrue(callable(route.endpoint))
 
-    def test_space_game_html_contains_all_mvp_modes(self) -> None:
+    def test_space_game_html_contains_original_mvp_modes(self) -> None:
         self.assertTrue(SPACE_GAME_FILE.exists())
         html = SPACE_GAME_FILE.read_text(encoding="utf-8")
         for marker in ("거울 찾기", "도형 회전", "블록 탐정", "위에서 보기", "const TOTAL = 10"):
             self.assertIn(marker, html)
 
-    def test_question_bank_contains_200_randomized_configurations(self) -> None:
+    def test_question_bank_contains_350_randomized_configurations(self) -> None:
         self.assertTrue(SPACE_QUESTION_BANK_FILE.exists())
         javascript = SPACE_QUESTION_BANK_FILE.read_text(encoding="utf-8")
         for marker in (
             "buildUnique(50, 101",
             "buildUnique(50, 2001",
             "buildUnique(50, 5001",
-            "mirror: 50",
-            "rotate: 50",
-            "count: 50",
-            "projection: 50",
-            "total: 200",
+            "buildUnique(50, 8001",
+            "composeScenarios = shapes.map",
+            "buildUnique(50, 12001",
+            "mirror:50",
+            "rotate:50",
+            "count:50",
+            "projection:50",
+            "direction:50",
+            "compose:50",
+            "fold:50",
+            "total:350",
         ):
             self.assertIn(marker, javascript)
 
-    def test_served_space_html_wires_question_bank_and_shuffle_bags(self) -> None:
+    def test_served_space_html_wires_all_seven_modes_and_shuffle_bags(self) -> None:
         response = _space_game_html()
         self.assertEqual(200, response.status_code)
         html = response.body.decode("utf-8")
         self.assertIn(f'<script src="{SPACE_QUESTION_BANK_URL}"></script>', html)
-        self.assertIn("200문제 풀에서 매번 10문제를 랜덤으로 골라", html)
+        self.assertIn("350문제 풀에서 공간지각과 사고추론 문제 10개", html)
         self.assertIn("drawBankMatrix('mirror'", html)
         self.assertIn("drawBankMatrix('rotate'", html)
         self.assertIn("drawBankMatrix('count'", html)
         self.assertIn("drawBankMatrix('projection'", html)
+        self.assertIn("drawBankItem('direction'", html)
+        self.assertIn("drawBankItem('compose'", html)
+        self.assertIn("drawBankItem('fold'", html)
         self.assertIn("bankBags[name] = shuffle", html)
+        self.assertIn("'direction','compose','fold'", html)
+        for label in ("🧭 방향 이동", "🧩 조각 합치기", "📄 종이 접기"):
+            self.assertIn(label, html)
+
+    def test_reasoning_modes_expose_child_friendly_prompts(self) -> None:
+        html = _space_game_html().body.decode("utf-8")
+        for marker in (
+            "명령을 모두 따라가면 어디에 도착할까?",
+            "두 조각을 합치면 어떤 모양이 될까?",
+            "종이를 펼치면 구멍은 어디에 생길까?",
+            "먼저 몸의 방향을 돌린 다음",
+            "파란 칸과 분홍 칸을 하나의 격자에",
+            "접힌 선을 거울이라고 생각하고",
+        ):
+            self.assertIn(marker, html)
 
     def test_served_space_html_has_in_game_return_to_intro(self) -> None:
         response = _space_game_html()

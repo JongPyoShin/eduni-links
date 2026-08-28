@@ -287,7 +287,7 @@ def register_pages() -> None:
 
             _section_title("빠른 시작", "자주 쓰는 학습과 게임으로 바로 이동합니다.")
             with ui.element("section").classes("portal-quick"):
-                _portal_card(EDUNI_SPACE_URL, "공간탐험", "거울·회전·쌓기나무로 공간 감각을 키우는 10문제", "200문제", "portal-game-space")
+                _portal_card(EDUNI_SPACE_URL, "공간탐험", "공간지각·방향·조각·종이접기를 섞은 사고추론 10문제", "350문제", "portal-game-space")
                 _portal_card(EDUNI_JUNGLE_URL, "정글 새탐험", "정글 맵을 탐험하며 새를 채집하는 모험", "탐험", "portal-game-jungle")
                 _portal_card(EDUNI_OMOK_URL, "AI 오목", "AI 친구와 오목을 두는 두뇌 게임", "신규", "portal-game-violet")
                 _portal_card(EDUNI_LINK_URL, "의준 링크", "의준 얼굴 블럭을 연결하는 모바일 퍼즐", "신규", "portal-game-pink")

@@ -51,6 +51,7 @@ class SpaceGameTests(unittest.TestCase):
             "buildUnique(50, 2001",
             "buildUnique(50, 5001",
             "buildUnique(50, 8001",
+            "item.commands.includes('F')",
             "composeScenarios = shapes.map",
             "buildUnique(50, 12001",
             "mirror:50",

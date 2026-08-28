@@ -18,6 +18,43 @@ def _replace_once(html: str, old: str, new: str) -> str:
     return html.replace(old, new, 1)
 
 
+def _inject_home_button(html: str) -> str:
+    html = _replace_once(
+        html,
+        "    .counter { color:#475467; }",
+        "    .space-home-button { min-height:38px; padding:0 12px; border:1px solid #d9def0; border-radius:12px; background:#fff; color:#475467; font-weight:950; cursor:pointer; white-space:nowrap; }\n"
+        "    .space-home-button:active { transform:translateY(1px); }\n"
+        "    .counter { color:#475467; }",
+    )
+    html = _replace_once(
+        html,
+        "          <div class=\"progress-row\">\n            <span id=\"counter\" class=\"counter\">1 / 10</span>",
+        "          <div class=\"progress-row\">\n"
+        "            <button id=\"spaceHomeBtn\" class=\"space-home-button\" type=\"button\">← 처음으로</button>\n"
+        "            <span id=\"counter\" class=\"counter\">1 / 10</span>",
+    )
+    html = _replace_once(
+        html,
+        "      $('startBtn').addEventListener('click',startGame);",
+        "      function goToSpaceIntro() {\n"
+        "        state.index=0;\n"
+        "        state.stars=0;\n"
+        "        state.attempts=0;\n"
+        "        state.resolved=false;\n"
+        "        state.types=[];\n"
+        "        state.question=null;\n"
+        "        $('game').style.display='none';\n"
+        "        $('result').style.display='none';\n"
+        "        $('intro').style.display='block';\n"
+        "        updateBest();\n"
+        "        window.scrollTo({top:0,behavior:'smooth'});\n"
+        "      }\n\n"
+        "      $('spaceHomeBtn').addEventListener('click',goToSpaceIntro);\n"
+        "      $('startBtn').addEventListener('click',startGame);",
+    )
+    return html
+
+
 def _inject_question_bank(html: str) -> str:
     html = _replace_once(
         html,
@@ -91,7 +128,10 @@ def _space_game_html() -> HTMLResponse:
             """,
             status_code=404,
         )
-    return HTMLResponse(_inject_question_bank(SPACE_GAME_FILE.read_text(encoding="utf-8")))
+    html = SPACE_GAME_FILE.read_text(encoding="utf-8")
+    html = _inject_question_bank(html)
+    html = _inject_home_button(html)
+    return HTMLResponse(html)
 
 
 @app.get(SPACE_QUESTION_BANK_URL)

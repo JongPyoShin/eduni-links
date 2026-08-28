@@ -105,6 +105,16 @@ export async function start(canvas, modalEl) {
       if (item.type === "leafMatch") {
         const round = LEAF_MATCH_ROUNDS[waterfall.leafMatchRound];
         panel.openPanel({ kind:"leafMatch", title:"잎사귀 짝 맞추기", body:round.question, progress:`${waterfall.leafMatchRound + 1} / ${LEAF_MATCH_ROUNDS.length}`, choices:round.choices.map((id)=>({id,label:id})), choiceMode:"single" });
+      } else if (item.type === "reward") {
+        panel.openPanel({
+          kind: "reward",
+          title: item.label,
+          body: "오늘의 폭포 탐험에서 발견한 것",
+          badge: true,
+          checklist: ["계곡 입구", "징검다리", "폭포 소리", "안개 흔적", "잎사귀 짝", "물총새"],
+          confirmLabel: "다시 둘러보기",
+          revealReady: true,
+        });
       } else panel.openPanel({ kind:item.type, title:item.label, body:waterfallObjective(waterfall), confirmLabel:"계속" });
       updateUi();
       return;

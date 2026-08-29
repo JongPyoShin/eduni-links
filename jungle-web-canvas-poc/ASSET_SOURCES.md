@@ -22,6 +22,18 @@ clump, swamp mist cloud, and bayou water. Use those before widening scope.
 models, 329 FBX models, the Isometric sprite set, and `License.txt` (CC0).
 The pack is ignored locally by default; use only the models needed by a scene.
 
+The following Kenney packs are also downloaded and unpacked locally under
+`assets/vendor/kenney/`:
+
+- `survival-kit/`: 80 GLB, 87 PNG, 1 license file
+- `animal-pack-remastered/`: 249 PNG, 1 license file
+- `particle-pack/`: 193 PNG, 1 license file
+- `pixel-ui-pack/`: 36 PNG, 1 license file
+- `ui-audio/`: 52 OGG, 1 license file
+
+All five packs identify themselves as CC0. They are local-only by default;
+select and optimize individual files before any runtime wiring.
+
 ## Acquisition acceptance
 
 - Browser download event received and local file verified.

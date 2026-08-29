@@ -60,6 +60,37 @@ export const STAGES = {
       complete: { palette: "rainbow-mist", fog: 0.06, warmth: 0.68, density: 0.56, cue: "none", ambience: "waterfall", landmark: "lookout", reveal: "reward" },
     },
   },
+  cave: {
+    id: "cave",
+    title: "반딧불 동굴 탐험",
+    theme: "glowing-cave",
+    entryObjective: "반딧불이 모여 있는 동굴 입구를 찾아가 보자",
+    scenario: [
+      { id: "caveGate", kind: "destination", title: "동굴 입구", objective: "반딧불이 모여 있는 동굴 입구를 찾아가 보자" },
+      { id: "glowTrail", kind: "movement", title: "반딧불 길", objective: "반딧불 불빛을 따라 안쪽으로 가 보자" },
+      { id: "echoCrystal", kind: "audio-game", title: "울림 수정", objective: "맑게 울리는 수정을 찾아보자" },
+      { id: "shadowMark", kind: "clue", title: "벽 그림자", objective: "벽에 비친 그림자 모양을 따라가 보자" },
+      { id: "fireflyPattern", kind: "mini-game", title: "반딧불 깜빡임", objective: "반딧불의 빛 순서를 기억해 보자" },
+      { id: "crystalBridge", kind: "transition", title: "수정 다리", objective: "빛나는 수정 다리를 건너가 보자" },
+      { id: "bat", kind: "encounter", title: "작은 박쥐 관찰", objective: "박쥐가 움직이는 모습을 관찰해 보자" },
+      { id: "reward", kind: "reward", title: "동굴 탐험 완료", objective: "탐험 완료!" },
+    ],
+    gamePattern: ["explore", "follow-light", "listen", "track-shadow", "remember-pattern", "cross", "observe", "reward"],
+    landmarks: ["caveGate", "glowTrail", "echoCrystal", "fireflyChamber", "crystalBridge", "batRoost"],
+    ambience: ["cave-drip", "cave-echo"],
+    renderPolicy: { walkableGeometry: "shared", collision: "unchanged" },
+    visualPhases: {
+      caveGate: { palette: "twilight-violet", fog: 0.32, warmth: 0.28, density: 0.78, cue: "entrance-fireflies", ambience: "cave-drip", landmark: "caveGate", reveal: "cave-hidden" },
+      glowTrail: { palette: "glow-green", fog: 0.36, warmth: 0.34, density: 0.84, cue: "firefly-trail", ambience: "cave-drip", landmark: "glowTrail", reveal: "cave-partial" },
+      echoCrystal: { palette: "crystal-blue", fog: 0.28, warmth: 0.18, density: 0.82, cue: "crystal-ripples", ambience: "cave-echo", landmark: "echoCrystal", reveal: "cave-partial" },
+      shadowMark: { palette: "indigo-shadow", fog: 0.4, warmth: 0.12, density: 0.86, cue: "shadow-silhouette", ambience: "cave-echo", landmark: "shadowMark", reveal: "chamber-hidden" },
+      fireflyPattern: { palette: "firefly-lime", fog: 0.22, warmth: 0.48, density: 0.9, cue: "blink-pattern", ambience: "cave-drip", landmark: "fireflyChamber", reveal: "chamber-full" },
+      crystalBridge: { palette: "cyan-crystal", fog: 0.16, warmth: 0.34, density: 0.68, cue: "bridge-pulse", ambience: "cave-echo", landmark: "crystalBridge", reveal: "deep-cave" },
+      bat: { palette: "moonlit-indigo", fog: 0.12, warmth: 0.24, density: 0.62, cue: "bat-roost", ambience: "cave-echo", landmark: "batRoost", reveal: "deep-cave" },
+      reward: { palette: "aurora-cave", fog: 0.08, warmth: 0.58, density: 0.66, cue: "crystal-firefly-celebration", ambience: "cave-echo", landmark: "batRoost", reveal: "reward" },
+      complete: { palette: "aurora-cave", fog: 0.06, warmth: 0.62, density: 0.62, cue: "none", ambience: "cave-echo", landmark: "crystalBridge", reveal: "reward" },
+    },
+  },
 };
 
 export function getStage(id) {

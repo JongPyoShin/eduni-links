@@ -8,11 +8,21 @@ from . import space_routes
 _DIRECTION_START = "      function makeDirectionQuestion() {"
 _DIRECTION_END = "      function renderReasoningPiece(matrix, color) {"
 
-_DIRECTION_IMPLEMENTATION = r'''      function directionAnswerKey(row,col,direction) {
+_DIRECTION_IMPLEMENTATION = r'''      window.EDUNI_DIRECTION_ANSWER_CONTRACT = Object.freeze({
+        version:2,
+        positionAndDirection:true,
+        markerInsideCell:true,
+      });
+
+      function directionAnswerKey(row,col,direction) {
         return `${row},${col},${direction}`;
       }
 
       function makeDirectionQuestion() {
+        const contract=window.EDUNI_DIRECTION_ANSWER_CONTRACT;
+        if (!contract || contract.version!==2 || contract.positionAndDirection!==true || contract.markerInsideCell!==true) {
+          throw new Error('EDUNI direction UI answer contract failed; gameplay blocked');
+        }
         const scenario=drawBankItem('direction', extraQuestionBank.directionScenarios || [], () => ({
           startRow:2,startCol:2,startDirection:0,commands:['R','F','L','F'],finalRow:1,finalCol:3,finalDirection:0,
         }));
@@ -61,6 +71,23 @@ _DIRECTION_IMPLEMENTATION = r'''      function directionAnswerKey(row,col,direct
 
 '''
 
+_STATUS_SCRIPT = r'''  <script>(()=>{
+    const status=document.getElementById('spaceAuditStatus');
+    const audit=window.EDUNI_SPACE_FULL_AUDIT;
+    const direction=window.EDUNI_DIRECTION_ANSWER_CONTRACT;
+    if (!status) return;
+    const bankOk=Boolean(audit && audit.ok===true && audit.checked===470 && audit.total===470);
+    const uiOk=Boolean(direction && direction.version===2 && direction.positionAndDirection===true && direction.markerInsideCell===true);
+    if (bankOk && uiOk) {
+      status.textContent='✅ 문제은행 470/470 + 화면 정답검증 통과';
+      status.style.color='#15803d';
+    } else {
+      status.textContent='⛔ 문제/화면 정답검증 실패 · 출제 차단';
+      status.style.color='#b42318';
+    }
+  })();</script>
+'''
+
 
 def _replace_direction_question(html: str) -> str:
     start = html.find(_DIRECTION_START)
@@ -86,6 +113,14 @@ def _fix_destination_marker(html: str) -> str:
     return html.replace(old, new, 1)
 
 
+def _append_ui_audit_status(html: str) -> str:
+    if _STATUS_SCRIPT.strip() in html:
+        return html
+    if "</body>" not in html:
+        raise RuntimeError("EDUNI closing body marker missing")
+    return html.replace("</body>", _STATUS_SCRIPT + "</body>", 1)
+
+
 def install_direction_answer_guard() -> None:
     current = space_routes._space_game_html
     if getattr(current, "_eduni_direction_answer_guard", False):
@@ -98,6 +133,7 @@ def install_direction_answer_guard() -> None:
         html = response.body.decode("utf-8")
         html = _fix_destination_marker(html)
         html = _replace_direction_question(html)
+        html = _append_ui_audit_status(html)
         return HTMLResponse(html, status_code=response.status_code)
 
     _space_game_html_with_direction_answer_guard._eduni_direction_answer_guard = True  # type: ignore[attr-defined]

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>EDUNI Jungle — 반딧불 동굴 Three.js Preview</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #20223a; font-family: system-ui, sans-serif; }
+      #three-cave { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+      #preview-ui { position: fixed; inset: 0; pointer-events: none; color: #f6f7ff; }
+      #title-card { position: absolute; top: 16px; left: 16px; max-width: min(430px, calc(100vw - 32px)); padding: 12px 15px; border-radius: 16px; background: rgba(24,25,47,.78); border: 1px solid rgba(190,220,255,.34); box-shadow: 0 8px 28px rgba(0,0,0,.28); backdrop-filter: blur(8px); }
+      #title-card strong { display: block; font-size: 17px; margin-bottom: 4px; }
+      #title-card span { color: #d6d9f1; font-size: 12px; line-height: 1.45; }
+      #status { position: absolute; left: 16px; bottom: 16px; padding: 8px 11px; border-radius: 12px; background: rgba(19,20,37,.76); border: 1px solid rgba(188,218,255,.24); color: #e6f5ff; font-size: 12px; }
+      #controls { pointer-events: auto; position: absolute; right: 16px; bottom: 16px; display: flex; gap: 8px; }
+      button { border: 0; border-radius: 12px; padding: 10px 13px; color: #20223a; background: rgba(242,247,255,.9); font-weight: 800; cursor: pointer; }
+      #back { pointer-events: auto; position: absolute; top: 16px; right: 16px; }
+      @media (max-width: 700px) {
+        #title-card { right: 16px; max-width: none; }
+        #controls { left: 16px; right: 16px; justify-content: flex-end; }
+        #status { bottom: 70px; right: 16px; }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="three-cave"></canvas>
+    <div id="preview-ui">
+      <div id="title-card">
+        <strong>반딧불 동굴 · Stage 3 Preview</strong>
+        <span>동굴 입구 → 반딧불 길 → 울림 수정 → 벽 그림자 → 깜빡임 기억 → 수정 다리 → 박쥐 → 보상. 보이는 길은 CaveWorldGeometry와 동일한 경로를 사용합니다.</span>
+      </div>
+      <button id="back" type="button">Waterfall</button>
+      <div id="status">반딧불 동굴 초기화 중…</div>
+      <div id="controls">
+        <button id="prev" type="button">◀ 이전</button>
+        <button id="next" type="button">다음 ▶</button>
+      </div>
+    </div>
+
+    <script type="module">
+      import { startThreeCavePreview } from "./src/three_cave_preview.js";
+      const canvas = document.querySelector("#three-cave");
+      const status = document.querySelector("#status");
+      const params = new URLSearchParams(location.search);
+      const runtime = await startThreeCavePreview(canvas, status, { phase: params.get("phase") || "caveGate" });
+      document.querySelector("#prev").addEventListener("click", () => {
+        const index = runtime.phases.indexOf(runtime.getPhase());
+        runtime.setPhase(Math.max(0, index - 1));
+      });
+      document.querySelector("#next").addEventListener("click", () => {
+        const index = runtime.phases.indexOf(runtime.getPhase());
+        runtime.setPhase(Math.min(runtime.phases.length - 1, index + 1));
+      });
+      document.querySelector("#back").addEventListener("click", () => {
+        location.href = "./waterfall-three.html";
+      });
+    </script>
+  </body>
+</html>

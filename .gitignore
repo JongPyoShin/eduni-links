@@ -28,3 +28,4 @@ eduni-android-portal/**/*.log
 # permits use in shipped projects but does not permit redistributing raw model
 # files as a standalone asset library, so never commit the downloaded GLBs.
 jungle-web-canvas-poc/assets/vendor/threejsassets/
+jungle-web-canvas-poc/assets/vendor/kenney/

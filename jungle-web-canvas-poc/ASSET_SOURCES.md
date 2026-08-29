@@ -16,6 +16,12 @@ The locally available threejsassets set already covers the first Waterfall
 preview selection: cypress tree, mossy boulder, mangrove cluster, cattail reed
 clump, swamp mist cloud, and bayou water. Use those before widening scope.
 
+## Locally acquired CC0 pack
+
+`assets/vendor/kenney/nature-kit/` now contains Kenney Nature Kit 2.1: 329 GLB
+models, 329 FBX models, the Isometric sprite set, and `License.txt` (CC0).
+The pack is ignored locally by default; use only the models needed by a scene.
+
 ## Acquisition acceptance
 
 - Browser download event received and local file verified.

@@ -14,8 +14,20 @@ export const STAGES = {
       { id: "bluebird", kind: "encounter", title: "파랑새 관찰", objective: "파랑새를 관찰해 보자" },
       { id: "reward", kind: "reward", title: "관찰 완료", objective: "탐험 완료!" },
     ],
+    gamePattern: ["explore", "observe", "track", "listen", "remember", "climb", "encounter", "reward"],
     landmarks: ["entrance", "learningHut", "clueTrail", "firePit", "ridge"],
     ambience: ["forest", "fire"],
+    renderPolicy: { walkableGeometry: "shared", collision: "unchanged" },
+    visualPhases: {
+      hut: { palette: "sunlit-olive", fog: 0.04, warmth: 0.62, density: 0.72, cue: "hut-lantern", ambience: "forest", landmark: "learningHut" },
+      feather: { palette: "sunlit-olive", fog: 0.03, warmth: 0.58, density: 0.76, cue: "blue-feather-glint", ambience: "forest", landmark: "feather" },
+      footprints: { palette: "earthy-olive", fog: 0.05, warmth: 0.5, density: 0.8, cue: "footprint-trail", ambience: "forest", landmark: "footprints" },
+      birdcall: { palette: "leaf-green", fog: 0.07, warmth: 0.44, density: 0.84, cue: "sound-ripples", ambience: "forest", landmark: "birdcall" },
+      firePit: { palette: "amber-dusk", fog: 0.08, warmth: 0.82, density: 0.72, cue: "fire-glow", ambience: "fire", landmark: "firePit" },
+      ridge: { palette: "cool-ridge", fog: 0.04, warmth: 0.38, density: 0.52, cue: "ridge-light", ambience: "forest", landmark: "ridge", reveal: "open-sky" },
+      bluebird: { palette: "cool-ridge", fog: 0.03, warmth: 0.42, density: 0.5, cue: "bluebird-perch", ambience: "forest", landmark: "bluebird", reveal: "open-sky" },
+      reward: { palette: "golden-ridge", fog: 0.02, warmth: 0.76, density: 0.48, cue: "feather-celebration", ambience: "forest", landmark: "bluebird", reveal: "reward" },
+    },
   },
   waterfall: {
     id: "waterfall",
@@ -32,8 +44,21 @@ export const STAGES = {
       { id: "kingfisher", kind: "encounter", title: "물총새 관찰", objective: "물총새의 움직임을 관찰해 보자" },
       { id: "reward", kind: "reward", title: "폭포 탐험 완료", objective: "탐험 완료!" },
     ],
+    gamePattern: ["explore", "cross", "listen", "track", "match", "climb", "observe", "reward"],
     landmarks: ["streamGate", "steppingStones", "waterfallBasin", "mistTrail", "lookout"],
     ambience: ["forest", "waterfall", "stream"],
+    renderPolicy: { walkableGeometry: "shared", collision: "unchanged" },
+    visualPhases: {
+      streamGate: { palette: "misty-cyan", fog: 0.58, warmth: 0.22, density: 0.78, cue: "gate-lantern", ambience: "stream", landmark: "streamGate", reveal: "waterfall-hidden" },
+      steppingStones: { palette: "wet-blue", fog: 0.48, warmth: 0.2, density: 0.8, cue: "stone-glow", ambience: "stream", landmark: "steppingStones", reveal: "waterfall-hidden" },
+      echo: { palette: "echo-cyan", fog: 0.5, warmth: 0.16, density: 0.82, cue: "sound-ripples", ambience: "waterfall", landmark: "waterfallBasin", reveal: "waterfall-partial" },
+      mistTrail: { palette: "mist-cyan", fog: 0.62, warmth: 0.14, density: 0.84, cue: "moving-mist", ambience: "waterfall", landmark: "mistTrail", reveal: "waterfall-partial" },
+      leafMatch: { palette: "wet-green", fog: 0.34, warmth: 0.3, density: 0.88, cue: "leaf-focus", ambience: "stream", landmark: "leafMatch", reveal: "waterfall-partial" },
+      lookout: { palette: "open-cyan", fog: 0.16, warmth: 0.46, density: 0.58, cue: "lookout-light", ambience: "waterfall", landmark: "lookout", reveal: "waterfall-full" },
+      kingfisher: { palette: "open-cyan", fog: 0.12, warmth: 0.42, density: 0.64, cue: "kingfisher-perch", ambience: "waterfall", landmark: "kingfisher", reveal: "waterfall-full" },
+      reward: { palette: "rainbow-mist", fog: 0.08, warmth: 0.64, density: 0.6, cue: "waterfall-celebration", ambience: "waterfall", landmark: "kingfisher", reveal: "reward" },
+      complete: { palette: "rainbow-mist", fog: 0.06, warmth: 0.68, density: 0.56, cue: "none", ambience: "waterfall", landmark: "lookout", reveal: "reward" },
+    },
   },
 };
 
@@ -43,4 +68,8 @@ export function getStage(id) {
 
 export function getStageScenario(id) {
   return getStage(id)?.scenario || [];
+}
+
+export function getStageVisualPhase(stageId, phaseId) {
+  return getStage(stageId)?.visualPhases?.[phaseId] || null;
 }

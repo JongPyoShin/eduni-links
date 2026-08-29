@@ -69,6 +69,13 @@ test("Every selected phase resolves to manifest visual metadata", () => {
   }
 });
 
+test("Resolved phase objects are cached instead of reallocated per render tick", () => {
+  const state = camp({ questStarted: true });
+  assert.strictEqual(campVisualPhase(state), campVisualPhase(state));
+  const waterfallState = waterfall({ streamGateComplete: true });
+  assert.strictEqual(waterfallVisualPhase(waterfallState), waterfallVisualPhase(waterfallState));
+});
+
 test("Generic stageVisualPhase dispatches and rejects unknown stages", () => {
   assert.equal(stageVisualPhase("camp", camp()).phaseId, "hut");
   assert.equal(stageVisualPhase("waterfall", waterfall()).phaseId, "streamGate");

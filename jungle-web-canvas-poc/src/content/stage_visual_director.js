@@ -39,8 +39,22 @@ export function waterfallVisualPhase(state) {
   return withPhase("waterfall", "streamGate");
 }
 
+export function caveVisualPhase(state) {
+  const clues = state?.discoveredClues || [];
+  if (state?.rewardComplete) return withPhase("cave", "complete");
+  if (state?.batComplete) return withPhase("cave", "reward");
+  if (state?.crystalBridgeComplete) return withPhase("cave", "bat");
+  if (state?.fireflyPatternComplete) return withPhase("cave", "crystalBridge");
+  if (clues.includes("echoCrystal") && clues.includes("shadowMark")) return withPhase("cave", "fireflyPattern");
+  if (clues.includes("echoCrystal")) return withPhase("cave", "shadowMark");
+  if (state?.glowTrailComplete) return withPhase("cave", "echoCrystal");
+  if (state?.caveGateComplete) return withPhase("cave", "glowTrail");
+  return withPhase("cave", "caveGate");
+}
+
 export function stageVisualPhase(stageId, state, context = {}) {
   if (stageId === "camp") return campVisualPhase(state, context.sequence);
   if (stageId === "waterfall") return waterfallVisualPhase(state);
+  if (stageId === "cave") return caveVisualPhase(state);
   throw new Error(`Unknown stage visual director: ${stageId}`);
 }

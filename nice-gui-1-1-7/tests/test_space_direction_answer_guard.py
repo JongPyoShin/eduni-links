@@ -35,14 +35,30 @@ class SpaceDirectionAnswerGuardTests(unittest.TestCase):
         self.assertIn("direction === null ? '★' : DIRECTION_ARROWS[direction]", html)
         self.assertIn('r="14" fill="#eef2ff"', html)
 
-    def test_direction_ui_contract_is_fail_closed_and_visible(self) -> None:
+    def test_all_50_direction_scenarios_have_runtime_ui_audit(self) -> None:
         html = _space_game_html().body.decode("utf-8")
-        self.assertIn("window.EDUNI_DIRECTION_ANSWER_CONTRACT", html)
-        self.assertIn("positionAndDirection:true", html)
-        self.assertIn("markerInsideCell:true", html)
-        self.assertIn("EDUNI direction UI answer contract failed; gameplay blocked", html)
-        self.assertIn("✅ 문제은행 470/470 + 화면 정답검증 통과", html)
-        self.assertIn("⛔ 문제/화면 정답검증 실패 · 출제 차단", html)
+        for marker in (
+            "function solveDirectionScenarioContract(scenario)",
+            "function buildDirectionChoiceTriples(scenario)",
+            "function auditDirectionUiContracts()",
+            "window.EDUNI_DIRECTION_UI_AUDIT=report",
+            "direction pool ${scenarios.length}/50",
+            "three unique position+direction choices required",
+            "correct answer must appear exactly once",
+            "does not render facing direction",
+            "✅ 문제은행 470/470 + 방향 화면·채점 50/50 통과",
+            "⛔ 문제은행/화면 정답 검증 실패 · 문제 출제 차단",
+        ):
+            self.assertIn(marker, html)
+
+    def test_question_generation_fails_closed_without_direction_ui_audit(self) -> None:
+        html = _space_game_html().body.decode("utf-8")
+        self.assertIn("const directionUi=window.EDUNI_DIRECTION_UI_AUDIT;", html)
+        self.assertIn("directionUi.checked!==50", html)
+        self.assertIn("directionUi.total!==50", html)
+        self.assertIn("EDUNI direction UI audit did not pass 50/50; gameplay blocked", html)
+        self.assertIn("EDUNI direction scenario failed independent solve before rendering", html)
+        self.assertIn("EDUNI direction rendered choices failed single-answer contract", html)
 
     def test_reported_screenshot_sequence_finishes_at_right_edge_facing_left(self) -> None:
         row, col, direction = 2, 2, 1  # center cell, facing right

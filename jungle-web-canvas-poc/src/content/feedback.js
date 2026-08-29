@@ -1,6 +1,16 @@
 import { worldToScreen } from "../transforms.js";
 import { CLUES, nextClueId } from "./camp_chapter.js";
 import { clueCount, hasClue } from "./chapter_state.js";
+import { campVisualPhase } from "./stage_visual_director.js";
+
+const CAMP_PALETTES = Object.freeze({
+  "sunlit-olive": ["rgba(255,232,166,0.12)", "rgba(74,105,55,0.04)"],
+  "earthy-olive": ["rgba(220,196,130,0.08)", "rgba(83,92,53,0.08)"],
+  "leaf-green": ["rgba(183,226,166,0.08)", "rgba(43,91,61,0.08)"],
+  "amber-dusk": ["rgba(255,184,93,0.12)", "rgba(100,67,49,0.12)"],
+  "cool-ridge": ["rgba(178,225,220,0.10)", "rgba(65,92,91,0.07)"],
+  "golden-ridge": ["rgba(255,225,143,0.14)", "rgba(114,100,55,0.06)"],
+});
 
 function screen(cam, viewW, viewH, point) {
   return worldToScreen(point.x, point.y, cam, viewW, viewH);
@@ -8,6 +18,8 @@ function screen(cam, viewW, viewH, point) {
 
 export function drawChapterWorld(ctx, cam, viewW, viewH, state, t, feedback, directing = null) {
   ctx.save();
+  const visualPhase = campVisualPhase(state);
+  drawCampStageAtmosphere(ctx, cam, viewW, viewH, visualPhase, t);
   drawCampComposition(ctx, cam, viewW, viewH, state, t);
 
   if (!state.questStarted) {
@@ -67,6 +79,56 @@ export function drawChapterWorld(ctx, cam, viewW, viewH, state, t, feedback, dir
     else drawBurst(ctx, point, t, feedback.until, cam.zoom);
   }
   ctx.restore();
+}
+
+function drawCampStageAtmosphere(ctx, cam, viewW, viewH, phase, t) {
+  const palette = CAMP_PALETTES[phase?.palette] || CAMP_PALETTES["sunlit-olive"];
+  const gradient = ctx.createLinearGradient(0, 0, 0, viewH);
+  gradient.addColorStop(0, palette[0]);
+  gradient.addColorStop(1, palette[1]);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, viewW, viewH);
+
+  const fog = Math.max(0, Math.min(1, phase?.fog || 0));
+  if (fog > 0.035) {
+    const haze = ctx.createLinearGradient(0, 0, viewW, 0);
+    haze.addColorStop(0, `rgba(232,244,219,${fog * 0.07})`);
+    haze.addColorStop(0.5, `rgba(244,245,218,${fog * 0.12})`);
+    haze.addColorStop(1, `rgba(213,235,219,${fog * 0.06})`);
+    ctx.fillStyle = haze;
+    ctx.fillRect(0, 0, viewW, viewH);
+  }
+
+  const phaseId = phase?.phaseId;
+  if (phaseId === "firePit") {
+    const fire = screen(cam, viewW, viewH, { x: 990, y: 935 });
+    const r = 165 * cam.zoom;
+    const glow = ctx.createRadialGradient(fire.x, fire.y, 8, fire.x, fire.y, r);
+    glow.addColorStop(0, "rgba(255,174,70,0.16)");
+    glow.addColorStop(1, "rgba(255,126,36,0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(fire.x, fire.y, r, 0, Math.PI * 2); ctx.fill();
+  }
+
+  if (phase?.reveal === "open-sky" || phase?.reveal === "reward") {
+    const sky = ctx.createLinearGradient(0, 0, 0, Math.min(viewH * 0.46, 360));
+    sky.addColorStop(0, phase?.reveal === "reward" ? "rgba(255,231,153,0.13)" : "rgba(194,235,235,0.12)");
+    sky.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, viewW, Math.min(viewH * 0.5, 390));
+  }
+
+  const density = Math.max(0, Math.min(1, phase?.density || 0.5));
+  const moteCount = Math.round(2 + density * 5);
+  ctx.fillStyle = phaseId === "reward" ? "rgba(255,240,162,0.52)" : "rgba(235,244,189,0.28)";
+  for (let i = 0; i < moteCount; i += 1) {
+    const a = t / (1100 + i * 73) + i * 1.31;
+    const x = ((i + 1) / (moteCount + 1)) * viewW + Math.cos(a) * 22;
+    const y = viewH * (0.18 + (i % 4) * 0.15) + Math.sin(a * 1.4) * 14;
+    ctx.globalAlpha = 0.16 + ((Math.sin(a * 2) + 1) * 0.09);
+    ctx.beginPath(); ctx.arc(x, y, phaseId === "reward" ? 2.4 : 1.5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
 }
 
 function drawCampComposition(ctx, cam, viewW, viewH, state, t) {

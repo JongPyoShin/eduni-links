@@ -28,7 +28,12 @@ createServer(async (req, res) => {
       return;
     }
     const data = await readFile(filePath);
-    res.writeHead(200, { "content-type": TYPES[extname(filePath)] || "application/octet-stream" });
+    // This is the shared tablet/dev server. Avoid serving a stale game module
+    // after a renderer switch or a source update.
+    res.writeHead(200, {
+      "content-type": TYPES[extname(filePath)] || "application/octet-stream",
+      "cache-control": "no-store, max-age=0",
+    });
     res.end(data);
   } catch {
     res.writeHead(404).end("not found");

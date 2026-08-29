@@ -13,7 +13,7 @@ const WORLD_SCALE = 0.01;
 const WORLD_CENTER = { x: 800, y: 600 };
 const geometryContract = new WaterfallWorldGeometry();
 
-function worldPoint(x, y, height = 0) {
+export function logicalToThree(x, y, height = 0) {
   return new THREE.Vector3(
     (x - WORLD_CENTER.x) * WORLD_SCALE,
     height,
@@ -29,6 +29,8 @@ function material(color, extra = {}) {
     ...extra,
   });
 }
+
+const worldPoint = logicalToThree;
 
 function inspectModel(root) {
   const box = new THREE.Box3().setFromObject(root);
@@ -352,6 +354,7 @@ async function loadVendorLibrary(onProgress) {
 }
 
 function populateVendorAssets(scene, library) {
+  const objects = [];
   for (const placement of WATERFALL_THREE_PLACEMENTS) {
     const config = THREEJSASSETS_FREE_MODELS[placement.model];
     const source = library.get(placement.model);
@@ -361,7 +364,9 @@ function populateVendorAssets(scene, library) {
     const scale = placement.scale ?? config?.scale ?? 1;
     object.scale.multiplyScalar(scale);
     scene.add(object);
+    objects.push({ object, placement });
   }
+  return objects;
 }
 
 async function addPlayerBillboard(scene) {
@@ -408,7 +413,7 @@ function addAtmosphere(scene) {
   scene.add(fill);
 }
 
-export async function startThreeWaterfallPreview(canvas, statusEl) {
+export async function startThreeWaterfallPreview(canvas, statusEl, options = {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: "high-performance" });
   renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio || 1, 1.5));
   renderer.shadowMap.enabled = true;
@@ -430,7 +435,7 @@ export async function startThreeWaterfallPreview(canvas, statusEl) {
   camera.position.set(8.8, 11.5, 10.2);
   camera.lookAt(0.8, 0.2, -0.4);
 
-  const debugControls = new URLSearchParams(globalThis.location?.search || "").has("debug");
+  const debugControls = new URLSearchParams(globalThis.location?.search || "").get("threeDebug") === "1";
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enabled = debugControls;
   controls.enableDamping = true;
@@ -448,7 +453,7 @@ export async function startThreeWaterfallPreview(canvas, statusEl) {
   const vendor = await loadVendorLibrary(({ loaded, fallbacks, total }) => {
     setStatus(`threejsassets: ${loaded}/${total} local GLB · fallback ${fallbacks}`);
   });
-  populateVendorAssets(scene, vendor.library);
+  const vendorObjects = populateVendorAssets(scene, vendor.library);
   const player = await addPlayerBillboard(scene);
   if (statusEl) statusEl.dataset.vendorReport = JSON.stringify(vendor.report);
   setStatus(
@@ -469,11 +474,34 @@ export async function startThreeWaterfallPreview(canvas, statusEl) {
     camera.bottom = -viewHeight / 2;
     camera.updateProjectionMatrix();
   }
+
+  const cueAnchors = [
+    { key: "streamGateComplete", point: [700, 900] },
+    { key: "steppingStonesComplete", point: [1080, 700] },
+    { key: "echo", point: [1170, 560] },
+    { key: "mistTrail", point: [1020, 480] },
+    { key: "leafMatchComplete", point: [1250, 470] },
+    { key: "lookoutComplete", point: [1450, 330] },
+    { key: "kingfisherComplete", point: [1410, 400] },
+    { key: "rewardComplete", point: [1410, 400] },
+  ].map((cue) => {
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.18, 0.27, 24),
+      new THREE.MeshBasicMaterial({ color: 0xffe28a, transparent: true, opacity: 0.72, side: THREE.DoubleSide })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.copy(worldPoint(...cue.point, 0.08));
+    scene.add(ring);
+    return { ...cue, ring };
+  });
   resize();
   globalThis.addEventListener("resize", resize);
 
   const clock = new THREE.Clock();
+  let rafId = 0;
+  let disposed = false;
   function frame() {
+    if (disposed) return;
     const t = clock.getElapsedTime();
     fall.waterfall.material.opacity = 0.74 + Math.sin(t * 2.2) * 0.06;
     fall.streaks.forEach((streak, index) => {
@@ -485,6 +513,45 @@ export async function startThreeWaterfallPreview(canvas, statusEl) {
     stones.forEach((stone, index) => {
       stone.position.y = 0.18 + Math.sin(t * 1.5 + index * 0.7) * 0.012;
     });
+    const state = options.getState?.() || null;
+    cueAnchors.forEach((cue, index) => {
+      const clues = state?.discoveredClues || [];
+      const unlocked = [
+        !state?.streamGateComplete,
+        Boolean(state?.streamGateComplete && !state?.steppingStonesComplete),
+        Boolean(state?.steppingStonesComplete && !clues.includes("echo")),
+        Boolean(clues.includes("echo") && !clues.includes("mistTrail")),
+        Boolean(clues.includes("echo") && clues.includes("mistTrail") && !state?.leafMatchComplete),
+        Boolean(state?.leafMatchComplete && !state?.lookoutComplete),
+        Boolean(state?.lookoutComplete && !state?.kingfisherComplete),
+        Boolean(state?.kingfisherComplete && !state?.rewardComplete),
+      ][index];
+      cue.ring.visible = Boolean(options.production && unlocked && !state?.rewardComplete);
+      cue.ring.scale.setScalar(1 + Math.sin(t * 2.1 + index) * 0.12);
+    });
+    if (options.production) {
+      const logical = options.getPlayer?.();
+      if (logical) {
+        const p = worldPoint(logical.x, logical.y, 0);
+        const targetX = THREE.MathUtils.clamp(p.x, -3.1, 3.1);
+        const targetZ = THREE.MathUtils.clamp(p.z * 0.62 - 0.55, -3.0, 3.0);
+        controls.target.x += (targetX - controls.target.x) * 0.08;
+        controls.target.z += (targetZ - controls.target.z) * 0.08;
+        camera.position.x = controls.target.x + 8.0;
+        camera.position.z = controls.target.z + 9.5;
+        camera.position.y = 11.5;
+        if (player) {
+          player.position.copy(p);
+          player.position.y = 1.02;
+          const image = options.getPlayerImage?.();
+          if (image && player.material.map?.image !== image) {
+            player.material.map = new THREE.Texture(image);
+            player.material.map.colorSpace = THREE.SRGBColorSpace;
+            player.material.map.needsUpdate = true;
+          }
+        }
+      }
+    }
     controls.update();
     renderer.render(scene, camera);
     if (statusEl) statusEl.dataset.rendererInfo = JSON.stringify({
@@ -493,9 +560,25 @@ export async function startThreeWaterfallPreview(canvas, statusEl) {
       geometries: renderer.info.memory.geometries,
       textures: renderer.info.memory.textures,
     });
-    requestAnimationFrame(frame);
+    rafId = requestAnimationFrame(frame);
   }
-  requestAnimationFrame(frame);
+  rafId = requestAnimationFrame(frame);
 
-  globalThis.__eduniThreeWaterfall = { scene, camera, renderer, controls, vendor, player };
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    cancelAnimationFrame(rafId);
+    globalThis.removeEventListener("resize", resize);
+    scene.traverse((obj) => {
+      if (obj.geometry?.dispose) obj.geometry.dispose();
+      const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+      materials.filter(Boolean).forEach((mat) => {
+        Object.values(mat).forEach((value) => value?.isTexture && value.dispose());
+        mat.dispose?.();
+      });
+    });
+    renderer.dispose();
+  };
+
+  globalThis.__eduniThreeWaterfall = { scene, camera, renderer, controls, vendor, player, vendorObjects, geometryContract, dispose };
 }

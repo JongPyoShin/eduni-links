@@ -11,6 +11,8 @@ import { THREEJSASSETS_FREE_MODELS, THREEJSASSETS_VENDOR_ROOT, threeVendorUrl } 
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PREVIEW_JS = resolve(__dirname, "..", "src", "three_waterfall_preview.js");
+const RUNTIME_JS = resolve(__dirname, "..", "src", "three_waterfall_runtime.js");
+const GAME_JS = resolve(__dirname, "..", "src", "game.js");
 const HTML = resolve(__dirname, "..", "three-waterfall.html");
 
 test("Three preview HTML is wired to the preview module", () => {
@@ -107,4 +109,27 @@ test("preview geometry derives the same world anchors as the Canvas renderer", (
   assert.equal(g.pathHalfWidth, 72);
   assert.equal(g.clearings[1].x, 700, "stream gate clearing at 700,900");
   assert.equal(g.clearings[1].r, 130);
+});
+
+test("Three runtime is selected only by the waterfall renderer query", () => {
+  const src = readFileSync(GAME_JS, "utf8");
+  assert.ok(src.includes('get("renderer") === "three"'), "renderer=three is opt-in");
+  assert.ok(src.includes("startThreeWaterfallRuntime"), "game mounts the production bridge");
+  assert.ok(src.includes('get("stage") === "waterfall"'), "Three mode is scoped to Waterfall");
+});
+
+test("Three runtime consumes existing Waterfall state and geometry", () => {
+  const src = readFileSync(RUNTIME_JS, "utf8");
+  const preview = readFileSync(PREVIEW_JS, "utf8");
+  assert.ok(src.includes("getState"), "runtime receives read-only state");
+  assert.ok(src.includes("logicalToThree"), "runtime exposes coordinate bridge");
+  assert.ok(preview.includes("WaterfallWorldGeometry"), "renderer uses shared geometry");
+  assert.ok(!src.includes("createWaterfallState"), "runtime does not define progression");
+});
+
+test("Canvas remains the default renderer and Three controls are debug-only", () => {
+  const src = readFileSync(PREVIEW_JS, "utf8");
+  assert.ok(src.includes('get("threeDebug") === "1"'), "OrbitControls require explicit debug query");
+  assert.ok(src.includes("controls.enabled = debugControls"), "controls are disabled in normal mode");
+  assert.ok(src.includes("export function logicalToThree"), "logical-to-Three bridge is explicit");
 });

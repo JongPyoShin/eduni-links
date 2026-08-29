@@ -28,6 +28,7 @@ import { drawWaterfallWorld, drawWaterfallForeground, drawKingfisher } from "./w
 import { createWaterfallState, resetWaterfall, waterfallObjective, completeStreamGate, completeSteppingStones, collectWaterfallClue, answerLeafMatchRound, completeLookout, completeKingfisher, completeWaterfallReward, LEAF_MATCH_ROUNDS } from "./content/waterfall_chapter.js";
 import { nearestWaterfallInteractable } from "./content/waterfall_interactables.js";
 import { WATERFALL_ART_IMAGES } from "./waterfall_art_manifest.js";
+import { startThreeWaterfallRuntime } from "./three_waterfall_runtime.js";
 
 const LEAF_LABELS = Object.freeze({
   round: "둥근 잎",
@@ -75,6 +76,21 @@ export async function start(canvas, modalEl) {
   let sequences = createSequenceState();
   let pendingFireAdvanceAt = null;
   let previousDirectionType = null;
+
+  const threeMode = waterfallStage && new URLSearchParams(globalThis.location?.search || "").get("renderer") === "three";
+  let threeCanvas = null;
+  let threeStatus = null;
+  if (threeMode) {
+    canvas.style.visibility = "hidden";
+    threeCanvas = document.createElement("canvas");
+    threeCanvas.id = "three-waterfall-runtime";
+    threeCanvas.style.cssText = "position:fixed;inset:0;width:100%;height:100%;z-index:1;touch-action:none;";
+    canvas.parentElement?.appendChild(threeCanvas);
+    threeStatus = document.createElement("div");
+    threeStatus.id = "three-runtime-status";
+    threeStatus.hidden = true;
+    document.body.appendChild(threeStatus);
+  }
 
   camera.snap(player.x, player.y, canvas.width, canvas.height);
 
@@ -422,5 +438,13 @@ export async function start(canvas, modalEl) {
 
   modalEl.querySelector("#modal-confirm").addEventListener("click", () => handlePanelActivate(performance.now()));
   updateUi();
+  if (threeMode) {
+    await startThreeWaterfallRuntime(threeCanvas, threeStatus, {
+      geometry,
+      getState: () => waterfall,
+      getPlayer: () => player,
+      getPlayerImage: () => playerSprite.currentImage(),
+    });
+  }
   requestAnimationFrame(loop);
 }

@@ -13,8 +13,12 @@ _AUDIT_MARKER = (
 _AUDIT_GUARDED_MARKER = (
     "      function requireFullQuestionAudit() {\n"
     "        const audit=window.EDUNI_SPACE_FULL_AUDIT;\n"
+    "        const directionUi=window.EDUNI_DIRECTION_UI_AUDIT;\n"
     "        if (!audit || audit.ok!==true || audit.checked!==470 || audit.total!==470) {\n"
     "          throw new Error('EDUNI question audit did not pass 470/470; gameplay blocked');\n"
+    "        }\n"
+    "        if (!directionUi || directionUi.ok!==true || directionUi.checked!==50 || directionUi.total!==50) {\n"
+    "          throw new Error('EDUNI direction UI audit did not pass 50/50; gameplay blocked');\n"
     "        }\n"
     "        return audit;\n"
     "      }\n\n"

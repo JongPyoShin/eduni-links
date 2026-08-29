@@ -35,6 +35,15 @@ class SpaceDirectionAnswerGuardTests(unittest.TestCase):
         self.assertIn("direction === null ? '★' : DIRECTION_ARROWS[direction]", html)
         self.assertIn('r="14" fill="#eef2ff"', html)
 
+    def test_direction_ui_contract_is_fail_closed_and_visible(self) -> None:
+        html = _space_game_html().body.decode("utf-8")
+        self.assertIn("window.EDUNI_DIRECTION_ANSWER_CONTRACT", html)
+        self.assertIn("positionAndDirection:true", html)
+        self.assertIn("markerInsideCell:true", html)
+        self.assertIn("EDUNI direction UI answer contract failed; gameplay blocked", html)
+        self.assertIn("✅ 문제은행 470/470 + 화면 정답검증 통과", html)
+        self.assertIn("⛔ 문제/화면 정답검증 실패 · 출제 차단", html)
+
     def test_reported_screenshot_sequence_finishes_at_right_edge_facing_left(self) -> None:
         row, col, direction = 2, 2, 1  # center cell, facing right
         dr = (-1, 0, 1, 0)

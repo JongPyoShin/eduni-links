@@ -265,6 +265,79 @@ function addLookout(scene) {
   scene.add(group);
 }
 
+async function addStoryEnvironment(scene) {
+  const glowMat = (color, opacity) => new THREE.MeshBasicMaterial({
+    color, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide,
+  });
+  const gateLanterns = new THREE.Group();
+  const lanternMat = new THREE.MeshStandardMaterial({ color: 0xffd27a, emissive: 0xb85d18, emissiveIntensity: 0.9 });
+  for (const x of [650, 750]) {
+    const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), lanternMat);
+    lantern.position.copy(worldPoint(x, 900, 1.75));
+    gateLanterns.add(lantern);
+  }
+  scene.add(gateLanterns);
+
+  const crossingGlow = new THREE.Group();
+  for (const [x, y] of [[860, 770], [960, 720], [1080, 700]]) {
+    const pad = new THREE.Mesh(new THREE.CircleGeometry(0.34, 24), glowMat(0xffdc73, 0.28));
+    pad.rotation.x = -Math.PI / 2;
+    pad.position.copy(worldPoint(x, y, 0.075));
+    crossingGlow.add(pad);
+  }
+  scene.add(crossingGlow);
+
+  const mist = new THREE.Group();
+  const mistMat = new THREE.MeshBasicMaterial({ color: 0xd9ffff, transparent: true, opacity: 0.14, depthWrite: false });
+  for (let i = 0; i < 8; i += 1) {
+    const puff = new THREE.Mesh(new THREE.SphereGeometry(0.42 + (i % 3) * 0.12, 14, 10), mistMat);
+    puff.scale.y = 0.28;
+    puff.position.copy(worldPoint(1010 + (i % 4) * 85, 470 + Math.floor(i / 4) * 75, 0.38 + (i % 2) * 0.1));
+    mist.add(puff);
+  }
+  scene.add(mist);
+
+  const leafGlow = new THREE.Group();
+  const leafMat = new THREE.MeshStandardMaterial({ color: 0x8fd971, emissive: 0x255a31, emissiveIntensity: 0.28, roughness: 0.75 });
+  for (let i = 0; i < 14; i += 1) {
+    const leaf = new THREE.Mesh(new THREE.CircleGeometry(0.06 + (i % 3) * 0.018, 8), leafMat);
+    leaf.rotation.x = -Math.PI / 2;
+    leaf.position.copy(worldPoint(1185 + (i % 5) * 30, 440 + Math.floor(i / 5) * 26, 0.13));
+    leafGlow.add(leaf);
+  }
+  scene.add(leafGlow);
+
+  const lookoutGlow = new THREE.Mesh(new THREE.RingGeometry(0.48, 0.64, 32), glowMat(0xffd27a, 0.3));
+  lookoutGlow.rotation.x = -Math.PI / 2;
+  lookoutGlow.position.copy(worldPoint(1450, 330, 0.1));
+  scene.add(lookoutGlow);
+
+  const reward = new THREE.Group();
+  const sparkleMat = new THREE.MeshBasicMaterial({ color: 0xfff3a8, transparent: true, opacity: 0.86 });
+  for (let i = 0; i < 16; i += 1) {
+    const sparkle = new THREE.Mesh(new THREE.OctahedronGeometry(0.055 + (i % 2) * 0.025), sparkleMat);
+    sparkle.userData.phase = i * 0.52;
+    reward.add(sparkle);
+  }
+  reward.position.copy(worldPoint(1410, 400, 1.25));
+  scene.add(reward);
+
+  let kingfisher = null;
+  try {
+    const texture = await new THREE.TextureLoader().loadAsync("assets/bluebird.png");
+    texture.colorSpace = THREE.SRGBColorSpace;
+    kingfisher = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
+    kingfisher.scale.set(0.86, 0.86, 1);
+    kingfisher.position.copy(worldPoint(1410, 400, 2.15));
+    scene.add(kingfisher);
+  } catch {
+    kingfisher = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), new THREE.MeshBasicMaterial({ color: 0x3c7bea }));
+    kingfisher.position.copy(worldPoint(1410, 400, 2.15));
+    scene.add(kingfisher);
+  }
+  return { gateLanterns, crossingGlow, mist, leafGlow, lookoutGlow, kingfisher, reward };
+}
+
 function fallbackObject(kind) {
   const group = new THREE.Group();
   if (kind === "tree") {
@@ -475,6 +548,7 @@ export async function startThreeWaterfallPreview(canvas, statusEl, options = {})
   });
   const vendorObjects = populateVendorAssets(scene, vendor.library);
   const player = await addPlayerBillboard(scene);
+  const story = await addStoryEnvironment(scene);
   if (statusEl) statusEl.dataset.vendorReport = JSON.stringify(vendor.report);
   setStatus(
     vendor.loaded
@@ -534,8 +608,30 @@ export async function startThreeWaterfallPreview(canvas, statusEl, options = {})
       stone.position.y = 0.18 + Math.sin(t * 1.5 + index * 0.7) * 0.012;
     });
     const state = options.getState?.() || null;
+    const clues = state?.discoveredClues || [];
+    const productionState = options.production ? state : {
+      streamGateComplete: true,
+      steppingStonesComplete: true,
+      discoveredClues: ["echo", "mistTrail"],
+      leafMatchComplete: true,
+      lookoutComplete: true,
+      kingfisherComplete: false,
+      rewardComplete: false,
+    };
+    const storyClues = productionState?.discoveredClues || [];
+    story.gateLanterns.visible = !productionState?.streamGateComplete;
+    story.crossingGlow.visible = Boolean(productionState?.streamGateComplete && !productionState?.steppingStonesComplete);
+    story.mist.visible = Boolean(storyClues.includes("echo") && !storyClues.includes("mistTrail"));
+    story.leafGlow.visible = Boolean(storyClues.includes("echo") && storyClues.includes("mistTrail") && !productionState?.leafMatchComplete);
+    story.lookoutGlow.visible = Boolean(productionState?.leafMatchComplete && !productionState?.lookoutComplete);
+    story.kingfisher.visible = Boolean(productionState?.lookoutComplete && !productionState?.kingfisherComplete);
+    story.reward.visible = Boolean(productionState?.kingfisherComplete && !productionState?.rewardComplete);
+    if (story.kingfisher.visible) story.kingfisher.position.y = 2.15 + Math.sin(t * 2.8) * 0.09;
+    story.reward.children.forEach((sparkle, index) => {
+      const a = t * 1.7 + sparkle.userData.phase;
+      sparkle.position.set(Math.cos(a) * (0.55 + (index % 3) * 0.12), 0.35 + Math.sin(a * 1.6) * 0.42, Math.sin(a) * 0.38);
+    });
     cueAnchors.forEach((cue, index) => {
-      const clues = state?.discoveredClues || [];
       const unlocked = [
         !state?.streamGateComplete,
         Boolean(state?.streamGateComplete && !state?.steppingStonesComplete),

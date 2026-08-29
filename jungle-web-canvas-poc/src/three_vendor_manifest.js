@@ -173,6 +173,10 @@ export function threeVendorUrl(model) {
 
 export const WATERFALL_THREE_PLACEMENTS = Object.freeze([
   // Entrance framing.
+  { model: "floweringTree", x: 90, y: 830, scale: 0.48, rotation: -0.1 },
+  { model: "cypressTree", x: 180, y: 690, scale: 0.24, rotation: 0.16 },
+  { model: "mangroveCluster", x: 360, y: 705, scale: 0.42, rotation: -0.22 },
+  { model: "rockCluster", x: 415, y: 805, scale: 0.58, rotation: 0.2 },
   { model: "cypressTree", x: 270, y: 980, scale: 0.3, rotation: -0.18 },
   { model: "mangroveCluster", x: 470, y: 930, scale: 0.48, rotation: 0.16 },
   { model: "mossyBoulder", x: 565, y: 900, scale: 0.86, rotation: -0.08 },
@@ -181,17 +185,23 @@ export const WATERFALL_THREE_PLACEMENTS = Object.freeze([
   { model: "cattailReedClump", x: 825, y: 805, scale: 0.88, rotation: -0.1 },
   { model: "mossyBoulder", x: 940, y: 775, scale: 0.82, rotation: 0.15 },
   { model: "cattailReedClump", x: 1120, y: 735, scale: 0.8, rotation: 0.25 },
+  { model: "floweringTree", x: 760, y: 865, scale: 0.5, rotation: 0.08 },
+  { model: "grassTuft", x: 810, y: 890, scale: 0.85, rotation: -0.1 },
 
   // Echo / mist basin.
   { model: "cypressTree", x: 850, y: 560, scale: 0.28, rotation: 0.12 },
   { model: "mangroveCluster", x: 1020, y: 520, scale: 0.46, rotation: -0.22 },
   { model: "swampMistCloud", x: 1120, y: 505, scale: 0.9, rotation: 0 },
   { model: "mossyBoulder", x: 1230, y: 570, scale: 0.78, rotation: -0.15 },
+  { model: "cattailReedClump", x: 1330, y: 620, scale: 0.8, rotation: 0.2 },
+  { model: "rockCluster", x: 1325, y: 505, scale: 0.65, rotation: -0.18 },
 
   // Leaf / lookout.
   { model: "mangroveCluster", x: 1260, y: 500, scale: 0.46, rotation: 0.2 },
   { model: "cypressTree", x: 1510, y: 430, scale: 0.28, rotation: -0.1 },
   { model: "mossyBoulder", x: 1435, y: 415, scale: 0.86, rotation: 0.08 },
+  { model: "floweringTree", x: 1560, y: 590, scale: 0.5, rotation: -0.14 },
+  { model: "grassTuft", x: 1500, y: 525, scale: 0.9, rotation: 0.16 },
   // Additional authored variety, kept off the route centerline.
   { model: "floweringTree", x: 360, y: 720, scale: 0.62, rotation: 0.18 },
   { model: "boulder", x: 650, y: 820, scale: 0.72, rotation: -0.12 },

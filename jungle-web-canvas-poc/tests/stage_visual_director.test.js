@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { STAGES, getStageVisualPhase } from "../src/content/stage_manifest.js";
-import { campVisualPhase, waterfallVisualPhase, stageVisualPhase } from "../src/content/stage_visual_director.js";
+import { campVisualPhase, waterfallVisualPhase, caveVisualPhase, stageVisualPhase } from "../src/content/stage_visual_director.js";
 
 function camp(overrides = {}) {
   return {
@@ -23,6 +23,20 @@ function waterfall(overrides = {}) {
     leafMatchComplete: false,
     lookoutComplete: false,
     kingfisherComplete: false,
+    rewardComplete: false,
+    ...overrides,
+  };
+}
+
+function cave(overrides = {}) {
+  return {
+    caveGateComplete: false,
+    glowTrailComplete: false,
+    discoveredClues: [],
+    fireflyPatternRound: 0,
+    fireflyPatternComplete: false,
+    crystalBridgeComplete: false,
+    batComplete: false,
     rewardComplete: false,
     ...overrides,
   };
@@ -51,6 +65,18 @@ test("Waterfall visual director follows the gameplay progression", () => {
   assert.equal(waterfallVisualPhase(waterfall({ rewardComplete: true })).phaseId, "complete");
 });
 
+test("Firefly Cave visual director follows the gameplay progression", () => {
+  assert.equal(caveVisualPhase(cave()).phaseId, "caveGate");
+  assert.equal(caveVisualPhase(cave({ caveGateComplete: true })).phaseId, "glowTrail");
+  assert.equal(caveVisualPhase(cave({ glowTrailComplete: true })).phaseId, "echoCrystal");
+  assert.equal(caveVisualPhase(cave({ discoveredClues: ["echoCrystal"] })).phaseId, "shadowMark");
+  assert.equal(caveVisualPhase(cave({ discoveredClues: ["echoCrystal", "shadowMark"] })).phaseId, "fireflyPattern");
+  assert.equal(caveVisualPhase(cave({ fireflyPatternComplete: true })).phaseId, "crystalBridge");
+  assert.equal(caveVisualPhase(cave({ crystalBridgeComplete: true })).phaseId, "bat");
+  assert.equal(caveVisualPhase(cave({ batComplete: true })).phaseId, "reward");
+  assert.equal(caveVisualPhase(cave({ rewardComplete: true })).phaseId, "complete");
+});
+
 test("Every selected phase resolves to manifest visual metadata", () => {
   for (const [stageId, stage] of Object.entries(STAGES)) {
     assert.equal(stage.renderPolicy.walkableGeometry, "shared");
@@ -74,10 +100,13 @@ test("Resolved phase objects are cached instead of reallocated per render tick",
   assert.strictEqual(campVisualPhase(state), campVisualPhase(state));
   const waterfallState = waterfall({ streamGateComplete: true });
   assert.strictEqual(waterfallVisualPhase(waterfallState), waterfallVisualPhase(waterfallState));
+  const caveState = cave({ caveGateComplete: true });
+  assert.strictEqual(caveVisualPhase(caveState), caveVisualPhase(caveState));
 });
 
 test("Generic stageVisualPhase dispatches and rejects unknown stages", () => {
   assert.equal(stageVisualPhase("camp", camp()).phaseId, "hut");
   assert.equal(stageVisualPhase("waterfall", waterfall()).phaseId, "streamGate");
-  assert.throws(() => stageVisualPhase("cave", {}), /Unknown stage visual director/);
+  assert.equal(stageVisualPhase("cave", cave()).phaseId, "caveGate");
+  assert.throws(() => stageVisualPhase("ancientTree", {}), /Unknown stage visual director/);
 });

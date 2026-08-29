@@ -17,7 +17,7 @@
       html, body { margin: 0; height: 100%; background: #1a2a1f; overflow: hidden; font-family: system-ui, sans-serif; }
       #stage { position: fixed; inset: 0; }
       canvas { display: block; width: 100%; height: 100%; touch-action: none; }
-      #dpad { position: fixed; left: 18px; bottom: 18px; width: 168px; height: 168px; }
+      #dpad { position: fixed; left: 18px; bottom: 18px; width: 168px; height: 168px; z-index: 5; }
       .dbtn {
         position: absolute; width: 52px; height: 52px; border-radius: 12px;
         background: rgba(255,255,255,0.18); border: 2px solid rgba(255,255,255,0.4);
@@ -28,8 +28,8 @@
       #dpad-left { left: 0; top: 58px; }
       #dpad-right { left: 116px; top: 58px; }
       #dpad-down { left: 58px; top: 116px; }
-      #dpad-a { position: fixed; right: 18px; bottom: 84px; width: 64px; height: 64px; border-radius: 50%; background: rgba(34,197,94,0.5); border: 2px solid rgba(34,197,94,0.9); }
-      #dpad-b { position: fixed; right: 92px; bottom: 18px; width: 64px; height: 64px; border-radius: 50%; background: rgba(239,68,68,0.5); border: 2px solid rgba(239,68,68,0.9); }
+      #dpad-a { position: fixed; right: 18px; bottom: 84px; width: 64px; height: 64px; border-radius: 50%; background: rgba(34,197,94,0.5); border: 2px solid rgba(34,197,94,0.9); z-index: 5; }
+      #dpad-b { position: fixed; right: 92px; bottom: 18px; width: 64px; height: 64px; border-radius: 50%; background: rgba(239,68,68,0.5); border: 2px solid rgba(239,68,68,0.9); z-index: 5; }
       .dbtn:active { background: rgba(255,255,255,0.4); }
       #objective-hud { position: fixed; top: 14px; left: 14px; max-width: min(310px, calc(100vw - 28px)); color: #f8ffdf; font-size: clamp(13px, 2.1vw, 17px); font-weight: 800; background: rgba(15, 41, 27, 0.82); border: 1px solid rgba(215, 240, 180, 0.55); padding: 9px 13px; border-radius: 13px; box-shadow: 0 5px 18px rgba(0,0,0,0.24); z-index: 4; transition: opacity .32s ease, transform .32s ease; }
       #objective-hud.objective-change { animation: objective-change .42s ease; }

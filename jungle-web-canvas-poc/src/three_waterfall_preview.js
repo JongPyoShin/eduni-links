@@ -30,6 +30,45 @@ function material(color, extra = {}) {
   });
 }
 
+function inspectModel(root) {
+  const box = new THREE.Box3().setFromObject(root);
+  const size = box.getSize(new THREE.Vector3());
+  let meshes = 0;
+  let triangles = 0;
+  let materials = 0;
+  let textures = 0;
+  const seenMaterials = new Set();
+  const seenTextures = new Set();
+  root.traverse((obj) => {
+    if (!obj.isMesh) return;
+    meshes += 1;
+    const geometry = obj.geometry;
+    if (geometry?.index) triangles += geometry.index.count / 3;
+    else if (geometry?.attributes?.position) triangles += geometry.attributes.position.count / 3;
+    const list = Array.isArray(obj.material) ? obj.material : [obj.material];
+    list.filter(Boolean).forEach((mat) => {
+      if (seenMaterials.has(mat)) return;
+      seenMaterials.add(mat);
+      materials += 1;
+      Object.values(mat).forEach((value) => {
+        if (value?.isTexture && !seenTextures.has(value)) {
+          seenTextures.add(value);
+          textures += 1;
+        }
+      });
+    });
+  });
+  return {
+    meshes,
+    triangles: Math.round(triangles),
+    materials,
+    textures,
+    dimensions: { x: size.x, y: size.y, z: size.z },
+    origin: { x: root.position.x, y: root.position.y, z: root.position.z },
+    upAxis: "Y",
+  };
+}
+
 function addGround(scene) {
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(16, 12),
@@ -111,25 +150,44 @@ function addRoute(scene) {
 
 function addWaterfall(scene) {
   const cliffMat = material(0x45564c, { roughness: 0.94 });
-  const cliff = new THREE.Mesh(new THREE.BoxGeometry(3.5, 3.7, 0.8), cliffMat);
-  cliff.position.copy(worldPoint(1170, 220, 1.85));
+  const cliff = new THREE.Mesh(new THREE.BoxGeometry(4.1, 4.4, 0.72), cliffMat);
+  cliff.position.copy(worldPoint(1170, 210, 1.82));
   cliff.castShadow = true;
   cliff.receiveShadow = true;
   scene.add(cliff);
 
   const fallMaterial = new THREE.MeshPhysicalMaterial({
-    color: 0xc8fbff,
+    color: 0x72dff2,
     transparent: true,
-    opacity: 0.8,
+    opacity: 0.72,
     roughness: 0.05,
     transmission: 0.12,
     clearcoat: 0.8,
     side: THREE.DoubleSide,
   });
-  const waterfall = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 3.6, 1, 12), fallMaterial);
-  waterfall.position.copy(worldPoint(1170, 285, 1.95));
+  const waterfall = new THREE.Mesh(new THREE.PlaneGeometry(2.9, 4.2, 1, 16), fallMaterial);
+  // Pull the animated sheet slightly toward the camera so the landmark stays
+  // visible above the basin and vendor props.
+  waterfall.position.copy(worldPoint(1170, 350, 2.15));
   waterfall.rotation.y = 0;
   scene.add(waterfall);
+
+  const streaks = [];
+  for (let i = 0; i < 5; i += 1) {
+    const streak = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.14 + (i % 2) * 0.05, 2.7 + (i % 3) * 0.35),
+      new THREE.MeshBasicMaterial({
+        color: i % 2 ? 0xe7ffff : 0x63d9f1,
+        transparent: true,
+        opacity: 0.48,
+        side: THREE.DoubleSide,
+      })
+    );
+    streak.position.copy(worldPoint(1169 + (i - 2) * 38, 350 + (i % 2) * 8, 2.2));
+    streak.position.x += (i - 2) * 0.22;
+    scene.add(streak);
+    streaks.push(streak);
+  }
 
   const foamMat = new THREE.MeshStandardMaterial({
     color: 0xe7ffff,
@@ -143,7 +201,7 @@ function addWaterfall(scene) {
   foam.position.copy(worldPoint(1170, 465, 0.08));
   scene.add(foam);
 
-  return { waterfall, foam };
+  return { waterfall, streaks, foam };
 }
 
 function addSteppingStones(scene) {
@@ -275,6 +333,8 @@ async function loadVendorLibrary(onProgress) {
         }
       });
       library.set(key, root);
+      root.userData.vendorConfig = config;
+      root.userData.sanity = inspectModel(root);
       loaded += 1;
     } catch {
       library.set(key, null);
@@ -284,7 +344,11 @@ async function loadVendorLibrary(onProgress) {
   }));
 
   draco.dispose();
-  return { library, loaded, fallbacks, total: entries.length };
+  const report = Object.fromEntries(entries.map(([key, config]) => [
+    key,
+    { ...config, loaded: !!library.get(key), sanity: library.get(key)?.userData?.sanity || null },
+  ]));
+  return { library, loaded, fallbacks, total: entries.length, report };
 }
 
 function populateVendorAssets(scene, library) {
@@ -292,11 +356,33 @@ function populateVendorAssets(scene, library) {
     const config = THREEJSASSETS_FREE_MODELS[placement.model];
     const source = library.get(placement.model);
     const object = source ? source.clone(true) : fallbackObject(config?.fallback || "shrub");
-    object.position.copy(worldPoint(placement.x, placement.y, 0));
-    object.rotation.y = placement.rotation || 0;
-    const scale = placement.scale || 1;
+    object.position.copy(worldPoint(placement.x, placement.y, config?.yOffset || 0));
+    object.rotation.y = placement.rotation ?? config?.rotationY ?? 0;
+    const scale = placement.scale ?? config?.scale ?? 1;
     object.scale.multiplyScalar(scale);
     scene.add(object);
+  }
+}
+
+async function addPlayerBillboard(scene) {
+  try {
+    const texture = await new THREE.TextureLoader().loadAsync("assets/player/player_front_idle_00_v01.png");
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      depthWrite: false,
+    }));
+    const anchor = worldPoint(700, 930, 0);
+    sprite.position.set(anchor.x, 1.02, anchor.z);
+    sprite.scale.set(1.35, 1.8, 1);
+    scene.add(sprite);
+    const glow = new THREE.PointLight(0xffd98a, 1.4, 2.2, 2);
+    glow.position.set(anchor.x, 0.85, anchor.z + 0.08);
+    scene.add(glow);
+    return sprite;
+  } catch {
+    return null;
   }
 }
 
@@ -324,7 +410,7 @@ function addAtmosphere(scene) {
 
 export async function startThreeWaterfallPreview(canvas, statusEl) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio || 1, 1.5));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -344,7 +430,9 @@ export async function startThreeWaterfallPreview(canvas, statusEl) {
   camera.position.set(8.8, 11.5, 10.2);
   camera.lookAt(0.8, 0.2, -0.4);
 
+  const debugControls = new URLSearchParams(globalThis.location?.search || "").has("debug");
   const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enabled = debugControls;
   controls.enableDamping = true;
   controls.enablePan = false;
   controls.minZoom = 0.78;
@@ -361,6 +449,8 @@ export async function startThreeWaterfallPreview(canvas, statusEl) {
     setStatus(`threejsassets: ${loaded}/${total} local GLB · fallback ${fallbacks}`);
   });
   populateVendorAssets(scene, vendor.library);
+  const player = await addPlayerBillboard(scene);
+  if (statusEl) statusEl.dataset.vendorReport = JSON.stringify(vendor.report);
   setStatus(
     vendor.loaded
       ? `threejsassets local GLB ${vendor.loaded}/${vendor.total} loaded · fallback ${vendor.fallbacks}`
@@ -386,6 +476,10 @@ export async function startThreeWaterfallPreview(canvas, statusEl) {
   function frame() {
     const t = clock.getElapsedTime();
     fall.waterfall.material.opacity = 0.74 + Math.sin(t * 2.2) * 0.06;
+    fall.streaks.forEach((streak, index) => {
+      streak.material.opacity = 0.38 + Math.sin(t * 2.4 + index) * 0.08;
+      streak.position.y += Math.sin(t * 1.3 + index * 0.6) * 0.00025;
+    });
     fall.foam.material.opacity = 0.45 + Math.sin(t * 1.7) * 0.08;
     water.basin.material.opacity = 0.72 + Math.sin(t * 0.9) * 0.03;
     stones.forEach((stone, index) => {
@@ -393,9 +487,15 @@ export async function startThreeWaterfallPreview(canvas, statusEl) {
     });
     controls.update();
     renderer.render(scene, camera);
+    if (statusEl) statusEl.dataset.rendererInfo = JSON.stringify({
+      calls: renderer.info.render.calls,
+      triangles: renderer.info.render.triangles,
+      geometries: renderer.info.memory.geometries,
+      textures: renderer.info.memory.textures,
+    });
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
 
-  globalThis.__eduniThreeWaterfall = { scene, camera, renderer, controls, vendor };
+  globalThis.__eduniThreeWaterfall = { scene, camera, renderer, controls, vendor, player };
 }

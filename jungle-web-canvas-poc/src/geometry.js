@@ -87,3 +87,22 @@ export class WaterfallWorldGeometry extends CampWorldGeometry {
     this.bluebird = null;
   }
 }
+
+export class CaveWorldGeometry extends CampWorldGeometry {
+  constructor() {
+    super();
+    this.paths = [[
+      { x: 200, y: 1040 }, { x: 420, y: 930 }, { x: 620, y: 860 },
+      { x: 780, y: 700 }, { x: 930, y: 600 }, { x: 1080, y: 520 },
+      { x: 1260, y: 460 }, { x: 1420, y: 340 },
+    ]];
+    this.clearings = [
+      { x: 200, y: 1040, r: 130, label: "Cave Entrance Trail" },
+      { x: 420, y: 930, r: 125, label: "Cave Gate" },
+      { x: 1080, y: 520, r: 145, label: "Firefly Chamber" },
+      { x: 1260, y: 460, r: 125, label: "Crystal Bridge" },
+      { x: 1420, y: 340, r: 135, label: "Bat Roost" },
+    ];
+    this.bluebird = null;
+  }
+}

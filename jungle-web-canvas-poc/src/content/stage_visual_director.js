@@ -1,0 +1,40 @@
+import { getStageVisualPhase } from "./stage_manifest.js";
+
+function withPhase(stageId, phaseId) {
+  const visual = getStageVisualPhase(stageId, phaseId);
+  if (!visual) throw new Error(`Unknown visual phase ${stageId}:${phaseId}`);
+  return Object.freeze({ stageId, phaseId, ...visual });
+}
+
+export function campVisualPhase(state, sequence = {}) {
+  if (state?.bluebirdComplete) return withPhase("camp", "reward");
+  if (state?.firePitComplete) {
+    const ridgeComplete = Boolean(sequence?.ridgeArrivalPlayed);
+    return withPhase("camp", ridgeComplete ? "bluebird" : "ridge");
+  }
+  const clues = state?.discoveredClues || [];
+  if (clues.length >= 3) return withPhase("camp", "firePit");
+  if (!state?.questStarted) return withPhase("camp", "hut");
+  if (clues.length === 0) return withPhase("camp", "feather");
+  if (clues.length === 1) return withPhase("camp", "footprints");
+  return withPhase("camp", "birdcall");
+}
+
+export function waterfallVisualPhase(state) {
+  const clues = state?.discoveredClues || [];
+  if (state?.rewardComplete) return withPhase("waterfall", "complete");
+  if (state?.kingfisherComplete) return withPhase("waterfall", "reward");
+  if (state?.lookoutComplete) return withPhase("waterfall", "kingfisher");
+  if (state?.leafMatchComplete) return withPhase("waterfall", "lookout");
+  if (clues.includes("echo") && clues.includes("mistTrail")) return withPhase("waterfall", "leafMatch");
+  if (clues.includes("echo")) return withPhase("waterfall", "mistTrail");
+  if (state?.steppingStonesComplete) return withPhase("waterfall", "echo");
+  if (state?.streamGateComplete) return withPhase("waterfall", "steppingStones");
+  return withPhase("waterfall", "streamGate");
+}
+
+export function stageVisualPhase(stageId, state, context = {}) {
+  if (stageId === "camp") return campVisualPhase(state, context.sequence);
+  if (stageId === "waterfall") return waterfallVisualPhase(state);
+  throw new Error(`Unknown stage visual director: ${stageId}`);
+}

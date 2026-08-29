@@ -40,7 +40,11 @@ const LEAF_LABELS = Object.freeze({
 
 export async function start(canvas, modalEl) {
   const ctx = canvas.getContext("2d");
-  const waterfallStage = new URLSearchParams(globalThis.location?.search || "").get("stage") === "waterfall";
+  // Some chat/browser link renderers preserve an escaped ampersand (\\&).
+  // Normalize it so the explicit Three query cannot silently fall back to Canvas.
+  const query = (globalThis.location?.search || "").replaceAll("\\&", "&");
+  const params = new URLSearchParams(query);
+  const waterfallStage = params.get("stage") === "waterfall";
   const geometry = waterfallStage ? new WaterfallWorldGeometry() : new CampWorldGeometry();
   const camera = new Camera(geometry.world);
   const movement = new MovementController();
@@ -77,7 +81,7 @@ export async function start(canvas, modalEl) {
   let pendingFireAdvanceAt = null;
   let previousDirectionType = null;
 
-  const threeMode = waterfallStage && new URLSearchParams(globalThis.location?.search || "").get("renderer") === "three";
+  const threeMode = waterfallStage && params.get("renderer") === "three";
   let threeCanvas = null;
   let threeStatus = null;
   if (threeMode) {

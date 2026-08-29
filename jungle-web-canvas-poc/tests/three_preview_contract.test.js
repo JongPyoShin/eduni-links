@@ -141,6 +141,12 @@ test("Three mode skips the Canvas draw path while preserving gameplay updates", 
   assert.ok(src.includes("nearestWaterfallInteractable"), "interaction lookup remains active");
 });
 
+test("renderer query tolerates escaped ampersands from copied links", () => {
+  const src = readFileSync(GAME_JS, "utf8");
+  assert.ok(src.includes('replaceAll("\\\\&", "&")'), "escaped query separators are normalized");
+  assert.ok(src.includes('params.get("renderer") === "three"'), "normalized renderer query selects Three");
+});
+
 test("Three player visual caches textures and links halo lifecycle", () => {
   const src = readFileSync(PREVIEW_JS, "utf8");
   assert.ok(src.includes("textureCache = new Map"), "player textures are cached");

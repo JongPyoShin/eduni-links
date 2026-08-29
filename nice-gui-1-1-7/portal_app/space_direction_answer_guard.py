@@ -8,29 +8,36 @@ from . import space_routes
 _DIRECTION_START = "      function makeDirectionQuestion() {"
 _DIRECTION_END = "      function renderReasoningPiece(matrix, color) {"
 
-_DIRECTION_IMPLEMENTATION = r'''      window.EDUNI_DIRECTION_ANSWER_CONTRACT = Object.freeze({
-        version:2,
-        positionAndDirection:true,
-        markerInsideCell:true,
-      });
-
-      function directionAnswerKey(row,col,direction) {
+_DIRECTION_IMPLEMENTATION = r'''      function directionAnswerKey(row,col,direction) {
         return `${row},${col},${direction}`;
       }
 
-      function makeDirectionQuestion() {
-        const contract=window.EDUNI_DIRECTION_ANSWER_CONTRACT;
-        if (!contract || contract.version!==2 || contract.positionAndDirection!==true || contract.markerInsideCell!==true) {
-          throw new Error('EDUNI direction UI answer contract failed; gameplay blocked');
+      function solveDirectionScenarioContract(scenario) {
+        const dr=[-1,0,1,0];
+        const dc=[0,1,0,-1];
+        let row=scenario.startRow;
+        let col=scenario.startCol;
+        let direction=scenario.startDirection;
+        for (const command of scenario.commands) {
+          if (command==='L') direction=(direction+3)%4;
+          else if (command==='R') direction=(direction+1)%4;
+          else if (command==='F') {
+            row+=dr[direction];
+            col+=dc[direction];
+          } else {
+            return null;
+          }
+          if (row<0 || row>=5 || col<0 || col>=5) return null;
         }
-        const scenario=drawBankItem('direction', extraQuestionBank.directionScenarios || [], () => ({
-          startRow:2,startCol:2,startDirection:0,commands:['R','F','L','F'],finalRow:1,finalCol:3,finalDirection:0,
-        }));
-        const correctKey=directionAnswerKey(scenario.finalRow,scenario.finalCol,scenario.finalDirection);
-        const candidates=[[scenario.finalRow,scenario.finalCol,scenario.finalDirection]];
-        const seen=new Set([correctKey]);
+        return {row,col,direction};
+      }
 
-        const positionOffsets=shuffle([[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,1],[-1,1],[1,-1]]);
+      function buildDirectionChoiceTriples(scenario) {
+        const correct=[scenario.finalRow,scenario.finalCol,scenario.finalDirection];
+        const correctKey=directionAnswerKey(...correct);
+        const candidates=[correct];
+        const seen=new Set([correctKey]);
+        const positionOffsets=[[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,1],[-1,1],[1,-1]];
         for (const [dr,dc] of positionOffsets) {
           const r=scenario.finalRow+dr;
           const c=scenario.finalCol+dc;
@@ -39,24 +46,85 @@ _DIRECTION_IMPLEMENTATION = r'''      window.EDUNI_DIRECTION_ANSWER_CONTRACT = O
           if (r<0 || r>=5 || c<0 || c>=5 || seen.has(key)) continue;
           seen.add(key);
           candidates.push([r,c,d]);
-          if (candidates.length===2) break;
+          break;
         }
-
-        const wrongDirections=shuffle([0,1,2,3].filter((direction) => direction!==scenario.finalDirection));
-        for (const direction of wrongDirections) {
-          const key=directionAnswerKey(scenario.finalRow,scenario.finalCol,direction);
-          if (seen.has(key)) continue;
-          seen.add(key);
-          candidates.push([scenario.finalRow,scenario.finalCol,direction]);
-          if (candidates.length===3) break;
+        const wrongDirection=(scenario.finalDirection+2)%4;
+        const directionKey=directionAnswerKey(scenario.finalRow,scenario.finalCol,wrongDirection);
+        if (!seen.has(directionKey)) {
+          seen.add(directionKey);
+          candidates.push([scenario.finalRow,scenario.finalCol,wrongDirection]);
         }
+        return candidates;
+      }
 
-        if (candidates.length!==3) throw new Error('EDUNI direction question could not build 3 unique position+direction choices');
+      function auditDirectionUiContracts() {
+        const failures=[];
+        const scenarios=extraQuestionBank.directionScenarios || [];
+        const bankAudit=window.EDUNI_SPACE_FULL_AUDIT;
+        if (!bankAudit || bankAudit.ok!==true || bankAudit.checked!==470 || bankAudit.total!==470) {
+          failures.push('470/470 bank audit missing or failed');
+        }
+        if (scenarios.length!==50) failures.push(`direction pool ${scenarios.length}/50`);
+        scenarios.forEach((scenario,index) => {
+          const solved=solveDirectionScenarioContract(scenario);
+          const id=`DIR-${String(index+1).padStart(3,'0')}`;
+          if (!solved) {
+            failures.push(`${id}: invalid command path`);
+            return;
+          }
+          if (solved.row!==scenario.finalRow || solved.col!==scenario.finalCol || solved.direction!==scenario.finalDirection) {
+            failures.push(`${id}: solver ${solved.row},${solved.col},${solved.direction} != stored ${scenario.finalRow},${scenario.finalCol},${scenario.finalDirection}`);
+          }
+          const triples=buildDirectionChoiceTriples(scenario);
+          const keys=triples.map(([r,c,d]) => directionAnswerKey(r,c,d));
+          const correctKey=directionAnswerKey(scenario.finalRow,scenario.finalCol,scenario.finalDirection);
+          if (triples.length!==3 || new Set(keys).size!==3) failures.push(`${id}: three unique position+direction choices required`);
+          if (keys.filter((key) => key===correctKey).length!==1) failures.push(`${id}: correct answer must appear exactly once`);
+          triples.forEach(([r,c,direction],choiceIndex) => {
+            const rendered=renderDirectionGrid(r,c,direction,true);
+            if (!rendered.includes(DIRECTION_ARROWS[direction])) failures.push(`${id}: choice ${choiceIndex+1} does not render facing direction`);
+          });
+        });
+        const report=Object.freeze({ok:failures.length===0,checked:scenarios.length,total:50,failures:Object.freeze([...failures])});
+        window.EDUNI_DIRECTION_UI_AUDIT=report;
+        const status=document.getElementById('spaceAuditStatus');
+        if (status) {
+          if (report.ok && bankAudit && bankAudit.ok===true) {
+            status.textContent='✅ 문제은행 470/470 + 방향 화면·채점 50/50 통과';
+            status.style.color='#15803d';
+          } else {
+            status.textContent='⛔ 문제은행/화면 정답 검증 실패 · 문제 출제 차단';
+            status.style.color='#b42318';
+          }
+        }
+        if (!report.ok) {
+          console.error('EDUNI direction UI audit failed',report);
+          throw new Error(`EDUNI direction UI audit failed (${failures.length}): ${failures.slice(0,5).join(' | ')}`);
+        }
+        return report;
+      }
 
-        const options=shuffle(candidates).map(([r,c,direction]) => ({
+      const directionUiAudit=auditDirectionUiContracts();
+
+      function makeDirectionQuestion() {
+        const scenario=drawBankItem('direction', extraQuestionBank.directionScenarios || [], () => ({
+          startRow:2,startCol:2,startDirection:0,commands:['R','F','L','F'],finalRow:1,finalCol:3,finalDirection:0,
+        }));
+        const solved=solveDirectionScenarioContract(scenario);
+        if (!solved || solved.row!==scenario.finalRow || solved.col!==scenario.finalCol || solved.direction!==scenario.finalDirection) {
+          throw new Error('EDUNI direction scenario failed independent solve before rendering');
+        }
+        const correctKey=directionAnswerKey(scenario.finalRow,scenario.finalCol,scenario.finalDirection);
+        const triples=buildDirectionChoiceTriples(scenario);
+        if (triples.length!==3) throw new Error('EDUNI direction question could not build 3 unique position+direction choices');
+        const options=shuffle(triples).map(([r,c,direction]) => ({
           key:directionAnswerKey(r,c,direction),
           html:renderDirectionGrid(r,c,direction,true),
         }));
+        const optionKeys=options.map((option) => option.key);
+        if (new Set(optionKeys).size!==3 || optionKeys.filter((key) => key===correctKey).length!==1) {
+          throw new Error('EDUNI direction rendered choices failed single-answer contract');
+        }
         const commands=scenario.commands.map((command,index) => `<span class="command-chip">${index+1}. ${COMMAND_LABELS[command]}</span>`).join('');
         return {
           badge:'🧭 방향 이동',
@@ -69,23 +137,6 @@ _DIRECTION_IMPLEMENTATION = r'''      window.EDUNI_DIRECTION_ANSWER_CONTRACT = O
         };
       }
 
-'''
-
-_STATUS_SCRIPT = r'''  <script>(()=>{
-    const status=document.getElementById('spaceAuditStatus');
-    const audit=window.EDUNI_SPACE_FULL_AUDIT;
-    const direction=window.EDUNI_DIRECTION_ANSWER_CONTRACT;
-    if (!status) return;
-    const bankOk=Boolean(audit && audit.ok===true && audit.checked===470 && audit.total===470);
-    const uiOk=Boolean(direction && direction.version===2 && direction.positionAndDirection===true && direction.markerInsideCell===true);
-    if (bankOk && uiOk) {
-      status.textContent='✅ 문제은행 470/470 + 화면 정답검증 통과';
-      status.style.color='#15803d';
-    } else {
-      status.textContent='⛔ 문제/화면 정답검증 실패 · 출제 차단';
-      status.style.color='#b42318';
-    }
-  })();</script>
 '''
 
 
@@ -113,14 +164,6 @@ def _fix_destination_marker(html: str) -> str:
     return html.replace(old, new, 1)
 
 
-def _append_ui_audit_status(html: str) -> str:
-    if _STATUS_SCRIPT.strip() in html:
-        return html
-    if "</body>" not in html:
-        raise RuntimeError("EDUNI closing body marker missing")
-    return html.replace("</body>", _STATUS_SCRIPT + "</body>", 1)
-
-
 def install_direction_answer_guard() -> None:
     current = space_routes._space_game_html
     if getattr(current, "_eduni_direction_answer_guard", False):
@@ -133,7 +176,6 @@ def install_direction_answer_guard() -> None:
         html = response.body.decode("utf-8")
         html = _fix_destination_marker(html)
         html = _replace_direction_question(html)
-        html = _append_ui_audit_status(html)
         return HTMLResponse(html, status_code=response.status_code)
 
     _space_game_html_with_direction_answer_guard._eduni_direction_answer_guard = True  # type: ignore[attr-defined]

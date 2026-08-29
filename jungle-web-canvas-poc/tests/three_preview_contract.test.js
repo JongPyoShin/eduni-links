@@ -133,3 +133,18 @@ test("Canvas remains the default renderer and Three controls are debug-only", ()
   assert.ok(src.includes("controls.enabled = debugControls"), "controls are disabled in normal mode");
   assert.ok(src.includes("export function logicalToThree"), "logical-to-Three bridge is explicit");
 });
+
+test("Three mode skips the Canvas draw path while preserving gameplay updates", () => {
+  const src = readFileSync(GAME_JS, "utf8");
+  assert.ok(src.includes("if (!threeMode)"), "Canvas draw branch is gated in Three mode");
+  assert.ok(src.includes("playerSprite.update"), "player animation update remains in gameplay loop");
+  assert.ok(src.includes("nearestWaterfallInteractable"), "interaction lookup remains active");
+});
+
+test("Three player visual caches textures and links halo lifecycle", () => {
+  const src = readFileSync(PREVIEW_JS, "utf8");
+  assert.ok(src.includes("textureCache = new Map"), "player textures are cached");
+  assert.ok(src.includes("cacheTexture"), "frame swaps use cache lookup");
+  assert.ok(src.includes("disposeTextures"), "cached textures have disposal path");
+  assert.ok(src.includes("player.glow.position.set"), "halo follows player");
+});

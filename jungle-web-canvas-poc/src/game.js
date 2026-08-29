@@ -374,63 +374,50 @@ export async function start(canvas, modalEl) {
 
     effects.update(dt);
     const renderCam = camera.renderCamera(ts || 0);
-    ctx.clearRect(0, 0, viewW, viewH);
-    if (waterfallStage) {
-      drawWaterfallWorld(ctx, renderCam, viewW, viewH, ts || 0, { ...images, waterfallArt: waterfallArtImages }, waterfall);
-      if (waterfall.lookoutComplete) drawKingfisher(ctx, renderCam, viewW, viewH, ts || 0);
-    } else {
-      drawGroundLayer(ctx, renderCam, viewW, viewH, geometry);
-      drawPathLayer(ctx, renderCam, viewW, viewH, geometry);
-      drawChapterWorld(ctx, renderCam, viewW, viewH, chapter, ts || 0, feedback, directing);
-    }
-
     const nearby = !panel.blocksMovement() && !directing
       ? (waterfallStage ? nearestWaterfallInteractable(player, waterfall) : nearestInteractable(player, chapter, { bluebirdReady: sequences.ridgeArrivalPlayed }))
       : null;
-    const drawables = [];
-    if (!waterfallStage) {
-      for (const p of props) {
+    if (!threeMode) {
+      ctx.clearRect(0, 0, viewW, viewH);
+      if (waterfallStage) {
+        drawWaterfallWorld(ctx, renderCam, viewW, viewH, ts || 0, { ...images, waterfallArt: waterfallArtImages }, waterfall);
+        if (waterfall.lookoutComplete) drawKingfisher(ctx, renderCam, viewW, viewH, ts || 0);
+      } else {
+        drawGroundLayer(ctx, renderCam, viewW, viewH, geometry);
+        drawPathLayer(ctx, renderCam, viewW, viewH, geometry);
+        drawChapterWorld(ctx, renderCam, viewW, viewH, chapter, ts || 0, feedback, directing);
+      }
+
+      const drawables = [];
+      if (!waterfallStage) {
+        for (const p of props) {
+          drawables.push({
+            footY: p.footY,
+            draw: () => drawProp(ctx, renderCam, viewW, viewH, p, images, ts || 0),
+          });
+        }
         drawables.push({
-          footY: p.footY,
-          draw: () => drawProp(ctx, renderCam, viewW, viewH, p, images, ts || 0),
+          footY: birdVisual.y,
+          draw: () => {
+            const birdRender = directing?.type === "ridge" ? { x: birdVisual.x, y: birdVisual.y + Math.sin((ts || 0) / 115) * 5 } : birdVisual;
+            drawProp(ctx, renderCam, viewW, viewH, { type: "rock", x: birdRender.x, y: birdRender.y + 20, scale: 0.9 }, images, ts || 0);
+            drawContactShadow(ctx, renderCam, viewW, viewH, birdRender.x, birdRender.y, 18);
+            drawBluebird(ctx, renderCam, viewW, viewH, birdRender, bluebirdAsset);
+          },
         });
       }
       drawables.push({
-        footY: birdVisual.y,
+        footY: player.y,
         draw: () => {
-          const birdRender = directing?.type === "ridge" ? { x: birdVisual.x, y: birdVisual.y + Math.sin((ts || 0) / 115) * 5 } : birdVisual;
-          drawProp(
-            ctx,
-            renderCam,
-            viewW,
-            viewH,
-            { type: "rock", x: birdRender.x, y: birdRender.y + 20, scale: 0.9 },
-            images,
-            ts || 0
-          );
-          drawContactShadow(ctx, renderCam, viewW, viewH, birdRender.x, birdRender.y, 18);
-          drawBluebird(ctx, renderCam, viewW, viewH, birdRender, bluebirdAsset);
+          drawContactShadow(ctx, renderCam, viewW, viewH, player.x, player.y, 16);
+          playerSprite.draw(ctx, renderCam, viewW, viewH, player.x, player.y);
         },
       });
-    }
-    drawables.push({
-      footY: player.y,
-      draw: () => {
-        drawContactShadow(ctx, renderCam, viewW, viewH, player.x, player.y, 16);
-        playerSprite.draw(ctx, renderCam, viewW, viewH, player.x, player.y);
-      },
-    });
-    depthSortDraw(ctx, camera.cam, viewW, viewH, drawables);
-
-    if (nearby) drawInteractionCue(ctx, renderCam, viewW, viewH, nearby.x, nearby.y, ts || 0);
-    effects.draw(ctx, renderCam, viewW, viewH);
-    if (debug) drawDebugOverlay(ctx, renderCam, viewW, viewH, geometry, player, movement, geometry.bluebird);
-
-    // Waterfall-only screen-edge foreground. Sits after the player/effects so
-    // the vine overlay can correctly sit on top of the world, but before any
-    // DOM HUD/modal so it never bleeds into the UI layer.
-    if (waterfallStage) {
-      drawWaterfallForeground(ctx, viewW, viewH, waterfallArtImages, ts || 0);
+      depthSortDraw(ctx, camera.cam, viewW, viewH, drawables);
+      if (nearby) drawInteractionCue(ctx, renderCam, viewW, viewH, nearby.x, nearby.y, ts || 0);
+      effects.draw(ctx, renderCam, viewW, viewH);
+      if (debug) drawDebugOverlay(ctx, renderCam, viewW, viewH, geometry, player, movement, geometry.bluebird);
+      if (waterfallStage) drawWaterfallForeground(ctx, viewW, viewH, waterfallArtImages, ts || 0);
     }
 
     requestAnimationFrame(loop);

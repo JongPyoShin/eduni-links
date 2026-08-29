@@ -373,6 +373,17 @@ async function addPlayerBillboard(scene) {
   try {
     const texture = await new THREE.TextureLoader().loadAsync("assets/player/player_front_idle_00_v01.png");
     texture.colorSpace = THREE.SRGBColorSpace;
+    const textureCache = new Map();
+    const cacheTexture = (image, sourceTexture = null) => {
+      if (!image) return null;
+      if (textureCache.has(image)) return textureCache.get(image);
+      const cached = sourceTexture || new THREE.Texture(image);
+      cached.colorSpace = THREE.SRGBColorSpace;
+      cached.needsUpdate = true;
+      textureCache.set(image, cached);
+      return cached;
+    };
+    cacheTexture(texture.image, texture);
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
       map: texture,
       transparent: true,
@@ -385,7 +396,16 @@ async function addPlayerBillboard(scene) {
     const glow = new THREE.PointLight(0xffd98a, 1.4, 2.2, 2);
     glow.position.set(anchor.x, 0.85, anchor.z + 0.08);
     scene.add(glow);
-    return sprite;
+    return {
+      sprite,
+      glow,
+      textureCache,
+      cacheTexture,
+      disposeTextures() {
+        for (const cached of textureCache.values()) cached.dispose();
+        textureCache.clear();
+      },
+    };
   } catch {
     return null;
   }
@@ -540,14 +560,14 @@ export async function startThreeWaterfallPreview(canvas, statusEl, options = {})
         camera.position.x = controls.target.x + 8.0;
         camera.position.z = controls.target.z + 9.5;
         camera.position.y = 11.5;
-        if (player) {
-          player.position.copy(p);
-          player.position.y = 1.02;
+        if (player?.sprite) {
+          player.sprite.position.copy(p);
+          player.sprite.position.y = 1.02;
+          player.glow.position.set(p.x, 0.85, p.z + 0.08);
           const image = options.getPlayerImage?.();
-          if (image && player.material.map?.image !== image) {
-            player.material.map = new THREE.Texture(image);
-            player.material.map.colorSpace = THREE.SRGBColorSpace;
-            player.material.map.needsUpdate = true;
+          if (image && player.sprite.material.map?.image !== image) {
+            player.sprite.material.map = player.cacheTexture(image);
+            player.sprite.material.needsUpdate = true;
           }
         }
       }
@@ -569,6 +589,7 @@ export async function startThreeWaterfallPreview(canvas, statusEl, options = {})
     disposed = true;
     cancelAnimationFrame(rafId);
     globalThis.removeEventListener("resize", resize);
+    player?.disposeTextures?.();
     scene.traverse((obj) => {
       if (obj.geometry?.dispose) obj.geometry.dispose();
       const materials = Array.isArray(obj.material) ? obj.material : [obj.material];

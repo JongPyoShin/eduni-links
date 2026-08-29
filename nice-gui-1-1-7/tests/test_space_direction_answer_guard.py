@@ -33,7 +33,7 @@ class SpaceDirectionAnswerGuardTests(unittest.TestCase):
         html = _space_game_html().body.decode("utf-8")
         self.assertNotIn('${x+17}', html)
         self.assertIn("direction === null ? '★' : DIRECTION_ARROWS[direction]", html)
-        self.assertIn('r=\\"14\\" fill=\\"#eef2ff\\"', html)
+        self.assertIn('r="14" fill="#eef2ff"', html)
 
     def test_reported_screenshot_sequence_finishes_at_right_edge_facing_left(self) -> None:
         row, col, direction = 2, 2, 1  # center cell, facing right

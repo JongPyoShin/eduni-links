@@ -1,9 +1,15 @@
 import { getStageVisualPhase } from "./stage_manifest.js";
 
+const PHASE_CACHE = new Map();
+
 function withPhase(stageId, phaseId) {
+  const key = `${stageId}:${phaseId}`;
+  if (PHASE_CACHE.has(key)) return PHASE_CACHE.get(key);
   const visual = getStageVisualPhase(stageId, phaseId);
   if (!visual) throw new Error(`Unknown visual phase ${stageId}:${phaseId}`);
-  return Object.freeze({ stageId, phaseId, ...visual });
+  const resolved = Object.freeze({ stageId, phaseId, ...visual });
+  PHASE_CACHE.set(key, resolved);
+  return resolved;
 }
 
 export function campVisualPhase(state, sequence = {}) {

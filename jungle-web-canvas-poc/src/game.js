@@ -170,12 +170,25 @@ export async function start(canvas, modalEl) {
     updateUi();
   }
 
+  function openKingfisherEncounter() {
+    panel.openPanel({
+      kind: "kingfisher",
+      title: "물총새를 만났어!",
+      body: "전망대 가까운 가지에 물총새가 날아와 앉았어.\n푸른빛 깃털과 빠른 움직임을 천천히 관찰해 보자!",
+      confirmLabel: "관찰했어!",
+    });
+    updateUi();
+  }
+
   function openInteraction(item) {
     movement.reset();
     audio.play("uiConfirm");
     if (waterfallStage) {
       if (item.type === "leafMatch") {
         openLeafRound();
+      } else if (item.type === "kingfisher") {
+        openKingfisherEncounter();
+        return;
       } else if (item.type === "reward") {
         openWaterfallRewardCeremony();
         return;
@@ -248,6 +261,8 @@ export async function start(canvas, modalEl) {
         } else if (kind === "lookout") {
           waterfall = completeLookout(waterfall);
           cue("lookoutFound", "soft-burst", 1450, 330, ts || 0, 1.5);
+          openKingfisherEncounter();
+          return;
         } else if (kind === "kingfisher") {
           waterfall = completeKingfisher(waterfall);
           cue("kingfisher", "sparkle", 1410, 400, ts || 0, 1.4);

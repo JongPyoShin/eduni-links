@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { CampWorldGeometry, WaterfallWorldGeometry } from "../src/geometry.js";
+import {
+  CampWorldGeometry,
+  WaterfallWorldGeometry,
+  CaveWorldGeometry,
+  GiantTreeWorldGeometry,
+  SkyRidgeWorldGeometry,
+} from "../src/geometry.js";
 
 test("walkable shapes are the same source used for isWalkable", () => {
   const g = new CampWorldGeometry();
@@ -85,5 +91,41 @@ test("all Waterfall progression anchors are reachable walkable points", () => {
   ];
   for (const [x, y] of anchors) {
     assert.equal(g.isWalkable(x, y), true, `Waterfall anchor (${x}, ${y}) must be reachable`);
+  }
+});
+
+function assertCardinalPath(Geometry, label) {
+  const geometry = new Geometry();
+  const path = geometry.paths[0];
+  for (let i = 0; i < path.length - 1; i += 1) {
+    const a = path[i];
+    const b = path[i + 1];
+    assert.ok(
+      a.x === b.x || a.y === b.y,
+      `${label} segment ${i} must be horizontal or vertical: (${a.x},${a.y}) -> (${b.x},${b.y})`
+    );
+    assert.notDeepEqual(a, b, `${label} segment ${i} must have non-zero length`);
+  }
+}
+
+test("all playable Jungle stage routes are horizontal/vertical D-pad corridors", () => {
+  assertCardinalPath(CampWorldGeometry, "Camp");
+  assertCardinalPath(WaterfallWorldGeometry, "Waterfall");
+  assertCardinalPath(CaveWorldGeometry, "Cave");
+  assertCardinalPath(GiantTreeWorldGeometry, "Giant Tree");
+  assertCardinalPath(SkyRidgeWorldGeometry, "Sky Ridge");
+});
+
+test("cardinal route redesign preserves authored stage progression anchors", () => {
+  const cases = [
+    [CaveWorldGeometry, [[420,930],[620,860],[780,700],[930,600],[1080,520],[1260,460],[1420,340]]],
+    [GiantTreeWorldGeometry, [[430,930],[650,830],[820,690],[980,570],[1110,500],[1290,430],[1440,320]]],
+    [SkyRidgeWorldGeometry, [[430,930],[650,820],[830,690],[1000,560],[1130,490],[1300,420],[1450,310]]],
+  ];
+  for (const [Geometry, anchors] of cases) {
+    const geometry = new Geometry();
+    for (const [x, y] of anchors) {
+      assert.equal(geometry.isWalkable(x, y), true, `${Geometry.name} anchor (${x}, ${y}) must stay reachable`);
+    }
   }
 });

@@ -7,8 +7,10 @@
     <script type="importmap">
       {
         "imports": {
-          "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
-          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+          "three": "./node_modules/three/build/three.module.js",
+          "three/addons/loaders/DRACOLoader.js": "./src/local_draco_loader.js",
+          "three/addons-local/": "./node_modules/three/examples/jsm/",
+          "three/addons/": "./node_modules/three/examples/jsm/"
         }
       }
     </script>

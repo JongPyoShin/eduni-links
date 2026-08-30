@@ -97,7 +97,7 @@
     </div>
 
     <script type="module">
-      import { start } from "./src/game.js?v=camp-three-e1adb3d";
+      import { start } from "./src/game.js?v=camp-cardinal-0c28ad0";
       const canvas = document.getElementById("game");
       function resize() {
         canvas.width = window.innerWidth;
@@ -112,8 +112,8 @@
       const wantsThreeCamp = isCamp && params.get("renderer") !== "canvas";
       if (wantsThreeCamp) {
         try {
-          const { startThreeCampRuntime } = await import("./src/three_camp_runtime.js?v=camp-three-2");
-          const { alignCampLandmarks } = await import("./src/three_camp_alignment.js?v=camp-three-2");
+          const { startThreeCampRuntime } = await import("./src/three_camp_runtime.js?v=camp-three-3");
+          const { alignCampLandmarks } = await import("./src/three_camp_alignment.js?v=camp-three-3");
           const runtime = await startThreeCampRuntime(canvas, globalThis.__eduniJungleGame);
           alignCampLandmarks(runtime);
         } catch (error) {

@@ -112,10 +112,14 @@ export class CampWorldGeometry {
 export class WaterfallWorldGeometry extends CampWorldGeometry {
   constructor() {
     super();
+    // Keep the authored sequence, but connect beats with horizontal/vertical
+    // corridors so D-pad directions match both the screen and the route itself.
     this.paths = [[
-      { x: 200, y: 1040 }, { x: 460, y: 900 }, { x: 700, y: 900 },
-      { x: 900, y: 760 }, { x: 1080, y: 700 }, { x: 1170, y: 560 },
-      { x: 1020, y: 480 }, { x: 1250, y: 470 }, { x: 1450, y: 330 },
+      { x: 200, y: 1040 }, { x: 200, y: 900 }, { x: 700, y: 900 },
+      { x: 700, y: 760 }, { x: 900, y: 760 }, { x: 900, y: 700 },
+      { x: 1080, y: 700 }, { x: 1080, y: 560 }, { x: 1170, y: 560 },
+      { x: 1170, y: 480 }, { x: 1020, y: 480 }, { x: 1020, y: 470 },
+      { x: 1250, y: 470 }, { x: 1250, y: 330 }, { x: 1450, y: 330 },
     ]];
     this.clearings = [
       { x: 200, y: 1040, r: 130, label: "Waterfall Entrance" },
@@ -132,9 +136,11 @@ export class CaveWorldGeometry extends CampWorldGeometry {
   constructor() {
     super();
     this.paths = [[
-      { x: 200, y: 1040 }, { x: 420, y: 930 }, { x: 620, y: 860 },
-      { x: 780, y: 700 }, { x: 930, y: 600 }, { x: 1080, y: 520 },
-      { x: 1260, y: 460 }, { x: 1420, y: 340 },
+      { x: 200, y: 1040 }, { x: 200, y: 930 }, { x: 420, y: 930 },
+      { x: 420, y: 860 }, { x: 620, y: 860 }, { x: 620, y: 700 },
+      { x: 780, y: 700 }, { x: 780, y: 600 }, { x: 930, y: 600 },
+      { x: 930, y: 520 }, { x: 1080, y: 520 }, { x: 1080, y: 460 },
+      { x: 1260, y: 460 }, { x: 1260, y: 340 }, { x: 1420, y: 340 },
     ]];
     this.clearings = [
       { x: 200, y: 1040, r: 130, label: "Cave Entrance Trail" },
@@ -152,9 +158,11 @@ export class GiantTreeWorldGeometry extends CampWorldGeometry {
   constructor() {
     super();
     this.paths = [[
-      { x: 200, y: 1040 }, { x: 430, y: 930 }, { x: 650, y: 830 },
-      { x: 820, y: 690 }, { x: 980, y: 570 }, { x: 1110, y: 500 },
-      { x: 1290, y: 430 }, { x: 1440, y: 320 },
+      { x: 200, y: 1040 }, { x: 200, y: 930 }, { x: 430, y: 930 },
+      { x: 430, y: 830 }, { x: 650, y: 830 }, { x: 650, y: 690 },
+      { x: 820, y: 690 }, { x: 820, y: 570 }, { x: 980, y: 570 },
+      { x: 980, y: 500 }, { x: 1110, y: 500 }, { x: 1110, y: 430 },
+      { x: 1290, y: 430 }, { x: 1290, y: 320 }, { x: 1440, y: 320 },
     ]];
     this.clearings = [
       { x: 200, y: 1040, r: 130, label: "Giant Tree Approach" },
@@ -173,9 +181,11 @@ export class SkyRidgeWorldGeometry extends CampWorldGeometry {
   constructor() {
     super();
     this.paths = [[
-      { x: 200, y: 1040 }, { x: 430, y: 930 }, { x: 650, y: 820 },
-      { x: 830, y: 690 }, { x: 1000, y: 560 }, { x: 1130, y: 490 },
-      { x: 1300, y: 420 }, { x: 1450, y: 310 },
+      { x: 200, y: 1040 }, { x: 200, y: 930 }, { x: 430, y: 930 },
+      { x: 430, y: 820 }, { x: 650, y: 820 }, { x: 650, y: 690 },
+      { x: 830, y: 690 }, { x: 830, y: 560 }, { x: 1000, y: 560 },
+      { x: 1000, y: 490 }, { x: 1130, y: 490 }, { x: 1130, y: 420 },
+      { x: 1300, y: 420 }, { x: 1300, y: 310 }, { x: 1450, y: 310 },
     ]];
     this.clearings = [
       { x: 200, y: 1040, r: 130, label: "Sky Ridge Approach" },

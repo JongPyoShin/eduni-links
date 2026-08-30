@@ -32,6 +32,45 @@ export class InputController {
     return this.gamepadDirection;
   }
 
+  getDigitalState() {
+    return {
+      left: this.left,
+      right: this.right,
+      up: this.up,
+      down: this.down,
+      direction: this.direction(),
+      interactPending: this.interactEdge,
+      closePending: this.closeEdge,
+    };
+  }
+
+  setDigitalAction(action, down) {
+    const active = Boolean(down);
+    if (action === "interact") {
+      if (active) {
+        this.interactEdge = true;
+        this.activityEdge = true;
+      }
+      return true;
+    }
+    if (action === "close") {
+      if (active) {
+        this.closeEdge = true;
+        this.activityEdge = true;
+      }
+      return true;
+    }
+    if (!["left", "right", "up", "down"].includes(action)) return false;
+
+    this[action] = active;
+    if (active) {
+      if (action === "left" || action === "up") this.navigateEdge = -1;
+      if (action === "right" || action === "down") this.navigateEdge = 1;
+      this.activityEdge = true;
+    }
+    return true;
+  }
+
   pollGamepad() {
     const pads = this.gamepadProvider() || [];
     let pad = this.gamepadIndex !== null ? pads[this.gamepadIndex] : null;
@@ -172,20 +211,7 @@ export class InputController {
     for (const [id, action] of Object.entries(map)) {
       const el = document.getElementById(id);
       if (!el) continue;
-      const set = (v) => {
-        if (action === "interact") {
-          if (v) { this.interactEdge = true; this.activityEdge = true; }
-        } else if (action === "close") {
-          if (v) { this.closeEdge = true; this.activityEdge = true; }
-        } else {
-          this[action] = v;
-          if (v) {
-            if (action === "left" || action === "up") this.navigateEdge = -1;
-            if (action === "right" || action === "down") this.navigateEdge = 1;
-            this.activityEdge = true;
-          }
-        }
-      };
+      const set = (v) => this.setDigitalAction(action, v);
       el.addEventListener("pointerdown", (e) => {
         e.preventDefault();
         set(true);

@@ -52,8 +52,8 @@
       import { skyRidgeInteractables } from "./src/content/sky_ridge_interactables.js";
 
       const STAGES = Object.freeze({
-        camp: { label: "Camp", url: "./?qa=1", globalName: null },
-        waterfall: { label: "Waterfall", url: "./?stage=waterfall&renderer=three&qa=1", globalName: null },
+        camp: { label: "Camp", url: "./?qa=1", globalName: "__eduniJungleGame" },
+        waterfall: { label: "Waterfall", url: "./?stage=waterfall&renderer=three&qa=1", globalName: "__eduniJungleGame" },
         cave: { label: "Cave", url: "./cave-game.html?qa=1", globalName: "__eduniCaveGame", interactables: caveInteractables },
         giantTree: { label: "Giant Tree", url: "./giant-tree-game.html?qa=1", globalName: "__eduniGiantTreeGame", interactables: giantTreeInteractables },
         skyRidge: { label: "Sky Ridge", url: "./sky-ridge-game.html?qa=1", globalName: "__eduniSkyRidgeGame", interactables: skyRidgeInteractables },
@@ -142,10 +142,11 @@
           els.objective.textContent = [objective, modalTitle, modalBody].filter(Boolean).join(" · ") || "HUD 대기 중…";
 
           const runtime = runtimeFor(win, config);
-          if (runtime?.getState && runtime?.player) {
+          if (runtime?.stageId && runtime.stageId !== currentStage) return;
+          const player = runtime?.player || runtime?.getPlayer?.() || null;
+          if (runtime?.getState && player) {
             const state = runtime.getState();
-            const player = runtime.player;
-            const target = config.interactables?.(state)?.[0] || null;
+            const target = runtime.getTarget?.() || config.interactables?.(state)?.[0] || null;
             els.phase.textContent = runtime.getPhase?.() || "-";
             els.player.textContent = `${fmt(player.x)}, ${fmt(player.y)}`;
             if (target) {
@@ -159,9 +160,9 @@
               els.distance.className = `value${isEarned ? " ok" : ""}`;
             }
           } else {
-            els.phase.textContent = currentStage === "waterfall" ? "Three gameplay" : "Canvas gameplay";
-            els.player.textContent = "HUD 기준 확인";
-            els.target.textContent = "화면 목표 따라 진행";
+            els.phase.textContent = "runtime 대기 중";
+            els.player.textContent = "-";
+            els.target.textContent = "-";
             els.distance.textContent = "-";
             els.distance.className = "value";
           }

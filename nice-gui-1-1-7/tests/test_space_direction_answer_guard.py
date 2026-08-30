@@ -57,12 +57,13 @@ class SpaceDirectionAnswerGuardTests(unittest.TestCase):
         ):
             self.assertIn(marker, html)
 
-    def test_question_generation_fails_closed_without_direction_ui_audit(self) -> None:
+    def test_question_generation_fails_closed_without_destination_only_audit(self) -> None:
         html = _space_game_html().body.decode("utf-8")
         self.assertIn("const directionUi=window.EDUNI_DIRECTION_UI_AUDIT;", html)
         self.assertIn("directionUi.checked!==50", html)
         self.assertIn("directionUi.total!==50", html)
-        self.assertIn("EDUNI direction UI audit did not pass 50/50; gameplay blocked", html)
+        self.assertIn("directionUi.answerMode!=='destination-only'", html)
+        self.assertIn("EDUNI direction destination-only UI audit did not pass 50/50; gameplay blocked", html)
         self.assertIn("EDUNI direction scenario failed independent solve before rendering", html)
         self.assertIn("EDUNI direction destination choices failed single-answer contract", html)
 

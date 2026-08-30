@@ -8,6 +8,7 @@ test("walkable shapes are the same source used for isWalkable", () => {
   assert.equal(shapes.halfWidth, g.pathHalfWidth);
   assert.equal(shapes.paths[0], g.paths[0]);
   assert.equal(shapes.clearings, g.clearings);
+  assert.equal(shapes.blockers, g.blockers);
 });
 
 test("visible walkable corridor equals collision corridor (halfWidth band)", () => {
@@ -28,6 +29,32 @@ test("clearing circular walkable area matches radius", () => {
   const ox = tent.x + Math.round((tent.r + 10) * Math.SQRT1_2);
   const oy = tent.y + Math.round((tent.r + 10) * Math.SQRT1_2);
   assert.equal(g.isWalkable(ox, oy), false);
+});
+
+test("Camp solid props block their visible ground footprint instead of only the center point", () => {
+  const g = new CampWorldGeometry();
+  for (const [x, y, label] of [
+    [405, 320, "hut body"],
+    [480, 320, "hut right edge"],
+    [610, 430, "large hut boulder"],
+    [550, 430, "large hut boulder left edge"],
+    [350, 690, "trail rock"],
+    [1360, 680, "ridge boulder"],
+  ]) {
+    assert.equal(g.isWalkable(x, y), false, `${label} must be solid`);
+  }
+});
+
+test("Camp orthogonal route centerline remains open beside the larger solid footprints", () => {
+  const g = new CampWorldGeometry();
+  for (const [x, y] of [
+    [520, 320],
+    [520, 430],
+    [920, 690],
+    [1300, 680],
+  ]) {
+    assert.equal(g.isWalkable(x, y), true, `route center (${x}, ${y}) must stay walkable`);
+  }
 });
 
 test("world bounds clamp walkability", () => {

@@ -1,11 +1,17 @@
 import { getStageVisualPhase } from "./stage_manifest.js";
+import { getGiantTreeVisualPhase } from "./giant_tree_visuals.js";
 
 const PHASE_CACHE = new Map();
+
+function phaseSource(stageId, phaseId) {
+  if (stageId === "giantTree") return getGiantTreeVisualPhase(phaseId);
+  return getStageVisualPhase(stageId, phaseId);
+}
 
 function withPhase(stageId, phaseId) {
   const key = `${stageId}:${phaseId}`;
   if (PHASE_CACHE.has(key)) return PHASE_CACHE.get(key);
-  const visual = getStageVisualPhase(stageId, phaseId);
+  const visual = phaseSource(stageId, phaseId);
   if (!visual) throw new Error(`Unknown visual phase ${stageId}:${phaseId}`);
   const resolved = Object.freeze({ stageId, phaseId, ...visual });
   PHASE_CACHE.set(key, resolved);
@@ -52,9 +58,23 @@ export function caveVisualPhase(state) {
   return withPhase("cave", "caveGate");
 }
 
+export function giantTreeVisualPhase(state) {
+  const clues = state?.discoveredClues || [];
+  if (state?.rewardComplete) return withPhase("giantTree", "complete");
+  if (state?.squirrelComplete) return withPhase("giantTree", "reward");
+  if (state?.canopyStairsComplete) return withPhase("giantTree", "squirrel");
+  if (state?.treeRingComplete) return withPhase("giantTree", "canopyStairs");
+  if (clues.includes("hollowEcho")) return withPhase("giantTree", "treeRing");
+  if (clues.includes("seedTrail")) return withPhase("giantTree", "hollowEcho");
+  if (clues.includes("barkPattern")) return withPhase("giantTree", "seedTrail");
+  if (state?.rootGateComplete) return withPhase("giantTree", "barkPattern");
+  return withPhase("giantTree", "rootGate");
+}
+
 export function stageVisualPhase(stageId, state, context = {}) {
   if (stageId === "camp") return campVisualPhase(state, context.sequence);
   if (stageId === "waterfall") return waterfallVisualPhase(state);
   if (stageId === "cave") return caveVisualPhase(state);
+  if (stageId === "giantTree") return giantTreeVisualPhase(state);
   throw new Error(`Unknown stage visual director: ${stageId}`);
 }

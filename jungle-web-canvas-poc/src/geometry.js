@@ -16,6 +16,13 @@ export function pointInCircle(px, py, cx, cy, r) {
   return Math.hypot(px - cx, py - cy) <= r;
 }
 
+export function pointInEllipse(px, py, cx, cy, rx, ry) {
+  if (rx <= 0 || ry <= 0) return false;
+  const nx = (px - cx) / rx;
+  const ny = (py - cy) / ry;
+  return nx * nx + ny * ny <= 1;
+}
+
 export class CampWorldGeometry {
   constructor() {
     this.world = { w: WORLD.WIDTH, h: WORLD.HEIGHT };
@@ -38,16 +45,28 @@ export class CampWorldGeometry {
       { x: 920, y: 820, r: 140, label: "Fire Pit" },
       { x: 1300, y: 420, r: 140, label: "Ridge Lookout" },
     ];
-    // Solid landmarks/props share the same logical coordinates as the Three Camp
-    // presentation. Collision stays conservative so the route and interaction
-    // edges remain reachable while visible solid centers cannot be crossed.
+
+    // Ground-plane collision footprints for visible solid Camp props.
+    // These are deliberately wider than the old point-like circles: the old
+    // version blocked only the prop center, which still allowed the explorer to
+    // visibly walk through most of a boulder, tree base, or hut.
     this.blockers = [
-      { x: 455, y: 320, r: 58, label: "Learning Hut" },
-      { x: 990, y: 900, r: 42, label: "Fire Pit" },
-      { x: 300, y: 1010, r: 28, label: "Entrance Cypress" },
-      { x: 350, y: 690, r: 30, label: "Trail Rock" },
-      { x: 610, y: 430, r: 34, label: "Hut Boulder" },
-      { x: 1360, y: 680, r: 36, label: "Ridge Boulder" },
+      { x: 405, y: 320, rx: 92, ry: 78, label: "Learning Hut" },
+      { x: 990, y: 900, rx: 55, ry: 48, label: "Fire Pit" },
+      { x: 300, y: 1010, rx: 36, ry: 32, label: "Entrance Cypress" },
+      { x: 330, y: 890, rx: 48, ry: 42, label: "Entrance Mangrove" },
+      { x: 350, y: 690, rx: 62, ry: 52, label: "Trail Rock" },
+      { x: 340, y: 510, rx: 38, ry: 34, label: "Trail Flowering Tree" },
+      { x: 610, y: 430, rx: 82, ry: 72, label: "Hut Boulder" },
+      { x: 760, y: 230, rx: 36, ry: 32, label: "Upper Cypress" },
+      { x: 1030, y: 410, rx: 50, ry: 44, label: "Upper Mangrove" },
+      { x: 1040, y: 690, rx: 65, ry: 55, label: "Mid Rock" },
+      { x: 760, y: 900, rx: 36, ry: 32, label: "Lower Cypress" },
+      { x: 1080, y: 960, rx: 40, ry: 36, label: "Lower Flowering Tree" },
+      { x: 1190, y: 730, rx: 48, ry: 42, label: "Ridge Mangrove" },
+      { x: 1360, y: 680, rx: 54, ry: 70, label: "Ridge Boulder" },
+      { x: 1500, y: 470, rx: 38, ry: 34, label: "Far Cypress" },
+      { x: 1190, y: 290, rx: 42, ry: 38, label: "Ridge Flowering Tree" },
     ];
     this.bluebird = {
       x: BLUEBIRD.WORLD.x,
@@ -68,7 +87,12 @@ export class CampWorldGeometry {
   }
 
   isBlocked(px, py) {
-    return this.blockers.some((blocker) => pointInCircle(px, py, blocker.x, blocker.y, blocker.r));
+    return this.blockers.some((blocker) => {
+      if (Number.isFinite(blocker.rx) && Number.isFinite(blocker.ry)) {
+        return pointInEllipse(px, py, blocker.x, blocker.y, blocker.rx, blocker.ry);
+      }
+      return pointInCircle(px, py, blocker.x, blocker.y, blocker.r || 0);
+    });
   }
 
   isWalkable(px, py) {

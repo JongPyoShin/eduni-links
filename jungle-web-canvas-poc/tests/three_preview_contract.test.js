@@ -15,12 +15,15 @@ const RUNTIME_JS = resolve(__dirname, "..", "src", "three_waterfall_runtime.js")
 const GAME_JS = resolve(__dirname, "..", "src", "game.js");
 const HTML = resolve(__dirname, "..", "three-waterfall.html");
 
-test("Three preview HTML is wired to the preview module", () => {
+test("Three preview HTML is wired to the local Three runtime", () => {
   const html = readFileSync(HTML, "utf8");
   assert.ok(html.includes("three-waterfall"), "html mounts the three canvas");
   assert.ok(html.includes("startThreeWaterfallPreview"), "html imports the preview module");
   assert.ok(html.includes("importmap"), "html declares an import map for three");
-  assert.ok(html.includes("three@"), "import map references three core");
+  assert.ok(html.includes("./node_modules/three/build/three.module.js"), "import map references local Three core");
+  assert.ok(html.includes("./node_modules/three/examples/jsm/"), "import map references local Three addons");
+  assert.ok(html.includes("./src/local_draco_loader.js"), "DRACOLoader is routed through the local decoder wrapper");
+  assert.ok(!html.includes("cdn.jsdelivr.net"), "preview does not depend on the jsDelivr CDN");
 });
 
 test("preview module builds on WaterfallWorldGeometry", () => {

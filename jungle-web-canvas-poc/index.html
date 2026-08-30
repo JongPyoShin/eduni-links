@@ -107,7 +107,58 @@
       window.addEventListener("resize", resize);
       const modalEl = document.getElementById("modal");
       const params = new URLSearchParams(window.location.search);
+      const qaEnabled = params.get("qa") === "1";
+      let qaStateEl = null;
+      let qaThreeReady = false;
+
+      function ensureQaStateEl() {
+        if (!qaEnabled) return null;
+        if (qaStateEl) return qaStateEl;
+        qaStateEl = document.createElement("output");
+        qaStateEl.id = "qa-runtime-state";
+        qaStateEl.hidden = true;
+        qaStateEl.dataset.contract = "eduni-jungle-qa-v1";
+        qaStateEl.dataset.startup = "booting";
+        document.body.appendChild(qaStateEl);
+        return qaStateEl;
+      }
+
+      function writeQaSnapshot() {
+        const el = ensureQaStateEl();
+        if (!el) return;
+        const bridge = globalThis.__eduniJungleGame;
+        const player = bridge?.player || null;
+        const snapshot = {
+          startup: bridge ? "ready" : "waiting",
+          stageId: bridge?.stageId || null,
+          player: player ? { x: player.x, y: player.y } : null,
+          phase: bridge?.getPhase?.() ?? null,
+          target: bridge?.getTarget?.() ?? null,
+          objective: bridge?.getObjective?.() ?? null,
+          state: bridge?.getState?.() ?? null,
+          threeReady: qaThreeReady || Boolean(document.querySelector("#three-camp-runtime")),
+        };
+        el.dataset.startup = snapshot.startup;
+        el.dataset.stageId = snapshot.stageId || "";
+        el.dataset.playerX = player ? String(player.x) : "";
+        el.dataset.playerY = player ? String(player.y) : "";
+        el.dataset.threeReady = snapshot.threeReady ? "true" : "false";
+        el.textContent = JSON.stringify(snapshot);
+      }
+
+      function startQaDomMirror() {
+        if (!qaEnabled) return;
+        ensureQaStateEl();
+        const tick = () => {
+          writeQaSnapshot();
+          window.setTimeout(tick, 100);
+        };
+        tick();
+      }
+
+      ensureQaStateEl();
       await start(canvas, modalEl);
+      startQaDomMirror();
       const isCamp = params.get("stage") !== "waterfall";
       const wantsThreeCamp = isCamp && params.get("renderer") !== "canvas";
       if (wantsThreeCamp) {
@@ -116,9 +167,12 @@
           const { alignCampLandmarks } = await import("./src/three_camp_alignment.js?v=camp-three-3");
           const runtime = await startThreeCampRuntime(canvas, globalThis.__eduniJungleGame);
           alignCampLandmarks(runtime);
+          qaThreeReady = true;
+          writeQaSnapshot();
         } catch (error) {
           console.error("Three Camp startup failed; keeping Canvas fallback", error);
           canvas.style.visibility = "visible";
+          writeQaSnapshot();
         }
       }
     </script>

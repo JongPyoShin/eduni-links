@@ -3,6 +3,7 @@ import { campLogicalToThree } from "./three_camp_runtime.js";
 
 const EPSILON = 0.001;
 const LEGACY_BLUEBIRD_VISUAL = Object.freeze({ x: 1410, y: 400 });
+const HUT_VISUAL_ANCHOR = Object.freeze({ x: 405, y: 320 });
 
 function clue(id) {
   return CLUES.find((entry) => entry.id === id);
@@ -87,8 +88,9 @@ function alignBluebird(scene) {
 
 /**
  * Compatibility alignment for the first Three Camp presentation slice.
- * Gameplay remains authoritative: these visual landmarks are snapped to the
- * exact interaction coordinates exported by camp_chapter.js.
+ * Gameplay remains authoritative. Interaction anchors stay in camp_chapter.js,
+ * while the hut body is offset left so its physical footprint does not occupy
+ * the route/door interaction point.
  */
 export function alignCampLandmarks(runtime) {
   if (!runtime?.scene) throw new TypeError("Camp landmark alignment requires a Three runtime scene");
@@ -96,7 +98,7 @@ export function alignCampLandmarks(runtime) {
   const birdcall = clue("birdcall");
   const footprints = clue("footprints");
   const aligned = {
-    hut: moveTopLevelGroup(runtime.scene, { x: 520, y: 320 }, LANDMARKS.hut),
+    hut: moveTopLevelGroup(runtime.scene, { x: 520, y: 320 }, HUT_VISUAL_ANCHOR),
     firePit: moveTopLevelGroup(runtime.scene, { x: 920, y: 820 }, LANDMARKS.firePit),
     birdcall: birdcall ? moveTopLevelGroup(runtime.scene, { x: 920, y: 760 }, birdcall, 0.1) : false,
     footprints: alignFootprintTrail(runtime.scene),
@@ -104,7 +106,8 @@ export function alignCampLandmarks(runtime) {
   };
 
   runtime.scene.userData.campLandmarkAlignment = Object.freeze({
-    hut: { x: LANDMARKS.hut.x, y: LANDMARKS.hut.y },
+    hutVisual: { x: HUT_VISUAL_ANCHOR.x, y: HUT_VISUAL_ANCHOR.y },
+    hutInteraction: { x: LANDMARKS.hut.x, y: LANDMARKS.hut.y },
     firePit: { x: LANDMARKS.firePit.x, y: LANDMARKS.firePit.y },
     footprints: footprints ? { x: footprints.x, y: footprints.y } : null,
     birdcall: birdcall ? { x: birdcall.x, y: birdcall.y } : null,

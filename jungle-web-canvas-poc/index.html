@@ -112,8 +112,10 @@
       const wantsThreeCamp = isCamp && params.get("renderer") !== "canvas";
       if (wantsThreeCamp) {
         try {
-          const { startThreeCampRuntime } = await import("./src/three_camp_runtime.js?v=camp-three-1");
-          await startThreeCampRuntime(canvas, globalThis.__eduniJungleGame);
+          const { startThreeCampRuntime } = await import("./src/three_camp_runtime.js?v=camp-three-2");
+          const { alignCampLandmarks } = await import("./src/three_camp_alignment.js?v=camp-three-2");
+          const runtime = await startThreeCampRuntime(canvas, globalThis.__eduniJungleGame);
+          alignCampLandmarks(runtime);
         } catch (error) {
           console.error("Three Camp startup failed; keeping Canvas fallback", error);
           canvas.style.visibility = "visible";

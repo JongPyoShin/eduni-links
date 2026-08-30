@@ -79,11 +79,12 @@ export async function startCaveGame(canvas, modalEl, statusEl) {
     }
 
     const targetX = THREE.MathUtils.clamp(p.x, -3.1, 3.1);
-    const targetZ = THREE.MathUtils.clamp(p.z * 0.62 - 0.55, -3.0, 3.0);
+    const targetZ = THREE.MathUtils.clamp(p.z, -3.0, 3.0);
     runtime.controls.target.x += (targetX - runtime.controls.target.x) * 0.1;
     runtime.controls.target.z += (targetZ - runtime.controls.target.z) * 0.1;
-    runtime.camera.position.x = runtime.controls.target.x + 8.0;
-    runtime.camera.position.z = runtime.controls.target.z + 9.5;
+    runtime.controls.target.y = 0.35;
+    runtime.camera.position.x = runtime.controls.target.x;
+    runtime.camera.position.z = runtime.controls.target.z + 8.2;
     runtime.camera.position.y = 11.5;
   }
 

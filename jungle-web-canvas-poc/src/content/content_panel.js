@@ -61,6 +61,10 @@ export function renderContentPanel(panel, modalEl) {
   if (p.img) image.src = p.img;
   const badge = modalEl.querySelector("#reward-badge");
   badge.style.display = p.badge ? "grid" : "none";
+  if (p.badge) {
+    if (p.badgeIcon) badge.textContent = p.badgeIcon;
+    badge.setAttribute("aria-label", p.badgeLabel || p.title || "탐험 배지");
+  }
   const choices = modalEl.querySelector("#modal-choices");
   choices.replaceChildren();
   for (const [index, choice] of (p.choices || []).entries()) {

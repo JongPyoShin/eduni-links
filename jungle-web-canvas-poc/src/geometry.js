@@ -38,6 +38,18 @@ export class CampWorldGeometry {
       { x: 920, y: 820, r: 140, label: "Fire Pit" },
       { x: 1300, y: 420, r: 140, label: "Ridge Lookout" },
     ];
+    // Solid landmarks/props share the same logical coordinates as the Three Camp
+    // presentation.  Collision is intentionally conservative: the player can
+    // still stand inside each interaction radius without walking through the
+    // visible hut, fire pit, trunks, or boulders.
+    this.blockers = [
+      { x: 455, y: 320, r: 68, label: "Learning Hut" },
+      { x: 990, y: 900, r: 42, label: "Fire Pit" },
+      { x: 300, y: 1010, r: 28, label: "Entrance Cypress" },
+      { x: 350, y: 690, r: 30, label: "Trail Rock" },
+      { x: 610, y: 430, r: 34, label: "Hut Boulder" },
+      { x: 1360, y: 680, r: 36, label: "Ridge Boulder" },
+    ];
     this.bluebird = {
       x: BLUEBIRD.WORLD.x,
       y: BLUEBIRD.WORLD.y,
@@ -56,17 +68,21 @@ export class CampWorldGeometry {
     return best;
   }
 
+  isBlocked(px, py) {
+    return this.blockers.some((blocker) => pointInCircle(px, py, blocker.x, blocker.y, blocker.r));
+  }
+
   isWalkable(px, py) {
     if (px < 0 || py < 0 || px > this.world.w || py > this.world.h) return false;
-    if (this.distToPath(px, py) <= this.pathHalfWidth) return true;
-    for (const c of this.clearings) {
-      if (pointInCircle(px, py, c.x, c.y, c.r)) return true;
+    let insideWalkableShape = this.distToPath(px, py) <= this.pathHalfWidth;
+    if (!insideWalkableShape) {
+      insideWalkableShape = this.clearings.some((c) => pointInCircle(px, py, c.x, c.y, c.r));
     }
-    return false;
+    return insideWalkableShape && !this.isBlocked(px, py);
   }
 
   walkableShapes() {
-    return { paths: this.paths, clearings: this.clearings, halfWidth: this.pathHalfWidth };
+    return { paths: this.paths, clearings: this.clearings, blockers: this.blockers, halfWidth: this.pathHalfWidth };
   }
 }
 
@@ -84,6 +100,7 @@ export class WaterfallWorldGeometry extends CampWorldGeometry {
       { x: 1170, y: 560, r: 120, label: "Waterfall Basin" },
       { x: 1450, y: 330, r: 140, label: "Waterfall Lookout" },
     ];
+    this.blockers = [];
     this.bluebird = null;
   }
 }
@@ -103,6 +120,7 @@ export class CaveWorldGeometry extends CampWorldGeometry {
       { x: 1260, y: 460, r: 125, label: "Crystal Bridge" },
       { x: 1420, y: 340, r: 135, label: "Bat Roost" },
     ];
+    this.blockers = [];
     this.bluebird = null;
   }
 }
@@ -123,6 +141,7 @@ export class GiantTreeWorldGeometry extends CampWorldGeometry {
       { x: 1290, y: 430, r: 130, label: "Canopy Stairs" },
       { x: 1440, y: 320, r: 135, label: "Squirrel Canopy" },
     ];
+    this.blockers = [];
     this.bluebird = null;
   }
 }
@@ -143,6 +162,7 @@ export class SkyRidgeWorldGeometry extends CampWorldGeometry {
       { x: 1300, y: 420, r: 130, label: "Summit Bridge" },
       { x: 1450, y: 310, r: 140, label: "Hawk Summit" },
     ];
+    this.blockers = [];
     this.bluebird = null;
   }
 }

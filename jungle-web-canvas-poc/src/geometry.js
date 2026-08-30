@@ -39,11 +39,10 @@ export class CampWorldGeometry {
       { x: 1300, y: 420, r: 140, label: "Ridge Lookout" },
     ];
     // Solid landmarks/props share the same logical coordinates as the Three Camp
-    // presentation.  Collision is intentionally conservative: the player can
-    // still stand inside each interaction radius without walking through the
-    // visible hut, fire pit, trunks, or boulders.
+    // presentation. Collision stays conservative so the route and interaction
+    // edges remain reachable while visible solid centers cannot be crossed.
     this.blockers = [
-      { x: 455, y: 320, r: 68, label: "Learning Hut" },
+      { x: 455, y: 320, r: 58, label: "Learning Hut" },
       { x: 990, y: 900, r: 42, label: "Fire Pit" },
       { x: 300, y: 1010, r: 28, label: "Entrance Cypress" },
       { x: 350, y: 690, r: 30, label: "Trail Rock" },

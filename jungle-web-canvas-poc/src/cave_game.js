@@ -120,6 +120,23 @@ export async function startCaveGame(canvas, modalEl, statusEl) {
     updateUi();
   }
 
+  function openRewardCeremony() {
+    const reward = stageReward("cave");
+    panel.openPanel({
+      kind: "reward",
+      title: reward.name,
+      body: reward.message,
+      badge: true,
+      badgeIcon: reward.icon,
+      badgeLabel: reward.name,
+      checklist: reward.discoveries,
+      confirmLabel: "배지 받기",
+      revealReady: true,
+    });
+    audio.play("rewardFanfare");
+    updateUi();
+  }
+
   function openInteraction(item) {
     movement.reset();
     audio.play("uiConfirm");
@@ -128,17 +145,7 @@ export async function startCaveGame(canvas, modalEl, statusEl) {
       return;
     }
     if (item.type === "reward") {
-      const reward = stageReward("cave");
-      panel.openPanel({
-        kind: "reward",
-        title: reward.name,
-        body: reward.message,
-        badge: true,
-        checklist: reward.discoveries,
-        confirmLabel: "배지 받기",
-        revealReady: true,
-      });
-      updateUi();
+      openRewardCeremony();
       return;
     }
     const body = {
@@ -177,11 +184,13 @@ export async function startCaveGame(canvas, modalEl, statusEl) {
     else if (kind === "echoCrystal") cave = collectCaveClue(cave, "echoCrystal");
     else if (kind === "shadowMark") cave = collectCaveClue(cave, "shadowMark");
     else if (kind === "crystalBridge") cave = completeCrystalBridge(cave);
-    else if (kind === "bat") cave = completeCaveBat(cave);
-    else if (kind === "reward") {
+    else if (kind === "bat") {
+      cave = completeCaveBat(cave);
+      openRewardCeremony();
+      return;
+    } else if (kind === "reward") {
       cave = completeCaveReward(cave);
       awardAndSaveStageReward("cave");
-      audio.play("rewardFanfare");
     }
     panel.closePanel();
     updateUi();

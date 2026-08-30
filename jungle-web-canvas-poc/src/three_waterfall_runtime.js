@@ -15,6 +15,10 @@ const WATERFALL_PALETTES = Object.freeze({
   "rainbow-mist": 0xb8d8cf,
 });
 
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
 function applyStageVisual(runtime, statusEl, phase) {
   if (!runtime?.scene || !phase) return;
   const color = WATERFALL_PALETTES[phase.palette] ?? WATERFALL_PALETTES["misty-cyan"];
@@ -38,6 +42,26 @@ function applyStageVisual(runtime, statusEl, phase) {
   }
 }
 
+function installCardinalGameplayCamera(runtime, bridge) {
+  if (!runtime?.controls || !runtime?.camera) return;
+  const originalUpdate = runtime.controls.update.bind(runtime.controls);
+  runtime.controls.update = () => {
+    const logical = bridge.getPlayer?.();
+    if (logical) {
+      const p = logicalToThree(logical.x, logical.y, 0);
+      const targetX = clamp(p.x, -3.1, 3.1);
+      const targetZ = clamp(p.z, -3.0, 3.0);
+      runtime.controls.target.x += (targetX - runtime.controls.target.x) * 0.1;
+      runtime.controls.target.z += (targetZ - runtime.controls.target.z) * 0.1;
+      runtime.controls.target.y = 0.3;
+      // Gameplay camera has no X offset. World X is screen-horizontal and
+      // logical Y/world Z is screen-vertical, so D-pad arrows match the screen.
+      runtime.camera.position.set(runtime.controls.target.x, 11.5, runtime.controls.target.z + 8.2);
+    }
+    return originalUpdate();
+  };
+}
+
 export async function startThreeWaterfallRuntime(canvas, statusEl, bridge) {
   if (!bridge || typeof bridge.getState !== "function" || typeof bridge.getPlayer !== "function") {
     throw new TypeError("Three Waterfall runtime requires read-only gameplay bridge callbacks");
@@ -52,6 +76,7 @@ export async function startThreeWaterfallRuntime(canvas, statusEl, bridge) {
   // 8 Hz is enough for progression changes and avoids a second render RAF.
   const runtime = globalThis.__eduniThreeWaterfall;
   if (runtime) {
+    installCardinalGameplayCamera(runtime, bridge);
     const syncStageVisual = () => applyStageVisual(runtime, statusEl, waterfallVisualPhase(bridge.getState()));
     syncStageVisual();
     const visualTimer = globalThis.setInterval?.(syncStageVisual, 125);

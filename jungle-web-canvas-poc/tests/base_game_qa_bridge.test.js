@@ -28,7 +28,7 @@ test("Base QA bridge derives targets from authored stage interactables and phase
 });
 
 test("Unified Jungle QA uses rich runtime data for all five stages", () => {
-  assert.match(QA, /camp: \{ label: "Camp", url: "\.\/\?qa=1", globalName: "__eduniJungleGame"/);
+  assert.match(QA, /camp: \{ label: "Camp", url: "\.\/\?renderer=three&qa=1", globalName: "__eduniJungleGame"/);
   assert.match(QA, /waterfall: \{ label: "Waterfall", url: "\.\/\?stage=waterfall&renderer=three&qa=1", globalName: "__eduniJungleGame"/);
   assert.match(QA, /runtime\.getTarget\?\.\(\)/);
   assert.match(QA, /runtime\?\.stageId && runtime\.stageId !== currentStage/);

@@ -46,6 +46,6 @@ test("Giant Tree game preserves real input, movement, progression and reward col
 
 test("Jungle hub unlocks Giant Tree after the first three stage badges", () => {
   assert.match(HUB_HTML, /giant-tree-game\.html/);
-  assert.match(HUB_HTML, /unlockStages = \["camp","waterfall","cave"\]/);
-  assert.match(HUB_HTML, /giantTreeUnlocked/);
+  assert.match(HUB_HTML, /giantTreePrerequisites = \["camp","waterfall","cave"\]/);
+  assert.match(HUB_HTML, /giantTreeUnlocked = giantTreePrerequisites\.every/);
 });

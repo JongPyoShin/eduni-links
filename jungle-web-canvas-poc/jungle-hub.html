@@ -24,7 +24,8 @@
       .waterfall { background: radial-gradient(circle at 75% 15%,rgba(202,250,255,.28),transparent 28%), linear-gradient(145deg,#216f79,#294e62); }
       .cave { background: radial-gradient(circle at 70% 25%,rgba(204,255,113,.28),transparent 26%), radial-gradient(circle at 30% 38%,rgba(113,224,255,.2),transparent 20%), linear-gradient(145deg,#302d59,#20263d); }
       .tree { background: radial-gradient(circle at 50% 10%,rgba(255,224,120,.25),transparent 24%), linear-gradient(145deg,#6d4d27,#314a29); }
-      .locked::after { content:"배지 3개 필요"; position:absolute; top:14px; right:14px; padding:6px 9px; border-radius:999px; background:rgba(15,20,15,.55); font-size:12px; font-weight:850; color:#fbe7ac; }
+      .sky { background: radial-gradient(circle at 62% 14%,rgba(255,235,157,.28),transparent 24%), radial-gradient(circle at 22% 26%,rgba(217,243,255,.24),transparent 28%), linear-gradient(145deg,#5e86a0,#536986); }
+      .locked::after { content:attr(data-lock); position:absolute; top:14px; right:14px; padding:6px 9px; border-radius:999px; background:rgba(15,20,15,.55); font-size:12px; font-weight:850; color:#fbe7ac; }
       .locked a { opacity:.42; pointer-events:none; }
       .progress { margin-top: 16px; font-weight: 850; color: #e8f7d8; }
       @media (max-width:700px) { .grid { grid-template-columns:1fr; } .card { min-height:190px; } }
@@ -33,13 +34,14 @@
   <body>
     <main class="wrap">
       <h1>정글 탐험 지도</h1>
-      <p class="lead">탐험을 마치면 배지가 모여. 앞의 세 배지를 모으면 거대한 고목이 열린다!</p>
+      <p class="lead">탐험 배지를 차례로 모아 마지막 하늘 능선까지 올라가 보자!</p>
       <section class="badges" id="badges" aria-label="탐험 배지"></section>
       <section class="grid">
         <article class="card camp"><h2>🌿 숲속 탐험 캠프</h2><p>오두막에서 출발해 단서를 모으고 능선의 파랑새를 찾아가자.</p><a href="./">탐험 시작</a></article>
         <article class="card waterfall"><h2>💦 안개 폭포</h2><p>물소리와 안개 흔적을 따라 전망대의 물총새를 관찰하자.</p><a href="./waterfall-three.html">탐험 시작</a></article>
         <article class="card cave"><h2>✨ 반딧불 동굴</h2><p>빛의 순서를 기억하고 수정 다리를 건너 작은 박쥐를 만나자.</p><a href="./cave-game.html">탐험 시작</a></article>
-        <article class="card tree locked" id="giant-tree-card"><h2>🌳 거대한 고목</h2><p>나무껍질과 도토리 흔적을 따라 나이테를 관찰하고, 나선 계단 위 다람쥐를 만나자.</p><a id="giant-tree-link" href="./giant-tree-game.html">탐험 시작</a></article>
+        <article class="card tree locked" data-lock="배지 3개 필요" id="giant-tree-card"><h2>🌳 거대한 고목</h2><p>나무껍질과 도토리 흔적을 따라 나이테를 관찰하고, 나선 계단 위 다람쥐를 만나자.</p><a href="./giant-tree-game.html">탐험 시작</a></article>
+        <article class="card sky locked" data-lock="고목 씨앗 배지 필요" id="sky-ridge-card"><h2>☁️ 하늘 능선</h2><p>바람 리본과 구름 그림자를 따라 정상의 하늘매를 만나 마지막 하늘별 배지를 얻자.</p><a href="./sky-ridge-game.html">최종 탐험</a></article>
       </section>
       <div class="progress" id="progress"></div>
     </main>
@@ -47,8 +49,8 @@
       import { STAGE_REWARDS, hasStageReward, loadRewardCollection } from "./src/content/stage_rewards.js";
       const collection = loadRewardCollection();
       const container = document.querySelector("#badges");
-      const stageOrder = ["camp","waterfall","cave","giantTree"];
-      const unlockStages = ["camp","waterfall","cave"];
+      const stageOrder = ["camp","waterfall","cave","giantTree","skyRidge"];
+      const giantTreePrerequisites = ["camp","waterfall","cave"];
       let earnedCount = 0;
       for (const stageId of stageOrder) {
         const reward = STAGE_REWARDS[stageId];
@@ -59,9 +61,14 @@
         el.textContent = `${reward.icon} ${earned ? reward.name : "??? 배지"}`;
         container.append(el);
       }
-      const giantTreeUnlocked = unlockStages.every((stageId) => hasStageReward(collection, stageId));
+      const giantTreeUnlocked = giantTreePrerequisites.every((stageId) => hasStageReward(collection, stageId));
+      const skyRidgeUnlocked = hasStageReward(collection, "giantTree");
       if (giantTreeUnlocked) document.querySelector("#giant-tree-card").classList.remove("locked");
-      document.querySelector("#progress").textContent = `배지 ${earnedCount} / ${stageOrder.length}${giantTreeUnlocked ? " · 거대한 고목 OPEN!" : " · 3개를 모으면 거대한 고목 OPEN"}`;
+      if (skyRidgeUnlocked) document.querySelector("#sky-ridge-card").classList.remove("locked");
+      const finalComplete = hasStageReward(collection, "skyRidge");
+      document.querySelector("#progress").textContent = finalComplete
+        ? `배지 ${earnedCount} / ${stageOrder.length} · 정글 탐험 완주!`
+        : `배지 ${earnedCount} / ${stageOrder.length}${skyRidgeUnlocked ? " · 하늘 능선 OPEN!" : giantTreeUnlocked ? " · 거대한 고목 OPEN" : " · 앞의 3개를 모으면 거대한 고목 OPEN"}`;
     </script>
   </body>
 </html>

@@ -24,8 +24,9 @@ test("Jungle stages expose distinct collectible badges", () => {
   assert.equal(stageReward("waterfall").name, "물총새 물방울 배지");
   assert.equal(stageReward("cave").name, "반딧불 수정 배지");
   assert.equal(stageReward("giantTree").name, "고목 씨앗 배지");
+  assert.equal(stageReward("skyRidge").name, "하늘별 배지");
   const rewards = Object.values(STAGE_REWARDS);
-  assert.equal(rewards.length, 4);
+  assert.equal(rewards.length, 5);
   assert.equal(new Set(rewards.map((reward) => reward.id)).size, rewards.length);
 });
 

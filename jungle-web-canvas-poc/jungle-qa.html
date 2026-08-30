@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta http-equiv="cache-control" content="no-store" />
+    <title>EDUNI Jungle — Full QA</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #101923; font-family: system-ui, sans-serif; color: #eef7f1; }
+      #game { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #101923; }
+      #toolbar { position: fixed; top: 10px; left: 10px; right: 10px; z-index: 60; display: flex; gap: 7px; flex-wrap: wrap; pointer-events: none; }
+      #toolbar button { pointer-events: auto; border: 1px solid rgba(255,255,255,.28); border-radius: 11px; padding: 8px 10px; background: rgba(9,18,30,.84); color: #dce9ef; font-weight: 850; box-shadow: 0 5px 16px rgba(0,0,0,.24); }
+      #toolbar button.active { background: #f3d67d; color: #263442; border-color: #fff1bd; }
+      #toolbar button.done::after { content: " ✓"; color: #6ee7a8; }
+      #panel { position: fixed; top: 58px; right: 10px; z-index: 60; width: min(350px, calc(100vw - 20px)); padding: 11px 13px; border-radius: 14px; background: rgba(8,15,27,.88); border: 1px solid rgba(146,219,255,.32); box-shadow: 0 10px 34px rgba(0,0,0,.38); pointer-events: none; font-size: 12px; line-height: 1.5; backdrop-filter: blur(7px); }
+      #panel strong { color: #ffe690; }
+      .row { display: flex; justify-content: space-between; gap: 10px; }
+      .value { text-align: right; max-width: 66%; overflow-wrap: anywhere; }
+      .ok { color: #86efac; }
+      .warn { color: #fca5a5; }
+      #objective { margin-top: 7px; padding-top: 7px; border-top: 1px solid rgba(255,255,255,.12); color: #dbeafe; }
+      #pad { margin-top: 7px; padding-top: 7px; border-top: 1px solid rgba(255,255,255,.12); color: #c4f1ff; }
+      #hint { margin-top: 7px; color: #a9b8c8; }
+      @media (max-width: 700px) {
+        #toolbar { right: 8px; gap: 5px; }
+        #toolbar button { padding: 7px 8px; font-size: 11px; }
+        #panel { top: 98px; font-size: 11px; width: min(310px, calc(100vw - 20px)); }
+      }
+    </style>
+  </head>
+  <body>
+    <iframe id="game" title="정글 실제 플레이 QA"></iframe>
+    <nav id="toolbar" aria-label="QA stage selector"></nav>
+    <aside id="panel">
+      <div><strong>FULL PLAY QA</strong> · 게임 state 변경 없음</div>
+      <div class="row"><span>stage</span><span class="value" id="stage">-</span></div>
+      <div class="row"><span>phase</span><span class="value" id="phase">-</span></div>
+      <div class="row"><span>player</span><span class="value" id="player">-</span></div>
+      <div class="row"><span>target</span><span class="value" id="target">-</span></div>
+      <div class="row"><span>distance</span><span class="value" id="distance">-</span></div>
+      <div class="row"><span>badge</span><span class="value" id="reward">미획득</span></div>
+      <div id="objective">게임 로딩 중…</div>
+      <div id="pad">게임패드: 검색 중…</div>
+      <div id="hint">실제 키보드/D-pad/물리 컨트롤러로 플레이하세요. 이 오버레이는 DOM, game state, localStorage를 읽기만 합니다.</div>
+    </aside>
+
+    <script type="module">
+      import { STAGE_REWARDS, hasStageReward, loadRewardCollection } from "./src/content/stage_rewards.js";
+      import { caveInteractables } from "./src/content/cave_interactables.js";
+      import { giantTreeInteractables } from "./src/content/giant_tree_interactables.js";
+      import { skyRidgeInteractables } from "./src/content/sky_ridge_interactables.js";
+
+      const STAGES = Object.freeze({
+        camp: { label: "Camp", url: "./?qa=1", globalName: null },
+        waterfall: { label: "Waterfall", url: "./?stage=waterfall&renderer=three&qa=1", globalName: null },
+        cave: { label: "Cave", url: "./cave-game.html?qa=1", globalName: "__eduniCaveGame", interactables: caveInteractables },
+        giantTree: { label: "Giant Tree", url: "./giant-tree-game.html?qa=1", globalName: "__eduniGiantTreeGame", interactables: giantTreeInteractables },
+        skyRidge: { label: "Sky Ridge", url: "./sky-ridge-game.html?qa=1", globalName: "__eduniSkyRidgeGame", interactables: skyRidgeInteractables },
+      });
+
+      const frame = document.querySelector("#game");
+      const toolbar = document.querySelector("#toolbar");
+      const els = Object.fromEntries(["stage","phase","player","target","distance","reward","objective","pad"].map((id) => [id, document.querySelector(`#${id}`)]));
+      let currentStage = new URLSearchParams(location.search).get("stage") || "camp";
+      if (!STAGES[currentStage]) currentStage = "camp";
+
+      function earned(stageId) {
+        return hasStageReward(loadRewardCollection(localStorage), stageId);
+      }
+
+      function renderToolbar() {
+        toolbar.replaceChildren();
+        for (const [stageId, config] of Object.entries(STAGES)) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = config.label;
+          button.className = `${stageId === currentStage ? "active" : ""}${earned(stageId) ? " done" : ""}`.trim();
+          button.addEventListener("click", () => selectStage(stageId));
+          toolbar.append(button);
+        }
+      }
+
+      function selectStage(stageId) {
+        if (!STAGES[stageId]) return;
+        currentStage = stageId;
+        history.replaceState(null, "", `?stage=${encodeURIComponent(stageId)}`);
+        frame.src = STAGES[stageId].url;
+        els.stage.textContent = STAGES[stageId].label;
+        els.phase.textContent = "loading";
+        els.player.textContent = "-";
+        els.target.textContent = "-";
+        els.distance.textContent = "-";
+        renderToolbar();
+      }
+
+      function fmt(value) {
+        return Number.isFinite(value) ? Math.round(value) : "-";
+      }
+
+      function runtimeFor(win, config) {
+        return config.globalName ? win?.[config.globalName] || null : null;
+      }
+
+      function readGamepad(win) {
+        const pads = win?.navigator?.getGamepads?.() || [];
+        const pad = Array.from(pads).find((candidate) => candidate?.connected) || null;
+        if (!pad) {
+          els.pad.textContent = "게임패드: 연결 없음 · 키보드/터치 입력 가능";
+          els.pad.className = "warn";
+          return;
+        }
+        const x = Number(pad.axes?.[0] || 0).toFixed(2);
+        const y = Number(pad.axes?.[1] || 0).toFixed(2);
+        const a = pad.buttons?.[0]?.pressed ? "A●" : "A○";
+        const b = pad.buttons?.[1]?.pressed ? "B●" : "B○";
+        const dpad = [
+          pad.buttons?.[12]?.pressed ? "↑" : "",
+          pad.buttons?.[13]?.pressed ? "↓" : "",
+          pad.buttons?.[14]?.pressed ? "←" : "",
+          pad.buttons?.[15]?.pressed ? "→" : "",
+        ].join("") || "·";
+        els.pad.textContent = `게임패드: ${pad.id || `#${pad.index}`} · axis ${x},${y} · ${a} ${b} · D ${dpad}`;
+        els.pad.className = "ok";
+      }
+
+      function update() {
+        try {
+          const config = STAGES[currentStage];
+          const win = frame.contentWindow;
+          const doc = frame.contentDocument;
+          if (!win || !doc) return;
+          const collection = loadRewardCollection(localStorage);
+          const reward = STAGE_REWARDS[currentStage];
+          const isEarned = hasStageReward(collection, currentStage);
+          els.reward.textContent = isEarned ? `${reward.icon} ${reward.name} 획득` : "미획득";
+          els.reward.className = `value${isEarned ? " ok" : ""}`;
+
+          const objective = doc.querySelector("#objective-hud")?.textContent || "";
+          const modalTitle = doc.querySelector("#modal-title")?.textContent || "";
+          const modalBody = doc.querySelector("#modal-body")?.textContent || "";
+          els.objective.textContent = [objective, modalTitle, modalBody].filter(Boolean).join(" · ") || "HUD 대기 중…";
+
+          const runtime = runtimeFor(win, config);
+          if (runtime?.getState && runtime?.player) {
+            const state = runtime.getState();
+            const player = runtime.player;
+            const target = config.interactables?.(state)?.[0] || null;
+            els.phase.textContent = runtime.getPhase?.() || "-";
+            els.player.textContent = `${fmt(player.x)}, ${fmt(player.y)}`;
+            if (target) {
+              const distance = Math.hypot(player.x - target.x, player.y - target.y);
+              els.target.textContent = `${target.label} (${target.x}, ${target.y})`;
+              els.distance.textContent = `${Math.round(distance)} / r${target.radius}`;
+              els.distance.className = `value${distance <= target.radius ? " ok" : ""}`;
+            } else {
+              els.target.textContent = isEarned ? "완료" : "다음 목표 없음";
+              els.distance.textContent = isEarned ? "0" : "-";
+              els.distance.className = `value${isEarned ? " ok" : ""}`;
+            }
+          } else {
+            els.phase.textContent = currentStage === "waterfall" ? "Three gameplay" : "Canvas gameplay";
+            els.player.textContent = "HUD 기준 확인";
+            els.target.textContent = "화면 목표 따라 진행";
+            els.distance.textContent = "-";
+            els.distance.className = "value";
+          }
+
+          readGamepad(win);
+          renderToolbar();
+        } catch (error) {
+          els.objective.textContent = `QA 읽기 실패: ${error?.message || error}`;
+          els.objective.className = "warn";
+        }
+      }
+
+      frame.addEventListener("load", () => update());
+      selectStage(currentStage);
+      setInterval(update, 120);
+    </script>
+  </body>
+</html>

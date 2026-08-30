@@ -113,6 +113,23 @@ export async function startGiantTreeGame(canvas, modalEl, statusEl) {
     updateUi();
   }
 
+  function openRewardCeremony() {
+    const reward = stageReward("giantTree");
+    panel.openPanel({
+      kind: "reward",
+      title: reward.name,
+      body: reward.message,
+      badge: true,
+      badgeIcon: reward.icon,
+      badgeLabel: reward.name,
+      checklist: reward.discoveries,
+      confirmLabel: "배지 받기",
+      revealReady: true,
+    });
+    audio.play("rewardFanfare");
+    updateUi();
+  }
+
   function openInteraction(item) {
     movement.reset();
     audio.play("uiConfirm");
@@ -121,17 +138,7 @@ export async function startGiantTreeGame(canvas, modalEl, statusEl) {
       return;
     }
     if (item.type === "reward") {
-      const reward = stageReward("giantTree");
-      panel.openPanel({
-        kind: "reward",
-        title: reward.name,
-        body: reward.message,
-        badge: true,
-        checklist: reward.discoveries,
-        confirmLabel: "배지 받기",
-        revealReady: true,
-      });
-      updateUi();
+      openRewardCeremony();
       return;
     }
     const body = {
@@ -170,11 +177,13 @@ export async function startGiantTreeGame(canvas, modalEl, statusEl) {
     else if (kind === "seedTrail") tree = collectGiantTreeClue(tree, "seedTrail");
     else if (kind === "hollowEcho") tree = collectGiantTreeClue(tree, "hollowEcho");
     else if (kind === "canopyStairs") tree = completeCanopyStairs(tree);
-    else if (kind === "squirrel") tree = completeSquirrel(tree);
-    else if (kind === "reward") {
+    else if (kind === "squirrel") {
+      tree = completeSquirrel(tree);
+      openRewardCeremony();
+      return;
+    } else if (kind === "reward") {
       tree = completeGiantTreeReward(tree);
       awardAndSaveStageReward("giantTree");
-      audio.play("rewardFanfare");
     }
     panel.closePanel();
     updateUi();

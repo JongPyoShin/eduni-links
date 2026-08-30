@@ -18,7 +18,7 @@ import {
 import { drawDebugOverlay } from "./debug.js";
 import { createChapterState, resetChapter } from "./content/chapter_state.js";
 import { CLUES, FIRE_PIT_ROUNDS, answerFirePitRound, chapterObjective, collectClue, completeBluebird, startQuest } from "./content/camp_chapter.js";
-import { nearestInteractable } from "./content/interactables.js";
+import { buildInteractables, nearestInteractable } from "./content/interactables.js";
 import { ContentPanelController, renderContentPanel } from "./content/content_panel.js";
 import { drawChapterWorld } from "./content/feedback.js";
 import { activeDirection, advanceSequences, beginIntro, beginRewardReveal, beginRidgeArrival, createSequenceState, scriptedCameraFocus } from "./content/sequence_controller.js";
@@ -26,10 +26,11 @@ import { AudioManager } from "./audio.js";
 import { EffectSystem } from "./effects.js";
 import { drawWaterfallWorld, drawWaterfallForeground, drawKingfisher } from "./waterfall_scene.js";
 import { createWaterfallState, resetWaterfall, waterfallObjective, completeStreamGate, completeSteppingStones, collectWaterfallClue, answerLeafMatchRound, completeLookout, completeKingfisher, completeWaterfallReward, LEAF_MATCH_ROUNDS } from "./content/waterfall_chapter.js";
-import { nearestWaterfallInteractable } from "./content/waterfall_interactables.js";
+import { nearestWaterfallInteractable, waterfallInteractables } from "./content/waterfall_interactables.js";
 import { WATERFALL_ART_IMAGES } from "./waterfall_art_manifest.js";
 import { startThreeWaterfallRuntime } from "./three_waterfall_runtime.js";
 import { stageReward, awardAndSaveStageReward } from "./content/stage_rewards.js";
+import { campVisualPhase, waterfallVisualPhase } from "./content/stage_visual_director.js";
 
 const LEAF_LABELS = Object.freeze({
   round: "둥근 잎",
@@ -429,8 +430,31 @@ export async function start(canvas, modalEl) {
     requestAnimationFrame(loop);
   }
 
+  function qaTarget() {
+    if (panel.blocksMovement()) return null;
+    if (waterfallStage) return waterfallInteractables(waterfall)[0] || null;
+    return buildInteractables(chapter, { bluebirdReady: sequences.ridgeArrivalPlayed })[0] || null;
+  }
+
+  function qaPhase() {
+    return waterfallStage
+      ? waterfallVisualPhase(waterfall).phaseId
+      : campVisualPhase(chapter, { ridgeArrivalPlayed: sequences.ridgeArrivalPlayed }).phaseId;
+  }
+
   modalEl.querySelector("#modal-confirm").addEventListener("click", () => handlePanelActivate(performance.now()));
   updateUi();
+
+  globalThis.__eduniJungleGame = Object.freeze({
+    stageId: waterfallStage ? "waterfall" : "camp",
+    player,
+    geometry,
+    getState: () => waterfallStage ? waterfall : chapter,
+    getPhase: qaPhase,
+    getTarget: qaTarget,
+    getObjective: () => waterfallStage ? waterfallObjective(waterfall) : chapterObjective(chapter),
+  });
+
   if (threeMode) {
     await startThreeWaterfallRuntime(threeCanvas, threeStatus, {
       geometry,

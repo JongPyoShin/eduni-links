@@ -29,6 +29,7 @@ import { createWaterfallState, resetWaterfall, waterfallObjective, completeStrea
 import { nearestWaterfallInteractable } from "./content/waterfall_interactables.js";
 import { WATERFALL_ART_IMAGES } from "./waterfall_art_manifest.js";
 import { startThreeWaterfallRuntime } from "./three_waterfall_runtime.js";
+import { stageReward, awardAndSaveStageReward } from "./content/stage_rewards.js";
 
 const LEAF_LABELS = Object.freeze({
   round: "둥근 잎",
@@ -158,13 +159,14 @@ export async function start(canvas, modalEl) {
       if (item.type === "leafMatch") {
         openLeafRound();
       } else if (item.type === "reward") {
+        const reward = stageReward("waterfall");
         panel.openPanel({
           kind: "reward",
-          title: "안개 폭포 탐험 완료!",
-          body: "오늘의 폭포 탐험에서 발견한 것",
+          title: reward.name,
+          body: reward.message,
           badge: true,
-          checklist: ["징검다리", "폭포 소리", "안개 흔적", "잎사귀 관찰", "물총새"],
-          confirmLabel: "다시 둘러보기",
+          checklist: reward.discoveries,
+          confirmLabel: "배지 받기",
           revealReady: true,
         });
       } else {
@@ -199,9 +201,6 @@ export async function start(canvas, modalEl) {
           if (answer.completed) {
             panel.closePanel();
           } else {
-            // Keep the mini-game continuous: a correct answer advances directly
-            // to the next authored round without forcing the child to walk away
-            // and reopen the same interaction target.
             openLeafRound();
           }
         }
@@ -244,7 +243,8 @@ export async function start(canvas, modalEl) {
           cue("kingfisher", "sparkle", 1410, 400, ts || 0, 1.4);
         } else if (kind === "reward") {
           waterfall = completeWaterfallReward(waterfall);
-          cue("waterfallReward", "soft-burst", 1410, 400, ts || 0, 2);
+          awardAndSaveStageReward("waterfall");
+          cue("rewardFanfare", "soft-burst", 1410, 400, ts || 0, 2);
         }
         panel.closePanel();
         updateUi();
@@ -262,9 +262,11 @@ export async function start(canvas, modalEl) {
       }
       if (result.kind === "bluebird") {
         chapter = completeBluebird(chapter);
+        awardAndSaveStageReward("camp");
+        const reward = stageReward("camp");
         cue("bluebird", "sparkle", BLUEBIRD.VISUAL.x, BLUEBIRD.VISUAL.y, ts || 0, 2);
         sequences = beginRewardReveal(sequences, ts);
-        panel.openPanel({ kind: "reward", title: "탐험 완료!", body: "오늘 발견한 것", badge: true, checklist: ["파란 깃털", "작은 발자국", "새소리", "파랑새"], confirmLabel: "다시 둘러보기", revealReady: false });
+        panel.openPanel({ kind: "reward", title: reward.name, body: reward.message, badge: true, checklist: reward.discoveries, confirmLabel: "다시 둘러보기", revealReady: false });
         cue("rewardFanfare", "soft-burst", BLUEBIRD.VISUAL.x, BLUEBIRD.VISUAL.y, ts || 0, 2);
         updateUi();
         return;

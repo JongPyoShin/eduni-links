@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>Jungle Camp — Web Canvas 2.5D PoC</title>
+    <title>Jungle Camp — Storybook Adventure</title>
     <script type="importmap">
       {
         "imports": {
@@ -97,7 +97,7 @@
     </div>
 
     <script type="module">
-      import { start } from "./src/game.js?v=three-runtime-7b86b18";
+      import { start } from "./src/game.js?v=camp-three-e1adb3d";
       const canvas = document.getElementById("game");
       function resize() {
         canvas.width = window.innerWidth;
@@ -106,7 +106,19 @@
       resize();
       window.addEventListener("resize", resize);
       const modalEl = document.getElementById("modal");
-      start(canvas, modalEl);
+      const params = new URLSearchParams(window.location.search);
+      await start(canvas, modalEl);
+      const isCamp = params.get("stage") !== "waterfall";
+      const wantsThreeCamp = isCamp && params.get("renderer") !== "canvas";
+      if (wantsThreeCamp) {
+        try {
+          const { startThreeCampRuntime } = await import("./src/three_camp_runtime.js?v=camp-three-1");
+          await startThreeCampRuntime(canvas, globalThis.__eduniJungleGame);
+        } catch (error) {
+          console.error("Three Camp startup failed; keeping Canvas fallback", error);
+          canvas.style.visibility = "visible";
+        }
+      }
     </script>
   </body>
 </html>

@@ -258,17 +258,26 @@ export class InputController {
 
     panel = document.createElement("div");
     panel.id = "qa-input-panel";
-    panel.dataset.contract = "eduni-jungle-click-input-v1";
+    panel.dataset.contract = "eduni-jungle-click-input-v2";
+    panel.dataset.holdDurations = "1000,250,100";
     panel.setAttribute("aria-label", "QA input controls");
-    panel.style.cssText = "position:fixed;right:10px;top:54px;z-index:50;display:grid;grid-template-columns:repeat(3,58px);gap:6px;padding:8px;border-radius:10px;background:rgba(0,0,0,.72);font:11px system-ui;color:#fff;";
+    panel.style.cssText = "position:fixed;right:10px;top:54px;z-index:50;display:grid;grid-template-columns:repeat(4,62px);gap:5px;padding:8px;border-radius:10px;background:rgba(0,0,0,.72);font:11px system-ui;color:#fff;max-height:calc(100vh - 64px);overflow:auto;";
 
     const controls = [
-      { id: "qa-hold-up", label: "QA ↑ 1s", action: "up", duration: 1000, column: "2" },
-      { id: "qa-hold-left", label: "QA ← 1s", action: "left", duration: 1000, column: "1" },
-      { id: "qa-hold-down", label: "QA ↓ 1s", action: "down", duration: 1000, column: "2" },
-      { id: "qa-hold-right", label: "QA → 1s", action: "right", duration: 1000, column: "3" },
-      { id: "qa-interact", label: "QA A", action: "interact", duration: 80, column: "1 / span 1" },
-      { id: "qa-close", label: "QA B", action: "close", duration: 80, column: "3" },
+      { id: "qa-hold-up", label: "↑ 1s", action: "up", duration: 1000 },
+      { id: "qa-hold-down", label: "↓ 1s", action: "down", duration: 1000 },
+      { id: "qa-hold-left", label: "← 1s", action: "left", duration: 1000 },
+      { id: "qa-hold-right", label: "→ 1s", action: "right", duration: 1000 },
+      { id: "qa-nudge-up", label: "↑ 250", action: "up", duration: 250 },
+      { id: "qa-nudge-down", label: "↓ 250", action: "down", duration: 250 },
+      { id: "qa-nudge-left", label: "← 250", action: "left", duration: 250 },
+      { id: "qa-nudge-right", label: "→ 250", action: "right", duration: 250 },
+      { id: "qa-fine-up", label: "↑ 100", action: "up", duration: 100 },
+      { id: "qa-fine-down", label: "↓ 100", action: "down", duration: 100 },
+      { id: "qa-fine-left", label: "← 100", action: "left", duration: 100 },
+      { id: "qa-fine-right", label: "→ 100", action: "right", duration: 100 },
+      { id: "qa-interact", label: "QA A", action: "interact", duration: 80 },
+      { id: "qa-close", label: "QA B", action: "close", duration: 80 },
     ];
 
     for (const spec of controls) {
@@ -278,7 +287,7 @@ export class InputController {
       button.textContent = spec.label;
       button.dataset.action = spec.action;
       button.dataset.durationMs = String(spec.duration);
-      button.style.cssText = `grid-column:${spec.column};min-height:34px;border:1px solid rgba(255,255,255,.45);border-radius:7px;background:rgba(255,255,255,.14);color:#fff;font:700 10px system-ui;`;
+      button.style.cssText = "min-height:34px;border:1px solid rgba(255,255,255,.45);border-radius:7px;background:rgba(255,255,255,.14);color:#fff;font:700 10px system-ui;";
       button.addEventListener("click", () => this._qaPulse(spec.action, spec.duration));
       panel.appendChild(button);
     }

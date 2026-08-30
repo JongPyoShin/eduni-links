@@ -448,7 +448,7 @@ export async function startThreeCavePreview(canvas, statusEl, options = {}) {
       if (requested >= 0) phaseIndex = requested;
     }
     currentPhase = applyPhase(scene, renderer, story, crystals, player, PHASES[phaseIndex]);
-    setStatus(`단계 ${phaseIndex + 1}/${PHASES.length} · ${currentPhase.phaseId} · GLB ${vendor.loaded}/${vendor.total} · fallback ${vendor.fallbacks}`);
+    setStatus(`단계 ${phaseIndex + 1}/${PHASES.length} · ${PHASES[phaseIndex]} · GLB ${vendor.loaded}/${vendor.total} · fallback ${vendor.fallbacks}`);
     if (statusEl) statusEl.dataset.stageVisual = JSON.stringify(currentPhase);
     return currentPhase;
   };

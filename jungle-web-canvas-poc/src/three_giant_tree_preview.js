@@ -373,7 +373,7 @@ export async function startThreeGiantTreePreview(canvas,statusEl,options={}) {
   function resize(){ const width=canvas.clientWidth||globalThis.innerWidth||1280; const height=canvas.clientHeight||globalThis.innerHeight||720; renderer.setSize(width,height,false); const aspect=width/Math.max(1,height); const viewHeight=10.8; camera.left=-(viewHeight*aspect)/2; camera.right=(viewHeight*aspect)/2; camera.top=viewHeight/2; camera.bottom=-viewHeight/2; camera.updateProjectionMatrix(); }
   resize(); globalThis.addEventListener("resize",resize);
 
-  const setPhase=(value)=>{ if(typeof value==="number") phaseIndex=THREE.MathUtils.clamp(Math.round(value),0,PHASES.length-1); else { const requested=PHASES.indexOf(value); if(requested>=0) phaseIndex=requested; } currentPhase=applyPhase(scene,renderer,story,player,PHASES[phaseIndex]); setStatus(`단계 ${phaseIndex+1}/${PHASES.length} · ${currentPhase.phaseId} · GLB ${vendor.loaded}/${vendor.total} · fallback ${vendor.fallbacks}`); if(statusEl) statusEl.dataset.stageVisual=JSON.stringify(currentPhase); return currentPhase; };
+  const setPhase=(value)=>{ if(typeof value==="number") phaseIndex=THREE.MathUtils.clamp(Math.round(value),0,PHASES.length-1); else { const requested=PHASES.indexOf(value); if(requested>=0) phaseIndex=requested; } currentPhase=applyPhase(scene,renderer,story,player,PHASES[phaseIndex]); setStatus(`단계 ${phaseIndex+1}/${PHASES.length} · ${PHASES[phaseIndex]} · GLB ${vendor.loaded}/${vendor.total} · fallback ${vendor.fallbacks}`); if(statusEl) statusEl.dataset.stageVisual=JSON.stringify(currentPhase); return currentPhase; };
   setPhase(phaseIndex);
 
   const clock=new THREE.Clock(); let rafId=0; let disposed=false;

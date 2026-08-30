@@ -22,8 +22,11 @@ import { skyRidgeVisualPhase } from "./content/stage_visual_director.js";
 import { stageReward, awardAndSaveStageReward } from "./content/stage_rewards.js";
 import { skyRidgeLogicalToThree, startThreeSkyRidgePreview } from "./three_sky_ridge_preview.js";
 
-const SYMBOLS = Object.freeze({ star: "별", moon: "달", cloud: "구름" });
-function patternLabel(id) { return String(id).split("-").map((part) => SYMBOLS[part] || part).join(" → "); }
+const PATTERN_LABELS = Object.freeze({ star: "별", moon: "달", cloud: "구름" });
+
+function patternLabel(id) {
+  return String(id).split("-").map((part) => PATTERN_LABELS[part] || part).join(" → ");
+}
 
 function setObjective(text) {
   const hud = document.querySelector("#objective-hud");
@@ -66,17 +69,17 @@ export async function startSkyRidgeGame(canvas, modalEl, statusEl) {
     if (!runtime.player?.sprite) return;
     const p = skyRidgeLogicalToThree(player.x, player.y, 0);
     runtime.player.sprite.position.set(p.x, 1.02, p.z);
-    runtime.player.glow?.position.set(p.x, .82, p.z + .08);
+    runtime.player.glow?.position.set(p.x, 0.82, p.z + 0.08);
     const image = playerSprite.currentImage();
     if (image && runtime.player.sprite.material.map?.image !== image) {
       runtime.player.sprite.material.map = cachePlayerTexture(image);
       runtime.player.sprite.material.needsUpdate = true;
     }
     const targetX = THREE.MathUtils.clamp(p.x, -3.15, 3.15);
-    const targetZ = THREE.MathUtils.clamp(p.z * .62 - .48, -3.0, 3.0);
-    runtime.controls.target.x += (targetX - runtime.controls.target.x) * .1;
-    runtime.controls.target.z += (targetZ - runtime.controls.target.z) * .1;
-    runtime.controls.target.y = .75;
+    const targetZ = THREE.MathUtils.clamp(p.z * 0.62 - 0.48, -3.0, 3.0);
+    runtime.controls.target.x += (targetX - runtime.controls.target.x) * 0.1;
+    runtime.controls.target.z += (targetZ - runtime.controls.target.z) * 0.1;
+    runtime.controls.target.y = 1.05;
     runtime.camera.position.x = runtime.controls.target.x + 8.0;
     runtime.camera.position.z = runtime.controls.target.z + 9.5;
     runtime.camera.position.y = 12.0;
@@ -116,6 +119,23 @@ export async function startSkyRidgeGame(canvas, modalEl, statusEl) {
     updateUi();
   }
 
+  function openRewardCeremony() {
+    const reward = stageReward("skyRidge");
+    panel.openPanel({
+      kind: "reward",
+      title: reward.name,
+      body: reward.message,
+      badge: true,
+      badgeIcon: reward.icon,
+      badgeLabel: reward.name,
+      checklist: reward.discoveries,
+      confirmLabel: "배지 받기",
+      revealReady: true,
+    });
+    audio.play("rewardFanfare");
+    updateUi();
+  }
+
   function openInteraction(item) {
     movement.reset();
     audio.play("uiConfirm");
@@ -124,17 +144,7 @@ export async function startSkyRidgeGame(canvas, modalEl, statusEl) {
       return;
     }
     if (item.type === "reward") {
-      const reward = stageReward("skyRidge");
-      panel.openPanel({
-        kind: "reward",
-        title: reward.name,
-        body: reward.message,
-        badge: true,
-        checklist: reward.discoveries,
-        confirmLabel: "배지 받기",
-        revealReady: true,
-      });
-      updateUi();
+      openRewardCeremony();
       return;
     }
     const body = {
@@ -173,11 +183,13 @@ export async function startSkyRidgeGame(canvas, modalEl, statusEl) {
     else if (kind === "cloudShadow") sky = collectSkyRidgeClue(sky, "cloudShadow");
     else if (kind === "windChime") sky = collectSkyRidgeClue(sky, "windChime");
     else if (kind === "summitBridge") sky = completeSummitBridge(sky);
-    else if (kind === "hawk") sky = completeSkyHawk(sky);
-    else if (kind === "reward") {
+    else if (kind === "hawk") {
+      sky = completeSkyHawk(sky);
+      openRewardCeremony();
+      return;
+    } else if (kind === "reward") {
       sky = completeSkyRidgeReward(sky);
       awardAndSaveStageReward("skyRidge");
-      audio.play("rewardFanfare");
     }
     panel.closePanel();
     updateUi();

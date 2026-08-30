@@ -15,6 +15,8 @@ export class InputController {
     this.gamepadNavHeld = false;
     this.gamepadButtons = { a: false, b: false };
     this.keyboardNavHeld = new Set();
+    this.qaCommandObserver = null;
+    this.qaCommandElement = null;
     this.gamepadProvider = gamepadProvider || (() => (typeof navigator !== "undefined" && navigator.getGamepads ? navigator.getGamepads() : []));
     this._bind();
   }
@@ -149,6 +151,7 @@ export class InputController {
     window.addEventListener("keydown", (e) => this._onKey(e, true));
     window.addEventListener("keyup", (e) => this._onKey(e, false));
     this._bindDpad();
+    this._bindQaDom();
   }
 
   _onKey(e, down) {
@@ -220,5 +223,39 @@ export class InputController {
       el.addEventListener("pointerleave", () => set(false));
       el.addEventListener("pointercancel", () => set(false));
     }
+  }
+
+  _bindQaDom() {
+    if (typeof document === "undefined" || typeof MutationObserver === "undefined") return;
+    const query = (globalThis.location?.search || "").replaceAll("\\&", "&");
+    if (new URLSearchParams(query).get("qa") !== "1") return;
+
+    let el = document.getElementById("qa-input-command");
+    if (!el) {
+      el = document.createElement("output");
+      el.id = "qa-input-command";
+      el.hidden = true;
+      el.dataset.contract = "eduni-jungle-input-v1";
+      el.dataset.lastApplied = "";
+      document.body.appendChild(el);
+    }
+
+    const applyCommand = () => {
+      const raw = el.dataset.command || "";
+      if (!raw || raw === el.dataset.lastApplied) return;
+      const [sequence, action, state] = raw.split(":");
+      const validState = state === "down" || state === "up";
+      const accepted = Boolean(sequence) && validState && this.setDigitalAction(action, state === "down");
+      el.dataset.lastApplied = raw;
+      el.dataset.accepted = accepted ? "true" : "false";
+      el.dataset.action = accepted ? action : "";
+      el.dataset.state = accepted ? state : "";
+      el.dataset.direction = JSON.stringify(this.direction());
+    };
+
+    this.qaCommandElement = el;
+    this.qaCommandObserver = new MutationObserver(applyCommand);
+    this.qaCommandObserver.observe(el, { attributes: true, attributeFilter: ["data-command"] });
+    applyCommand();
   }
 }

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta http-equiv="cache-control" content="no-store" />
+    <title>EDUNI Jungle — 반딧불 동굴</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #20223a; font-family: system-ui, sans-serif; }
+      #three-cave-game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+      #objective-hud { position: fixed; top: 14px; left: 14px; max-width: min(360px, calc(100vw - 28px)); z-index: 5; padding: 10px 14px; border-radius: 14px; background: rgba(22,24,49,.82); border: 1px solid rgba(205,231,255,.42); color: #f7fbff; font-weight: 850; font-size: clamp(13px,2.1vw,18px); box-shadow: 0 7px 24px rgba(0,0,0,.28); }
+      #objective-hud.objective-change { animation: objective-change .42s ease; }
+      @keyframes objective-change { 0% { transform: translateY(5px); opacity: .3; } 70% { transform: translateY(-1px); opacity: 1; } 100% { transform: none; } }
+      #status { position: fixed; top: 62px; left: 14px; z-index: 5; color: #cbe8ff; font-size: 11px; background: rgba(20,22,42,.58); padding: 5px 8px; border-radius: 9px; pointer-events: none; }
+      #dpad { position: fixed; left: 18px; bottom: 18px; width: 168px; height: 168px; z-index: 8; }
+      .dbtn { position: absolute; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 13px; background: rgba(224,235,255,.18); border: 2px solid rgba(224,235,255,.42); color: #fff; font-size: 20px; font-weight: 800; user-select: none; touch-action: none; }
+      #dpad-up { left: 58px; top: 0; } #dpad-left { left: 0; top: 58px; } #dpad-right { left: 116px; top: 58px; } #dpad-down { left: 58px; top: 116px; }
+      #dpad-a { position: fixed; right: 18px; bottom: 84px; width: 66px; height: 66px; border-radius: 50%; z-index: 8; background: rgba(68,211,131,.48); border-color: rgba(120,255,180,.84); }
+      #dpad-b { position: fixed; right: 94px; bottom: 18px; width: 66px; height: 66px; border-radius: 50%; z-index: 8; background: rgba(225,97,121,.42); border-color: rgba(255,151,168,.78); }
+      .dbtn:active { background: rgba(255,255,255,.38); }
+      #modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 20; background: rgba(6,7,19,.62); }
+      #modal .card { width: min(390px, calc(100vw - 34px)); max-height: calc(100vh - 34px); overflow-y: auto; border-radius: 22px; padding: 22px; text-align: center; background: #fffdf6; box-shadow: 0 24px 70px rgba(0,0,0,.52); }
+      #modal .card h2 { margin: 7px 0; color: #273151; } #modal .card p { white-space: pre-line; color: #475569; line-height: 1.55; }
+      #modal-img { display: none; width: 150px; height: 150px; object-fit: contain; margin: 0 auto 8px; }
+      #modal-progress { min-height: 18px; color: #526a92; font-weight: 800; font-size: 13px; }
+      #modal-choices { display: grid; gap: 8px; margin: 14px 0; text-align: left; }
+      .choice { padding: 11px 12px; border-radius: 12px; border: 2px solid #dde5ef; color: #394861; font-weight: 780; }
+      .choice.focused { border-color: #95b83d; box-shadow: 0 0 0 3px rgba(185,221,88,.2); } .choice.selected { background: #eef8d8; }
+      .response { min-height: 20px; color: #5c6d79; font-weight: 750; } .response.gentle { color: #996a2d; }
+      .gentle-shake { animation: gentle-shake .34s ease; } @keyframes gentle-shake { 0%,100%{transform:none}35%{transform:translateX(-5px)}70%{transform:translateX(5px)} }
+      #modal-confirm { border: 0; border-radius: 12px; padding: 11px 18px; background: #586db8; color: #fff; font-weight: 850; font-size: 15px; }
+      #modal-hint { margin-top: 12px; color: #718096; font-size: 12px; }
+      #reward-badge { display: none; place-items: center; margin: 0 auto 12px; width: 94px; height: 94px; border-radius: 50%; font-size: 46px; background: radial-gradient(circle at 32% 24%,#fff 0 7%,#d9fb9e 8% 23%,#6fe2d3 24% 54%,#6066b5 55% 78%,#333764 79%); border: 4px solid #ffe680; box-shadow: 0 5px 0 #a9852d, 0 10px 28px rgba(91,225,210,.38); }
+      .reward-reveal #reward-badge { animation: badge-reveal .9s ease both, badge-shine 2s 1s infinite; }
+      #reward-summary { display: grid; gap: 5px; margin: 10px auto 14px; text-align: left; width: min(260px,100%); }
+      .reward-item { opacity: 0; color: #3d6b60; font-weight: 760; animation: reward-item .36s ease forwards; }
+      @keyframes badge-reveal { from { opacity:0; transform:scale(.66) rotate(-8deg); } 70% { opacity:1; transform:scale(1.08) rotate(3deg); } to { transform:scale(1); } }
+      @keyframes badge-shine { 0%,55% { filter:brightness(1) } 65% { filter:brightness(1.5) } 78%,100% { filter:brightness(1) } }
+      @keyframes reward-item { from { opacity:0; transform:translateX(-8px) } to { opacity:1; transform:none } }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./node_modules/three/build/three.module.js",
+          "three/addons/loaders/DRACOLoader.js": "./src/local_draco_loader.js",
+          "three/addons-local/": "./node_modules/three/examples/jsm/",
+          "three/addons/": "./node_modules/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="three-cave-game"></canvas>
+    <div id="objective-hud" aria-live="polite">반딧불이 모여 있는 동굴 입구를 찾아가 보자</div>
+    <div id="status">반딧불 동굴 준비 중…</div>
+
+    <div id="dpad">
+      <div class="dbtn" id="dpad-up">▲</div><div class="dbtn" id="dpad-left">◀</div><div class="dbtn" id="dpad-right">▶</div><div class="dbtn" id="dpad-down">▼</div>
+    </div>
+    <div class="dbtn" id="dpad-a">A</div><div class="dbtn" id="dpad-b">B</div>
+
+    <div id="modal">
+      <div class="card">
+        <div id="reward-badge" aria-label="반딧불 수정 배지">💎</div>
+        <img id="modal-img" alt="" />
+        <div id="modal-progress"></div>
+        <h2 id="modal-title">반딧불 동굴</h2>
+        <p id="modal-body"></p>
+        <div id="modal-response" class="response"></div>
+        <div id="modal-choices"></div>
+        <div id="reward-summary"></div>
+        <button id="modal-confirm" type="button">계속</button>
+        <div id="modal-hint">A / Enter로 계속 · B / Escape로 닫기</div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { startCaveGame } from "./src/cave_game.js";
+      startCaveGame(
+        document.querySelector("#three-cave-game"),
+        document.querySelector("#modal"),
+        document.querySelector("#status")
+      ).catch((error) => {
+        console.error(error);
+        document.querySelector("#status").textContent = `동굴 게임 시작 실패: ${error?.message || error}`;
+      });
+    </script>
+  </body>
+</html>

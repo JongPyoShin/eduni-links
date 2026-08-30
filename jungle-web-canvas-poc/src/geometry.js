@@ -106,3 +106,23 @@ export class CaveWorldGeometry extends CampWorldGeometry {
     this.bluebird = null;
   }
 }
+
+export class GiantTreeWorldGeometry extends CampWorldGeometry {
+  constructor() {
+    super();
+    this.paths = [[
+      { x: 200, y: 1040 }, { x: 430, y: 930 }, { x: 650, y: 830 },
+      { x: 820, y: 690 }, { x: 980, y: 570 }, { x: 1110, y: 500 },
+      { x: 1290, y: 430 }, { x: 1440, y: 320 },
+    ]];
+    this.clearings = [
+      { x: 200, y: 1040, r: 130, label: "Giant Tree Approach" },
+      { x: 430, y: 930, r: 130, label: "Root Gate" },
+      { x: 980, y: 570, r: 125, label: "Hollow Trunk" },
+      { x: 1110, y: 500, r: 145, label: "Tree Ring Gallery" },
+      { x: 1290, y: 430, r: 130, label: "Canopy Stairs" },
+      { x: 1440, y: 320, r: 135, label: "Squirrel Canopy" },
+    ];
+    this.bluebird = null;
+  }
+}

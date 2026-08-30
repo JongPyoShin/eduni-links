@@ -153,6 +153,23 @@ export async function start(canvas, modalEl) {
     return true;
   }
 
+  function openWaterfallRewardCeremony(ts = performance.now()) {
+    const reward = stageReward("waterfall");
+    panel.openPanel({
+      kind: "reward",
+      title: reward.name,
+      body: reward.message,
+      badge: true,
+      badgeIcon: reward.icon,
+      badgeLabel: reward.name,
+      checklist: reward.discoveries,
+      confirmLabel: "배지 받기",
+      revealReady: true,
+    });
+    cue("rewardFanfare", "soft-burst", 1410, 400, ts || 0, 2);
+    updateUi();
+  }
+
   function openInteraction(item) {
     movement.reset();
     audio.play("uiConfirm");
@@ -160,16 +177,8 @@ export async function start(canvas, modalEl) {
       if (item.type === "leafMatch") {
         openLeafRound();
       } else if (item.type === "reward") {
-        const reward = stageReward("waterfall");
-        panel.openPanel({
-          kind: "reward",
-          title: reward.name,
-          body: reward.message,
-          badge: true,
-          checklist: reward.discoveries,
-          confirmLabel: "배지 받기",
-          revealReady: true,
-        });
+        openWaterfallRewardCeremony();
+        return;
       } else {
         panel.openPanel({ kind: item.type, title: item.label, body: waterfallObjective(waterfall), confirmLabel: "계속" });
       }
@@ -242,10 +251,11 @@ export async function start(canvas, modalEl) {
         } else if (kind === "kingfisher") {
           waterfall = completeKingfisher(waterfall);
           cue("kingfisher", "sparkle", 1410, 400, ts || 0, 1.4);
+          openWaterfallRewardCeremony(ts);
+          return;
         } else if (kind === "reward") {
           waterfall = completeWaterfallReward(waterfall);
           awardAndSaveStageReward("waterfall");
-          cue("rewardFanfare", "soft-burst", 1410, 400, ts || 0, 2);
         }
         panel.closePanel();
         updateUi();
@@ -267,7 +277,17 @@ export async function start(canvas, modalEl) {
         const reward = stageReward("camp");
         cue("bluebird", "sparkle", BLUEBIRD.VISUAL.x, BLUEBIRD.VISUAL.y, ts || 0, 2);
         sequences = beginRewardReveal(sequences, ts);
-        panel.openPanel({ kind: "reward", title: reward.name, body: reward.message, badge: true, checklist: reward.discoveries, confirmLabel: "다시 둘러보기", revealReady: false });
+        panel.openPanel({
+          kind: "reward",
+          title: reward.name,
+          body: reward.message,
+          badge: true,
+          badgeIcon: reward.icon,
+          badgeLabel: reward.name,
+          checklist: reward.discoveries,
+          confirmLabel: "다시 둘러보기",
+          revealReady: false,
+        });
         cue("rewardFanfare", "soft-burst", BLUEBIRD.VISUAL.x, BLUEBIRD.VISUAL.y, ts || 0, 2);
         updateUi();
         return;

@@ -24,7 +24,9 @@ class SpacePetRewardsTests(unittest.TestCase):
             'id="petFeedBtn"',
             'id="petPlayBtn"',
             'id="petResultBtn"',
+            'id="petGrowthHint"',
             "🐾 펫 돌보기",
+            "문제를 맞혀 포인트를 모으고, 먹이와 놀이로 나만의 펫을 키워요!",
         ):
             self.assertIn(marker, html)
 
@@ -66,17 +68,20 @@ class SpacePetRewardsTests(unittest.TestCase):
         ):
             self.assertIn(marker, html)
 
-    def test_pet_has_four_growth_stages(self) -> None:
+    def test_pet_has_four_long_term_growth_stages(self) -> None:
         html = self.served_html()
         for marker in (
-            "{min:0,next:3,label:'1단계 · 꼬물이'}",
-            "{min:3,next:8,label:'2단계 · 아기 펫'}",
-            "{min:8,next:15,label:'3단계 · 쑥쑥 크는 펫'}",
-            "{min:15,next:null,label:'4단계 · 멋진 어른 펫'}",
+            "{min:0,next:10,label:'1단계 · 꼬물이'}",
+            "{min:10,next:30,label:'2단계 · 아기 펫'}",
+            "{min:30,next:60,label:'3단계 · 쑥쑥 크는 펫'}",
+            "{min:60,next:null,label:'4단계 · 멋진 어른 펫'}",
+            "if (care>=60) return 3",
+            "if (care>=30) return 2",
+            "if (care>=10) return 1",
             "pet.care+=config.care",
-            "kind==='feed'",
             "cost:20,care:1",
             "cost:30,care:2",
+            "돌봄 경험치 ${pet.care}",
         ):
             self.assertIn(marker, html)
 

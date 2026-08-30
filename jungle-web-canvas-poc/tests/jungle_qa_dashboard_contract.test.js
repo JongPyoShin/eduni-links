@@ -9,7 +9,7 @@ const ROOT = resolve(__dirname, "..");
 const QA = readFileSync(resolve(ROOT, "jungle-qa.html"), "utf8");
 
 test("Unified Jungle QA dashboard covers all five playable stage entry points", () => {
-  assert.match(QA, /camp: \{ label: "Camp", url: "\.\/\?qa=1"/);
+  assert.match(QA, /camp: \{ label: "Camp", url: "\.\/\?renderer=three&qa=1"/);
   assert.match(QA, /waterfall: \{ label: "Waterfall", url: "\.\/\?stage=waterfall&renderer=three&qa=1"/);
   assert.match(QA, /cave-game\.html\?qa=1/);
   assert.match(QA, /giant-tree-game\.html\?qa=1/);

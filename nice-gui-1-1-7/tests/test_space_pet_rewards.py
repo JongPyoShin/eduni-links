@@ -30,6 +30,26 @@ class SpacePetRewardsTests(unittest.TestCase):
         ):
             self.assertIn(marker, html)
 
+    def test_pet_house_has_full_body_showcase_emotion_and_state_gauges(self) -> None:
+        html = self.served_html()
+        for marker in (
+            'class="pet-showcase"',
+            'id="petFullbody"',
+            'aria-label="펫 전신"',
+            'id="petBubble"',
+            'id="petHungerBar"',
+            'id="petHappyBar"',
+            'id="petGrowthBar"',
+            'id="petGrowthHint"',
+            'data-pet-item="ribbon"',
+            'data-pet-item="ball"',
+            'data-pet-item="crown"',
+            'data-pet-item="bed"',
+            'function petSvg(pet,index)',
+            'function petSpeech(pet,index)',
+        ):
+            self.assertIn(marker, html)
+
     def test_points_are_local_only_and_have_expected_economy(self) -> None:
         html = self.served_html()
         for marker in (

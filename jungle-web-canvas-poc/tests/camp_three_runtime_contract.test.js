@@ -22,10 +22,21 @@ test("Three Camp renderer derives its visible route from shared CampWorldGeometr
   assert.match(RUNTIME, /geometryContract\.paths\[0\]/);
   assert.match(RUNTIME, /geometryContract\.pathHalfWidth/);
   const geometry = new CampWorldGeometry();
-  assert.equal(walkable(geometry, LANDMARKS.hut), true);
-  assert.equal(walkable(geometry, LANDMARKS.firePit), true);
+  assert.equal(walkable(geometry, LANDMARKS.hut), false, "hut body is solid");
+  assert.equal(walkable(geometry, { x: LANDMARKS.hut.x, y: LANDMARKS.hut.y + 80 }), true, "hut interaction edge stays reachable");
+  assert.equal(walkable(geometry, LANDMARKS.firePit), false, "fire pit center is solid");
+  assert.equal(walkable(geometry, { x: LANDMARKS.firePit.x, y: 820 }), true, "fire pit interaction edge stays reachable");
   assert.equal(walkable(geometry, LANDMARKS.bluebird), true);
   for (const clue of CLUES) assert.equal(walkable(geometry, clue), true, `${clue.id} stays walkable`);
+});
+
+test("Camp shared geometry blocks visible solid props instead of letting the player walk through", () => {
+  const geometry = new CampWorldGeometry();
+  assert.ok(geometry.blockers.length >= 6);
+  for (const blocker of geometry.blockers) {
+    assert.equal(geometry.isWalkable(blocker.x, blocker.y), false, `${blocker.label} is solid`);
+  }
+  assert.match(readFileSync(resolve(ROOT, "src", "geometry.js"), "utf8"), /insideWalkableShape && !this\.isBlocked/);
 });
 
 test("Three Camp presentation stays subordinate to the existing gameplay bridge", () => {
@@ -55,6 +66,19 @@ test("Camp Three renderer contains authored stage landmarks and phase-driven atm
   }
   assert.match(RUNTIME, /phaseId === "bluebird" \|\| phaseId === "reward"/);
   assert.match(RUNTIME, /phaseId === "reward"/);
+});
+
+test("Camp Three walk animation uses milliseconds and cardinal camera keeps arrows screen-aligned", () => {
+  assert.match(RUNTIME, /playerSprite\.update\(dtSeconds \* 1000, moving, direction\)/);
+  assert.match(RUNTIME, /camera\.position\.set\(focusX, 11\.5, focusZ \+ 8\.2\)/);
+  assert.match(RUNTIME, /camera\.lookAt\(focusX, 0\.25, focusZ\)/);
+  assert.doesNotMatch(RUNTIME, /focusX \+ 8\.1/);
+});
+
+test("Camp Three vendor assets are grounded from their actual bounding boxes", () => {
+  assert.match(RUNTIME, /function groundVendorObject/);
+  assert.match(RUNTIME, /new THREE\.Box3\(\)\.setFromObject\(object\)/);
+  assert.match(RUNTIME, /desiredBaseY - box\.min\.y/);
 });
 
 test("Camp Three authored cues snap to authoritative interaction coordinates", () => {

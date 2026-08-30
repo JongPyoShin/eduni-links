@@ -23,6 +23,14 @@ export const STAGE_REWARDS = Object.freeze({
     message: "반딧불 수정 배지를 얻었어!",
     discoveries: Object.freeze(["반딧불 길", "울림 수정", "벽 그림자", "깜빡임 순서", "수정 다리", "작은 박쥐"]),
   }),
+  giantTree: Object.freeze({
+    id: "ancient-seed",
+    stageId: "giantTree",
+    name: "고목 씨앗 배지",
+    icon: "🌰",
+    message: "고목 씨앗 배지를 얻었어!",
+    discoveries: Object.freeze(["나무껍질 무늬", "도토리 흔적", "나무 속 울림", "나이테", "나선 계단", "다람쥐"]),
+  }),
 });
 
 export const REWARD_STORAGE_KEY = "eduni.jungle.stageRewards.v1";

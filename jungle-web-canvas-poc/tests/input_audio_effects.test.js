@@ -49,6 +49,32 @@ test("gamepad A/B are edge-triggered", () => {
   assert.equal(input.consumeInteract(), true);
 });
 
+test("digital action bridge holds and releases cardinal movement without DOM events", () => {
+  const input = new InputController({ gamepadProvider: () => [] });
+  assert.equal(input.setDigitalAction("up", true), true);
+  assert.deepEqual(input.direction(), { x: 0, y: -1 });
+  assert.equal(input.consumeNavigate(), -1);
+  assert.equal(input.setDigitalAction("up", false), true);
+  assert.deepEqual(input.direction(), { x: 0, y: 0 });
+
+  assert.equal(input.setDigitalAction("right", true), true);
+  assert.deepEqual(input.getDigitalState().direction, { x: 1, y: 0 });
+  assert.equal(input.setDigitalAction("right", false), true);
+  assert.equal(input.setDigitalAction("missing", true), false);
+});
+
+test("digital action bridge preserves A/B edge semantics", () => {
+  const input = new InputController({ gamepadProvider: () => [] });
+  assert.equal(input.setDigitalAction("interact", true), true);
+  assert.equal(input.consumeInteract(), true);
+  assert.equal(input.consumeInteract(), false);
+  input.setDigitalAction("interact", false);
+
+  assert.equal(input.setDigitalAction("close", true), true);
+  assert.equal(input.consumeClose(), true);
+  assert.equal(input.consumeClose(), false);
+});
+
 test("audio routes named cues and remains safe before browser audio unlock", () => {
   const audio = new AudioManager({ contextFactory: () => null });
   assert.equal(audio.play("clueFound"), false);

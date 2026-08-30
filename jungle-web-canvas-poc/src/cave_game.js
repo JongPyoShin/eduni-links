@@ -98,6 +98,7 @@ export async function startCaveGame(canvas, modalEl, statusEl) {
     if (statusEl) {
       statusEl.dataset.gamePhase = phase.phaseId;
       statusEl.dataset.gameState = JSON.stringify(cave);
+      statusEl.dataset.player = JSON.stringify(player);
     }
   }
 

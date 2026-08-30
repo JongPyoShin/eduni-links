@@ -15,6 +15,9 @@ const TYPES = {
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
   ".json": "application/json",
+  ".wasm": "application/wasm",
+  ".glb": "model/gltf-binary",
+  ".gltf": "model/gltf+json",
 };
 
 createServer(async (req, res) => {

@@ -1,10 +1,12 @@
 import { getStageVisualPhase } from "./stage_manifest.js";
 import { getGiantTreeVisualPhase } from "./giant_tree_visuals.js";
+import { getSkyRidgeVisualPhase } from "./sky_ridge_visuals.js";
 
 const PHASE_CACHE = new Map();
 
 function phaseSource(stageId, phaseId) {
   if (stageId === "giantTree") return getGiantTreeVisualPhase(phaseId);
+  if (stageId === "skyRidge") return getSkyRidgeVisualPhase(phaseId);
   return getStageVisualPhase(stageId, phaseId);
 }
 
@@ -71,10 +73,24 @@ export function giantTreeVisualPhase(state) {
   return withPhase("giantTree", "rootGate");
 }
 
+export function skyRidgeVisualPhase(state) {
+  const clues = state?.discoveredClues || [];
+  if (state?.rewardComplete) return withPhase("skyRidge", "complete");
+  if (state?.hawkComplete) return withPhase("skyRidge", "reward");
+  if (state?.summitBridgeComplete) return withPhase("skyRidge", "hawk");
+  if (state?.starPatternComplete) return withPhase("skyRidge", "summitBridge");
+  if (clues.includes("windChime")) return withPhase("skyRidge", "starPattern");
+  if (clues.includes("cloudShadow")) return withPhase("skyRidge", "windChime");
+  if (clues.includes("windRibbon")) return withPhase("skyRidge", "cloudShadow");
+  if (state?.skyGateComplete) return withPhase("skyRidge", "windRibbon");
+  return withPhase("skyRidge", "skyGate");
+}
+
 export function stageVisualPhase(stageId, state, context = {}) {
   if (stageId === "camp") return campVisualPhase(state, context.sequence);
   if (stageId === "waterfall") return waterfallVisualPhase(state);
   if (stageId === "cave") return caveVisualPhase(state);
   if (stageId === "giantTree") return giantTreeVisualPhase(state);
+  if (stageId === "skyRidge") return skyRidgeVisualPhase(state);
   throw new Error(`Unknown stage visual director: ${stageId}`);
 }

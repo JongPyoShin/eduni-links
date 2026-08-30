@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta http-equiv="cache-control" content="no-store" />
+    <title>EDUNI Jungle — 거대한 고목 Three.js Preview</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #3f4d36; font-family: system-ui, sans-serif; }
+      #three-giant-tree { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+      #preview-ui { position: fixed; inset: 0; pointer-events: none; color: #fff9e8; }
+      #title-card { position: absolute; top: 16px; left: 16px; max-width: min(450px, calc(100vw - 32px)); padding: 12px 15px; border-radius: 16px; background: rgba(48,51,31,.78); border: 1px solid rgba(255,226,158,.32); box-shadow: 0 8px 28px rgba(0,0,0,.24); backdrop-filter: blur(8px); }
+      #title-card strong { display: block; font-size: 17px; margin-bottom: 4px; }
+      #title-card span { color: #e8e3c7; font-size: 12px; line-height: 1.45; }
+      #status { position: absolute; left: 16px; bottom: 16px; padding: 8px 11px; border-radius: 12px; background: rgba(34,38,26,.76); border: 1px solid rgba(255,229,169,.22); color: #f4ecd1; font-size: 12px; }
+      #controls { pointer-events: auto; position: absolute; right: 16px; bottom: 16px; display: flex; gap: 8px; }
+      button { border: 0; border-radius: 12px; padding: 10px 13px; color: #38412f; background: rgba(255,249,225,.92); font-weight: 800; cursor: pointer; }
+      #back { pointer-events: auto; position: absolute; top: 16px; right: 16px; }
+      @media (max-width: 700px) { #title-card { right: 16px; max-width: none; } #controls { left: 16px; right: 16px; justify-content: flex-end; } #status { bottom: 70px; right: 16px; } }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./node_modules/three/build/three.module.js",
+          "three/addons/loaders/DRACOLoader.js": "./src/local_draco_loader.js",
+          "three/addons-local/": "./node_modules/three/examples/jsm/",
+          "three/addons/": "./node_modules/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="three-giant-tree"></canvas>
+    <div id="preview-ui">
+      <div id="title-card">
+        <strong>거대한 고목 · Stage 4 Preview</strong>
+        <span>뿌리 입구 → 나무껍질 무늬 → 도토리 흔적 → 나무 속 울림 → 나이테 → 나선 계단 → 다람쥐 → 고목 씨앗 배지.</span>
+      </div>
+      <button id="back" type="button">Jungle Hub</button>
+      <div id="status">거대한 고목 초기화 중…</div>
+      <div id="controls"><button id="prev" type="button">◀ 이전</button><button id="next" type="button">다음 ▶</button></div>
+    </div>
+    <script type="module">
+      import { startThreeGiantTreePreview } from "./src/three_giant_tree_preview.js";
+      const canvas = document.querySelector("#three-giant-tree");
+      const status = document.querySelector("#status");
+      const params = new URLSearchParams(location.search);
+      const runtime = await startThreeGiantTreePreview(canvas, status, { phase: params.get("phase") || "rootGate" });
+      document.querySelector("#prev").addEventListener("click", () => { const index = runtime.phases.indexOf(runtime.getPhase()); runtime.setPhase(Math.max(0, index - 1)); });
+      document.querySelector("#next").addEventListener("click", () => { const index = runtime.phases.indexOf(runtime.getPhase()); runtime.setPhase(Math.min(runtime.phases.length - 1, index + 1)); });
+      document.querySelector("#back").addEventListener("click", () => { location.href = "./jungle-hub.html"; });
+    </script>
+  </body>
+</html>

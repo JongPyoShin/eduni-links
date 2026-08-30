@@ -101,16 +101,23 @@ test("vendor GLB filenames are placeholders when assets are not present", () => 
 });
 
 test("preview geometry derives the same world anchors as the Canvas renderer", () => {
-  // The geometry contract used by the preview must equal the one used by
-  // game.js, so that vendor placements line up with the route.
+  // The preview and gameplay both consume WaterfallWorldGeometry. Do not pin a
+  // semantic landmark to a path-array index because the orthogonal route adds
+  // explicit right-angle corner nodes between authored progression anchors.
   const g = new WaterfallWorldGeometry();
-  // Spot-check a few known anchors.
-  assert.equal(g.paths[0][0].x, 200, "path starts at entrance");
-  assert.equal(g.paths[0][0].y, 1040);
-  assert.equal(g.paths[0][1].x, 460);
-  assert.equal(g.paths[0][1].y, 900);
+  const route = g.paths[0];
+  assert.deepEqual(route[0], { x: 200, y: 1040 }, "path starts at entrance");
+  assert.ok(route.some((node) => node.x === 700 && node.y === 900), "route includes the stream gate anchor");
+  assert.ok(route.some((node) => node.x === 1080 && node.y === 700), "route includes the stepping-stones anchor");
+  assert.ok(route.some((node) => node.x === 1450 && node.y === 330), "route includes the lookout anchor");
+  for (let i = 0; i < route.length - 1; i += 1) {
+    const a = route[i];
+    const b = route[i + 1];
+    assert.ok(a.x === b.x || a.y === b.y, `route segment ${i} stays horizontal/vertical`);
+  }
   assert.equal(g.pathHalfWidth, 72);
   assert.equal(g.clearings[1].x, 700, "stream gate clearing at 700,900");
+  assert.equal(g.clearings[1].y, 900);
   assert.equal(g.clearings[1].r, 130);
 });
 

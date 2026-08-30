@@ -88,13 +88,11 @@ function addRoute(scene) {
     const len = Math.hypot(dx, dz);
     const mid = a.clone().add(b).multiplyScalar(0.5);
     const angle = -Math.atan2(dz, dx);
-
     const edge = new THREE.Mesh(new THREE.PlaneGeometry(len + radius, radius * 2.15), edgeMat);
     edge.rotation.set(-Math.PI / 2, 0, angle);
     edge.position.copy(mid);
     edge.position.y = 0.028;
     scene.add(edge);
-
     const strip = new THREE.Mesh(new THREE.PlaneGeometry(len + radius * 0.45, radius * 1.5), routeMat);
     strip.rotation.set(-Math.PI / 2, 0, angle);
     strip.position.copy(mid);
@@ -112,77 +110,52 @@ function addRoute(scene) {
 
 function addLearningHut(scene) {
   const group = new THREE.Group();
-  group.position.copy(worldPoint(520, 320, 0));
-  group.rotation.y = -0.08;
-
+  group.position.copy(worldPoint(455, 320, 0));
   const wood = mat(0x8e6540);
   const trim = mat(0x5e452f);
   const roofMat = mat(0x4f6741);
-  const warmWindow = new THREE.MeshStandardMaterial({
-    color: 0xffd989,
-    emissive: 0xff9f43,
-    emissiveIntensity: 1.45,
-    roughness: 0.48,
-  });
-
-  const body = new THREE.Mesh(new THREE.BoxGeometry(2.55, 1.65, 1.85), wood);
-  body.position.y = 0.88;
+  const warmWindow = new THREE.MeshStandardMaterial({ color: 0xffd989, emissive: 0xff9f43, emissiveIntensity: 1.45, roughness: 0.48 });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.25, 1.55, 1.65), wood);
+  body.position.y = 0.82;
   body.castShadow = true;
   body.receiveShadow = true;
   group.add(body);
-
-  const roofLeft = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.18, 2.2), roofMat);
-  roofLeft.rotation.z = 0.58;
-  roofLeft.position.set(-0.69, 1.92, 0);
-  roofLeft.castShadow = true;
-  const roofRight = roofLeft.clone();
-  roofRight.rotation.z = -0.58;
-  roofRight.position.x = 0.69;
-  group.add(roofLeft, roofRight);
-
-  const door = new THREE.Mesh(new THREE.BoxGeometry(0.58, 1.05, 0.06), trim);
-  door.position.set(0, 0.55, 0.955);
+  for (const [x, rot] of [[-0.61, 0.58], [0.61, -0.58]]) {
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.18, 1.98), roofMat);
+    roof.rotation.z = rot;
+    roof.position.set(x, 1.82, 0);
+    roof.castShadow = true;
+    group.add(roof);
+  }
+  const door = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.98, 0.06), trim);
+  door.position.set(0, 0.51, 0.855);
   group.add(door);
-
-  for (const x of [-0.78, 0.78]) {
-    const window = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.45, 0.07), warmWindow);
-    window.position.set(x, 1.08, 0.96);
+  for (const x of [-0.68, 0.68]) {
+    const window = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.07), warmWindow);
+    window.position.set(x, 1.03, 0.86);
     group.add(window);
   }
-
-  const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.8, 0.3), trim);
-  chimney.position.set(0.78, 2.12, -0.25);
-  group.add(chimney);
-
   const lantern = new THREE.PointLight(0xffbe66, 2.3, 4.2, 2);
-  lantern.position.set(0, 1.25, 1.45);
+  lantern.position.set(0, 1.2, 1.32);
   group.add(lantern);
-
   scene.add(group);
-  return { group, lantern, windows: warmWindow };
+  return { group, lantern };
 }
 
 function addEntrance(scene) {
   const group = new THREE.Group();
   group.position.copy(worldPoint(200, 1040, 0));
   const wood = mat(0x765439);
-  const cloth = mat(0xe2b96d);
-
   for (const x of [-0.72, 0.72]) {
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.14, 2.0, 8), wood);
-    post.position.set(x, 1.0, 0);
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.14, 2, 8), wood);
+    post.position.set(x, 1, 0);
     post.castShadow = true;
     group.add(post);
   }
   const sign = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.42, 0.16), wood);
   sign.position.set(0, 1.72, 0);
   group.add(sign);
-  const pennant = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.52, 3), cloth);
-  pennant.rotation.z = Math.PI / 2;
-  pennant.position.set(0, 2.1, 0.02);
-  group.add(pennant);
-
-  const light = new THREE.PointLight(0xffd37b, 1.7, 3.0, 2);
+  const light = new THREE.PointLight(0xffd37b, 1.7, 3, 2);
   light.position.set(0, 1.6, 0.5);
   group.add(light);
   scene.add(group);
@@ -194,33 +167,29 @@ function addClueCues(scene) {
   feather.position.copy(worldPoint(690, 320, 0.32));
   const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.024, 0.62, 8), mat(0x3c7ad9, { emissive: 0x173d7a, emissiveIntensity: 0.55 }));
   shaft.rotation.z = -0.5;
-  const vaneA = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.42, 8), mat(0x79b7ff, { emissive: 0x1d4f91, emissiveIntensity: 0.55 }));
-  vaneA.rotation.z = -0.58;
-  vaneA.position.set(-0.08, 0.09, 0);
-  const vaneB = vaneA.clone();
-  vaneB.rotation.z = Math.PI - 0.58;
-  vaneB.position.set(0.08, -0.08, 0);
-  feather.add(shaft, vaneA, vaneB);
-  const featherLight = new THREE.PointLight(0x84c5ff, 2.0, 2.5, 2);
+  const vane = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.42, 8), mat(0x79b7ff, { emissive: 0x1d4f91, emissiveIntensity: 0.55 }));
+  vane.rotation.z = -0.58;
+  vane.position.set(-0.08, 0.09, 0);
+  feather.add(shaft, vane);
+  const featherLight = new THREE.PointLight(0x84c5ff, 2, 2.5, 2);
   featherLight.position.y = 0.45;
   feather.add(featherLight);
   scene.add(feather);
 
   const footprints = new THREE.Group();
-  const footprintPoints = [[760,430],[805,490],[850,550],[900,610],[920,680]];
+  const footprintPoints = [[760, 390], [800, 430], [840, 470], [880, 520], [920, 570]];
   for (let i = 0; i < footprintPoints.length; i += 1) {
     const [x, y] = footprintPoints[i];
     const pad = new THREE.Mesh(new THREE.CircleGeometry(0.095, 12), new THREE.MeshBasicMaterial({ color: 0xd4a05e, transparent: true, opacity: 0.88 }));
     pad.rotation.x = -Math.PI / 2;
     pad.scale.set(0.7, 1.25, 1);
     pad.position.copy(worldPoint(x, y, 0.073));
-    pad.rotation.z = (i % 2 ? 1 : -1) * 0.28;
     footprints.add(pad);
   }
   scene.add(footprints);
 
   const birdcall = new THREE.Group();
-  birdcall.position.copy(worldPoint(920, 760, 0.1));
+  birdcall.position.copy(worldPoint(1120, 820, 0.1));
   for (let i = 0; i < 3; i += 1) {
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(0.28 + i * 0.24, 0.32 + i * 0.24, 36),
@@ -230,40 +199,26 @@ function addClueCues(scene) {
     birdcall.add(ring);
   }
   scene.add(birdcall);
-
   return { feather, featherLight, footprints, birdcall };
 }
 
 function addFirePit(scene) {
   const group = new THREE.Group();
-  group.position.copy(worldPoint(920, 820, 0));
+  group.position.copy(worldPoint(990, 900, 0));
   const stoneMat = mat(0x7d786b, { roughness: 1 });
   for (let i = 0; i < 10; i += 1) {
     const a = (i / 10) * Math.PI * 2;
     const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(0.18, 0), stoneMat);
     stone.scale.set(1.05, 0.58, 0.82);
     stone.position.set(Math.cos(a) * 0.58, 0.12, Math.sin(a) * 0.58);
-    stone.castShadow = true;
     group.add(stone);
   }
-
-  const logMat = mat(0x674327);
-  for (const r of [-0.62, 0.62]) {
-    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, 1.15, 8), logMat);
-    log.rotation.z = Math.PI / 2;
-    log.rotation.y = r;
-    log.position.y = 0.18;
-    group.add(log);
-  }
-
-  const flameMat = new THREE.MeshStandardMaterial({ color: 0xffb347, emissive: 0xff5a1f, emissiveIntensity: 1.8, transparent: true, opacity: 0.92 });
-  const flameOuter = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.9, 10), flameMat);
+  const flameOuter = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.9, 10), new THREE.MeshStandardMaterial({ color: 0xffb347, emissive: 0xff5a1f, emissiveIntensity: 1.8 }));
   flameOuter.position.y = 0.65;
-  const flameInner = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.58, 10), new THREE.MeshBasicMaterial({ color: 0xffef93, transparent: true, opacity: 0.95 }));
+  const flameInner = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.58, 10), new THREE.MeshBasicMaterial({ color: 0xffef93 }));
   flameInner.position.y = 0.58;
   group.add(flameOuter, flameInner);
-
-  const fireLight = new THREE.PointLight(0xff7a33, 3.0, 5.2, 2);
+  const fireLight = new THREE.PointLight(0xff7a33, 3, 5.2, 2);
   fireLight.position.y = 1.25;
   group.add(fireLight);
   scene.add(group);
@@ -276,7 +231,6 @@ function addRidge(scene) {
   const wood = mat(0x82613f);
   const deck = new THREE.Mesh(new THREE.BoxGeometry(2.25, 0.16, 1.35), wood);
   deck.position.y = 0.18;
-  deck.castShadow = true;
   group.add(deck);
   for (const x of [-0.95, 0.95]) {
     for (const z of [-0.48, 0.48]) {
@@ -286,35 +240,23 @@ function addRidge(scene) {
     }
   }
   scene.add(group);
-
   const mountains = new THREE.Group();
-  const mountainMat = mat(0x577068, { roughness: 1 });
-  const farMat = mat(0x6f8780, { roughness: 1 });
-  const configs = [
-    [1420, 210, 1.4, 2.9, mountainMat],
-    [1260, 170, 1.15, 2.4, farMat],
-    [1530, 250, 1.0, 2.1, farMat],
-  ];
-  for (const [x, y, radius, height, material] of configs) {
-    const mountain = new THREE.Mesh(new THREE.ConeGeometry(radius, height, 5), material);
+  for (const [x, y, radius, height, color] of [[1420, 210, 1.4, 2.9, 0x577068], [1260, 170, 1.15, 2.4, 0x6f8780], [1530, 250, 1, 2.1, 0x6f8780]]) {
+    const mountain = new THREE.Mesh(new THREE.ConeGeometry(radius, height, 5), mat(color));
     mountain.position.copy(worldPoint(x, y, height * 0.5 - 0.25));
-    mountain.rotation.y = 0.42;
     mountains.add(mountain);
   }
   scene.add(mountains);
-
-  const ridgeLight = new THREE.DirectionalLight(0xc7e9ff, 1.3);
-  ridgeLight.position.set(4, 7, -4);
-  scene.add(ridgeLight);
-  return { group, mountains, ridgeLight };
+  return { group, mountains };
 }
 
 async function addBluebird(scene) {
+  const anchor = BLUEBIRD.WORLD;
   try {
     const texture = await new THREE.TextureLoader().loadAsync("./assets/bluebird.png");
     texture.colorSpace = THREE.SRGBColorSpace;
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
-    const p = worldPoint(BLUEBIRD.VISUAL.x, BLUEBIRD.VISUAL.y, 0);
+    const p = worldPoint(anchor.x, anchor.y, 0);
     sprite.position.set(p.x, 1.55, p.z);
     sprite.scale.set(1.05, 1.12, 1);
     scene.add(sprite);
@@ -323,19 +265,18 @@ async function addBluebird(scene) {
     scene.add(halo);
     return { sprite, halo, texture };
   } catch {
-    const fallback = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 10), mat(0x4d9ce6, { emissive: 0x163e78, emissiveIntensity: 0.6 }));
-    const p = worldPoint(BLUEBIRD.VISUAL.x, BLUEBIRD.VISUAL.y, 1.4);
-    fallback.position.copy(p);
-    scene.add(fallback);
-    return { sprite: fallback, halo: null, texture: null };
+    const sprite = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 10), mat(0x4d9ce6, { emissive: 0x163e78, emissiveIntensity: 0.6 }));
+    sprite.position.copy(worldPoint(anchor.x, anchor.y, 1.4));
+    scene.add(sprite);
+    return { sprite, halo: null, texture: null };
   }
 }
 
 function addRewardSparkles(scene) {
   const group = new THREE.Group();
-  group.position.copy(worldPoint(BLUEBIRD.VISUAL.x, BLUEBIRD.VISUAL.y, 1.05));
+  group.position.copy(worldPoint(BLUEBIRD.WORLD.x, BLUEBIRD.WORLD.y, 1.05));
   for (let i = 0; i < 22; i += 1) {
-    const spark = new THREE.Mesh(new THREE.OctahedronGeometry(0.04 + (i % 2) * 0.018), new THREE.MeshBasicMaterial({ color: i % 3 ? 0xffe89c : 0x9bd7ff, transparent: true, opacity: 0.9 }));
+    const spark = new THREE.Mesh(new THREE.OctahedronGeometry(0.04 + (i % 2) * 0.018), new THREE.MeshBasicMaterial({ color: i % 3 ? 0xffe89c : 0x9bd7ff }));
     spark.userData.phase = i * 0.43;
     group.add(spark);
   }
@@ -346,11 +287,10 @@ function addRewardSparkles(scene) {
 function fallbackObject(kind) {
   const group = new THREE.Group();
   if (kind === "tree") {
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.16, 1.0, 8), mat(0x6f4d30));
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.16, 1, 8), mat(0x6f4d30));
     trunk.position.y = 0.5;
     const crown = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 8), mat(0x47754a));
     crown.position.y = 1.12;
-    crown.scale.set(1.05, 0.8, 0.92);
     group.add(trunk, crown);
   } else if (kind === "rock") {
     const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.38, 0), mat(0x6d776b));
@@ -359,11 +299,20 @@ function fallbackObject(kind) {
     group.add(rock);
   } else {
     const shrub = new THREE.Mesh(new THREE.SphereGeometry(0.34, 10, 8), mat(0x537b4e));
-    shrub.scale.set(1.25, 0.62, 1.0);
+    shrub.scale.set(1.25, 0.62, 1);
     shrub.position.y = 0.22;
     group.add(shrub);
   }
   return group;
+}
+
+function groundVendorObject(object, desiredBaseY = 0) {
+  object.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(object);
+  if (Number.isFinite(box.min.y)) {
+    object.position.y += desiredBaseY - box.min.y;
+    object.updateMatrixWorld(true);
+  }
 }
 
 async function populateVendorAssets(scene) {
@@ -373,7 +322,6 @@ async function populateVendorAssets(scene) {
   loader.setDRACOLoader(draco);
   const library = new Map();
   const keys = [...new Set(CAMP_VENDOR_PLACEMENTS.map((p) => p.model))];
-
   await Promise.all(keys.map(async (key) => {
     const config = THREEJSASSETS_FREE_MODELS[key];
     if (!config) return;
@@ -391,10 +339,10 @@ async function populateVendorAssets(scene) {
     const config = THREEJSASSETS_FREE_MODELS[placement.model];
     const source = library.get(placement.model);
     const object = source ? source.clone(true) : fallbackObject(config?.fallback || "shrub");
-    object.position.copy(worldPoint(placement.x, placement.y, config?.yOffset || 0));
+    object.position.copy(worldPoint(placement.x, placement.y, 0));
     object.rotation.y = placement.rotation ?? config?.rotationY ?? 0;
-    const scale = placement.scale ?? config?.scale ?? 1;
-    object.scale.multiplyScalar(scale);
+    object.scale.multiplyScalar(placement.scale ?? config?.scale ?? 1);
+    groundVendorObject(object, config?.yOffset || 0);
     object.traverse((node) => {
       if (node.isMesh) {
         node.castShadow = true;
@@ -410,21 +358,15 @@ async function populateVendorAssets(scene) {
 function addAtmosphere(scene) {
   scene.background = new THREE.Color(CAMP_PALETTES["sunlit-olive"]);
   scene.fog = new THREE.FogExp2(CAMP_PALETTES["sunlit-olive"], 0.018);
-  const hemi = new THREE.HemisphereLight(0xfff4c8, 0x24422e, 2.1);
-  scene.add(hemi);
+  scene.add(new THREE.HemisphereLight(0xfff4c8, 0x24422e, 2.1));
   const sun = new THREE.DirectionalLight(0xffe2a0, 2.8);
   sun.position.set(-6, 11, 5);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
-  sun.shadow.camera.left = -10;
-  sun.shadow.camera.right = 10;
-  sun.shadow.camera.top = 10;
-  sun.shadow.camera.bottom = -10;
   scene.add(sun);
   const fill = new THREE.DirectionalLight(0x9fd5c0, 0.8);
   fill.position.set(8, 5, -6);
   scene.add(fill);
-  return { hemi, sun, fill };
 }
 
 function applyVisualPhase(scene, renderer, phaseId) {
@@ -436,48 +378,44 @@ function applyVisualPhase(scene, renderer, phaseId) {
     scene.fog.density = 0.012 + Math.max(0, Math.min(1, phase.fog || 0)) * 0.05;
   }
   renderer.toneMappingExposure = 0.96 + Math.max(0, Math.min(1, phase.warmth || 0)) * 0.2;
-  return phase;
 }
 
 async function addPlayer(scene) {
   const playerSprite = new PlayerSprite();
   await playerSprite.load();
   const textureCache = new Map();
-  const image = playerSprite.currentImage();
-  const texture = image ? new THREE.Texture(image) : null;
-  if (texture) {
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.needsUpdate = true;
-    textureCache.set(image, texture);
-  }
-  const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+  const firstImage = playerSprite.currentImage();
+  const material = new THREE.SpriteMaterial({ transparent: true, depthWrite: false });
   const sprite = new THREE.Sprite(material);
   sprite.scale.set(1.35, 1.8, 1);
   scene.add(sprite);
   const glow = new THREE.PointLight(0xffd98a, 1.2, 2.1, 2);
   scene.add(glow);
 
-  function textureFor(nextImage) {
-    if (!nextImage) return null;
-    if (textureCache.has(nextImage)) return textureCache.get(nextImage);
-    const next = new THREE.Texture(nextImage);
-    next.colorSpace = THREE.SRGBColorSpace;
-    next.needsUpdate = true;
-    textureCache.set(nextImage, next);
-    return next;
+  function textureFor(image) {
+    if (!image) return null;
+    if (textureCache.has(image)) return textureCache.get(image);
+    const texture = new THREE.Texture(image);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.needsUpdate = true;
+    textureCache.set(image, texture);
+    return texture;
   }
+  material.map = textureFor(firstImage);
+  material.needsUpdate = true;
 
   return {
     sprite,
     glow,
     playerSprite,
-    update(dt, logical, previous) {
+    update(dtSeconds, logical, previous) {
       const dx = logical.x - previous.x;
       const dy = logical.y - previous.y;
       const moving = Math.abs(dx) + Math.abs(dy) > 0.001;
       const magnitude = Math.hypot(dx, dy) || 1;
       const direction = moving ? { x: dx / magnitude, y: dy / magnitude } : { x: 0, y: 0 };
-      playerSprite.update(dt, moving, direction);
+      // PlayerSprite.update is millisecond-based. Three.Clock returns seconds.
+      playerSprite.update(dtSeconds * 1000, moving, direction);
       const frame = playerSprite.currentImage();
       if (frame && sprite.material.map?.image !== frame) {
         sprite.material.map = textureFor(frame);
@@ -488,24 +426,23 @@ async function addPlayer(scene) {
       glow.position.set(p.x, 0.82, p.z + 0.08);
     },
     dispose() {
-      for (const cached of textureCache.values()) cached.dispose();
+      for (const texture of textureCache.values()) texture.dispose();
       textureCache.clear();
     },
   };
 }
 
 function disposeScene(scene) {
-  const seenMaterials = new Set();
-  const seenTextures = new Set();
+  const materials = new Set();
+  const textures = new Set();
   scene.traverse((object) => {
     object.geometry?.dispose?.();
-    const materials = Array.isArray(object.material) ? object.material : [object.material];
-    for (const material of materials.filter(Boolean)) {
-      if (seenMaterials.has(material)) continue;
-      seenMaterials.add(material);
+    for (const material of (Array.isArray(object.material) ? object.material : [object.material]).filter(Boolean)) {
+      if (materials.has(material)) continue;
+      materials.add(material);
       for (const value of Object.values(material)) {
-        if (value?.isTexture && !seenTextures.has(value)) {
-          seenTextures.add(value);
+        if (value?.isTexture && !textures.has(value)) {
+          textures.add(value);
           value.dispose();
         }
       }
@@ -554,23 +491,34 @@ export async function startThreeCampRuntime(baseCanvas, bridge) {
   scene.add(interactionRing);
 
   const camera = new THREE.OrthographicCamera(-8, 8, 5, -5, 0.1, 60);
-  camera.position.set(8.6, 11.5, 10.0);
-  camera.lookAt(0, 0.2, 0);
+  const cameraView = { halfWidth: 7.5, halfHeight: 4.5 };
 
   function resize() {
     const width = canvas.clientWidth || globalThis.innerWidth || 1280;
     const height = canvas.clientHeight || globalThis.innerHeight || 720;
     renderer.setSize(width, height, false);
     const aspect = width / Math.max(1, height);
-    const viewHeight = 10.6;
-    camera.left = -(viewHeight * aspect) / 2;
-    camera.right = (viewHeight * aspect) / 2;
-    camera.top = viewHeight / 2;
-    camera.bottom = -viewHeight / 2;
+    // Keep the visible width inside the 16-unit Camp ground on wide PC screens.
+    // This removes the empty strip while preserving a comfortable tablet view.
+    const viewHeight = Math.min(10.2, 15.2 / Math.max(0.1, aspect));
+    const viewWidth = viewHeight * aspect;
+    cameraView.halfWidth = viewWidth / 2;
+    cameraView.halfHeight = viewHeight / 2;
+    camera.left = -cameraView.halfWidth;
+    camera.right = cameraView.halfWidth;
+    camera.top = cameraView.halfHeight;
+    camera.bottom = -cameraView.halfHeight;
     camera.updateProjectionMatrix();
   }
   resize();
   globalThis.addEventListener("resize", resize);
+
+  function clampFocus(value, halfView, halfWorld) {
+    const lo = -halfWorld + halfView;
+    const hi = halfWorld - halfView;
+    if (lo > hi) return 0;
+    return THREE.MathUtils.clamp(value, lo, hi);
+  }
 
   const clock = new THREE.Clock();
   let previousLogical = { ...bridge.player };
@@ -592,8 +540,8 @@ export async function startThreeCampRuntime(baseCanvas, bridge) {
     }
 
     const discovered = state?.discoveredClues || [];
-    hut.group.visible = true;
     entrance.group.visible = !state?.questStarted;
+    hut.group.visible = true;
     clues.feather.visible = Boolean(state?.questStarted && !discovered.includes("feather"));
     clues.footprints.visible = Boolean(discovered.includes("feather") && !discovered.includes("footprints"));
     clues.birdcall.visible = Boolean(discovered.includes("footprints") && !discovered.includes("birdcall"));
@@ -607,16 +555,15 @@ export async function startThreeCampRuntime(baseCanvas, bridge) {
     hut.lantern.intensity = state?.questStarted ? 1.35 : 2.3 + Math.sin(t * 2.1) * 0.25;
     entrance.light.intensity = 1.55 + Math.sin(t * 2.3) * 0.18;
     clues.feather.rotation.y = Math.sin(t * 1.4) * 0.28;
-    clues.feather.position.y = worldPoint(690, 320, 0.32).y + Math.sin(t * 2.4) * 0.08;
     clues.featherLight.intensity = 1.75 + Math.sin(t * 3.2) * 0.4;
     clues.birdcall.children.forEach((ring, index) => {
-      const pulse = 1 + ((t * 0.45 + index * 0.28) % 1) * 0.55;
-      ring.scale.setScalar(pulse);
-      ring.material.opacity = 0.5 - ((t * 0.45 + index * 0.28) % 1) * 0.34;
+      const phase = (t * 0.45 + index * 0.28) % 1;
+      ring.scale.setScalar(1 + phase * 0.55);
+      ring.material.opacity = 0.5 - phase * 0.34;
     });
     fire.flameOuter.scale.y = 0.92 + Math.sin(t * 6.3) * 0.12;
     fire.flameInner.scale.y = 0.9 + Math.sin(t * 7.4 + 1.2) * 0.1;
-    fire.fireLight.intensity = 2.8 + Math.sin(t * 8.0) * 0.35;
+    fire.fireLight.intensity = 2.8 + Math.sin(t * 8) * 0.35;
     if (bluebird.sprite.visible) bluebird.sprite.position.y = 1.55 + Math.sin(t * 2.8) * 0.08;
     rewardSparkles.children.forEach((spark, index) => {
       const a = t * 1.6 + spark.userData.phase;
@@ -627,17 +574,19 @@ export async function startThreeCampRuntime(baseCanvas, bridge) {
     previousLogical = { x: logical.x, y: logical.y };
 
     const p = worldPoint(logical.x, logical.y, 0);
-    const focusX = THREE.MathUtils.clamp(p.x, -3.2, 3.2);
-    const focusZ = THREE.MathUtils.clamp(p.z * 0.62 - 0.45, -3.1, 3.1);
-    const look = new THREE.Vector3(focusX, 0.3, focusZ);
-    camera.position.set(focusX + 8.1, 11.3, focusZ + 9.5);
-    camera.lookAt(look);
+    const focusX = clampFocus(p.x, cameraView.halfWidth, 8);
+    const focusZ = clampFocus(p.z, cameraView.halfHeight * 0.7, 6);
+    // No X camera offset: world X is screen-horizontal and world Y/Z is
+    // screen-vertical. D-pad arrows therefore move exactly in their icon direction
+    // while retaining an elevated 2.5D camera instead of a flat top-down view.
+    camera.position.set(focusX, 11.5, focusZ + 8.2);
+    camera.lookAt(focusX, 0.25, focusZ);
 
     const target = bridge.getTarget?.() || null;
     interactionRing.visible = Boolean(target);
     if (target) {
       interactionRing.position.copy(worldPoint(target.x, target.y, 0.09));
-      interactionRing.scale.setScalar(1 + Math.sin(t * 3.0) * 0.13);
+      interactionRing.scale.setScalar(1 + Math.sin(t * 3) * 0.13);
     }
 
     renderer.render(scene, camera);

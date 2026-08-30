@@ -28,7 +28,6 @@ import { drawWaterfallWorld, drawWaterfallForeground, drawKingfisher } from "./w
 import { createWaterfallState, resetWaterfall, waterfallObjective, completeStreamGate, completeSteppingStones, collectWaterfallClue, answerLeafMatchRound, completeLookout, completeKingfisher, completeWaterfallReward, LEAF_MATCH_ROUNDS } from "./content/waterfall_chapter.js";
 import { nearestWaterfallInteractable, waterfallInteractables } from "./content/waterfall_interactables.js";
 import { WATERFALL_ART_IMAGES } from "./waterfall_art_manifest.js";
-import { startThreeWaterfallRuntime } from "./three_waterfall_runtime.js";
 import { stageReward, awardAndSaveStageReward } from "./content/stage_rewards.js";
 import { campVisualPhase, waterfallVisualPhase } from "./content/stage_visual_director.js";
 
@@ -55,25 +54,9 @@ export async function start(canvas, modalEl) {
   const audio = new AudioManager();
   const effects = new EffectSystem();
 
-  const [bluebirdAsset, ...sceneImgs] = await preload([
-    ASSET_ROOT + "bluebird.png",
-    ...Object.values(SCENE_IMAGES),
-    ...Object.values(WATERFALL_ART_IMAGES),
-  ]);
-  const images = {};
-  Object.keys(SCENE_IMAGES).forEach((k, i) => {
-    images[k] = sceneImgs[i] && sceneImgs[i].ok ? sceneImgs[i].img : null;
-  });
-  const waterfallArtImages = {};
-  Object.keys(WATERFALL_ART_IMAGES).forEach((k, i) => {
-    const result = sceneImgs[Object.keys(SCENE_IMAGES).length + i];
-    waterfallArtImages[k] = result && result.ok ? result.img : null;
-  });
-  const playerSprite = new PlayerSprite();
-  await playerSprite.load();
-  const props = buildProps();
-  const birdVisual = { x: BLUEBIRD.VISUAL.x, y: BLUEBIRD.VISUAL.y };
-
+  // Gameplay state and the read-only QA bridge are created before presentation
+  // assets are awaited. Missing or slow art must never make gameplay state
+  // unobservable or make optional Three.js presentation a startup dependency.
   const player = { x: geometry.clearings[0].x, y: geometry.clearings[0].y };
   let debug = false;
   let chapter = createChapterState();
@@ -83,7 +66,57 @@ export async function start(canvas, modalEl) {
   let pendingFireAdvanceAt = null;
   let previousDirectionType = null;
 
-  const threeMode = waterfallStage && params.get("renderer") === "three";
+  const startup = Object.seal({
+    phase: "preloading-scene-assets",
+    lastCompletedStep: "gameplay-bridge",
+    error: null,
+    presentationError: null,
+  });
+  globalThis.__eduniJungleStartup = startup;
+  globalThis.__eduniJungleGame = Object.freeze({
+    stageId: waterfallStage ? "waterfall" : "camp",
+    player,
+    geometry,
+    getState: () => waterfallStage ? waterfall : chapter,
+    getPhase: qaPhase,
+    getTarget: qaTarget,
+    getObjective: () => waterfallStage ? waterfallObjective(waterfall) : chapterObjective(chapter),
+  });
+
+  let bluebirdAsset;
+  let sceneImgs;
+  const playerSprite = new PlayerSprite();
+  try {
+    [bluebirdAsset, ...sceneImgs] = await preload([
+      ASSET_ROOT + "bluebird.png",
+      ...Object.values(SCENE_IMAGES),
+      ...Object.values(WATERFALL_ART_IMAGES),
+    ]);
+    startup.lastCompletedStep = "scene-assets";
+    startup.phase = "preloading-player-sprites";
+    await playerSprite.load();
+    startup.lastCompletedStep = "player-sprites";
+    startup.phase = "initializing-gameplay";
+  } catch (error) {
+    startup.phase = "error";
+    startup.error = error instanceof Error ? error.message : String(error);
+    console.error("[eduni] gameplay startup failed", error);
+    throw error;
+  }
+
+  const images = {};
+  Object.keys(SCENE_IMAGES).forEach((k, i) => {
+    images[k] = sceneImgs[i] && sceneImgs[i].ok ? sceneImgs[i].img : null;
+  });
+  const waterfallArtImages = {};
+  Object.keys(WATERFALL_ART_IMAGES).forEach((k, i) => {
+    const result = sceneImgs[Object.keys(SCENE_IMAGES).length + i];
+    waterfallArtImages[k] = result && result.ok ? result.img : null;
+  });
+  const props = buildProps();
+  const birdVisual = { x: BLUEBIRD.VISUAL.x, y: BLUEBIRD.VISUAL.y };
+
+  let threeMode = waterfallStage && params.get("renderer") === "three";
   let threeCanvas = null;
   let threeStatus = null;
   if (threeMode) {
@@ -479,24 +512,30 @@ export async function start(canvas, modalEl) {
 
   modalEl.querySelector("#modal-confirm").addEventListener("click", () => handlePanelActivate(performance.now()));
   updateUi();
-
-  globalThis.__eduniJungleGame = Object.freeze({
-    stageId: waterfallStage ? "waterfall" : "camp",
-    player,
-    geometry,
-    getState: () => waterfallStage ? waterfall : chapter,
-    getPhase: qaPhase,
-    getTarget: qaTarget,
-    getObjective: () => waterfallStage ? waterfallObjective(waterfall) : chapterObjective(chapter),
-  });
+  startup.lastCompletedStep = "gameplay-ui";
+  startup.phase = "gameplay-ready";
 
   if (threeMode) {
-    await startThreeWaterfallRuntime(threeCanvas, threeStatus, {
-      geometry,
-      getState: () => waterfall,
-      getPlayer: () => player,
-      getPlayerImage: () => playerSprite.currentImage(),
-    });
+    try {
+      const { startThreeWaterfallRuntime } = await import("./three_waterfall_runtime.js");
+      await startThreeWaterfallRuntime(threeCanvas, threeStatus, {
+        geometry,
+        getState: () => waterfall,
+        getPlayer: () => player,
+        getPlayerImage: () => playerSprite.currentImage(),
+      });
+      startup.lastCompletedStep = "three-waterfall-runtime";
+    } catch (error) {
+      startup.presentationError = error instanceof Error ? error.message : String(error);
+      console.error("Three Waterfall runtime failed; keeping Canvas fallback", error);
+      threeMode = false;
+      threeCanvas?.remove();
+      threeStatus?.remove();
+      canvas.style.visibility = "visible";
+    }
   }
+
   requestAnimationFrame(loop);
+  startup.lastCompletedStep = "game-loop";
+  startup.phase = "ready";
 }

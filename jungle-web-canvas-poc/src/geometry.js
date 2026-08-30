@@ -126,3 +126,23 @@ export class GiantTreeWorldGeometry extends CampWorldGeometry {
     this.bluebird = null;
   }
 }
+
+export class SkyRidgeWorldGeometry extends CampWorldGeometry {
+  constructor() {
+    super();
+    this.paths = [[
+      { x: 200, y: 1040 }, { x: 430, y: 930 }, { x: 650, y: 820 },
+      { x: 830, y: 690 }, { x: 1000, y: 560 }, { x: 1130, y: 490 },
+      { x: 1300, y: 420 }, { x: 1450, y: 310 },
+    ]];
+    this.clearings = [
+      { x: 200, y: 1040, r: 130, label: "Sky Ridge Approach" },
+      { x: 430, y: 930, r: 130, label: "Sky Gate" },
+      { x: 1000, y: 560, r: 125, label: "Wind Chime Shelf" },
+      { x: 1130, y: 490, r: 145, label: "Star Pattern Terrace" },
+      { x: 1300, y: 420, r: 130, label: "Summit Bridge" },
+      { x: 1450, y: 310, r: 140, label: "Hawk Summit" },
+    ];
+    this.bluebird = null;
+  }
+}

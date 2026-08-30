@@ -29,6 +29,7 @@ test("Cave game keeps gameplay state authoritative outside the renderer", async 
   assert.match(game, /startThreeCavePreview/);
   assert.match(game, /caveVisualPhase\(cave\)/);
   assert.match(game, /awardAndSaveStageReward\("cave"\)/);
+  assert.match(game, /statusEl\.dataset\.player = JSON\.stringify\(player\)/);
   assert.doesNotMatch(game, /player\.x\s*=\s*item\.x|player\.y\s*=\s*item\.y/);
 });
 

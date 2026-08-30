@@ -41,3 +41,8 @@ test("Unified Jungle QA dashboard reads rich runtime state where stage bridges e
   assert.match(QA, /runtime\.getState/);
   assert.match(QA, /runtime\.getPhase/);
 });
+
+test("Unified Jungle QA dashboard keeps production gameplay authoritative", () => {
+  assert.doesNotMatch(QA, /completeCave|completeGiant|completeSky|answerFirefly|answerTreeRing|answerStarPattern/);
+  assert.match(QA, /실제 키보드\/D-pad\/물리 컨트롤러로 플레이하세요/);
+});

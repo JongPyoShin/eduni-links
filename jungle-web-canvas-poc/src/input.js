@@ -17,6 +17,8 @@ export class InputController {
     this.keyboardNavHeld = new Set();
     this.qaCommandObserver = null;
     this.qaCommandElement = null;
+    this.qaInputPanel = null;
+    this.qaClickSequence = 0;
     this.gamepadProvider = gamepadProvider || (() => (typeof navigator !== "undefined" && navigator.getGamepads ? navigator.getGamepads() : []));
     this._bind();
   }
@@ -225,8 +227,69 @@ export class InputController {
     }
   }
 
+  _qaRecord(action, state, accepted = true, source = "command") {
+    const el = this.qaCommandElement;
+    if (!el) return;
+    const token = `${source}:${++this.qaClickSequence}:${action}:${state}`;
+    el.dataset.lastApplied = token;
+    el.dataset.accepted = accepted ? "true" : "false";
+    el.dataset.action = accepted ? action : "";
+    el.dataset.state = accepted ? state : "";
+    el.dataset.direction = JSON.stringify(this.direction());
+    el.dataset.source = source;
+  }
+
+  _qaPulse(action, durationMs = 1000) {
+    const accepted = this.setDigitalAction(action, true);
+    this._qaRecord(action, "down", accepted, "click");
+    if (!accepted) return false;
+    const holdMs = action === "interact" || action === "close" ? 80 : durationMs;
+    window.setTimeout(() => {
+      this.setDigitalAction(action, false);
+      this._qaRecord(action, "up", true, "click");
+    }, holdMs);
+    return true;
+  }
+
+  _ensureQaClickPanel() {
+    if (typeof document === "undefined") return null;
+    let panel = document.getElementById("qa-input-panel");
+    if (panel) return panel;
+
+    panel = document.createElement("div");
+    panel.id = "qa-input-panel";
+    panel.dataset.contract = "eduni-jungle-click-input-v1";
+    panel.setAttribute("aria-label", "QA input controls");
+    panel.style.cssText = "position:fixed;right:10px;top:54px;z-index:50;display:grid;grid-template-columns:repeat(3,58px);gap:6px;padding:8px;border-radius:10px;background:rgba(0,0,0,.72);font:11px system-ui;color:#fff;";
+
+    const controls = [
+      { id: "qa-hold-up", label: "QA ↑ 1s", action: "up", duration: 1000, column: "2" },
+      { id: "qa-hold-left", label: "QA ← 1s", action: "left", duration: 1000, column: "1" },
+      { id: "qa-hold-down", label: "QA ↓ 1s", action: "down", duration: 1000, column: "2" },
+      { id: "qa-hold-right", label: "QA → 1s", action: "right", duration: 1000, column: "3" },
+      { id: "qa-interact", label: "QA A", action: "interact", duration: 80, column: "1 / span 1" },
+      { id: "qa-close", label: "QA B", action: "close", duration: 80, column: "3" },
+    ];
+
+    for (const spec of controls) {
+      const button = document.createElement("button");
+      button.id = spec.id;
+      button.type = "button";
+      button.textContent = spec.label;
+      button.dataset.action = spec.action;
+      button.dataset.durationMs = String(spec.duration);
+      button.style.cssText = `grid-column:${spec.column};min-height:34px;border:1px solid rgba(255,255,255,.45);border-radius:7px;background:rgba(255,255,255,.14);color:#fff;font:700 10px system-ui;`;
+      button.addEventListener("click", () => this._qaPulse(spec.action, spec.duration));
+      panel.appendChild(button);
+    }
+
+    document.body.appendChild(panel);
+    this.qaInputPanel = panel;
+    return panel;
+  }
+
   _bindQaDom() {
-    if (typeof document === "undefined" || typeof MutationObserver === "undefined") return;
+    if (typeof document === "undefined") return;
     const query = (globalThis.location?.search || "").replaceAll("\\&", "&");
     if (new URLSearchParams(query).get("qa") !== "1") return;
 
@@ -239,7 +302,10 @@ export class InputController {
       el.dataset.lastApplied = "";
       document.body.appendChild(el);
     }
+    this.qaCommandElement = el;
+    this._ensureQaClickPanel();
 
+    if (typeof MutationObserver === "undefined") return;
     const applyCommand = () => {
       const raw = el.dataset.command || "";
       if (!raw || raw === el.dataset.lastApplied) return;
@@ -251,9 +317,9 @@ export class InputController {
       el.dataset.action = accepted ? action : "";
       el.dataset.state = accepted ? state : "";
       el.dataset.direction = JSON.stringify(this.direction());
+      el.dataset.source = "command";
     };
 
-    this.qaCommandElement = el;
     this.qaCommandObserver = new MutationObserver(applyCommand);
     this.qaCommandObserver.observe(el, { attributes: true, attributeFilter: ["data-command"] });
     applyCommand();

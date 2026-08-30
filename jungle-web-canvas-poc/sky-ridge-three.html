@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta http-equiv="cache-control" content="no-store" />
+    <title>EDUNI Jungle — 하늘 능선 Preview</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #7898b2; font-family: system-ui,sans-serif; }
+      #sky { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+      #ui { position: fixed; inset: 0; pointer-events: none; color: #f8fbff; }
+      #card { position: absolute; top: 15px; left: 15px; max-width: min(420px,calc(100vw - 30px)); padding: 12px 15px; border-radius: 16px; background: rgba(42,67,91,.72); border: 1px solid rgba(238,248,255,.4); backdrop-filter: blur(8px); }
+      #card strong { display:block; margin-bottom:4px; font-size:17px; }
+      #card span { font-size:12px; color:#e1eef7; line-height:1.45; }
+      #status { position:absolute; left:15px; bottom:15px; padding:8px 11px; border-radius:12px; background:rgba(37,55,76,.7); font-size:12px; }
+      .nav { pointer-events:auto; position:absolute; bottom:15px; border:0; border-radius:12px; padding:10px 13px; font-weight:900; cursor:pointer; background:rgba(255,255,255,.9); color:#375268; }
+      #prev { right:108px; } #next { right:15px; }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./node_modules/three/build/three.module.js",
+          "three/addons/": "./node_modules/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="sky"></canvas>
+    <div id="ui">
+      <div id="card"><strong>하늘 능선 · Three.js 2.5D</strong><span>바람과 구름을 따라 정상으로 올라가 하늘매와 마지막 하늘별 배지를 만나는 최종 스테이지 연출 프리뷰.</span></div>
+      <div id="status">하늘 능선 초기화 중…</div>
+      <button class="nav" id="prev" type="button">◀ 이전</button><button class="nav" id="next" type="button">다음 ▶</button>
+    </div>
+    <script type="module">
+      import { startThreeSkyRidgePreview } from "./src/three_sky_ridge_preview.js";
+      const status = document.querySelector("#status");
+      const api = await startThreeSkyRidgePreview(document.querySelector("#sky"), status, { debugControls: true });
+      let index = 0;
+      document.querySelector("#prev").addEventListener("click", () => { index = Math.max(0,index-1); api.setPhase(index); });
+      document.querySelector("#next").addEventListener("click", () => { index = Math.min(api.phases.length-1,index+1); api.setPhase(index); });
+    </script>
+  </body>
+</html>

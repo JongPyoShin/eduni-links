@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <title>EDUNI 공간탐험</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink:#182033;
+      --muted:#667085;
+      --panel:rgba(255,255,255,.96);
+      --line:#dbe4f0;
+      --accent:#5b5bd6;
+      --accent-2:#7c3aed;
+      --good:#15803d;
+      --bad:#b42318;
+      --shadow:0 18px 48px rgba(43,55,86,.14);
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      min-height:100vh;
+      min-height:100dvh;
+      background:
+        radial-gradient(circle at 12% 10%, rgba(125,211,252,.36), transparent 28%),
+        radial-gradient(circle at 88% 16%, rgba(196,181,253,.38), transparent 30%),
+        linear-gradient(180deg,#eef6ff 0%,#f7f4ff 48%,#fff 100%);
+      color:var(--ink);
+      font-family:"Segoe UI","Malgun Gothic",system-ui,sans-serif;
+      -webkit-tap-highlight-color:transparent;
+    }
+    button,a { font:inherit; }
+    button { touch-action:manipulation; }
+    .app { width:min(920px,calc(100vw - 24px)); margin:0 auto; padding:16px 0 34px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+    .brand { display:flex; align-items:center; gap:10px; font-weight:950; }
+    .brand-mark { width:42px; height:42px; display:grid; place-items:center; border-radius:14px; background:#fff; box-shadow:0 8px 24px rgba(91,91,214,.16); font-size:23px; }
+    .portal-link { color:#475467; text-decoration:none; font-weight:850; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.72); border:1px solid rgba(24,32,51,.08); }
+    .panel { background:var(--panel); border:1px solid rgba(24,32,51,.08); border-radius:26px; box-shadow:var(--shadow); overflow:hidden; }
+    .intro { padding:clamp(24px,5vw,46px); text-align:center; }
+    .eyebrow { margin:0 0 8px; color:var(--accent-2); font-weight:950; }
+    h1 { margin:0; font-size:clamp(38px,8vw,70px); line-height:1.03; letter-spacing:-.04em; }
+    .lead { max-width:640px; margin:16px auto 0; color:#475467; font-size:clamp(17px,2.5vw,21px); font-weight:800; line-height:1.55; }
+    .mission-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin:26px 0; }
+    .mission { padding:18px 8px; border-radius:18px; border:1px solid var(--line); background:#f8fbff; }
+    .mission b { display:block; font-size:30px; margin-bottom:7px; }
+    .mission span { font-size:14px; font-weight:900; }
+    .primary { min-height:58px; border:0; border-radius:18px; padding:0 28px; background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#fff; font-size:20px; font-weight:950; cursor:pointer; box-shadow:0 12px 28px rgba(91,91,214,.24); }
+    .primary:active { transform:translateY(1px); }
+    .best { margin:14px 0 0; color:var(--muted); font-weight:800; }
+
+    .game { display:none; }
+    .game-head { padding:18px 20px 0; }
+    .progress-row { display:flex; align-items:center; justify-content:space-between; gap:12px; font-weight:900; }
+    .counter { color:#475467; }
+    .stars { color:#c47a00; white-space:nowrap; }
+    .progress { height:12px; margin-top:11px; border-radius:999px; background:#e9eef7; overflow:hidden; }
+    .progress > div { height:100%; width:10%; background:linear-gradient(90deg,#60a5fa,#8b5cf6); transition:width .22s ease; }
+    .question-wrap { padding:22px clamp(16px,4vw,34px) 28px; }
+    .type-badge { width:fit-content; margin:0 auto 8px; padding:7px 12px; border-radius:999px; background:#f0f2ff; color:#4f46e5; font-weight:950; font-size:14px; }
+    .question-title { margin:0; text-align:center; font-size:clamp(25px,5vw,38px); letter-spacing:-.02em; }
+    .question-copy { margin:8px auto 16px; text-align:center; color:#475467; font-size:clamp(16px,2.4vw,19px); font-weight:800; }
+    .visual { min-height:230px; display:grid; place-items:center; padding:16px; border-radius:22px; background:linear-gradient(180deg,#f8fbff,#f5f3ff); border:1px solid #e3e8f3; overflow:hidden; }
+    .mirror-stage { width:min(520px,100%); display:grid; grid-template-columns:1fr 44px 1fr; align-items:center; gap:4px; }
+    .mirror-line { height:170px; position:relative; }
+    .mirror-line::before { content:""; position:absolute; left:50%; top:4px; bottom:4px; width:4px; border-radius:3px; background:linear-gradient(#60a5fa,#a78bfa); }
+    .mirror-line::after { content:"거울"; position:absolute; left:50%; bottom:-9px; transform:translateX(-50%); padding:3px 7px; border-radius:8px; background:#fff; color:#667085; font-size:12px; font-weight:900; }
+    .mirror-question { display:grid; place-items:center; color:#94a3b8; font-size:42px; font-weight:950; }
+    .turn-label { margin-top:8px; text-align:center; color:#5b5bd6; font-size:18px; font-weight:950; }
+    .choices { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:16px; }
+    .choice { min-height:146px; padding:12px; border:2px solid #dfe6f1; border-radius:20px; background:#fff; color:var(--ink); cursor:pointer; display:grid; place-items:center; transition:transform .12s ease,border-color .12s ease,background .12s ease; }
+    .choice:hover { transform:translateY(-2px); border-color:#a5b4fc; }
+    .choice:disabled { cursor:default; transform:none; opacity:.58; }
+    .choice.correct { border-color:#22c55e; background:#f0fdf4; opacity:1; }
+    .choice.wrong { border-color:#fda29b; background:#fff1f0; }
+    .count-answer { font-size:clamp(44px,9vw,72px); font-weight:1000; color:#4338ca; }
+    .feedback { min-height:54px; margin-top:14px; padding:12px 14px; border-radius:16px; background:#f8fafc; color:#475467; font-size:16px; font-weight:900; line-height:1.45; display:flex; align-items:center; justify-content:center; text-align:center; }
+    .feedback.good { background:#f0fdf4; color:#166534; }
+    .feedback.try { background:#fff7ed; color:#9a3412; }
+    .next-row { display:flex; justify-content:center; margin-top:12px; }
+    .next { display:none; min-height:52px; border:0; border-radius:16px; padding:0 26px; background:#182033; color:#fff; font-weight:950; font-size:18px; cursor:pointer; }
+
+    .result { display:none; padding:clamp(28px,6vw,56px); text-align:center; }
+    .result-rocket { font-size:72px; }
+    .result h2 { margin:6px 0 8px; font-size:clamp(34px,7vw,58px); }
+    .result-score { font-size:clamp(28px,6vw,44px); color:#7c3aed; font-weight:1000; }
+    .result-copy { margin:10px auto 22px; max-width:560px; color:#475467; font-weight:850; font-size:18px; line-height:1.55; }
+    .result-actions { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; }
+    .secondary { min-height:56px; border-radius:18px; padding:0 24px; border:2px solid #d9def0; background:#fff; color:#344054; font-size:18px; font-weight:950; cursor:pointer; }
+
+    svg.shape { width:min(170px,100%); height:auto; display:block; margin:auto; }
+    svg.blocks { width:min(420px,100%); height:auto; display:block; }
+    svg.top-view { width:min(190px,100%); height:auto; display:block; margin:auto; }
+
+    @media (max-width:700px) {
+      .mission-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .choices { gap:8px; }
+      .choice { min-height:126px; padding:7px; }
+      .visual { min-height:210px; }
+    }
+    @media (max-width:480px) {
+      .app { width:min(100vw - 14px,920px); padding-top:8px; }
+      .topbar { margin:0 5px 8px; }
+      .brand span:last-child { display:none; }
+      .panel { border-radius:21px; }
+      .intro { padding:24px 16px 28px; }
+      .question-wrap { padding:18px 10px 22px; }
+      .visual { padding:10px; min-height:190px; }
+      .mirror-stage { grid-template-columns:1fr 32px 1fr; }
+      .mirror-line { height:135px; }
+      .choices { grid-template-columns:repeat(3,minmax(0,1fr)); }
+      .choice { min-height:112px; border-radius:16px; }
+      .feedback { font-size:15px; }
+    }
+    @media (prefers-reduced-motion:reduce) {
+      *,*::before,*::after { scroll-behavior:auto!important; transition:none!important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">🧠</span><span>EDUNI 공간탐험</span></div>
+      <a class="portal-link" href="/portal">포털로</a>
+    </header>
+
+    <section class="panel">
+      <div id="intro" class="intro">
+        <p class="eyebrow">7세 공간지각 미션</p>
+        <h1>눈으로 돌리고<br>머릿속으로 맞혀봐!</h1>
+        <p class="lead">거울, 회전, 쌓기나무, 위에서 본 모양을 10문제로 가볍게 연습해요. 시간 제한은 없어요.</p>
+        <div class="mission-grid" aria-label="게임 종류">
+          <div class="mission"><b>🪞</b><span>거울 찾기</span></div>
+          <div class="mission"><b>🔄</b><span>도형 회전</span></div>
+          <div class="mission"><b>🧊</b><span>블록 세기</span></div>
+          <div class="mission"><b>👀</b><span>위에서 보기</span></div>
+        </div>
+        <button id="startBtn" class="primary" type="button">🚀 탐험 시작</button>
+        <p id="bestScore" class="best"></p>
+      </div>
+
+      <div id="game" class="game">
+        <div class="game-head">
+          <div class="progress-row">
+            <span id="counter" class="counter">1 / 10</span>
+            <span id="stars" class="stars">⭐ 0</span>
+          </div>
+          <div class="progress" aria-hidden="true"><div id="progressBar"></div></div>
+        </div>
+        <div class="question-wrap">
+          <div id="typeBadge" class="type-badge">🪞 거울 찾기</div>
+          <h2 id="questionTitle" class="question-title"></h2>
+          <p id="questionCopy" class="question-copy"></p>
+          <div id="visual" class="visual"></div>
+          <div id="choices" class="choices"></div>
+          <div id="feedback" class="feedback" aria-live="polite">천천히 보고 골라보자!</div>
+          <div class="next-row"><button id="nextBtn" class="next" type="button">다음 문제 →</button></div>
+        </div>
+      </div>
+
+      <div id="result" class="result">
+        <div class="result-rocket">🚀</div>
+        <h2>공간탐험 완료!</h2>
+        <div id="resultScore" class="result-score">⭐ 0 / 10</div>
+        <p id="resultCopy" class="result-copy"></p>
+        <div class="result-actions">
+          <button id="replayBtn" class="primary" type="button">한 번 더!</button>
+          <a class="secondary" href="/portal" style="display:inline-flex;align-items:center;text-decoration:none;">포털로 돌아가기</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const TOTAL = 10;
+      const $ = (id) => document.getElementById(id);
+      const state = { index: 0, stars: 0, attempts: 0, resolved: false, types: [], question: null };
+
+      const baseShapes = [
+        [
+          [0,0,0,0],
+          [1,2,0,0],
+          [0,1,1,0],
+          [0,0,1,0],
+        ],
+        [
+          [0,1,0,0],
+          [0,2,0,0],
+          [1,1,1,0],
+          [0,0,1,0],
+        ],
+        [
+          [1,1,0,0],
+          [0,2,0,0],
+          [0,1,1,0],
+          [0,0,1,0],
+        ],
+        [
+          [0,1,1,0],
+          [0,1,0,0],
+          [0,2,0,0],
+          [1,1,0,0],
+        ],
+        [
+          [0,0,1,0],
+          [1,1,2,0],
+          [1,0,0,0],
+          [1,0,0,0],
+        ],
+      ];
+
+      const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+      const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+      const shuffle = (arr) => {
+        const out = [...arr];
+        for (let i = out.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [out[i], out[j]] = [out[j], out[i]];
+        }
+        return out;
+      };
+      const cloneMatrix = (m) => m.map((row) => [...row]);
+      const matrixKey = (m) => m.map((row) => row.join('')).join('|');
+      const rotate90 = (m) => {
+        const n = m.length;
+        return m.map((row, r) => row.map((_, c) => m[n - 1 - c][r]));
+      };
+      const rotateN = (m, turns) => {
+        let out = cloneMatrix(m);
+        for (let i = 0; i < turns; i += 1) out = rotate90(out);
+        return out;
+      };
+      const flipX = (m) => m.map((row) => [...row].reverse());
+      const flipY = (m) => [...m].reverse().map((row) => [...row]);
+
+      function renderShape(matrix) {
+        const n = matrix.length;
+        const cell = 34;
+        const gap = 4;
+        const size = n * cell;
+        let body = '';
+        matrix.forEach((row, r) => row.forEach((value, c) => {
+          if (!value) return;
+          const x = c * cell + gap;
+          const y = r * cell + gap;
+          body += `<rect x="${x}" y="${y}" width="${cell-gap*2}" height="${cell-gap*2}" rx="7" fill="#6366f1"/>`;
+          if (value === 2) {
+            body += `<circle cx="${x + (cell-gap*2)/2}" cy="${y + (cell-gap*2)/2}" r="7" fill="#fde047" stroke="#713f12" stroke-width="2"/>`;
+          }
+        }));
+        return `<svg class="shape" viewBox="0 0 ${size} ${size}" role="img" aria-label="도형">${body}</svg>`;
+      }
+
+      function uniqueShapeOptions(correct, candidates) {
+        const seen = new Set([matrixKey(correct)]);
+        const options = [{ key: matrixKey(correct), html: renderShape(correct) }];
+        for (const candidate of candidates) {
+          const key = matrixKey(candidate);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          options.push({ key, html: renderShape(candidate) });
+          if (options.length === 3) break;
+        }
+        return shuffle(options);
+      }
+
+      function makeMirrorQuestion() {
+        const source = cloneMatrix(pick(baseShapes));
+        const correct = flipX(source);
+        const candidates = [flipY(source), rotate90(source), rotateN(source,2), rotateN(source,3), source];
+        return {
+          badge:'🪞 거울 찾기',
+          title:'거울에 비치면 어떤 모양일까?',
+          copy:'세로 거울의 반대편 모습을 찾아보자.',
+          visual:`<div class="mirror-stage"><div>${renderShape(source)}</div><div class="mirror-line"></div><div class="mirror-question">?</div></div>`,
+          options:uniqueShapeOptions(correct,candidates),
+          correctKey:matrixKey(correct),
+          hint:'거울에 가까운 부분이 반대쪽에서도 거울 가까이에 있어.',
+        };
+      }
+
+      function makeRotationQuestion() {
+        const source = cloneMatrix(pick(baseShapes));
+        const turns = pick([1,2,3]);
+        const degree = turns * 90;
+        const correct = rotateN(source,turns);
+        const candidates = [rotateN(source,(turns+1)%4), rotateN(source,(turns+2)%4), flipX(source), flipY(source), source];
+        return {
+          badge:'🔄 도형 회전',
+          title:`오른쪽으로 ${degree}° 돌리면?`,
+          copy:'노란 점의 자리도 함께 돌아가요.',
+          visual:`<div><div>${renderShape(source)}</div><div class="turn-label">↻ ${degree}°</div></div>`,
+          options:uniqueShapeOptions(correct,candidates),
+          correctKey:matrixKey(correct),
+          hint:'도형 전체를 종이처럼 같이 돌린다고 생각해봐.',
+        };
+      }
+
+      function randomHeightMap() {
+        const rows = 3;
+        const cols = 3;
+        const map = Array.from({length:rows},() => Array(cols).fill(0));
+        const wanted = randInt(4,6);
+        const cells = shuffle(Array.from({length:rows*cols},(_,i) => i)).slice(0,wanted);
+        cells.forEach((index) => {
+          const r = Math.floor(index / cols);
+          const c = index % cols;
+          map[r][c] = Math.random() < .38 ? 2 : 1;
+        });
+        if (!map.some((row) => row.some((h) => h === 2))) {
+          const index = pick(cells);
+          map[Math.floor(index / cols)][index % cols] = 2;
+        }
+        return map;
+      }
+
+      function blockTotal(map) {
+        return map.flat().reduce((sum,h) => sum + h,0);
+      }
+
+      function cubeSvg(cx, topY, d=30, h=30) {
+        const dy = d/2;
+        const top = `${cx},${topY} ${cx+d},${topY+dy} ${cx},${topY+d} ${cx-d},${topY+dy}`;
+        const left = `${cx-d},${topY+dy} ${cx},${topY+d} ${cx},${topY+d+h} ${cx-d},${topY+dy+h}`;
+        const right = `${cx+d},${topY+dy} ${cx},${topY+d} ${cx},${topY+d+h} ${cx+d},${topY+dy+h}`;
+        return `<polygon points="${left}" fill="#7c8cff" stroke="#4051c8" stroke-width="1.5"/><polygon points="${right}" fill="#5969de" stroke="#4051c8" stroke-width="1.5"/><polygon points="${top}" fill="#aeb8ff" stroke="#4051c8" stroke-width="1.5"/>`;
+      }
+
+      function renderBlocks(map) {
+        const cubes = [];
+        for (let r=0;r<map.length;r+=1) {
+          for (let c=0;c<map[r].length;c+=1) {
+            for (let z=0;z<map[r][c];z+=1) cubes.push({r,c,z});
+          }
+        }
+        cubes.sort((a,b) => (a.r+a.c)-(b.r+b.c) || a.z-b.z || a.r-b.r);
+        let body='';
+        cubes.forEach(({r,c,z}) => {
+          const cx = 210 + (c-r)*31;
+          const topY = 72 + (c+r)*16 - (z+1)*30;
+          body += cubeSvg(cx,topY);
+        });
+        let grid='';
+        for (let r=0;r<3;r+=1) for (let c=0;c<3;c+=1) {
+          const gx=140+(c-r)*30, gy=120+(c+r)*15;
+          grid += `<path d="M ${gx} ${gy} l 30 15 M ${gx} ${gy} l -30 15" stroke="#cbd5e1" stroke-width="1" opacity=".55"/>`;
+        }
+        return `<svg class="blocks" viewBox="45 0 330 260" role="img" aria-label="쌓기나무 바닥 격자 포함">${grid}${body}</svg>`;
+      }
+
+      function makeCountQuestion() {
+        const map = randomHeightMap();
+        const correct = blockTotal(map);
+        const values = new Set([correct]);
+        for (const delta of shuffle([-2,-1,1,2,3])) {
+          if (correct + delta > 1) values.add(correct + delta);
+          if (values.size === 3) break;
+        }
+        const options = shuffle([...values]).map((value) => ({key:String(value),html:`<span class="count-answer">${value}</span>`}));
+        return {
+          badge:'🧊 블록 탐정',
+          title:'쌓기나무는 모두 몇 개일까?',
+          copy:'위에 블록이 있다면 그 아래에도 블록이 있어요.',
+          visual:renderBlocks(map),
+          options,
+          correctKey:String(correct),
+          hint:'높이 2칸인 기둥은 블록이 2개야. 아래쪽도 잊지 말자.',
+        };
+      }
+
+      function occupancy(map) {
+        return map.map((row) => row.map((h) => h > 0 ? 1 : 0));
+      }
+
+      function renderTopView(matrix) {
+        const cell=42;
+        const pad=5;
+        const rows=matrix.length;
+        const cols=matrix[0].length;
+        let body='';
+        for (let r=0;r<rows;r+=1) {
+          for (let c=0;c<cols;c+=1) {
+            const x=c*cell+pad;
+            const y=r*cell+pad;
+            body += `<rect x="${x}" y="${y}" width="${cell-pad*2}" height="${cell-pad*2}" rx="6" fill="${matrix[r][c] ? '#6366f1' : '#eef2f7'}" stroke="${matrix[r][c] ? '#4338ca' : '#cfd8e6'}" stroke-width="2"/>`;
+          }
+        }
+        return `<svg class="top-view" viewBox="0 0 ${cols*cell} ${rows*cell}" role="img" aria-label="위에서 본 모양">${body}</svg>`;
+      }
+
+      function mutateProjection(matrix) {
+        const out = cloneMatrix(matrix);
+        const r=randInt(0,out.length-1);
+        const c=randInt(0,out[0].length-1);
+        out[r][c]=out[r][c] ? 0 : 1;
+        return out;
+      }
+
+      function makeProjectionQuestion() {
+        const map=randomHeightMap();
+        const correct=occupancy(map);
+        const seen=new Set([matrixKey(correct)]);
+        const options=[{key:matrixKey(correct),html:renderTopView(correct)}];
+        let guard=0;
+        while (options.length<3 && guard<20) {
+          guard+=1;
+          let candidate=mutateProjection(correct);
+          if (Math.random()<.45) candidate=mutateProjection(candidate);
+          const key=matrixKey(candidate);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          options.push({key,html:renderTopView(candidate)});
+        }
+        return {
+          badge:'👀 위에서 보기',
+          title:'위에서 보면 어떤 모양일까?',
+          copy:'높이는 잠깐 잊고, 블록이 놓인 자리만 찾아보자.',
+          visual:renderBlocks(map),
+          options:shuffle(options),
+          correctKey:matrixKey(correct),
+          hint:'위에서는 같은 자리에 쌓인 블록이 한 칸처럼 보여.',
+        };
+      }
+
+      function makeTypeSequence() {
+        const core=['mirror','rotate','count','projection','mirror','rotate','count','projection'];
+        core.push(pick(['mirror','rotate','count','projection']));
+        core.push(pick(['mirror','rotate','count','projection']));
+        return shuffle(core);
+      }
+
+      function makeQuestion(type) {
+        if (type==='mirror') return makeMirrorQuestion();
+        if (type==='rotate') return makeRotationQuestion();
+        if (type==='count') return makeCountQuestion();
+        return makeProjectionQuestion();
+      }
+
+      function startGame() {
+        state.index=0;
+        state.stars=0;
+        state.attempts=0;
+        state.resolved=false;
+        state.types=makeTypeSequence();
+        $('intro').style.display='none';
+        $('result').style.display='none';
+        $('game').style.display='block';
+        loadQuestion();
+      }
+
+      function loadQuestion() {
+        state.attempts=0;
+        state.resolved=false;
+        state.question=makeQuestion(state.types[state.index]);
+        $('counter').textContent=`${state.index+1} / ${TOTAL}`;
+        $('stars').textContent=`⭐ ${state.stars}`;
+        $('progressBar').style.width=`${((state.index+1)/TOTAL)*100}%`;
+        $('typeBadge').textContent=state.question.badge;
+        $('questionTitle').textContent=state.question.title;
+        $('questionCopy').textContent=state.question.copy;
+        $('visual').innerHTML=state.question.visual;
+        $('feedback').className='feedback';
+        $('feedback').textContent='천천히 보고 골라보자!';
+        $('nextBtn').style.display='none';
+        $('choices').innerHTML='';
+        state.question.options.forEach((option,index) => {
+          const button=document.createElement('button');
+          button.type='button';
+          button.className='choice';
+          button.dataset.key=option.key;
+          button.setAttribute('aria-label',`${index+1}번 답`);
+          button.innerHTML=option.html;
+          button.addEventListener('click',() => choose(option.key,button));
+          $('choices').appendChild(button);
+        });
+      }
+
+      function markCorrectChoice() {
+        [...$('choices').querySelectorAll('.choice')].forEach((button) => {
+          if (button.dataset.key===state.question.correctKey) button.classList.add('correct');
+          button.disabled=true;
+        });
+      }
+
+      function choose(key,button) {
+        if (state.resolved || button.disabled) return;
+        state.attempts+=1;
+        if (key===state.question.correctKey) {
+          state.resolved=true;
+          state.stars+=1;
+          button.classList.add('correct');
+          [...$('choices').querySelectorAll('.choice')].forEach((item) => item.disabled=true);
+          $('stars').textContent=`⭐ ${state.stars}`;
+          $('feedback').className='feedback good';
+          $('feedback').textContent=state.attempts===1 ? '정답! 한눈에 잘 찾았어! 🌟' : '맞았어! 다시 생각해서 찾아냈네! 🌟';
+          $('nextBtn').style.display='inline-flex';
+          return;
+        }
+
+        button.classList.add('wrong');
+        button.disabled=true;
+        if (state.attempts===1) {
+          $('feedback').className='feedback try';
+          $('feedback').textContent=`한 번 더! ${state.question.hint}`;
+          return;
+        }
+
+        state.resolved=true;
+        markCorrectChoice();
+        $('feedback').className='feedback try';
+        $('feedback').textContent='정답 위치를 확인했어. 다음 문제에서 다시 도전해보자!';
+        $('nextBtn').style.display='inline-flex';
+      }
+
+      function nextQuestion() {
+        if (!state.resolved) return;
+        state.index+=1;
+        if (state.index>=TOTAL) {
+          finishGame();
+          return;
+        }
+        loadQuestion();
+      }
+
+      function finishGame() {
+        $('game').style.display='none';
+        $('result').style.display='block';
+        $('resultScore').textContent=`⭐ ${state.stars} / ${TOTAL}`;
+        const message = state.stars>=9
+          ? '공간을 아주 정확하게 봤어! 다음에는 더 어려운 회전과 숨은 블록에도 도전할 수 있겠어.'
+          : state.stars>=7
+            ? '좋아! 거울과 블록을 머릿속으로 움직이는 힘이 점점 좋아지고 있어.'
+            : '끝까지 탐험한 게 중요해! 같은 문제도 다시 보면 훨씬 빨리 보일 거야.';
+        $('resultCopy').textContent=message;
+        const oldBest=Number(localStorage.getItem('eduniSpaceBest') || 0);
+        if (state.stars>oldBest) localStorage.setItem('eduniSpaceBest',String(state.stars));
+        updateBest();
+      }
+
+      function updateBest() {
+        const best=Number(localStorage.getItem('eduniSpaceBest') || 0);
+        $('bestScore').textContent=best ? `이 기기의 최고 기록: ⭐ ${best} / ${TOTAL}` : '첫 탐험 기록을 만들어보자!';
+      }
+
+      $('startBtn').addEventListener('click',startGame);
+      $('replayBtn').addEventListener('click',startGame);
+      $('nextBtn').addEventListener('click',nextQuestion);
+      updateBest();
+    })();
+  </script>
+</body>
+</html>

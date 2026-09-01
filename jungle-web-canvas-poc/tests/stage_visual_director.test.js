@@ -7,8 +7,8 @@ function camp(overrides = {}) {
   return {
     questStarted: false,
     discoveredClues: [],
-    firePitRound: 0,
-    firePitComplete: false,
+    clueQuizScore: 0,
+    clueQuizzesComplete: false,
     bluebirdComplete: false,
     ...overrides,
   };
@@ -48,8 +48,8 @@ test("Camp visual director follows the authored story arc", () => {
   assert.equal(campVisualPhase(camp({ questStarted: true, discoveredClues: ["feather"] })).phaseId, "footprints");
   assert.equal(campVisualPhase(camp({ questStarted: true, discoveredClues: ["feather", "footprints"] })).phaseId, "birdcall");
   assert.equal(campVisualPhase(camp({ questStarted: true, discoveredClues: ["feather", "footprints", "birdcall"] })).phaseId, "firePit");
-  assert.equal(campVisualPhase(camp({ firePitComplete: true }), { ridgeArrivalPlayed: false }).phaseId, "ridge");
-  assert.equal(campVisualPhase(camp({ firePitComplete: true }), { ridgeArrivalPlayed: true }).phaseId, "bluebird");
+  assert.equal(campVisualPhase(camp({ clueQuizzesComplete: true }), { ridgeArrivalPlayed: false }).phaseId, "ridge");
+  assert.equal(campVisualPhase(camp({ clueQuizzesComplete: true }), { ridgeArrivalPlayed: true }).phaseId, "bluebird");
   assert.equal(campVisualPhase(camp({ bluebirdComplete: true }), { ridgeArrivalPlayed: true }).phaseId, "reward");
 });
 

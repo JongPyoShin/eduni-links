@@ -17,7 +17,11 @@ import {
 } from "./scene.js";
 import { drawDebugOverlay } from "./debug.js";
 import { createChapterState, resetChapter } from "./content/chapter_state.js";
-import { CLUES, FIRE_PIT_ROUNDS, answerFirePitRound, chapterObjective, collectClue, completeBluebird, startQuest } from "./content/camp_chapter.js";
+import { CLUES, chapterObjective, collectClue, completeBluebird, startQuest, addClueQuizScore, getClueQuizId, canMeetBluebird } from "./content/camp_chapter.js";
+import { BIRD_QUIZ_BANK } from "./content/bird_quiz_bank.js";
+import { createBirdQuizSession, currentQuestion, answerBirdQuiz, isQuizComplete, isCaptureSuccess } from "./content/bird_quiz.js";
+import { loadBirdCodex, saveBirdCodex, captureBird, hasCapturedBird } from "./content/bird_codex.js";
+import { getBirdData } from "./content/bird_manifest.js";
 import { buildInteractables, nearestInteractable } from "./content/interactables.js";
 import { ContentPanelController, renderContentPanel } from "./content/content_panel.js";
 import { drawChapterWorld } from "./content/feedback.js";
@@ -65,6 +69,20 @@ export async function start(canvas, modalEl) {
   let sequences = createSequenceState();
   let pendingFireAdvanceAt = null;
   let previousDirectionType = null;
+  let birdQuiz = null;
+
+  function openBirdQuizQuestion() {
+    const q = currentQuestion(birdQuiz);
+    if (!q) return;
+    panel.openPanel({
+      kind: "birdQuiz",
+      title: `퀴즈 ${q.number} / ${q.total}`,
+      body: q.question,
+      choices: q.choices.map((c) => ({ id: c.id, label: c.label })),
+      choiceMode: "single",
+      confirmLabel: "답하기",
+    });
+  }
 
   const startup = Object.seal({
     phase: "preloading-scene-assets",
@@ -131,7 +149,7 @@ export async function start(canvas, modalEl) {
     document.body.appendChild(threeStatus);
   }
 
-  camera.snap(player.x, player.y, canvas.width, canvas.height);
+  camera.snap(player.x, player.y - 80, canvas.width, canvas.height);
 
   function updateUi() {
     renderContentPanel(panel, modalEl);
@@ -160,15 +178,22 @@ export async function start(canvas, modalEl) {
     return LEAF_LABELS[id] || id;
   }
 
-  function openFireRound() {
-    const round = FIRE_PIT_ROUNDS[chapter.firePitRound];
+  function openClueWithQuiz(clueId) {
+    const clue = CLUES.find((c) => c.id === clueId);
+    if (!clue) return;
+    const quizId = getClueQuizId(chapter, clueId);
+    const quizQuestion = BIRD_QUIZ_BANK.find((q) => q.id === quizId);
+    if (!quizQuestion) return;
+    birdQuiz = createBirdQuizSession("clue_" + clueId, [quizQuestion], Math.random);
     panel.openPanel({
-      kind: "firePit",
-      title: "흔적 탐정 퀴즈",
-      body: round.question,
-      progress: `${chapter.firePitRound + 1} / ${FIRE_PIT_ROUNDS.length}`,
-      choices: round.choices.map((id) => ({ id, label: clueLabel(id) })),
+      kind: "clueQuiz",
+      clueId,
+      title: clue.title,
+      body: clue.fact + "\n\n" + quizQuestion.question,
+      choices: quizQuestion.choices.map((c) => ({ id: c.id, label: c.label })),
       choiceMode: "single",
+      progress: `흔적 ${chapter.discoveredClues.length + 1} / ${CLUES.length}`,
+      confirmLabel: "답하기",
     });
   }
 
@@ -233,12 +258,17 @@ export async function start(canvas, modalEl) {
     }
     if (item.type === "hut") {
       panel.openPanel({ kind: "hut", title: "오늘의 탐험", body: "숲에 파랑새가 다녀간 흔적이 있대!\n세 가지 흔적을 찾아보자.", progress: "파랑새의 흔적 0 / 3", confirmLabel: "탐험 시작!" });
-    } else if (item.type === "firePit") {
-      openFireRound();
     } else if (item.type === "bluebird") {
-      panel.openPanel({ kind: "bluebird", title: "파랑새를 만났어!", body: "깃털, 발자국, 새소리.\n숲의 작은 흔적을 잘 관찰했구나!", img: ASSET_ROOT + "bluebird_portrait.png", confirmLabel: "만나서 반가워!" });
+      const codex = loadBirdCodex();
+      const alreadyCaptured = hasCapturedBird(codex, "bluebird");
+      const score = chapter.clueQuizScore;
+      if (alreadyCaptured) {
+        panel.openPanel({ kind: "bluebird", title: "파랑새를 만났어!", body: `관찰 결과 ${score} / 3 정답!\n파랑새가 반짝이며 나타났어!`, img: ASSET_ROOT + "bluebird_portrait.png", confirmLabel: "만나서 반가워!" });
+      } else {
+        panel.openPanel({ kind: "bluebird", title: "파랑새를 만났어!", body: `관찰 결과 ${score} / 3 정답!\n이제 파랑새를 관찰해 보자!`, img: ASSET_ROOT + "bluebird_portrait.png", confirmLabel: "관찰 완료!" });
+      }
     } else {
-      panel.openPanel({ kind: "clue", clueId: item.id, title: item.title, body: item.fact, progress: `${chapter.discoveredClues.length + 1} / ${CLUES.length}`, confirmLabel: "기억할게!" });
+      openClueWithQuiz(item.id);
     }
     updateUi();
   }
@@ -263,18 +293,22 @@ export async function start(canvas, modalEl) {
         updateUi();
         return;
       }
-      if (result.kind === "firePit") {
-        const answer = answerFirePitRound(chapter, result.choice.id);
+      if (result.kind === "clueQuiz") {
+        const answer = answerBirdQuiz(birdQuiz, result.choice.id);
+        birdQuiz = answer.session;
         if (!answer.correct) {
-          cue("wrong", "soft-burst", 920, 820, ts || 0, 1.5);
-          panel.setResponse("한 번 더 생각해 볼까?", "gentle");
+          cue("wrong", "soft-burst", 920, 820, ts || 0, 1);
+          panel.setResponse(`아쉬워! ${answer.lastAnswer.explanation}`, "gentle");
         } else {
-          chapter = answer.state;
-          cue("correct", "sparkle", 920, 820, ts || 0, 1.5);
-          feedback = { x: 990, y: 935, until: ts + 760, style: "embers" };
-          panel.openPanel({ kind: "fireFeedback", title: "찾아냈어!", body: answer.feedback, autoProgress: true });
-          pendingFireAdvanceAt = ts + 720;
+          cue("correct", "sparkle", 920, 820, ts || 0, 1);
+          panel.setResponse("정답!", "gentle");
         }
+        chapter = collectClue(chapter, panel.payload.clueId);
+        chapter = addClueQuizScore(chapter, answer.correct);
+        feedback = { x: CLUES.find((c) => c.id === panel.payload.clueId)?.x || 0, y: CLUES.find((c) => c.id === panel.payload.clueId)?.y || 0, until: ts + 650 };
+        setTimeout(() => panel.closePanel(), 600);
+        updateUi();
+        return;
       }
     } else if (result.type === "confirm") {
       if (waterfallStage) {
@@ -313,30 +347,43 @@ export async function start(canvas, modalEl) {
         chapter = startQuest(chapter);
         cue("questStart", "soft-burst", 455, 320, ts || 0, 2);
       }
-      if (result.kind === "clue") {
-        const clue = CLUES.find((entry) => entry.id === panel.payload.clueId);
-        chapter = collectClue(chapter, panel.payload.clueId);
-        cue("clueFound", panel.payload.clueId === "feather" ? "feather" : "sparkle", clue.x, clue.y, ts || 0, 1);
-        feedback = { x: clue.x, y: clue.y, until: ts + 650 };
-      }
       if (result.kind === "bluebird") {
-        chapter = completeBluebird(chapter);
-        awardAndSaveStageReward("camp");
-        const reward = stageReward("camp");
-        cue("bluebird", "sparkle", BLUEBIRD.VISUAL.x, BLUEBIRD.VISUAL.y, ts || 0, 2);
-        sequences = beginRewardReveal(sequences, ts);
-        panel.openPanel({
-          kind: "reward",
-          title: reward.name,
-          body: reward.message,
-          badge: true,
-          badgeIcon: reward.icon,
-          badgeLabel: reward.name,
-          checklist: reward.discoveries,
-          confirmLabel: "다시 둘러보기",
-          revealReady: false,
-        });
-        cue("rewardFanfare", "soft-burst", BLUEBIRD.VISUAL.x, BLUEBIRD.VISUAL.y, ts || 0, 2);
+        const score = chapter.clueQuizScore;
+        const codex = loadBirdCodex();
+        if (score >= 2) {
+          const newCodex = captureBird(codex, "bluebird", score);
+          saveBirdCodex(newCodex);
+          chapter = completeBluebird(chapter);
+          awardAndSaveStageReward("camp");
+          const reward = stageReward("camp");
+          cue("bluebird", "sparkle", BLUEBIRD.VISUAL.x, BLUEBIRD.VISUAL.y, ts || 0, 2);
+          sequences = beginRewardReveal(sequences, ts);
+          panel.openPanel({
+            kind: "reward",
+            title: "포획 성공!",
+            body: `관찰 결과 ${score} / 3 정답으로 파랑새를 발견했어!`,
+            badge: true,
+            badgeIcon: reward.icon,
+            badgeLabel: reward.name,
+            checklist: reward.discoveries,
+            confirmLabel: "다시 둘러보기",
+            revealReady: false,
+          });
+          cue("rewardFanfare", "soft-burst", BLUEBIRD.VISUAL.x, BLUEBIRD.VISUAL.y, ts || 0, 2);
+        } else {
+          panel.openPanel({
+            kind: "birdRetry",
+            title: "아쉬워!",
+            body: `관찰 결과 ${score} / 3 정답.\n파랑새가 숲 속으로 숨었어.\n다시 흔적을 찾아서 도전해 보자!`,
+            confirmLabel: "다시 도전",
+          });
+        }
+        updateUi();
+        return;
+      }
+      if (result.kind === "birdRetry") {
+        chapter = { ...chapter, clueQuizzesComplete: false, discoveredClues: [], clueQuizScore: 0 };
+        panel.closePanel();
         updateUi();
         return;
       }
@@ -394,12 +441,6 @@ export async function start(canvas, modalEl) {
 
     if (!waterfallStage && pendingFireAdvanceAt !== null && (ts || 0) >= pendingFireAdvanceAt) {
       pendingFireAdvanceAt = null;
-      if (chapter.firePitComplete) {
-        cue("firePitComplete", "ember", 990, 935, ts || 0, 0.8);
-        panel.openPanel({ kind: "fireComplete", title: "흔적 탐정 성공!", body: "모닥불이 더 따뜻하게 빛나고 있어.", confirmLabel: "전망대로 가기" });
-      } else {
-        openFireRound();
-      }
       updateUi();
     }
 
@@ -411,7 +452,6 @@ export async function start(canvas, modalEl) {
       if (input.consumeClose()) {
         if (!(panel.payload?.kind === "reward" && !panel.payload.revealReady)) {
           panel.closePanel();
-          pendingFireAdvanceAt = null;
           updateUi();
         }
       } else if (input.consumeInteract() && panel.payload?.kind !== "fireFeedback") {

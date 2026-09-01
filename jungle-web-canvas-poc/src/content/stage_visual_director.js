@@ -22,7 +22,7 @@ function withPhase(stageId, phaseId) {
 
 export function campVisualPhase(state, sequence = {}) {
   if (state?.bluebirdComplete) return withPhase("camp", "reward");
-  if (state?.firePitComplete) {
+  if (state?.clueQuizzesComplete) {
     const ridgeComplete = Boolean(sequence?.ridgeArrivalPlayed);
     return withPhase("camp", ridgeComplete ? "bluebird" : "ridge");
   }

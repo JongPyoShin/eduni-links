@@ -545,9 +545,9 @@ export async function startThreeCampRuntime(baseCanvas, bridge) {
     clues.feather.visible = Boolean(state?.questStarted && !discovered.includes("feather"));
     clues.footprints.visible = Boolean(discovered.includes("feather") && !discovered.includes("footprints"));
     clues.birdcall.visible = Boolean(discovered.includes("footprints") && !discovered.includes("birdcall"));
-    fire.group.visible = Boolean(discovered.length >= 3 || state?.firePitComplete);
-    ridge.group.visible = Boolean(state?.firePitComplete);
-    ridge.mountains.visible = Boolean(state?.firePitComplete);
+    fire.group.visible = Boolean(discovered.length >= 3 || state?.clueQuizzesComplete);
+    ridge.group.visible = Boolean(state?.clueQuizzesComplete);
+    ridge.mountains.visible = Boolean(state?.clueQuizzesComplete);
     bluebird.sprite.visible = phaseId === "bluebird" || phaseId === "reward";
     if (bluebird.halo) bluebird.halo.visible = bluebird.sprite.visible;
     rewardSparkles.visible = phaseId === "reward";

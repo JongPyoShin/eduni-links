@@ -21,8 +21,8 @@ export function buildProps() {
 
   add("hut", 430, 260, 0.95);
   add("firepit", 990, 935, 1.0);
-  add("rock", 180, 1078, 0.8);
-  add("rock", 250, 1012, 0.7);
+  add("rock", 100, 1120, 0.6);
+  add("rock", 310, 1000, 0.5);
   add("rock", 900, 952, 0.8);
   add("rock", 1230, 360, 0.7);
 
@@ -45,8 +45,8 @@ export function buildProps() {
   add("flowers", 540, 330, 0.8);
   add("fence", 300, 390, 1);
   add("stump", 590, 410, 0.8);
-  add("trail_stones", 150, 1080, 1);
-  add("trail_stones", 220, 1000, 0.9);
+  add("trail_stones", 80, 1130, 0.8);
+  add("trail_stones", 310, 980, 0.7);
   add("footprints", 760, 640, 1);
   add("perch", 1180, 790, 1);
   add("rope_posts", 1320, 520, 1);
@@ -55,9 +55,9 @@ export function buildProps() {
   add("foliage", 60, 210, 1.2);
   add("foliage", 1540, 180, 1.1);
   add("foliage", 1540, 1090, 1.2);
-  add("sign", 270, 1015, 0.85);
-  add("flowers", 330, 1040, 0.9);
-  add("foliage", 430, 1090, 0.8);
+  add("sign", 310, 985, 0.7);
+  add("flowers", 370, 1020, 0.7);
+  add("foliage", 50, 1140, 0.6);
   add("flowers", 545, 1070, 0.85);
   add("stump", 660, 1040, 0.65);
   add("trail_stones", 785, 1010, 0.7);

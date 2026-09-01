@@ -1,4 +1,4 @@
-import { CLUES, LANDMARKS, canUseFirePit, nextClueId } from "./camp_chapter.js";
+import { CLUES, LANDMARKS, canMeetBluebird, nextClueId } from "./camp_chapter.js";
 
 function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -14,8 +14,7 @@ export function buildInteractables(state, { bluebirdReady = true } = {}) {
     if (clue) items.push({ ...clue, label: clue.title });
   }
 
-  if (canUseFirePit(state)) items.push({ ...LANDMARKS.firePit, label: "흔적 탐정 퀴즈" });
-  if (bluebirdReady && state.firePitComplete && !state.bluebirdComplete) items.push({ ...LANDMARKS.bluebird, label: "파랑새 관찰" });
+  if (bluebirdReady && canMeetBluebird(state)) items.push({ ...LANDMARKS.bluebird, label: "파랑새 관찰" });
   return items;
 }
 

@@ -23,7 +23,7 @@ export function beginIntro(state, now) {
 
 export function beginRidgeArrival(state, chapter, player, now) {
   const closeEnough = Math.hypot(player.x - LANDMARKS.bluebird.x, player.y - LANDMARKS.bluebird.y) <= RIDGE_ARRIVAL_RADIUS;
-  if (!chapter.firePitComplete || !closeEnough || state.ridgeArrivalPlayed || state.ridgeArrivalStartedAt !== null) return state;
+  if (!chapter.clueQuizzesComplete || !closeEnough || state.ridgeArrivalPlayed || state.ridgeArrivalStartedAt !== null) return state;
   return { ...state, ridgeArrivalStartedAt: now };
 }
 

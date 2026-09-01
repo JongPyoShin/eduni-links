@@ -47,8 +47,8 @@ export function drawChapterWorld(ctx, cam, viewW, viewH, state, t, feedback, dir
   }
 
   if (clueCount(state) === CLUES.length) {
-    drawWarmFireGlow(ctx, screen(cam, viewW, viewH, { x: 990, y: 935 }), t, cam.zoom, state.firePitComplete ? 1 : 0.55);
-    if (!state.firePitComplete) {
+    drawWarmFireGlow(ctx, screen(cam, viewW, viewH, { x: 990, y: 935 }), t, cam.zoom, state.clueQuizzesComplete ? 1 : 0.55);
+    if (!state.clueQuizzesComplete) {
       drawTrailSparkles(ctx, cam, viewW, viewH, [
         { x: 1110, y: 850 },
         { x: 1070, y: 890 },
@@ -58,7 +58,7 @@ export function drawChapterWorld(ctx, cam, viewW, viewH, state, t, feedback, dir
     }
   }
 
-  if (state.firePitComplete) {
+  if (state.clueQuizzesComplete) {
     drawRidgeGlow(ctx, screen(cam, viewW, viewH, { x: 1410, y: 400 }), t, cam.zoom, directing?.type === "ridge");
     drawTrailSparkles(ctx, cam, viewW, viewH, [
       { x: 1040, y: 890 },
@@ -148,10 +148,10 @@ function drawCampComposition(ctx, cam, viewW, viewH, state, t) {
   drawFlowerPatch(ctx, cam, viewW, viewH, 1360, 500, 0.9);
   drawFlowerPatch(ctx, cam, viewW, viewH, 1460, 510, 0.75);
 
-  if (state.questStarted && !state.firePitComplete) {
+  if (state.questStarted && !state.clueQuizzesComplete) {
     drawFireflies(ctx, cam, viewW, viewH, 780, 430, t, 5, "rgba(255,230,133,0.62)");
   }
-  if (state.firePitComplete) {
+  if (state.clueQuizzesComplete) {
     drawFireflies(ctx, cam, viewW, viewH, 1375, 455, t, 9, "rgba(211,246,165,0.78)");
   }
 }

@@ -2,8 +2,8 @@ export function createChapterState() {
   return {
     questStarted: false,
     discoveredClues: [],
-    firePitRound: 0,
-    firePitComplete: false,
+    clueQuizScore: 0,
+    clueQuizzesComplete: false,
     bluebirdComplete: false,
   };
 }

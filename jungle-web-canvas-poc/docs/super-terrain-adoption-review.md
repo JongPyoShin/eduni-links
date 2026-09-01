@@ -12,15 +12,15 @@
 
 **ADOPT a small, focused subset. DO NOT adopt the full architecture.**
 
-Super Terrain is a production-grade mesh terrain editor inspired by Unreal Engine 5.8. It is architecturally incompatible with Jungle Web in almost every dimension: React/R3F vs vanilla Canvas 2D + optional Three.js, WebGPU-only vs Canvas 2D primary, worker-compiled partitioned mesh vs flat procedural drawing, streaming/LRU vs preloaded assets.
+Super Terrain is a production-grade mesh terrain editor inspired by Unreal Engine 5.8. It is architecturally incompatible with Jungle Web in almost every dimension: React/R3F vs vanilla ES modules, WebGPU-only vs Three/WebGL, worker-compiled partitioned mesh vs procedural scene composition, streaming/LRU vs preloaded assets.
 
-However, **three specific algorithms** from Super Terrain are directly valuable and adoptable without architectural disruption:
+However, **three specific capabilities** from Super Terrain are directly valuable and adoptable without architectural disruption:
 
-1. **Height field sampling** (`sampleHeightField` in `heightField.ts`) — closed-form terrain composition that can be evaluated per-pixel for procedural waterfall cliff rendering
-2. **Screen-space LOD selection** (`LodSelector.ts`) — useful if Three.js waterfall scene scales to more geometry
-3. **Ground-following prop placement** (`FoliageGroundHeightField`) — the 257x257 height buffer pattern for placing props on procedural terrain
+1. **Deterministic terrain-height sampler** (`sampleHeightField` in `heightField.ts`) — closed-form noise composition evaluatable per-vertex for procedural waterfall terrain mesh
+2. **Terrain-normal sampling** (`calculateNormals` / curvature in `compileSection.ts`) — useful for material blending and prop rejection on steep surfaces
+3. **Static ground-following placement** — sampling authored prop height at scene construction time
 
-**Everything else should NOT be adopted.** WebGPU, R3F, worker compiler, streaming/LRU, runtime sculpt, and CSG tunnels are architecturally orthogonal to Jungle's goals and would require a complete rewrite.
+Everything else should NOT be adopted. The full classification follows.
 
 ---
 
@@ -28,11 +28,24 @@ However, **three specific algorithms** from Super Terrain are directly valuable 
 
 ### Rendering Stack
 
-| Layer | Implementation | Status |
-|-------|---------------|--------|
-| Primary renderer | Canvas 2D API (`ctx.drawImage`, `ctx.beginPath`, gradients) | Active, all 5 stages |
-| Optional 3D renderer | Three.js WebGL (orthographic camera, procedural + GLB models) | Waterfall stage only (`?renderer=three`) |
-| Fallback | Canvas 2D when Three.js fails | Automatic |
+The RC baseline has production Three.js/WebGL implementations across all five stages. Canvas 2D remains available as a fallback for Camp and Waterfall, but Three.js is the intended production path.
+
+| Stage | Production Renderer | Fallback | Entry Point |
+|-------|-------------------|----------|-------------|
+| Camp | Three.js (`three_camp_runtime.js`) | Canvas 2D | `index.html?renderer=three` (hub default) |
+| Waterfall | Three.js (`three_waterfall_runtime.js`) | Canvas 2D | `index.html?stage=waterfall&renderer=three` (hub default) |
+| Cave | Three.js only (`three_cave_preview.js`) | None | `cave-game.html` |
+| Giant Tree | Three.js only (`three_giant_tree_preview.js`) | None | `giant-tree-game.html` |
+| Sky Ridge | Three.js only (`three_sky_ridge_preview.js`) | None | `sky-ridge-game.html` |
+
+**Key runtime files**:
+- `three_camp_runtime.js` — production bridge, reads gameplay state via callbacks
+- `three_waterfall_runtime.js` — production bridge, wraps preview + syncs phases/camera
+- `three_cave_preview.js` — dual-purpose (preview via `cave-three.html`, production via `cave-game.html`)
+- `three_giant_tree_preview.js` — dual-purpose (preview via `giant-tree-three.html`, production via `giant-tree-game.html`)
+- `three_sky_ridge_preview.js` — dual-purpose (preview via `sky-ridge-three.html`, production via `sky-ridge-game.html`)
+
+The hub (`jungle-hub.html`) links to `?renderer=three` URLs by default. Canvas 2D exists as a fallback safety net for Camp and Waterfall; Cave/Giant Tree/Sky Ridge have no Canvas 2D path.
 
 ### World Model
 
@@ -51,31 +64,36 @@ However, **three specific algorithms** from Super Terrain are directly valuable 
 
 ### Asset Pipeline
 
-- Canvas 2D: PNG sprites + SVG art assets, preloaded with 4s timeout
 - Three.js: Vendor GLB models (DRACO-compressed), loaded via `GLTFLoader`
+- Canvas 2D fallback: PNG sprites + SVG art assets, preloaded with 4s timeout
 - Graceful degradation: missing assets never block startup
 
 ### Game Loop
+
+`game.js` remains authoritative for logical gameplay across all stages:
 
 ```
 requestAnimationFrame loop
   -> timing (clamped delta)
   -> input polling (keyboard, gamepad, d-pad)
   -> scripted sequences
-  -> player movement (acceleration model)
+  -> player movement (acceleration model, authoritative X/Y)
   -> interaction check
   -> camera follow
   -> effects update
-  -> Canvas 2D render (or Three.js render)
+  -> Three.js render (or Canvas 2D fallback)
 ```
+
+The Three.js runtime bridges read-only gameplay state via callbacks (`getState()`, `getPlayer()`, `getPlayerImage()`). The renderer never modifies logical coordinates.
 
 ### Key Contracts
 
-1. `VISIBLE WALKABLE PATH == ACTUAL WALKABLE GEOMETRY` (single source)
-2. Game state is plain objects created by factory functions (immutable style)
-3. Three.js is an optional overlay reading read-only state via bridge callbacks
-4. All 5 stages share the same game loop, geometry base class, and content structure
-5. 35+ test files enforce architecture invariants
+1. **Logical X/Y gameplay remains authoritative; terrain height is render-only presentation data**
+2. `VISIBLE WALKABLE PATH == ACTUAL WALKABLE GEOMETRY` (single source)
+3. Game state is plain objects created by factory functions (immutable style)
+4. Three.js runtime reads read-only state via bridge callbacks
+5. All 5 stages share the same game loop, geometry base class, and content structure
+6. 35+ test files enforce architecture invariants
 
 ---
 
@@ -130,21 +148,21 @@ requestAnimationFrame loop
 
 ## Compatibility Matrix
 
-| Feature | Jungle Web | Super Terrain | Compatible? | Notes |
-|---------|-----------|---------------|-------------|-------|
-| Renderer | Canvas 2D + optional Three.js WebGL | WebGPU-only | **NO** | Jungle must keep Canvas 2D primary |
-| Framework | Vanilla JS (ES modules) | React/R3F | **NO** | Jungle has no React dependency |
-| World model | 2D flat (x, y) | 3D mesh (x, y, z) | **PARTIAL** | Height can be added as render-only layer |
-| Terrain | Procedural gradients + paths | Partitioned mesh heightfield | **NO** | Different paradigms entirely |
-| Geometry | Polylines + ellipses | Triangulated mesh | **NO** | Jungle's collision system is 2D |
-| LOD | None (flat 2D) | 5-level screen-space error | **PARTIAL** | Useful only if Three.js scales |
-| Compilation | None (procedural per-frame) | Worker pool with revision checking | **NO** | Jungle's terrain is simple enough for main thread |
-| Streaming | Preloaded assets with timeout | LRU eviction + IndexedDB cache | **NO** | Jungle's world is small enough to preload |
+| Feature | Jungle Web RC | Super Terrain | Compatible? | Notes |
+|---------|--------------|---------------|-------------|-------|
+| Renderer | Three.js/WebGL (Canvas 2D fallback) | WebGPU-only | **NO** | Different GPU API |
+| Framework | Vanilla JS (ES modules) | React/R3F | **NO** | No framework dependency |
+| World model | 2D flat (x, y) | 3D mesh (x, y, z) | **PARTIAL** | Height as render-only layer |
+| Terrain | Procedural scenes + paths | Partitioned mesh heightfield | **NO** | Different paradigms |
+| Geometry | Polylines + ellipses | Triangulated mesh | **NO** | Collision system is 2D |
+| LOD | None (flat 2D) | 5-level screen-space error | **PARTIAL** | Useful if Three.js scales |
+| Compilation | None (procedural per-frame) | Worker pool with revision checking | **NO** | Jungle terrain is simple |
+| Streaming | Preloaded assets with timeout | LRU eviction + IndexedDB cache | **NO** | World is small |
 | Runtime sculpt | None | Brush-based with preview | **NO** | Not a Jungle goal |
 | CSG | None | BVH boolean operations | **NO** | Not a Jungle goal |
-| Water | None | Paint-based water field | **PARTIAL** | Waterfall water is procedurally animated |
-| Foliage | Hardcoded props array | Ground-following height buffer | **PARTIAL** | Height buffer pattern is adoptable |
-| Input | Keyboard + gamepad + d-pad | Mouse-only editor | **NO** | Different interaction paradigms |
+| Water | Procedural animation | Paint-based water field | **PARTIAL** | Different approach |
+| Foliage | Hardcoded props array | Ground-following height buffer | **PARTIAL** | Pattern is adoptable |
+| Input | Keyboard + gamepad + d-pad | Mouse-only editor | **NO** | Different paradigms |
 | Audio | Web Audio API synth | None | **NO** | Jungle-only feature |
 | State | Functional (plain objects) | Zustand store | **PARTIAL** | Different but both valid |
 
@@ -152,7 +170,7 @@ requestAnimationFrame loop
 
 ## ADOPT NOW
 
-### 1. Height Field Sampling Algorithm
+### 1. Deterministic Terrain-Height Sampler
 
 **Source**: `src/terrain/compiler/heightField.ts` — `sampleHeightField(x, z, seed)`
 
@@ -163,86 +181,96 @@ requestAnimationFrame loop
 - Valley carving for drainage networks
 - Strata terracing for cliff bands
 
-**Why**: The Waterfall stage needs procedural cliff height variation for:
-- Drawing cliff terraces at correct elevations
-- Placing stepping stones at water-level intersections
-- Positioning the lookout platform at a specific height
+**Why**: The Waterfall stage needs procedural terrain height for:
+- Deforming the Three.js ground mesh to show cliff elevation
+- Positioning route mesh segments at correct heights
+- Placing authored props (gate arch, lanterns, lookout) on terrain surface
 - Animating water flow along elevation gradients
 
 **How to adopt**:
-- Port the noise primitives (`valueNoise`, `fbm`, `ridgedMultifractal`, `billow`) to `src/waterfall_height.js`
+- Port the noise primitives (`valueNoise`, `fbm`, `ridgedMultifractal`, `billow`) to `src/waterfall_terrain.js`
 - Create `sampleWaterfallHeight(x, y)` that maps Jungle's 2D coordinates to elevation
-- Use elevation for render-only visual offsets (not collision)
+- Use elevation for render-only Three.js mesh deformation (not collision)
 - Keep `WaterfallWorldGeometry.isWalkable()` unchanged
 
 **Risk**: Low. Pure math, no architectural changes.
 
-### 2. Memoized Height Cache Pattern
+### 2. Terrain-Normal Sampler
 
-**Source**: `src/terrain/compiler/heightField.ts` — `sampleHeightFieldCached(x, z, seed)`
+**Source**: `src/terrain/compiler/compileSection.ts` — `calculateNormals()`, `calculateMeshCurvature()`
 
-**What**: 4-way set-associative memoized cache (64K sets x 4 ways = 256K entries) that avoids recomputing the expensive noise stack for repeated coordinates.
+**What**: Analytical surface normals computed from triangulated mesh vertices, plus mean curvature via normal field divergence.
 
-**Why**: The waterfall scene evaluates height at many nearby points per frame (cliff rendering, prop placement, water surface). Memoization prevents redundant noise computation.
-
-**How to adopt**:
-- Port the cache structure to `src/waterfall_height.js`
-- Key: quantized `(x, y)` to 1/4096 precision
-- Invalidation: none needed (height field is immutable per session)
-
-**Risk**: Low. Simple data structure, no dependencies.
-
-### 3. Ground-Following Prop Placement Pattern
-
-**Source**: `src/foliage/foliageGroundHeight.ts` — `FoliageGroundHeightField`
-
-**What**: A 257x257 height grid (66,049 samples) stored as a buffer, filled from the height function when the view moves significantly, and used for bilinear interpolation of prop positions.
-
-**Why**: The Waterfall stage has 16 authored art props (`waterfall_art_manifest.js`) that should follow terrain elevation rather than being placed at flat `(x, y)` positions.
+**Why**: Normals are needed for:
+- Correct lighting on deformed terrain mesh (Three.js `MeshStandardMaterial` needs normals)
+- Prop rejection on steep surfaces (props refused on ground >40 degrees)
+- Material blending between cliff rock and vegetation zones
 
 **How to adopt**:
-- Create `src/waterfall_prop_placer.js` with a height grid buffer
-- Fill from `sampleWaterfallHeight()` when camera moves
-- Update prop `footY` from height grid lookup
-- Props still render via Canvas 2D `drawImage()` at adjusted positions
+- Compute normals from the deformed terrain mesh vertices after height sampling
+- Use vertex normals for Three.js material lighting
+- Use curvature threshold for prop steepness rejection
 
-**Risk**: Low. Additive change to prop positioning logic.
+**Risk**: Low. Standard mesh computation, well-understood algorithms.
+
+### 3. Static Ground-Following Placement
+
+**Source**: `src/foliage/foliageGroundHeight.ts` — `FoliageGroundHeightField` pattern
+
+**What**: For a small number of authored props, sample terrain height once at scene construction and set each prop's render position.
+
+**Why**: The Waterfall stage has ~16 authored art props (`waterfall_art_manifest.js`) that should sit on the terrain surface rather than at flat `(x, y)` positions.
+
+**How to adopt**:
+- At scene init, for each authored prop: `prop.renderY = prop.y - sampleWaterfallHeight(prop.x, prop.y) * ELEVATION_SCALE`
+- Store the result; no per-frame recomputation needed (terrain is static)
+- For the player visual: sample height at `player.x, player.y` each frame and offset the Three.js sprite
+
+**Risk**: Low. Direct sampler lookup, no grid infrastructure needed.
 
 ---
 
 ## POC LATER
 
-### 1. Screen-Space LOD Selection
+### 1. Memoized Height Cache
+
+**Source**: `src/terrain/compiler/heightField.ts` — `sampleHeightFieldCached(x, z, seed)`
+
+**What**: 4-way set-associative memoized cache (64K sets x 4 ways = 256K entries). Memory cost: `65536 * 4 * 3 * 4 bytes` = **~3 MiB** (not ~17 KB as previously stated).
+
+**When**: Only if profiling shows that repeated height sampling is a measurable cost. The Waterfall scene is small (~1600x1200 world) with a static terrain. A simple pure sampler may be sufficient without caching.
+
+**What to port if needed**:
+- Cache structure with quantized key (1/4096 precision)
+- No invalidation needed (height field is immutable per session)
+
+**What NOT to port**: The full 256K-entry cache is likely overkill for the Waterfall scene size. Start with a simpler approach and measure.
+
+### 2. Screen-Space LOD Selection
 
 **Source**: `src/terrain/lod/LodSelector.ts`
 
 **What**: Selects LOD level based on projected geometric error vs screen-space tolerance (2.65px). Uses hysteresis (16% slack) and neighbor constraints (max 1 LOD difference).
 
-**When**: If the Three.js waterfall scene scales beyond ~50K triangles and needs detail reduction for Android WebView performance.
+**When**: If the Three.js waterfall scene scales beyond current geometry and needs detail reduction.
 
-**What to port**:
-- `projectedError` calculation
-- Hysteresis logic (fining/coarsening asymmetry)
-- Neighbor constraint (Dijkstra relaxation)
+**What to port**: `projectedError` calculation, hysteresis logic, neighbor constraint.
 
-**What NOT to port**: The 5-level resolution array, the section-based addressing, the worker-driven LOD compilation.
+**What NOT to port**: The 5-level resolution array, section-based addressing, worker-driven LOD compilation.
 
-### 2. Frame Budget Scheduler Pattern
+### 3. Frame Budget Scheduler Pattern
 
 **Source**: `src/terrain/core/FrameBudgetScheduler.ts`
 
-**What**: Hard invariant that terrain work never stalls a frame. Measures actual cost per task class, admits work based on remaining budget (4ms CPU, 6MB GPU per frame).
+**What**: Hard invariant that terrain work never stalls a frame. Measures actual cost per task class, admits work based on remaining budget.
 
 **When**: If Three.js waterfall scene grows to include streaming geometry or dynamic terrain updates.
 
-**What to port**:
-- Budget admission pattern
-- Measured cost learning (rate-based prediction)
-- Quality pressure (reduce budget when frames are slow)
+**What to port**: Budget admission pattern, measured cost learning, quality pressure.
 
-**What NOT to port**: The multi-class cost tracking, the worker pool integration, the section swap batching.
+**What NOT to port**: Multi-class cost tracking, worker pool integration, section swap batching.
 
-### 3. Water Surface Pattern
+### 4. Advanced Water-Surface Techniques
 
 **Source**: `src/terrain/water/WaterStore.ts`
 
@@ -252,7 +280,7 @@ requestAnimationFrame loop
 
 **What to port**: Level-based water surface rendering, coverage blending.
 
-**What NOT to port**: Paint-based editing, the Zustand store integration.
+**What NOT to port**: Paint-based editing, Zustand store integration.
 
 ---
 
@@ -260,39 +288,29 @@ requestAnimationFrame loop
 
 ### 1. WebGPU Renderer
 
-**Why not**: Jungle Web must support Android WebView, which has limited/no WebGPU support. Canvas 2D is the primary renderer with Three.js WebGL as an optional upgrade. WebGPU would eliminate the majority of the target audience.
+**Why not**: The current RC is validated on Three.js/WebGL. Super Terrain has no WebGL fallback — it requires `THREE.WebGPURenderer` exclusively. Switching the renderer would invalidate the RC baseline and require re-validation across all target devices. Android WebView and target-device acceptance for WebGPU is still pending. This is a **project compatibility and risk decision**, not a universal platform claim.
 
-**Architectural conflict**: Super Terrain's entire rendering stack is built on `THREE.WebGPURenderer`. There is no WebGL fallback. Jungle's Three.js mode uses `THREE.WebGLRenderer` with orthographic camera.
+**Architectural conflict**: Jungle uses `THREE.WebGLRenderer` with orthographic camera. Super Terrain's entire rendering stack assumes WebGPU.
 
 ### 2. React/R3F Integration
 
 **Why not**: Jungle Web is vanilla JavaScript ES modules with zero framework dependencies. Adding React and React Three Fiber would:
-- Increase bundle size by ~150KB+
+- Increase bundle size significantly
 - Require build tooling (Vite/webpack) for the entire game
-- Conflict with the existing Canvas 2D rendering path
+- Conflict with the existing Three.js rendering path
 - Break the 35+ tests that enforce architecture invariants
 
-**Architectural conflict**: Super Terrain's `TerrainView.tsx` is a React component using `useFrame`, `useEffect`, and R3F's reconciler. Jungle's game loop is a single `requestAnimationFrame` callback.
+**Architectural conflict**: Super Terrain's `TerrainView.tsx` is a React component using `useFrame`, `useEffect`, and R3F's reconciler. Jungle's game loop is a single `requestAnimationFrame` callback in `game.js`.
 
 ### 3. Worker Terrain Compiler
 
-**Why not**: Jungle's terrain is simple enough for main-thread computation:
-- Camp stage: 35 hardcoded props, 16 blockers, procedural gradient ground
-- Waterfall stage: 16 art props, 14-node path, procedural cliff/water
-- Three.js mode: ~20K triangles max, procedural + 14 vendor GLBs
+**Why not**: Jungle's terrain is simple enough for main-thread computation. The Waterfall stage has a static terrain with ~16 authored props, a 14-node path, and procedural cliff/water geometry. Super Terrain's worker pool exists because it compiles 128m mesh sections with BVH acceleration, surface field calculation, and LOD simplification. Jungle has none of this complexity.
 
-Super Terrain's worker pool exists because it compiles 128m mesh sections with BVH acceleration, surface field calculation, and LOD simplification. Jungle has none of this complexity.
-
-**Architectural conflict**: Super Terrain's `TerrainWorkerPool` manages persistent workers with revision checking, staleness handling, and pipeline depth. Jungle's entire terrain computation takes <1ms per frame.
+**Architectural conflict**: Super Terrain's `TerrainWorkerPool` manages persistent workers with revision checking, staleness handling, and pipeline depth. Not applicable to Jungle's use case.
 
 ### 4. Streaming/LRU Cache
 
-**Why not**: Jungle's world is small enough to preload entirely:
-- Camp: ~2MB of PNGs + SVGs
-- Waterfall: ~3MB of PNGs + SVGs + optional GLBs
-- Total assets: <20MB across all 5 stages
-
-Super Terrain streams because its 4km x 4km world with 5 LOD levels generates gigabytes of compiled sections. Jungle's 1600x1200 world with flat terrain has nothing to stream.
+**Why not**: Jungle's world is small enough to preload entirely. Super Terrain streams because its 4km x 4km world with 5 LOD levels generates gigabytes of compiled sections. Jungle's 1600x1200 world with static terrain has nothing to stream.
 
 **Architectural conflict**: Super Terrain's `TerrainStreamer` manages IndexedDB persistence, LRU eviction, and residency states. Jungle uses `loadImage()` with a 4-second timeout and in-memory cache.
 
@@ -318,92 +336,117 @@ Super Terrain streams because its 4km x 4km world with 5 LOD levels generates gi
 
 ### Goal
 
-Add render-only terrain height to the Waterfall stage using Super Terrain's height field sampling algorithm, without changing collision/interactable contracts.
+Add render-only terrain height to the Waterfall stage's Three.js production renderer using Super Terrain's height field sampling algorithm. Logical X/Y gameplay remains authoritative; terrain height is presentation-only.
+
+### Target Path
+
+The PoC targets the **Three/WebGL production presentation path**:
+- `three_waterfall_preview.js` owns terrain/route/story Three objects
+- `three_waterfall_runtime.js` bridges read-only gameplay state/player position into the renderer
+- `game.js` remains authoritative for logical gameplay
+
+Canvas 2D fallback remains unchanged unless there is a separate reason to alter it.
 
 ### New Files
 
 | File | Purpose |
 |------|---------|
-| `src/waterfall_height.js` | Height field sampling + memoized cache |
-| `src/waterfall_prop_placer.js` | Ground-following prop placement |
+| `src/waterfall_terrain.js` | Deterministic height sampler + optional normal sampler |
 
 ### Modified Files
 
 | File | Change |
 |------|--------|
-| `src/waterfall_scene.js` | Use height for cliff terrace offsets, prop Y positioning |
-| `src/waterfall_art_manifest.js` | Add `elevationOffset` field to art props |
-| `src/three_waterfall_preview.js` | Use height for terrain mesh deformation (if Three.js mode) |
+| `src/three_waterfall_preview.js` | Deform ground mesh, route mesh, and place props using height sampler |
+| `src/three_waterfall_runtime.js` | Ground production player visual using same sampler, preserving logical X/Y |
+
+### Unchanged Files
+
+- `src/geometry.js` — `WaterfallWorldGeometry` (collision, walkable paths)
+- `src/content/waterfall_chapter.js` — game progression
+- `src/content/waterfall_interactables.js` — interaction positions
+- `src/game.js` — game loop, player movement, authoritative X/Y
+- `src/player.js` — player sprite
+- `src/movement.js` — movement controller
+- `src/camera.js` — camera follow
+- `src/waterfall_scene.js` — Canvas 2D fallback (unchanged unless separately desired)
 
 ### Design Details
 
-#### `src/waterfall_height.js`
+#### `src/waterfall_terrain.js`
 
 ```javascript
 // Ported from Super Terrain heightField.ts
 // Simplified: continent mask + ridged multifractal + billow only
 // No valley carving, no strata terracing (not needed for Waterfall)
 
-export function sampleWaterfallHeight(x, y, seed = 42) {
-  // Returns elevation in range [0, 200] for visual offset
+// Noise primitives (ported from heightField.ts)
+function valueNoise(x, z, seed) { ... }
+function fbm(x, z, seed, octaves, lacunarity, gain) { ... }
+function ridgedMultifractal(x, z, seed, octaves) { ... }
+function billow(x, z, seed, octaves) { ... }
+
+// Main sampler — deterministic, pure function
+export function sampleWaterfallHeight(worldX, worldY, seed = 42) {
+  // Returns elevation in range [0, MAX_ELEVATION]
   // Domain: Jungle's 1600x1200 world coordinates
+  // Inverted to Three.js: world Y -> Three.js -Z, elevation -> Three.js Y
 }
 
-// 4-way set-associative cache (ported from heightField.ts)
-const CACHE_SETS = 65536;
-const CACHE_WAYS = 4;
-const cache = new Float32Array(CACHE_SETS * CACHE_WAYS * 3); // x, y, height
-
-export function sampleWaterfallHeightCached(x, y, seed = 42) {
-  // Quantize key to 1/4096 precision
-  // Lookup in cache, compute on miss
+// Optional: compute surface normal from height gradient
+export function sampleWaterfallNormal(worldX, worldY, seed = 42, epsilon = 1.0) {
+  // Central-difference normal from height samples
+  // Returns {x, y, z} unit normal vector
 }
 ```
 
-#### `src/waterfall_prop_placer.js`
+#### Changes to `src/three_waterfall_preview.js`
+
+In the terrain mesh construction (currently `addGround()` with flat `PlaneGeometry`):
 
 ```javascript
-// Ported from foliage/FoliageGroundHeight.ts pattern
-// 65x65 height grid covering the Waterfall world area
+// Replace flat PlaneGeometry with deformed geometry
+const geometry = new THREE.PlaneGeometry(WORLD_W, WORLD_D, SEGMENTS_X, SEGMENTS_Z);
+const positions = geometry.attributes.position;
 
-export class WaterfallPropPlacer {
-  constructor(sampleHeightFn) {
-    this.sampleHeight = sampleHeightFn;
-    this.gridSize = 65;
-    this.grid = new Float32Array(this.gridSize * this.gridSize);
-  }
-
-  // Fill grid from height function
-  fill(worldX, worldY, worldW, worldH) { ... }
-
-  // Bilinear interpolation for prop placement
-  getHeightAt(worldX, worldY) { ... }
-
-  // Update prop footY values
-  placeProps(props) {
-    for (const prop of props) {
-      prop.renderY = prop.y + this.getHeightAt(prop.x, prop.y);
-    }
-  }
+for (let i = 0; i < positions.count; i++) {
+  const x = positions.getX(i);
+  const z = positions.getY(i); // PlaneGeometry Y maps to Three.js Z
+  // Convert Three.js coords back to world coords for sampler
+  const worldX = x / WORLD_SCALE + WORLD_W / 2;
+  const worldY = -z / WORLD_SCALE + WORLD_D / 2;
+  const elevation = sampleWaterfallHeight(worldX, worldY);
+  positions.setZ(i, elevation * ELEVATION_SCALE);
 }
+
+geometry.computeVertexNormals(); // Recompute normals from deformed vertices
 ```
 
-#### Changes to `src/waterfall_scene.js`
+For authored props (gate arch, lanterns, lookout platform):
 
-In `drawWaterfallWorld()`:
 ```javascript
-// Before drawing cliff terraces:
-const height = sampleWaterfallHeightCached(worldX, worldY);
-const elevationOffset = height * ELEVATION_SCALE; // e.g., 0.3
+// At prop construction time:
+const elevation = sampleWaterfallHeight(prop.worldX, prop.worldY);
+prop.mesh.position.y = elevation * ELEVATION_SCALE;
+```
 
-// Apply to cliff terrace drawing:
-ctx.save();
-ctx.translate(0, -elevationOffset);
-drawCliffTerraces(ctx, ...);
-ctx.restore();
+For the player visual:
 
-// Apply to prop placement:
-prop.renderY = prop.y - sampleWaterfallHeightCached(prop.x, prop.y) * 0.3;
+```javascript
+// In the animation loop (via three_waterfall_runtime.js bridge):
+const elevation = sampleWaterfallHeight(player.x, player.y);
+playerSprite.position.y = elevation * ELEVATION_SCALE;
+// player.x, player.y remain authoritative for collision
+```
+
+#### Changes to `src/three_waterfall_runtime.js`
+
+The runtime bridge passes player position to the preview. Add height offset:
+
+```javascript
+// In the per-frame sync:
+const elevation = sampleWaterfallHeight(state.player.x, state.player.y);
+// Pass to preview's player sprite positioning
 ```
 
 ### What Stays Unchanged
@@ -412,117 +455,105 @@ prop.renderY = prop.y - sampleWaterfallHeightCached(prop.x, prop.y) * 0.3;
 - `WaterfallWorldGeometry.paths` — walkable route is unchanged
 - `waterfall_chapter.js` — game progression is unchanged
 - `waterfall_interactables.js` — interaction positions are unchanged
-- Player movement — still flat 2D acceleration model
-- Canvas 2D rendering — still `ctx.drawImage()`, just with Y offsets
+- `game.js` — player X/Y movement is still authoritative
+- `player.js` — sprite rendering uses logical coordinates
+- `movement.js` — acceleration model unchanged
 
 ### Expected Visual Effect
 
-- Cliff terraces appear to have depth (higher areas drawn higher)
-- Props (gate arch, lanterns, lookout platform) follow terrain contour
+- Ground mesh shows terrain elevation (cliff terraces, basin depression)
+- Route mesh follows terrain contour
+- Authored props (gate arch, lanterns, lookout) sit on terrain surface
+- Player visual follows terrain while walking on flat collision path
 - Water surface reflects elevation changes
-- Player still walks on flat path (collision unchanged)
 
 ---
 
 ## Files/Functions Affected
 
-### New Code (2 files)
+### New Code (1 file)
 
 | File | Functions |
 |------|-----------|
-| `src/waterfall_height.js` | `sampleWaterfallHeight()`, `sampleWaterfallHeightCached()`, noise primitives |
-| `src/waterfall_prop_placer.js` | `WaterfallPropPlacer` class, `fill()`, `getHeightAt()`, `placeProps()` |
+| `src/waterfall_terrain.js` | `sampleWaterfallHeight()`, `sampleWaterfallNormal()` (optional), noise primitives |
 
-### Modified Code (3 files)
+### Modified Code (2 files)
 
 | File | Functions | Change |
 |------|-----------|--------|
-| `src/waterfall_scene.js` | `drawWaterfallWorld()`, `drawCliffTerraces()` | Add height-based Y offsets |
-| `src/waterfall_art_manifest.js` | `WATERFALL_ART_IMAGES` | Add `elevationOffset` field |
-| `src/three_waterfall_preview.js` | `addGround()`, `addCliff()` | Use height for mesh deformation (Three.js mode only) |
+| `src/three_waterfall_preview.js` | `addGround()`, prop construction | Deform terrain mesh, ground props at height |
+| `src/three_waterfall_runtime.js` | Per-frame sync | Ground player visual at sampled height |
 
 ### Unchanged Code
 
 - `src/geometry.js` — `WaterfallWorldGeometry` (collision)
+- `src/game.js` — game loop, authoritative player X/Y
 - `src/content/waterfall_chapter.js` — game logic
 - `src/content/waterfall_interactables.js` — interaction positions
-- `src/game.js` — game loop (no changes needed)
-- `src/player.js` — player rendering
+- `src/player.js` — player sprite
 - `src/movement.js` — movement controller
 - `src/camera.js` — camera follow
+- `src/waterfall_scene.js` — Canvas 2D fallback (unchanged)
 
 ---
 
 ## Risks
 
-### 1. Performance on Android WebView (Medium Risk)
+### 1. Performance on Android WebView (Needs Profiling)
 
-**Risk**: The height field sampling uses multiple octaves of noise. On low-end Android devices, computing 66K height samples per frame could cause frame drops.
-
-**Mitigation**:
-- Memoized cache reduces redundant computation
-- Height grid is filled incrementally (not all at once)
-- Canvas 2D rendering path is unaffected (height only affects Y offsets)
-- Three.js path already has performance budget for ~20K triangles
-
-### 2. Visual Glitches at Section Boundaries (Low Risk)
-
-**Risk**: If height sampling produces discontinuities at world edges, cliff terraces may show seams.
+**Risk**: The height field sampling uses multiple octaves of noise. On low-end Android devices, per-frame sampling for player position + prop positions could add measurable cost.
 
 **Mitigation**:
-- Waterfall world is a single 1600x1200 rectangle (no sections)
-- Height field is a continuous function (no boundaries)
-- Memoized cache uses quantized keys (consistent at any coordinate)
+- Profile on target devices during PoC
+- Prop heights are static (sample once at init, not per-frame)
+- Player height is one sample per frame (negligible)
+- Terrain mesh vertices are computed once at construction, not per-frame
+- Memoized cache available as POC LATER if profiling justifies it
 
-### 3. Three.js Mode Incompatibility (Low Risk)
+### 2. Visual Glitches at Terrain Edges (Low Risk)
 
-**Risk**: The Three.js waterfall scene uses `PlaneGeometry(16, 12)` for ground. Adding height deformation changes the mesh topology.
+**Risk**: If height sampling produces discontinuities at world boundaries, terrain mesh may show seams.
 
 **Mitigation**:
-- Height deformation is applied only in Three.js mode
-- Canvas 2D mode uses Y offsets only (no mesh changes)
-- Fallback to flat ground if height computation fails
+- Waterfall world is a single 1600x1200 rectangle (no section boundaries)
+- Height field is a continuous function (no seams by construction)
 
-### 4. Test Coverage Gap (Medium Risk)
+### 3. Test Coverage Gap (Medium Risk)
 
 **Risk**: New height computation code has no existing tests.
 
 **Mitigation**:
 - Add tests for `sampleWaterfallHeight()` determinism
-- Add tests for cache hit rate
-- Add tests for prop placement accuracy
-- Enforce architecture invariant: height is render-only, not collision
+- Add tests for normal computation correctness
+- Add tests enforcing architecture invariant: height is render-only, not collision
+- Enforce that `WaterfallWorldGeometry.isWalkable()` is unchanged
 
 ---
 
 ## Performance Considerations for Android WebView
 
-### Current Performance Profile
+All performance numbers below are **unverified estimates**. The PoC must include a profiling plan on target devices.
 
-- Canvas 2D rendering: ~2ms per frame on mid-range Android
-- Three.js rendering: ~8ms per frame on mid-range Android
-- Total frame budget: 16.6ms (60 FPS)
+### Known Constraints
 
-### Height Field Impact
+- Frame budget: 16.6ms (60 FPS target)
+- Three.js rendering is the production path; Canvas 2D is fallback
+- Terrain mesh construction happens once at scene init, not per-frame
+- Per-frame cost: one height sample (player position) + prop positions (static)
 
-| Operation | Cost | Frequency |
-|-----------|------|-----------|
-| `sampleWaterfallHeight()` | ~0.05ms | On cache miss (first access per coordinate) |
-| Cache lookup | ~0.001ms | Per call (99%+ hit rate after warmup) |
-| Height grid fill (65x65) | ~3ms | On camera move >50 world units |
-| Prop Y update (16 props) | ~0.02ms | Per frame |
+### Profiling Plan for PoC
 
-### Total Impact
-
-- **Canvas 2D mode**: +0.02ms per frame (negligible)
-- **Three.js mode**: +3ms on camera move, +0.02ms otherwise (acceptable)
-- **Memory**: +17KB for height cache, +17KB for height grid (negligible)
+1. Measure terrain mesh construction time on low-end Android
+2. Measure per-frame height sampling cost (single sample for player)
+3. Measure total frame time with/without height deformation
+4. Compare Three.js mode with and without terrain deformation
+5. Identify if memoized cache is needed (likely not for this scene size)
 
 ### Recommendations
 
-1. Pre-fill height grid during asset loading (hide latency)
-2. Use lower resolution grid (33x33) on devices with <2GB RAM
-3. Disable height offsets entirely on devices with <1GB RAM
+1. Pre-compute prop heights at scene construction (not per-frame)
+2. Profile before adding caching infrastructure
+3. If caching is needed, start with a simple Map, not the full 3 MiB set-associative cache
 4. Never block the game loop on height computation
 
 ---
@@ -531,21 +562,22 @@ prop.renderY = prop.y - sampleWaterfallHeightCached(prop.x, prop.y) * 0.3;
 
 ### Immediate (This Sprint)
 
-1. **Implement `waterfall_height.js`** — port noise primitives and memoized cache
-2. **Implement `waterfall_prop_placer.js`** — port height grid pattern
-3. **Modify `waterfall_scene.js`** — add height-based Y offsets to cliff rendering
-4. **Add tests** — determinism, cache performance, architecture invariant enforcement
-5. **Document** — update `WATERFALL_TERRAIN_HEIGHT.md` with the design
+1. **Implement `waterfall_terrain.js`** — port noise primitives, deterministic sampler
+2. **Modify `three_waterfall_preview.js`** — deform ground mesh, place props at height
+3. **Modify `three_waterfall_runtime.js`** — ground player visual at sampled height
+4. **Add tests** — determinism, architecture invariant enforcement
+5. **Profile on target devices** — measure actual cost before optimizing
 
 ### Future POCs (Not Now)
 
-1. Screen-space LOD for Three.js waterfall (if triangle count grows)
-2. Frame budget scheduler (if dynamic terrain updates are needed)
-3. Water surface level control (if procedural animation is insufficient)
+1. Memoized cache (if profiling justifies it)
+2. Screen-space LOD (if geometry scales)
+3. Frame budget scheduler (if dynamic terrain updates needed)
+4. Advanced water-surface techniques
 
 ### Explicitly Rejected
 
-1. WebGPU renderer (Android WebView incompatibility)
+1. WebGPU renderer (project risk — RC validated on WebGL, re-validation needed)
 2. React/R3F (architectural conflict with vanilla JS)
 3. Worker compiler (unnecessary complexity)
 4. Streaming/LRU (world too small)

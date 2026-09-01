@@ -35,12 +35,13 @@ export function campVisualPhase(state, sequence = {}) {
 }
 
 export function waterfallVisualPhase(state) {
-  const clues = state?.discoveredClues || [];
+  const clues = state?.adventure?.discoveredClues || [];
   if (state?.rewardComplete) return withPhase("waterfall", "complete");
-  if (state?.kingfisherComplete) return withPhase("waterfall", "reward");
+  if (state?.adventure?.birdComplete) return withPhase("waterfall", "reward");
   if (state?.lookoutComplete) return withPhase("waterfall", "kingfisher");
-  if (state?.leafMatchComplete) return withPhase("waterfall", "lookout");
-  if (clues.includes("echo") && clues.includes("mistTrail")) return withPhase("waterfall", "leafMatch");
+  if (state?.adventure?.clueQuizzesComplete) return withPhase("waterfall", "lookout");
+  if (clues.includes("echo") && clues.includes("mistTrail") && clues.includes("waterDrops")) return withPhase("waterfall", "lookout");
+  if (clues.includes("echo") && clues.includes("mistTrail")) return withPhase("waterfall", "waterDrops");
   if (clues.includes("echo")) return withPhase("waterfall", "mistTrail");
   if (state?.steppingStonesComplete) return withPhase("waterfall", "echo");
   if (state?.streamGateComplete) return withPhase("waterfall", "steppingStones");
@@ -74,12 +75,12 @@ export function giantTreeVisualPhase(state) {
 }
 
 export function skyRidgeVisualPhase(state) {
-  const clues = state?.discoveredClues || [];
+  const clues = state?.adventure?.discoveredClues || [];
   if (state?.rewardComplete) return withPhase("skyRidge", "complete");
-  if (state?.hawkComplete) return withPhase("skyRidge", "reward");
+  if (state?.adventure?.birdComplete) return withPhase("skyRidge", "reward");
   if (state?.summitBridgeComplete) return withPhase("skyRidge", "hawk");
-  if (state?.starPatternComplete) return withPhase("skyRidge", "summitBridge");
-  if (clues.includes("windChime")) return withPhase("skyRidge", "starPattern");
+  if (state?.adventure?.clueQuizzesComplete) return withPhase("skyRidge", "summitBridge");
+  if (clues.includes("windChime")) return withPhase("skyRidge", "summitBridge");
   if (clues.includes("cloudShadow")) return withPhase("skyRidge", "windChime");
   if (clues.includes("windRibbon")) return withPhase("skyRidge", "cloudShadow");
   if (state?.skyGateComplete) return withPhase("skyRidge", "windRibbon");

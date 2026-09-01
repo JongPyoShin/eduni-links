@@ -29,19 +29,11 @@ import { activeDirection, advanceSequences, beginIntro, beginRewardReveal, begin
 import { AudioManager } from "./audio.js";
 import { EffectSystem } from "./effects.js";
 import { drawWaterfallWorld, drawWaterfallForeground, drawKingfisher } from "./waterfall_scene.js";
-import { createWaterfallState, resetWaterfall, waterfallObjective, completeStreamGate, completeSteppingStones, collectWaterfallClue, answerLeafMatchRound, completeLookout, completeKingfisher, completeWaterfallReward, LEAF_MATCH_ROUNDS } from "./content/waterfall_chapter.js";
+import { createWaterfallState, resetWaterfall, waterfallObjective, completeStreamGate, completeSteppingStones, collectWaterfallClue, addWaterfallQuizAnswer, completeLookout, completeKingfisher, completeWaterfallReward, canMeetKingfisher, retryWaterfallClueQuizzes, getWaterfallClueQuizId, WATERFALL_CLUES } from "./content/waterfall_chapter.js";
 import { nearestWaterfallInteractable, waterfallInteractables } from "./content/waterfall_interactables.js";
 import { WATERFALL_ART_IMAGES } from "./waterfall_art_manifest.js";
 import { stageReward, awardAndSaveStageReward } from "./content/stage_rewards.js";
 import { campVisualPhase, waterfallVisualPhase } from "./content/stage_visual_director.js";
-
-const LEAF_LABELS = Object.freeze({
-  round: "둥근 잎",
-  needle: "뾰족한 잎",
-  split: "세 갈래 잎",
-  fan: "부채꼴 잎",
-  long: "길쭉한 잎",
-});
 
 export async function start(canvas, modalEl) {
   const ctx = canvas.getContext("2d");
@@ -161,6 +153,35 @@ export async function start(canvas, modalEl) {
       void hud.offsetWidth;
       hud.classList.add("objective-change");
     }
+    const ctxHint = document.querySelector("#context-hint");
+    if (ctxHint && !panel.blocksMovement()) {
+      const nearItem = waterfallStage
+        ? nearestWaterfallInteractable(player, waterfall)
+        : nearestInteractable(player, chapter, { bluebirdReady: sequences.ridgeArrivalPlayed });
+      if (nearItem && nearItem.type !== "discovery") {
+        const labels = {
+          echo: "A 물소리 듣기",
+          mistTrail: "A 흔적 살펴보기",
+          waterDrops: "A 물방울 확인",
+          feather: "A 깃털 살펴보기",
+          footprints: "A 발자국 확인",
+          birdcall: "A 새 소리 듣기",
+          kingfisher: "A 물총새 관찰",
+          bluebird: "A 파랑새 관찰",
+        };
+        const hint = labels[nearItem.type] || `A ${nearItem.label}`;
+        if (ctxHint.textContent !== hint) ctxHint.textContent = hint;
+        ctxHint.classList.add("visible");
+      } else if (nearItem && nearItem.type === "discovery") {
+        const hint = `A ${nearItem.label}`;
+        if (ctxHint.textContent !== hint) ctxHint.textContent = hint;
+        ctxHint.classList.add("visible");
+      } else {
+        ctxHint.classList.remove("visible");
+      }
+    } else if (ctxHint) {
+      ctxHint.classList.remove("visible");
+    }
   }
 
   function cue(name, preset, x, y, now, punch = 0) {
@@ -169,19 +190,10 @@ export async function start(canvas, modalEl) {
     if (punch) camera.punch(punch, now);
   }
 
-  function clueLabel(id) {
-    const clue = CLUES.find((entry) => entry.id === id);
-    return clue.title.replace(" 발견!", "").replace("짹짹! ", "").replace("가 들려!", "");
-  }
-
-  function leafLabel(id) {
-    return LEAF_LABELS[id] || id;
-  }
-
-  function openClueWithQuiz(clueId) {
-    const clue = CLUES.find((c) => c.id === clueId);
+  function openClueWithQuiz(clueId, clueDefs, getQuizIdFn, discoveredCount, totalCount) {
+    const clue = clueDefs.find((c) => c.id === clueId);
     if (!clue) return;
-    const quizId = getClueQuizId(chapter, clueId);
+    const quizId = getQuizIdFn(clueId);
     const quizQuestion = BIRD_QUIZ_BANK.find((q) => q.id === quizId);
     if (!quizQuestion) return;
     birdQuiz = createBirdQuizSession("clue_" + clueId, [quizQuestion], Math.random);
@@ -189,26 +201,12 @@ export async function start(canvas, modalEl) {
       kind: "clueQuiz",
       clueId,
       title: clue.title,
-      body: clue.fact + "\n\n" + quizQuestion.question,
+      body: (clue.fact || clue.objective) + "\n\n" + quizQuestion.question,
       choices: quizQuestion.choices.map((c) => ({ id: c.id, label: c.label })),
       choiceMode: "single",
-      progress: `흔적 ${chapter.discoveredClues.length + 1} / ${CLUES.length}`,
+      progress: `흔적 ${discoveredCount + 1} / ${totalCount}`,
       confirmLabel: "답하기",
     });
-  }
-
-  function openLeafRound() {
-    const round = LEAF_MATCH_ROUNDS[waterfall.leafMatchRound];
-    if (!round) return false;
-    panel.openPanel({
-      kind: "leafMatch",
-      title: "잎사귀 짝 맞추기",
-      body: round.question,
-      progress: `${waterfall.leafMatchRound + 1} / ${LEAF_MATCH_ROUNDS.length}`,
-      choices: round.choices.map((id) => ({ id, label: leafLabel(id) })),
-      choiceMode: "single",
-    });
-    return true;
   }
 
   function openWaterfallRewardCeremony(ts = performance.now()) {
@@ -229,12 +227,14 @@ export async function start(canvas, modalEl) {
   }
 
   function openKingfisherEncounter() {
-    panel.openPanel({
-      kind: "kingfisher",
-      title: "물총새를 만났어!",
-      body: "전망대 가까운 가지에 물총새가 날아와 앉았어.\n푸른빛 깃털과 빠른 움직임을 천천히 관찰해 보자!",
-      confirmLabel: "관찰했어!",
-    });
+    const score = waterfall.adventure.clueQuizScore;
+    const codex = loadBirdCodex();
+    const alreadyCaptured = hasCapturedBird(codex, "kingfisher");
+    if (alreadyCaptured) {
+      panel.openPanel({ kind: "kingfisher", title: "물총새를 만났어!", body: `관찰 결과 ${score} / 3 정답!\n물총새가 반짝이며 나타났어!`, confirmLabel: "만나서 반가워!" });
+    } else {
+      panel.openPanel({ kind: "kingfisher", title: "물총새를 만났어!", body: `관찰 결과 ${score} / 3 정답!\n이제 물총새를 관찰해 보자!`, confirmLabel: "관찰 완료!" });
+    }
     updateUi();
   }
 
@@ -242,17 +242,30 @@ export async function start(canvas, modalEl) {
     movement.reset();
     audio.play("uiConfirm");
     if (waterfallStage) {
-      if (item.type === "leafMatch") {
-        openLeafRound();
-      } else if (item.type === "kingfisher") {
+      if (item.type === "discovery") {
+        panel.openPanel({ kind: "discovery", title: item.label, body: item.discoveryText, confirmLabel: "\uCC3D\uAE30\uD574!" });
+        cue("discovery", "sparkle", item.x, item.y, performance.now(), 0.6);
+        updateUi();
+        return;
+      }
+      if (item.type === "kingfisher") {
         openKingfisherEncounter();
         return;
       } else if (item.type === "reward") {
         openWaterfallRewardCeremony();
         return;
+      } else if (waterfall.adventure.clueIds.includes(item.type)) {
+        const discovered = waterfall.adventure.discoveredClues.length;
+        openClueWithQuiz(item.id, WATERFALL_CLUES, (id) => getWaterfallClueQuizId(waterfall, id), discovered, WATERFALL_CLUES.length);
       } else {
         panel.openPanel({ kind: item.type, title: item.label, body: waterfallObjective(waterfall), confirmLabel: "계속" });
       }
+      updateUi();
+      return;
+    }
+    if (item.type === "discovery") {
+      panel.openPanel({ kind: "discovery", title: item.label, body: item.discoveryText, confirmLabel: "\uCC3D\uAE30\uD574!" });
+      cue("discovery", "sparkle", item.x, item.y, performance.now(), 0.6);
       updateUi();
       return;
     }
@@ -268,7 +281,8 @@ export async function start(canvas, modalEl) {
         panel.openPanel({ kind: "bluebird", title: "파랑새를 만났어!", body: `관찰 결과 ${score} / 3 정답!\n이제 파랑새를 관찰해 보자!`, img: ASSET_ROOT + "bluebird_portrait.png", confirmLabel: "관찰 완료!" });
       }
     } else {
-      openClueWithQuiz(item.id);
+      const discovered = chapter.discoveredClues.length;
+      openClueWithQuiz(item.id, CLUES, (id) => getClueQuizId(chapter, id), discovered, CLUES.length);
     }
     updateUi();
   }
@@ -276,23 +290,6 @@ export async function start(canvas, modalEl) {
   function handlePanelActivate(ts) {
     const result = panel.activate();
     if (result.type === "choice") {
-      if (waterfallStage && result.kind === "leafMatch") {
-        const answer = answerLeafMatchRound(waterfall, result.choice.id);
-        if (!answer.correct) {
-          cue("wrong", "soft-burst", 1250, 470, ts || 0, 0.8);
-          panel.setResponse("다시 살펴보자!", "gentle");
-        } else {
-          waterfall = answer.state;
-          cue("correct", "sparkle", 1250, 470, ts || 0, 1);
-          if (answer.completed) {
-            panel.closePanel();
-          } else {
-            openLeafRound();
-          }
-        }
-        updateUi();
-        return;
-      }
       if (result.kind === "clueQuiz") {
         const answer = answerBirdQuiz(birdQuiz, result.choice.id);
         birdQuiz = answer.session;
@@ -303,9 +300,16 @@ export async function start(canvas, modalEl) {
           cue("correct", "sparkle", 920, 820, ts || 0, 1);
           panel.setResponse("정답!", "gentle");
         }
-        chapter = collectClue(chapter, panel.payload.clueId);
-        chapter = addClueQuizScore(chapter, answer.correct);
-        feedback = { x: CLUES.find((c) => c.id === panel.payload.clueId)?.x || 0, y: CLUES.find((c) => c.id === panel.payload.clueId)?.y || 0, until: ts + 650 };
+        if (waterfallStage) {
+          waterfall = collectWaterfallClue(waterfall, panel.payload.clueId);
+          waterfall = addWaterfallQuizAnswer(waterfall, answer.correct);
+          const clueDef = WATERFALL_CLUES.find((c) => c.id === panel.payload.clueId);
+          feedback = { x: clueDef?.x || 0, y: clueDef?.y || 0, until: ts + 650 };
+        } else {
+          chapter = collectClue(chapter, panel.payload.clueId);
+          chapter = addClueQuizScore(chapter, answer.correct);
+          feedback = { x: CLUES.find((c) => c.id === panel.payload.clueId)?.x || 0, y: CLUES.find((c) => c.id === panel.payload.clueId)?.y || 0, until: ts + 650 };
+        }
         setTimeout(() => panel.closePanel(), 600);
         updateUi();
         return;
@@ -325,15 +329,51 @@ export async function start(canvas, modalEl) {
         } else if (kind === "mistTrail") {
           waterfall = collectWaterfallClue(waterfall, "mistTrail");
           cue("mistFound", "leaf", 1020, 480, ts || 0, 0.8);
+        } else if (kind === "waterDrops") {
+          waterfall = collectWaterfallClue(waterfall, "waterDrops");
+          cue("waterDropsFound", "sparkle", 1250, 470, ts || 0, 0.9);
         } else if (kind === "lookout") {
           waterfall = completeLookout(waterfall);
           cue("lookoutFound", "soft-burst", 1450, 330, ts || 0, 1.5);
           openKingfisherEncounter();
           return;
         } else if (kind === "kingfisher") {
-          waterfall = completeKingfisher(waterfall);
-          cue("kingfisher", "sparkle", 1410, 400, ts || 0, 1.4);
-          openWaterfallRewardCeremony(ts);
+          const score = waterfall.adventure.clueQuizScore;
+          const codex = loadBirdCodex();
+          if (score >= 2) {
+            const newCodex = captureBird(codex, "kingfisher", score);
+            saveBirdCodex(newCodex);
+            waterfall = completeKingfisher(waterfall);
+            awardAndSaveStageReward("waterfall");
+            const reward = stageReward("waterfall");
+            cue("kingfisher", "sparkle", 1410, 400, ts || 0, 1.4);
+            sequences = beginRewardReveal(sequences, ts);
+            panel.openPanel({
+              kind: "reward",
+              title: "포획 성공!",
+              body: `관찰 결과 ${score} / 3 정답으로 물총새를 발견했어!`,
+              badge: true,
+              badgeIcon: reward.icon,
+              badgeLabel: reward.name,
+              checklist: reward.discoveries,
+              confirmLabel: "다시 둘러보기",
+              revealReady: false,
+            });
+            cue("rewardFanfare", "soft-burst", 1410, 400, ts || 0, 2);
+          } else {
+            panel.openPanel({
+              kind: "birdRetry",
+              title: "아쉬워!",
+              body: `관찰 결과 ${score} / 3 정답.\n물총새가 폭포 뒤로 숨었어.\n다시 흔적을 찾아서 도전해 보자!`,
+              confirmLabel: "다시 도전",
+            });
+          }
+          updateUi();
+          return;
+        } else if (kind === "birdRetry") {
+          waterfall = retryWaterfallClueQuizzes(waterfall);
+          panel.closePanel();
+          updateUi();
           return;
         } else if (kind === "reward") {
           waterfall = completeWaterfallReward(waterfall);

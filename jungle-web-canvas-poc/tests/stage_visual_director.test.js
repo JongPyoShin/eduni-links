@@ -18,11 +18,8 @@ function waterfall(overrides = {}) {
   return {
     streamGateComplete: false,
     steppingStonesComplete: false,
-    discoveredClues: [],
-    leafMatchRound: 0,
-    leafMatchComplete: false,
+    adventure: { discoveredClues: [], clueQuizzesComplete: false, birdComplete: false },
     lookoutComplete: false,
-    kingfisherComplete: false,
     rewardComplete: false,
     ...overrides,
   };
@@ -57,11 +54,11 @@ test("Waterfall visual director follows the gameplay progression", () => {
   assert.equal(waterfallVisualPhase(waterfall()).phaseId, "streamGate");
   assert.equal(waterfallVisualPhase(waterfall({ streamGateComplete: true })).phaseId, "steppingStones");
   assert.equal(waterfallVisualPhase(waterfall({ streamGateComplete: true, steppingStonesComplete: true })).phaseId, "echo");
-  assert.equal(waterfallVisualPhase(waterfall({ discoveredClues: ["echo"] })).phaseId, "mistTrail");
-  assert.equal(waterfallVisualPhase(waterfall({ discoveredClues: ["echo", "mistTrail"] })).phaseId, "leafMatch");
-  assert.equal(waterfallVisualPhase(waterfall({ leafMatchComplete: true })).phaseId, "lookout");
-  assert.equal(waterfallVisualPhase(waterfall({ lookoutComplete: true })).phaseId, "kingfisher");
-  assert.equal(waterfallVisualPhase(waterfall({ kingfisherComplete: true })).phaseId, "reward");
+  assert.equal(waterfallVisualPhase(waterfall({ adventure: { discoveredClues: ["echo"], clueQuizzesComplete: false, birdComplete: false } })).phaseId, "mistTrail");
+  assert.equal(waterfallVisualPhase(waterfall({ adventure: { discoveredClues: ["echo", "mistTrail"], clueQuizzesComplete: false, birdComplete: false } })).phaseId, "waterDrops");
+  assert.equal(waterfallVisualPhase(waterfall({ adventure: { discoveredClues: ["echo", "mistTrail", "waterDrops"], clueQuizzesComplete: true, birdComplete: false } })).phaseId, "lookout");
+  assert.equal(waterfallVisualPhase(waterfall({ lookoutComplete: true, adventure: { clueQuizzesComplete: true, birdComplete: false } })).phaseId, "kingfisher");
+  assert.equal(waterfallVisualPhase(waterfall({ adventure: { birdComplete: true } })).phaseId, "reward");
   assert.equal(waterfallVisualPhase(waterfall({ rewardComplete: true })).phaseId, "complete");
 });
 

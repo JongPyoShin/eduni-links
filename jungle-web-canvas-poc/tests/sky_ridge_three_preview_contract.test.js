@@ -40,7 +40,7 @@ test("Sky Ridge pages use project-local Three.js import maps", () => {
 
 test("Sky Ridge preview exposes all nine visual phases", () => {
   const src = readFileSync(PREVIEW, "utf8");
-  for (const phase of ["skyGate","windRibbon","cloudShadow","windChime","starPattern","summitBridge","hawk","reward","complete"]) {
+  for (const phase of ["skyGate","windRibbon","cloudShadow","windChime","summitBridge","hawk","reward","complete"]) {
     assert.ok(src.includes(`\"${phase}\"`), `preview contains ${phase}`);
   }
   assert.ok(src.includes("globalThis.__eduniThreeSkyRidge"));

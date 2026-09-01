@@ -90,5 +90,5 @@ export function renderContentPanel(panel, modalEl) {
   const confirm = modalEl.querySelector("#modal-confirm");
   confirm.textContent = p.confirmLabel || (p.choices ? "선택하기" : "계속");
   confirm.style.display = p.choices || (p.kind === "reward" && !p.revealReady) || p.autoProgress ? "none" : "inline-flex";
-  modalEl.querySelector("#modal-hint").textContent = p.autoProgress ? "잠깐만 기다려 줘!" : p.choices ? "어느 방향키로도 고르고 A로 선택 · B / Escape로 닫기" : p.kind === "reward" && !p.revealReady ? "배지를 준비하고 있어…" : "A / Enter로 계속 · B / Escape로 닫기";
+  modalEl.querySelector("#modal-hint").textContent = p.autoProgress ? "잠깐만 기다려 줘!" : p.choices ? "어느 방향키로도 고르고 A로 선택 · B / Escape로 닫기" : p.kind === "reward" && !p.revealReady ? "배지를 준비하고 있어…" : p.kind === "discovery" ? "A로 확인 · B / Escape로 닫기" : "A / Enter로 계속 · B / Escape로 닫기";
 }

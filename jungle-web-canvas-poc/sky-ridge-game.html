@@ -10,6 +10,8 @@
       html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#7898b2; font-family:system-ui,sans-serif; }
       #sky-game { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
       #objective-hud { position:fixed; top:14px; left:14px; z-index:5; max-width:min(370px,calc(100vw - 28px)); padding:10px 14px; border-radius:14px; background:rgba(42,63,89,.8); border:1px solid rgba(242,250,255,.44); color:#fff; font-weight:850; font-size:clamp(13px,2.1vw,18px); box-shadow:0 7px 24px rgba(0,0,0,.2); }
+      #context-hint { position:fixed; top:52px; left:14px; max-width:min(260px,calc(100vw - 28px)); color:#bae6fd; font-size:clamp(11px,1.8vw,14px); font-weight:600; background:rgba(42,63,89,.6); border:1px solid rgba(186,230,253,.3); padding:5px 10px; border-radius:10px; z-index:5; opacity:0; transform:translateY(-3px); transition:opacity .28s ease,transform .28s ease; }
+      #context-hint.visible { opacity:1; transform:translateY(0); }
       #objective-hud.objective-change { animation:objective-change .42s ease; }
       @keyframes objective-change { 0%{transform:translateY(5px);opacity:.3}70%{transform:translateY(-1px);opacity:1}100%{transform:none} }
       #status { position:fixed; top:62px; left:14px; z-index:5; color:#e6f4ff; font-size:11px; background:rgba(34,51,72,.58); padding:5px 8px; border-radius:9px; pointer-events:none; }
@@ -51,6 +53,7 @@
   <body>
     <canvas id="sky-game"></canvas>
     <div id="objective-hud" aria-live="polite">구름이 가까운 하늘 능선 입구를 찾아가 보자</div>
+    <div id="context-hint" aria-live="polite"></div>
     <div id="status">하늘 능선 준비 중…</div>
     <div id="dpad"><div class="dbtn" id="dpad-up">▲</div><div class="dbtn" id="dpad-left">◀</div><div class="dbtn" id="dpad-right">▶</div><div class="dbtn" id="dpad-down">▼</div></div>
     <div class="dbtn" id="dpad-a">A</div><div class="dbtn" id="dpad-b">B</div>

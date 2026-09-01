@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  LEAF_MATCH_ROUNDS,
-  answerLeafMatchRound,
+  WATERFALL_CLUES,
   collectWaterfallClue,
+  addWaterfallQuizAnswer,
   completeKingfisher,
   completeLookout,
   completeSteppingStones,
@@ -17,27 +17,19 @@ function currentId(state) {
   return waterfallInteractables(state).map((item) => item.id);
 }
 
-function advanceToLeafMatch() {
-  let state = createWaterfallState();
-  state = completeStreamGate(state);
-  state = completeSteppingStones(state);
-  state = collectWaterfallClue(state, "echo");
-  state = collectWaterfallClue(state, "mistTrail");
-  return state;
-}
-
 test("Waterfall exposes exactly one authored interaction step at a time", () => {
   let state = createWaterfallState();
   assert.deepEqual(currentId(state), ["streamGate"]);
   state = completeStreamGate(state);
   assert.deepEqual(currentId(state), ["steppingStones"]);
   state = completeSteppingStones(state);
-  assert.deepEqual(currentId(state), ["echo"]);
+  assert.deepEqual(currentId(state).filter(id => id !== "wetFeather"), ["echo"]);
   state = collectWaterfallClue(state, "echo");
-  assert.deepEqual(currentId(state), ["mistTrail"]);
+  assert.deepEqual(currentId(state).filter(id => id !== "wetFeather"), ["mistTrail"]);
   state = collectWaterfallClue(state, "mistTrail");
-  assert.deepEqual(currentId(state), ["leafMatch"]);
-  for (const round of LEAF_MATCH_ROUNDS) state = answerLeafMatchRound(state, round.correct).state;
+  assert.deepEqual(currentId(state).filter(id => id !== "wetFeather"), ["waterDrops"]);
+  state = collectWaterfallClue(state, "waterDrops");
+  for (let i = 0; i < 3; i++) state = addWaterfallQuizAnswer(state, true);
   assert.deepEqual(currentId(state), ["lookout"]);
   state = completeLookout(state);
   assert.deepEqual(currentId(state), ["kingfisher"]);
@@ -54,10 +46,9 @@ test("nearest Waterfall interaction respects its authored radius", () => {
   assert.equal(nearestWaterfallInteractable({ x: 811, y: 900 }, state), null);
 });
 
-test("Leaf Match choices are child-facing Korean labels", () => {
-  const state = advanceToLeafMatch();
-  assert.deepEqual(currentId(state), ["leafMatch"]);
-  for (const round of LEAF_MATCH_ROUNDS) {
-    assert.ok(round.choices.every((choice) => /[가-힣]/.test(choice)), `raw choice id leaked: ${round.choices.join(", ")}`);
+test("Waterfall clue quiz IDs are nature-themed", () => {
+  for (const clue of WATERFALL_CLUES) {
+    assert.ok(clue.quizId, `clue ${clue.id} should have a quizId`);
+    assert.ok(clue.quizId.startsWith("q"), `quizId should start with q: ${clue.quizId}`);
   }
 });

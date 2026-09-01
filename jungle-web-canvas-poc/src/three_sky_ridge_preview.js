@@ -8,13 +8,13 @@ const WORLD_CENTER = { x: 800, y: 600 };
 const geometryContract = new SkyRidgeWorldGeometry();
 
 const PHASES = Object.freeze([
-  "skyGate", "windRibbon", "cloudShadow", "windChime", "starPattern",
+  "skyGate", "windRibbon", "cloudShadow", "windChime",
   "summitBridge", "hawk", "reward", "complete",
 ]);
 
 const PHASE_ANCHORS = Object.freeze({
   skyGate: [430, 930], windRibbon: [650, 820], cloudShadow: [830, 690],
-  windChime: [1000, 560], starPattern: [1130, 490], summitBridge: [1300, 420],
+  windChime: [1000, 560], summitBridge: [1300, 420],
   hawk: [1450, 310], reward: [1450, 310], complete: [1450, 310],
 });
 

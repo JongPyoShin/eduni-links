@@ -1,43 +1,25 @@
-export const WATERFALL_CLUES = [
-  {
-    id: "echo",
-    title: "폭포 소리 찾기",
-    objective: "가장 가까운 물소리를 찾아보자",
-  },
-  {
-    id: "mistTrail",
-    title: "안개 흔적",
-    objective: "젖은 바위의 흔적을 따라가 보자",
-  },
-];
+import {
+  createAdventureQuizState,
+  collectAdventureClue,
+  addAdventureQuizAnswer,
+  canMeetAdventureBird,
+  completeAdventureBird,
+  retryAdventureClueQuizzes,
+  adventureObjective,
+} from "./adventure_quiz_state.js";
 
-export const LEAF_MATCH_ROUNDS = [
-  {
-    question: "폭포 옆에서 본 둥근 잎과 같은 모양은?",
-    choices: ["둥근 잎", "바늘잎", "갈라진 잎"],
-    correct: "둥근 잎",
-  },
-  {
-    question: "길쭉한 잎과 같은 모양을 골라보자!",
-    choices: ["부채꼴 잎", "길쭉한 잎", "둥근 잎"],
-    correct: "길쭉한 잎",
-  },
-  {
-    question: "끝이 세 갈래로 나뉜 잎과 같은 모양은?",
-    choices: ["세 갈래 잎", "둥근 잎", "길쭉한 잎"],
-    correct: "세 갈래 잎",
-  },
+export const WATERFALL_CLUES = [
+  { id: "echo", title: "폭포 소리 찾기", objective: "가장 가까운 물소리를 찾아보자", quizId: "q008" },
+  { id: "mistTrail", title: "안개 흔적", objective: "젖은 바위의 흔적을 따라가 보자", quizId: "q002" },
+  { id: "waterDrops", title: "물방울 반짝이", objective: "반짝이는 물방울 자국을 찾아보자", quizId: "q039" },
 ];
 
 export function createWaterfallState() {
   return {
     streamGateComplete: false,
     steppingStonesComplete: false,
-    discoveredClues: [],
-    leafMatchRound: 0,
-    leafMatchComplete: false,
+    adventure: createAdventureQuizState("kingfisher", WATERFALL_CLUES.map((c) => c.id)),
     lookoutComplete: false,
-    kingfisherComplete: false,
     rewardComplete: false,
   };
 }
@@ -47,24 +29,25 @@ export function resetWaterfall() {
 }
 
 export function hasWaterfallClue(state, clueId) {
-  return state.discoveredClues.includes(clueId);
+  return state.adventure.discoveredClues.includes(clueId);
 }
 
 export function nextWaterfallClueId(state) {
   if (!state.steppingStonesComplete) return null;
-  const next = WATERFALL_CLUES.find((clue) => !hasWaterfallClue(state, clue.id));
-  return next ? next.id : null;
+  return state.adventure.clueIds.find((id) => !hasWaterfallClue(state, id)) || null;
 }
 
 export function waterfallObjective(state) {
   if (state.rewardComplete) return "탐험 완료!";
-  if (state.kingfisherComplete) return "폭포 탐험 보상을 확인해 보자";
-  if (state.lookoutComplete) return "물총새의 움직임을 관찰해 보자";
-  if (state.leafMatchComplete) return "전망대로 올라가 보자";
-  if (state.discoveredClues.length === WATERFALL_CLUES.length) return "같은 모양의 잎을 찾아보자";
+  if (state.adventure.birdComplete) return "폭포 탐험 보상을 확인해 보자";
+  if (state.lookoutComplete) return "물총새를 찾아가 보자!";
+  if (state.adventure.clueQuizzesComplete) return "전망대로 올라가 보자";
   if (state.steppingStonesComplete) {
-    const next = WATERFALL_CLUES.find((clue) => clue.id === nextWaterfallClueId(state));
-    return next?.objective || "폭포 주변을 살펴보자";
+    const nextId = nextWaterfallClueId(state);
+    if (nextId) {
+      const clue = WATERFALL_CLUES.find((c) => c.id === nextId);
+      return clue?.objective || "폭포 주변을 살펴보자";
+    }
   }
   if (state.streamGateComplete) return "물에 빠지지 않고 징검다리를 건너가 보자";
   return "계곡 입구를 찾아가 보자";
@@ -81,38 +64,39 @@ export function completeSteppingStones(state) {
 
 export function collectWaterfallClue(state, clueId) {
   if (!state.steppingStonesComplete) return state;
-  if (nextWaterfallClueId(state) !== clueId) return state;
-  return { ...state, discoveredClues: [...state.discoveredClues, clueId] };
+  const next = nextWaterfallClueId(state);
+  if (next !== clueId) return state;
+  return { ...state, adventure: collectAdventureClue(state.adventure, clueId) };
 }
 
-export function canUseLeafMatch(state) {
-  return state.discoveredClues.length === WATERFALL_CLUES.length && !state.leafMatchComplete;
+export function addWaterfallQuizAnswer(state, correct) {
+  return { ...state, adventure: addAdventureQuizAnswer(state.adventure, correct) };
 }
 
-export function answerLeafMatchRound(state, answerId) {
-  if (!canUseLeafMatch(state)) return { state, correct: false, completed: false };
-  const round = LEAF_MATCH_ROUNDS[state.leafMatchRound];
-  if (!round || answerId !== round.correct) return { state, correct: false, completed: false };
-  const nextRound = state.leafMatchRound + 1;
-  const nextState = {
-    ...state,
-    leafMatchRound: nextRound,
-    leafMatchComplete: nextRound === LEAF_MATCH_ROUNDS.length,
-  };
-  return { state: nextState, correct: true, completed: nextState.leafMatchComplete };
-}
-
-export function completeLookout(state) {
-  if (!state.leafMatchComplete || state.lookoutComplete) return state;
-  return { ...state, lookoutComplete: true };
+export function canMeetKingfisher(state) {
+  return canMeetAdventureBird(state.adventure) && state.lookoutComplete;
 }
 
 export function completeKingfisher(state) {
-  if (!state.lookoutComplete || state.kingfisherComplete) return state;
-  return { ...state, kingfisherComplete: true };
+  if (!canMeetKingfisher(state)) return state;
+  return { ...state, adventure: completeAdventureBird(state.adventure) };
+}
+
+export function completeLookout(state) {
+  if (!state.adventure.clueQuizzesComplete || state.lookoutComplete) return state;
+  return { ...state, lookoutComplete: true };
 }
 
 export function completeWaterfallReward(state) {
-  if (!state.kingfisherComplete || state.rewardComplete) return state;
+  if (!state.adventure.birdComplete || state.rewardComplete) return state;
   return { ...state, rewardComplete: true };
+}
+
+export function retryWaterfallClueQuizzes(state) {
+  return { ...state, adventure: retryAdventureClueQuizzes(state.adventure) };
+}
+
+export function getWaterfallClueQuizId(state, clueId) {
+  const clue = WATERFALL_CLUES.find((c) => c.id === clueId);
+  return clue?.quizId || null;
 }

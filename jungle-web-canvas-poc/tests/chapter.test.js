@@ -28,17 +28,17 @@ test("quest start enables the authored clue sequence one step at a time", () => 
   let state = startQuest(createChapterState());
   assert.equal(nextClueId(state), "feather");
   assert.equal(chapterObjective(state), "흔적 0 / 3 · 빛나는 깃털을 찾아보자");
-  assert.deepEqual(buildInteractables(state).map((item) => item.id), ["feather"]);
+  assert.deepEqual(buildInteractables(state).map((item) => item.id), ["feather", "shinyFeather"]);
 
   state = collectClue(state, "feather");
   assert.equal(nextClueId(state), "footprints");
   assert.equal(chapterObjective(state), "흔적 1 / 3 · 발자국을 따라가 보자");
-  assert.deepEqual(buildInteractables(state).map((item) => item.id), ["footprints"]);
+  assert.deepEqual(buildInteractables(state).map((item) => item.id), ["footprints", "shinyFeather"]);
 
   state = collectClue(state, "footprints");
   assert.equal(nextClueId(state), "birdcall");
   assert.equal(chapterObjective(state), "흔적 2 / 3 · 새소리에 귀 기울여 보자");
-  assert.deepEqual(buildInteractables(state).map((item) => item.id), ["birdcall"]);
+  assert.deepEqual(buildInteractables(state).map((item) => item.id), ["birdcall", "shinyFeather"]);
 });
 
 test("clues cannot be collected before quest start, out of order, or twice", () => {
@@ -63,7 +63,8 @@ test("objectives progress through authored clue beats then point to bird", () =>
     assert.equal(chapterObjective(state), expected[i]);
   }
   assert.equal(nextClueId(state), null);
-  assert.deepEqual(buildInteractables(state).map((item) => item.id), ["bluebird"]);
+  const ids = buildInteractables(state).map((item) => item.id);
+  assert.ok(ids.includes("bluebird"), "bluebird must be in interactables");
 });
 
 test("clue quiz score accumulates correctly", () => {

@@ -2,9 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { SkyRidgeWorldGeometry } from "../src/geometry.js";
 import {
-  STAR_PATTERN_ROUNDS,
-  answerStarPatternRound,
+  SKY_RIDGE_CLUES,
   collectSkyRidgeClue,
+  addSkyRidgeQuizAnswer,
   completeSkyGate,
   completeSkyHawk,
   completeSkyRidgeReward,
@@ -16,23 +16,28 @@ import { SKY_RIDGE_ITEMS, skyRidgeInteractables, nearestSkyRidgeInteractable } f
 import { getSkyRidgeVisualPhase } from "../src/content/sky_ridge_visuals.js";
 import { stageReward } from "../src/content/stage_rewards.js";
 
+function collectAllClues(state) {
+  for (const clue of SKY_RIDGE_CLUES) state = collectSkyRidgeClue(state, clue.id);
+  return state;
+}
+
+function answerAllQuizzes(state, correct) {
+  for (let i = 0; i < SKY_RIDGE_CLUES.length; i++) state = addSkyRidgeQuizAnswer(state, correct);
+  return state;
+}
+
 test("Sky Ridge progression is strictly sequential from gate to reward", () => {
   let state = createSkyRidgeState();
   assert.equal(skyRidgeInteractables(state)[0].id, "skyGate");
   state = completeSkyGate(state);
-  assert.equal(skyRidgeInteractables(state)[0].id, "windRibbon");
+  assert.equal(skyRidgeInteractables(state).find(i => i.id !== "windFeather")?.id, "windRibbon");
   state = collectSkyRidgeClue(state, "windRibbon");
-  assert.equal(skyRidgeInteractables(state)[0].id, "cloudShadow");
+  assert.equal(skyRidgeInteractables(state).find(i => i.id !== "windFeather")?.id, "cloudShadow");
   state = collectSkyRidgeClue(state, "cloudShadow");
-  assert.equal(skyRidgeInteractables(state)[0].id, "windChime");
+  assert.equal(skyRidgeInteractables(state).find(i => i.id !== "windFeather")?.id, "windChime");
   state = collectSkyRidgeClue(state, "windChime");
-  assert.equal(skyRidgeInteractables(state)[0].id, "starPattern");
-  for (const round of STAR_PATTERN_ROUNDS) {
-    const result = answerStarPatternRound(state, round.correct);
-    assert.equal(result.correct, true);
-    state = result.state;
-  }
-  assert.equal(state.starPatternComplete, true);
+  state = answerAllQuizzes(state, true);
+  assert.equal(state.adventure.clueQuizzesComplete, true);
   assert.equal(skyRidgeInteractables(state)[0].id, "summitBridge");
   state = completeSummitBridge(state);
   assert.equal(skyRidgeInteractables(state)[0].id, "hawk");
@@ -41,18 +46,6 @@ test("Sky Ridge progression is strictly sequential from gate to reward", () => {
   state = completeSkyRidgeReward(state);
   assert.equal(skyRidgeObjective(state), "탐험 완료!");
   assert.deepEqual(skyRidgeInteractables(state), []);
-});
-
-test("Wrong Sky Ridge star-pattern answers do not advance", () => {
-  let state = completeSkyGate(createSkyRidgeState());
-  state = collectSkyRidgeClue(state, "windRibbon");
-  state = collectSkyRidgeClue(state, "cloudShadow");
-  state = collectSkyRidgeClue(state, "windChime");
-  const before = state.starPatternRound;
-  const result = answerStarPatternRound(state, "wrong");
-  assert.equal(result.correct, false);
-  assert.equal(result.state.starPatternRound, before);
-  assert.equal(result.state.starPatternComplete, false);
 });
 
 test("Sky Ridge interactables stay on shared visible walkable geometry", () => {
@@ -68,7 +61,7 @@ test("Sky Ridge interaction radius, visuals, and final badge are defined", () =>
   const state = createSkyRidgeState();
   assert.equal(nearestSkyRidgeInteractable({ x: 430, y: 930 }, state)?.id, "skyGate");
   assert.equal(nearestSkyRidgeInteractable({ x: 200, y: 1040 }, state), null);
-  for (const phaseId of ["skyGate","windRibbon","cloudShadow","windChime","starPattern","summitBridge","hawk","reward","complete"]) {
+  for (const phaseId of ["skyGate", "windRibbon", "cloudShadow", "windChime", "summitBridge", "hawk", "reward", "complete"]) {
     assert.ok(getSkyRidgeVisualPhase(phaseId), `visual phase ${phaseId} must exist`);
   }
   assert.equal(stageReward("skyRidge").name, "하늘별 배지");

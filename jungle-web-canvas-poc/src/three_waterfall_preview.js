@@ -574,7 +574,7 @@ export async function startThreeWaterfallPreview(canvas, statusEl, options = {})
     { key: "steppingStonesComplete", point: [1080, 700] },
     { key: "echo", point: [1170, 560] },
     { key: "mistTrail", point: [1020, 480] },
-    { key: "leafMatchComplete", point: [1250, 470] },
+    { key: "waterDrops", point: [1250, 470] },
     { key: "lookoutComplete", point: [1450, 330] },
     { key: "kingfisherComplete", point: [1410, 400] },
     { key: "rewardComplete", point: [1410, 400] },
@@ -608,24 +608,22 @@ export async function startThreeWaterfallPreview(canvas, statusEl, options = {})
       stone.position.y = 0.18 + Math.sin(t * 1.5 + index * 0.7) * 0.012;
     });
     const state = options.getState?.() || null;
-    const clues = state?.discoveredClues || [];
+    const clues = state?.adventure?.discoveredClues || [];
     const productionState = options.production ? state : {
       streamGateComplete: true,
       steppingStonesComplete: true,
-      discoveredClues: ["echo", "mistTrail"],
-      leafMatchComplete: true,
+      adventure: { discoveredClues: ["echo", "mistTrail", "waterDrops"], clueQuizzesComplete: true, birdComplete: false },
       lookoutComplete: true,
-      kingfisherComplete: false,
       rewardComplete: false,
     };
-    const storyClues = productionState?.discoveredClues || [];
+    const storyClues = productionState?.adventure?.discoveredClues || [];
     story.gateLanterns.visible = !productionState?.streamGateComplete;
     story.crossingGlow.visible = Boolean(productionState?.streamGateComplete && !productionState?.steppingStonesComplete);
     story.mist.visible = Boolean(storyClues.includes("echo") && !storyClues.includes("mistTrail"));
-    story.leafGlow.visible = Boolean(storyClues.includes("echo") && storyClues.includes("mistTrail") && !productionState?.leafMatchComplete);
-    story.lookoutGlow.visible = Boolean(productionState?.leafMatchComplete && !productionState?.lookoutComplete);
-    story.kingfisher.visible = Boolean(productionState?.lookoutComplete && !productionState?.kingfisherComplete);
-    story.reward.visible = Boolean(productionState?.kingfisherComplete && !productionState?.rewardComplete);
+    story.leafGlow.visible = Boolean(storyClues.includes("echo") && storyClues.includes("mistTrail") && !storyClues.includes("waterDrops"));
+    story.lookoutGlow.visible = Boolean(productionState?.adventure?.clueQuizzesComplete && !productionState?.lookoutComplete);
+    story.kingfisher.visible = Boolean(productionState?.lookoutComplete && !productionState?.adventure?.birdComplete);
+    story.reward.visible = Boolean(productionState?.adventure?.birdComplete && !productionState?.rewardComplete);
     if (story.kingfisher.visible) story.kingfisher.position.y = 2.15 + Math.sin(t * 2.8) * 0.09;
     story.reward.children.forEach((sparkle, index) => {
       const a = t * 1.7 + sparkle.userData.phase;
@@ -637,10 +635,10 @@ export async function startThreeWaterfallPreview(canvas, statusEl, options = {})
         Boolean(state?.streamGateComplete && !state?.steppingStonesComplete),
         Boolean(state?.steppingStonesComplete && !clues.includes("echo")),
         Boolean(clues.includes("echo") && !clues.includes("mistTrail")),
-        Boolean(clues.includes("echo") && clues.includes("mistTrail") && !state?.leafMatchComplete),
-        Boolean(state?.leafMatchComplete && !state?.lookoutComplete),
-        Boolean(state?.lookoutComplete && !state?.kingfisherComplete),
-        Boolean(state?.kingfisherComplete && !state?.rewardComplete),
+        Boolean(clues.includes("echo") && clues.includes("mistTrail") && !clues.includes("waterDrops")),
+        Boolean(state?.adventure?.clueQuizzesComplete && !state?.lookoutComplete),
+        Boolean(state?.lookoutComplete && !state?.adventure?.birdComplete),
+        Boolean(state?.adventure?.birdComplete && !state?.rewardComplete),
       ][index];
       cue.ring.visible = Boolean(options.production && unlocked && !state?.rewardComplete);
       cue.ring.scale.setScalar(1 + Math.sin(t * 2.1 + index) * 0.12);

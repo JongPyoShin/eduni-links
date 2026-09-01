@@ -17,10 +17,14 @@ test("Waterfall lookout immediately surfaces the kingfisher encounter popup", ()
   );
 });
 
-test("Waterfall kingfisher confirmation immediately opens the badge ceremony", () => {
+test("Waterfall kingfisher confirmation checks score and opens reward or retry", () => {
   assert.match(
     GAME,
-    /kind === "kingfisher"[\s\S]*completeKingfisher\(waterfall\)[\s\S]*openWaterfallRewardCeremony\(ts\)[\s\S]*return;/
+    /kind === "kingfisher"[\s\S]*score >= 2[\s\S]*captureBird[\s\S]*completeKingfisher[\s\S]*openPanel[\s\S]*kind: "reward"/
+  );
+  assert.match(
+    GAME,
+    /kind === "birdRetry"[\s\S]*retryWaterfallClueQuizzes/
   );
 });
 

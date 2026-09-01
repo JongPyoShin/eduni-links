@@ -488,7 +488,7 @@ function drawStateCues(ctx, p, cam, t, state) {
     ctx.fill();
   }
 
-  if (state.leafMatchComplete && !state.lookoutComplete) {
+  if (state?.adventure?.clueQuizzesComplete && !state.lookoutComplete) {
     const s = p(1450, 330);
     const glow = ctx.createRadialGradient(s.x, s.y - 25 * cam.zoom, 5, s.x, s.y - 25 * cam.zoom, 135 * cam.zoom);
     glow.addColorStop(0, "rgba(166,238,229,.34)");
@@ -499,7 +499,7 @@ function drawStateCues(ctx, p, cam, t, state) {
     ctx.fill();
   }
 
-  if (state.kingfisherComplete && !state.rewardComplete) {
+  if (state?.adventure?.birdComplete && !state.rewardComplete) {
     const s = p(1410, 400);
     for (let i = 0; i < 9; i += 1) {
       const a = t / 700 + (i / 9) * Math.PI * 2;
@@ -598,7 +598,7 @@ export function drawWaterfallWorld(ctx, cam, viewW, viewH, t = 0, images = null,
   // and leaf beds, gameplay state cues, mist.
   drawSteppingStones(ctx, p, cam, t, Boolean(state?.streamGateComplete && !state?.steppingStonesComplete));
   drawGate(ctx, p, cam, !state?.streamGateComplete);
-  drawLookout(ctx, p, cam, Boolean(state?.leafMatchComplete && !state?.lookoutComplete));
+  drawLookout(ctx, p, cam, Boolean(state?.adventure?.clueQuizzesComplete && !state?.lookoutComplete));
   drawAuthoredArtLayer(ctx, p, cam, art, WATERFALL_ART_FRONT);
   drawFlowersAndLeafBeds(ctx, p, cam, t, state);
   drawStateCues(ctx, p, cam, t, state);

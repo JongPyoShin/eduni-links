@@ -7,26 +7,26 @@ import { frameDelta } from "./loop.js";
 import { AudioManager } from "./audio.js";
 import { ContentPanelController, renderContentPanel } from "./content/content_panel.js";
 import {
-  STAR_PATTERN_ROUNDS,
   createSkyRidgeState,
   skyRidgeObjective,
   completeSkyGate,
   collectSkyRidgeClue,
-  answerStarPatternRound,
+  addSkyRidgeQuizAnswer,
   completeSummitBridge,
   completeSkyHawk,
   completeSkyRidgeReward,
+  canMeetSkyHawk,
+  retrySkyRidgeClueQuizzes,
+  getSkyRidgeClueQuizId,
+  SKY_RIDGE_CLUES,
 } from "./content/sky_ridge_chapter.js";
 import { nearestSkyRidgeInteractable } from "./content/sky_ridge_interactables.js";
 import { skyRidgeVisualPhase } from "./content/stage_visual_director.js";
 import { stageReward, awardAndSaveStageReward } from "./content/stage_rewards.js";
 import { skyRidgeLogicalToThree, startThreeSkyRidgePreview } from "./three_sky_ridge_preview.js";
-
-const PATTERN_LABELS = Object.freeze({ star: "별", moon: "달", cloud: "구름" });
-
-function patternLabel(id) {
-  return String(id).split("-").map((part) => PATTERN_LABELS[part] || part).join(" → ");
-}
+import { BIRD_QUIZ_BANK } from "./content/bird_quiz_bank.js";
+import { createBirdQuizSession, currentQuestion, answerBirdQuiz, isQuizComplete, isCaptureSuccess } from "./content/bird_quiz.js";
+import { loadBirdCodex, saveBirdCodex, captureBird, hasCapturedBird } from "./content/bird_codex.js";
 
 function setObjective(text) {
   const hud = document.querySelector("#objective-hud");
@@ -47,6 +47,7 @@ export async function startSkyRidgeGame(canvas, modalEl, statusEl) {
   await playerSprite.load();
 
   let sky = createSkyRidgeState();
+  let birdQuiz = null;
   const player = { x: geometry.clearings[0].x, y: geometry.clearings[0].y };
   const runtime = await startThreeSkyRidgePreview(canvas, statusEl, { phase: "skyGate", debugControls: false });
   const textureCache = new Map();
@@ -103,19 +104,56 @@ export async function startSkyRidgeGame(canvas, modalEl, statusEl) {
     setObjective(skyRidgeObjective(sky));
     renderContentPanel(panel, modalEl);
     syncPhase();
+    const ctxHint = document.querySelector("#context-hint");
+    if (ctxHint && !panel.blocksMovement()) {
+      const nearItem = nearestSkyRidgeInteractable(player, sky);
+      if (nearItem) {
+        const labels = {
+          windRibbon: "A 리본 살펴보기",
+          cloudShadow: "A 구름 그림자 확인",
+          windChime: "A 종소리 듣기",
+          hawk: "A 하늘매 관찰",
+        };
+        const hint = labels[nearItem.type] || `A ${nearItem.label}`;
+        if (ctxHint.textContent !== hint) ctxHint.textContent = hint;
+        ctxHint.classList.add("visible");
+      } else {
+        ctxHint.classList.remove("visible");
+      }
+    } else if (ctxHint) {
+      ctxHint.classList.remove("visible");
+    }
   }
 
-  function openStarRound() {
-    const round = STAR_PATTERN_ROUNDS[sky.starPatternRound];
-    if (!round) return;
+  function openClueQuiz(clueId) {
+    const clue = SKY_RIDGE_CLUES.find((c) => c.id === clueId);
+    if (!clue) return;
+    const quizId = getSkyRidgeClueQuizId(sky, clueId);
+    const quizQuestion = BIRD_QUIZ_BANK.find((q) => q.id === quizId);
+    if (!quizQuestion) return;
+    birdQuiz = createBirdQuizSession("clue_" + clueId, [quizQuestion], Math.random);
     panel.openPanel({
-      kind: "starPattern",
-      title: "별빛 순서 기억",
-      body: round.question,
-      progress: `${sky.starPatternRound + 1} / ${STAR_PATTERN_ROUNDS.length}`,
-      choices: round.choices.map((id) => ({ id, label: patternLabel(id) })),
+      kind: "clueQuiz",
+      clueId,
+      title: clue.title,
+      body: clue.objective + "\n\n" + quizQuestion.question,
+      choices: quizQuestion.choices.map((c) => ({ id: c.id, label: c.label })),
       choiceMode: "single",
+      progress: `흔적 ${sky.adventure.discoveredClues.length + 1} / ${SKY_RIDGE_CLUES.length}`,
+      confirmLabel: "답하기",
     });
+    updateUi();
+  }
+
+  function openHawkEncounter() {
+    const score = sky.adventure.clueQuizScore;
+    const codex = loadBirdCodex();
+    const alreadyCaptured = hasCapturedBird(codex, "skyHawk");
+    if (alreadyCaptured) {
+      panel.openPanel({ kind: "hawk", title: "하늘매를 만났어!", body: `관찰 결과 ${score} / 3 정답!\n하늘매가 반짝이며 나타났어!`, confirmLabel: "만나서 반가워!" });
+    } else {
+      panel.openPanel({ kind: "hawk", title: "하늘매를 만났어!", body: `관찰 결과 ${score} / 3 정답!\n이제 하늘매를 관찰해 보자!`, confirmLabel: "관찰 완료!" });
+    }
     updateUi();
   }
 
@@ -139,21 +177,26 @@ export async function startSkyRidgeGame(canvas, modalEl, statusEl) {
   function openInteraction(item) {
     movement.reset();
     audio.play("uiConfirm");
-    if (item.type === "starPattern") {
-      openStarRound();
+    if (item.type === "discovery") {
+      panel.openPanel({ kind: "discovery", title: item.label, body: item.discoveryText, confirmLabel: "신기해!" });
+      updateUi();
+      return;
+    }
+    if (item.type === "hawk") {
+      openHawkEncounter();
       return;
     }
     if (item.type === "reward") {
       openRewardCeremony();
       return;
     }
+    if (SKY_RIDGE_CLUES.some((c) => c.id === item.type)) {
+      openClueQuiz(item.id);
+      return;
+    }
     const body = {
       skyGate: "구름이 눈높이 가까이 지나가. 바람이 가리키는 길을 따라 정상으로 올라가 보자!",
-      windRibbon: "리본이 같은 방향으로 길게 흔들려. 바람이 어디로 부는지 알 수 있어.",
-      cloudShadow: "구름 그림자가 바닥을 천천히 지나가고 있어. 빛과 구름이 만든 흔적이야.",
-      windChime: "맑은 종소리가 바람을 타고 퍼져 나가. 가장 또렷한 소리를 기억해 보자.",
       summitBridge: "구름 사이로 정상까지 이어지는 하늘 다리가 열렸어.",
-      hawk: "하늘매가 날개를 크게 펴고 바람을 타며 거의 날갯짓 없이 미끄러지듯 날고 있어!",
     }[item.type] || skyRidgeObjective(sky);
     panel.openPanel({ kind: item.type, title: item.label, body, confirmLabel: "계속" });
     updateUi();
@@ -161,31 +204,65 @@ export async function startSkyRidgeGame(canvas, modalEl, statusEl) {
 
   function confirmPanel() {
     const result = panel.activate();
-    if (result.type === "choice" && result.kind === "starPattern") {
-      const answer = answerStarPatternRound(sky, result.choice.id);
-      if (!answer.correct) {
-        audio.play("wrong");
-        panel.setResponse("별빛 순서를 천천히 다시 떠올려 보자!", "gentle");
-      } else {
-        audio.play("correct");
-        sky = answer.state;
-        if (answer.completed) panel.closePanel();
-        else openStarRound();
+    if (result.type === "choice") {
+      if (result.kind === "clueQuiz") {
+        const answer = answerBirdQuiz(birdQuiz, result.choice.id);
+        birdQuiz = answer.session;
+        if (!answer.correct) {
+          audio.play("wrong");
+          panel.setResponse(`아쉬워! ${answer.lastAnswer.explanation}`, "gentle");
+        } else {
+          audio.play("correct");
+          panel.setResponse("정답!", "gentle");
+        }
+        sky = collectSkyRidgeClue(sky, panel.payload.clueId);
+        sky = addSkyRidgeQuizAnswer(sky, answer.correct);
+        setTimeout(() => panel.closePanel(), 600);
+        updateUi();
+        return;
       }
-      updateUi();
       return;
     }
     if (result.type !== "confirm") return;
 
     const kind = panel.payload?.kind;
     if (kind === "skyGate") sky = completeSkyGate(sky);
-    else if (kind === "windRibbon") sky = collectSkyRidgeClue(sky, "windRibbon");
-    else if (kind === "cloudShadow") sky = collectSkyRidgeClue(sky, "cloudShadow");
-    else if (kind === "windChime") sky = collectSkyRidgeClue(sky, "windChime");
     else if (kind === "summitBridge") sky = completeSummitBridge(sky);
     else if (kind === "hawk") {
-      sky = completeSkyHawk(sky);
-      openRewardCeremony();
+      const score = sky.adventure.clueQuizScore;
+      const codex = loadBirdCodex();
+      if (score >= 2) {
+        const newCodex = captureBird(codex, "skyHawk", score);
+        saveBirdCodex(newCodex);
+        sky = completeSkyHawk(sky);
+        awardAndSaveStageReward("skyRidge");
+        const reward = stageReward("skyRidge");
+        audio.play("rewardFanfare");
+        panel.openPanel({
+          kind: "reward",
+          title: "포획 성공!",
+          body: `관찰 결과 ${score} / 3 정답으로 하늘매를 발견했어!`,
+          badge: true,
+          badgeIcon: reward.icon,
+          badgeLabel: reward.name,
+          checklist: reward.discoveries,
+          confirmLabel: "다시 둘러보기",
+          revealReady: true,
+        });
+      } else {
+        panel.openPanel({
+          kind: "birdRetry",
+          title: "아쉬워!",
+          body: `관찰 결과 ${score} / 3 정답.\n하늘매가 구름 속으로 숨었어.\n다시 흔적을 찾아서 도전해 보자!`,
+          confirmLabel: "다시 도전",
+        });
+      }
+      updateUi();
+      return;
+    } else if (kind === "birdRetry") {
+      sky = retrySkyRidgeClueQuizzes(sky);
+      panel.closePanel();
+      updateUi();
       return;
     } else if (kind === "reward") {
       sky = completeSkyRidgeReward(sky);

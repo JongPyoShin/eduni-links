@@ -12,8 +12,8 @@ const TREE = readFileSync(resolve(ROOT, "src", "giant_tree_game.js"), "utf8");
 const SKY = readFileSync(resolve(ROOT, "src", "sky_ridge_game.js"), "utf8");
 const PANEL = readFileSync(resolve(ROOT, "src", "content", "content_panel.js"), "utf8");
 
-test("Waterfall opens its badge ceremony immediately after the kingfisher encounter", () => {
-  assert.match(GAME, /kind === "kingfisher"[\s\S]*completeKingfisher\(waterfall\)[\s\S]*openWaterfallRewardCeremony\(ts\)[\s\S]*return;/);
+test("Waterfall opens its badge ceremony after kingfisher capture (score >= 2)", () => {
+  assert.match(GAME, /kind === "kingfisher"[\s\S]*score >= 2[\s\S]*completeKingfisher[\s\S]*openPanel[\s\S]*kind: "reward"/);
   assert.match(GAME, /badgeIcon: reward\.icon/);
 });
 
@@ -27,8 +27,8 @@ test("Giant Tree opens its badge ceremony immediately after the squirrel encount
   assert.match(TREE, /badgeIcon: reward\.icon/);
 });
 
-test("Sky Ridge opens its badge ceremony immediately after the hawk encounter", () => {
-  assert.match(SKY, /kind === "hawk"[\s\S]*completeSkyHawk\(sky\)[\s\S]*openRewardCeremony\(\)[\s\S]*return;/);
+test("Sky Ridge opens its badge ceremony after hawk capture (score >= 2)", () => {
+  assert.match(SKY, /kind === "hawk"[\s\S]*score >= 2[\s\S]*completeSkyHawk[\s\S]*openPanel[\s\S]*kind: "reward"/);
   assert.match(SKY, /badgeIcon: reward\.icon/);
 });
 

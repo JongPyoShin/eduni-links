@@ -52,7 +52,7 @@ export function isClueActive(state, clueId) {
 
 export function chapterObjective(state) {
   if (state.bluebirdComplete) return "탐험 완료!";
-  if (state.clueQuizzesComplete) return "파랑새를 찾아가 보자!";
+  if (state.clueQuizzesComplete) return "전망대에서 파랑새를 찾아가 보자!";
   if (!state.questStarted) return "학습 오두막을 찾아가 보자";
 
   const missionByClue = {

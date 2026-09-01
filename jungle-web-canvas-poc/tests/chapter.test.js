@@ -55,7 +55,7 @@ test("objectives progress through authored clue beats then point to bird", () =>
   const expected = [
     "흔적 1 / 3 · 발자국을 따라가 보자",
     "흔적 2 / 3 · 새소리에 귀 기울여 보자",
-    "파랑새를 찾아가 보자!",
+    "전망대에서 파랑새를 찾아가 보자!",
   ];
   for (let i = 0; i < CLUES.length; i++) {
     state = collectClue(state, CLUES[i].id);

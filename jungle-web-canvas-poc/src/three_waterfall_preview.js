@@ -8,6 +8,7 @@ import {
   WATERFALL_THREE_PLACEMENTS,
   threeVendorUrl,
 } from "./three_vendor_manifest.js";
+import { sampleHeight, sampleNormal, generateTerrainMesh, getTerrainInfo } from "./terrain.js";
 
 const WORLD_SCALE = 0.01;
 const WORLD_CENTER = { x: 800, y: 600 };
@@ -72,13 +73,23 @@ function inspectModel(root) {
 }
 
 function addGround(scene) {
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(16, 12),
-    material(0x315c3f, { roughness: 0.95 })
-  );
-  ground.rotation.x = -Math.PI / 2;
-  ground.receiveShadow = true;
-  scene.add(ground);
+  const terrainData = generateTerrainMesh(160, 108);
+  const terrainGeo = new THREE.BufferGeometry();
+  terrainGeo.setAttribute("position", new THREE.Float32BufferAttribute(terrainData.vertices, 3));
+  terrainGeo.setAttribute("normal", new THREE.Float32BufferAttribute(terrainData.normals, 3));
+  terrainGeo.setAttribute("uv", new THREE.Float32BufferAttribute(terrainData.uvs, 2));
+  terrainGeo.setIndex(terrainData.indices);
+  terrainGeo.computeBoundingSphere();
+
+  const terrainMat = new THREE.MeshStandardMaterial({
+    color: 0x315c3f,
+    roughness: 0.95,
+    metalness: 0,
+  });
+  const terrain = new THREE.Mesh(terrainGeo, terrainMat);
+  terrain.receiveShadow = true;
+  terrain.castShadow = true;
+  scene.add(terrain);
 
   const basin = new THREE.Mesh(
     new THREE.CircleGeometry(4.4, 72),
@@ -94,7 +105,8 @@ function addGround(scene) {
   );
   basin.rotation.x = -Math.PI / 2;
   basin.scale.set(1, 0.55, 1);
-  basin.position.copy(worldPoint(1050, 535, 0.025));
+  const basinH = sampleHeight(1050, 535);
+  basin.position.copy(worldPoint(1050, 535, basinH + 0.025));
   scene.add(basin);
 
   const stream = new THREE.Mesh(
@@ -108,10 +120,11 @@ function addGround(scene) {
     })
   );
   stream.rotation.set(-Math.PI / 2, 0, -0.22);
-  stream.position.copy(worldPoint(820, 760, 0.03));
+  const streamH = sampleHeight(820, 760);
+  stream.position.copy(worldPoint(820, 760, streamH + 0.03));
   scene.add(stream);
 
-  return { basin, stream };
+  return { basin, stream, terrain };
 }
 
 function addRoute(scene) {
@@ -121,39 +134,45 @@ function addRoute(scene) {
   const edgeMat = material(0x65734d, { roughness: 1 });
 
   for (let i = 0; i < route.length - 1; i += 1) {
-    const a = worldPoint(route[i].x, route[i].y, 0.055);
-    const b = worldPoint(route[i + 1].x, route[i + 1].y, 0.055);
-    const dx = b.x - a.x;
-    const dz = b.z - a.z;
+    const a = route[i];
+    const b = route[i + 1];
+    const ha = sampleHeight(a.x, a.y) + 0.055;
+    const hb = sampleHeight(b.x, b.y) + 0.055;
+    const a3 = worldPoint(a.x, a.y, ha);
+    const b3 = worldPoint(b.x, b.y, hb);
+    const dx = b3.x - a3.x;
+    const dz = b3.z - a3.z;
     const len = Math.hypot(dx, dz);
-    const mid = a.clone().add(b).multiplyScalar(0.5);
+    const mid = a3.clone().add(b3).multiplyScalar(0.5);
     const angle = -Math.atan2(dz, dx);
 
     const edge = new THREE.Mesh(new THREE.PlaneGeometry(len + radius, radius * 2.2), edgeMat);
     edge.rotation.set(-Math.PI / 2, 0, angle);
     edge.position.copy(mid);
-    edge.position.y = 0.042;
+    edge.position.y = mid.y - 0.013;
     scene.add(edge);
 
     const strip = new THREE.Mesh(new THREE.PlaneGeometry(len + radius * 0.5, radius * 1.5), routeMat);
     strip.rotation.set(-Math.PI / 2, 0, angle);
     strip.position.copy(mid);
-    strip.position.y = 0.06;
+    strip.position.y = mid.y + 0.005;
     scene.add(strip);
   }
 
   for (const node of route) {
+    const h = sampleHeight(node.x, node.y) + 0.062;
     const pad = new THREE.Mesh(new THREE.CircleGeometry(radius * 0.78, 24), routeMat);
     pad.rotation.x = -Math.PI / 2;
-    pad.position.copy(worldPoint(node.x, node.y, 0.062));
+    pad.position.copy(worldPoint(node.x, node.y, h));
     scene.add(pad);
   }
 }
 
 function addWaterfall(scene) {
   const cliffMat = material(0x45564c, { roughness: 0.94 });
+  const cliffH = sampleHeight(1170, 210);
   const cliff = new THREE.Mesh(new THREE.BoxGeometry(4.1, 4.4, 0.72), cliffMat);
-  cliff.position.copy(worldPoint(1170, 210, 1.82));
+  cliff.position.copy(worldPoint(1170, 210, cliffH + 1.82));
   cliff.castShadow = true;
   cliff.receiveShadow = true;
   scene.add(cliff);
@@ -167,10 +186,11 @@ function addWaterfall(scene) {
     clearcoat: 0.8,
     side: THREE.DoubleSide,
   });
+  const waterfallH = sampleHeight(1170, 350);
   const waterfall = new THREE.Mesh(new THREE.PlaneGeometry(2.9, 4.2, 1, 16), fallMaterial);
   // Pull the animated sheet slightly toward the camera so the landmark stays
   // visible above the basin and vendor props.
-  waterfall.position.copy(worldPoint(1170, 350, 2.15));
+  waterfall.position.copy(worldPoint(1170, 350, waterfallH + 2.15));
   waterfall.rotation.y = 0;
   scene.add(waterfall);
 
@@ -185,7 +205,10 @@ function addWaterfall(scene) {
         side: THREE.DoubleSide,
       })
     );
-    streak.position.copy(worldPoint(1169 + (i - 2) * 38, 350 + (i % 2) * 8, 2.2));
+    const x = 1169 + (i - 2) * 38;
+    const y = 350 + (i % 2) * 8;
+    const streakH = sampleHeight(x, y);
+    streak.position.copy(worldPoint(x, y, streakH + 2.2));
     streak.position.x += (i - 2) * 0.22;
     scene.add(streak);
     streaks.push(streak);
@@ -197,10 +220,11 @@ function addWaterfall(scene) {
     opacity: 0.55,
     roughness: 0.4,
   });
+  const foamH = sampleHeight(1170, 465);
   const foam = new THREE.Mesh(new THREE.CircleGeometry(1.55, 36), foamMat);
   foam.rotation.x = -Math.PI / 2;
   foam.scale.set(1.25, 0.55, 1);
-  foam.position.copy(worldPoint(1170, 465, 0.08));
+  foam.position.copy(worldPoint(1170, 465, foamH + 0.08));
   scene.add(foam);
 
   return { waterfall, streaks, foam };
@@ -213,10 +237,11 @@ function addSteppingStones(scene) {
   const stones = [];
 
   points.forEach(([x, y], index) => {
+    const h = sampleHeight(x, y) + 0.18;
     const mesh = new THREE.Mesh(new THREE.DodecahedronGeometry(0.33 + (index % 2) * 0.04, 0), index % 3 === 0 ? moss : wet);
     mesh.scale.set(1.1, 0.36 + (index % 2) * 0.08, 0.8 + (index % 3) * 0.08);
     mesh.rotation.y = index * 0.47;
-    mesh.position.copy(worldPoint(x, y, 0.18));
+    mesh.position.copy(worldPoint(x, y, h));
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     scene.add(mesh);
@@ -240,7 +265,8 @@ function addGate(scene) {
   crown.rotation.z = Math.PI;
   crown.position.set(0, 2.22, 0);
   group.add(left, right, top, crown);
-  group.position.copy(worldPoint(700, 900, 0));
+  const gateH = sampleHeight(700, 900);
+  group.position.copy(worldPoint(700, 900, gateH));
   group.rotation.y = -0.12;
   group.traverse((obj) => { if (obj.isMesh) obj.castShadow = true; });
   scene.add(group);
@@ -259,7 +285,8 @@ function addLookout(scene) {
       group.add(post);
     }
   }
-  group.position.copy(worldPoint(1450, 350, 0));
+  const lookoutH = sampleHeight(1450, 330);
+  group.position.copy(worldPoint(1450, 330, lookoutH));
   group.rotation.y = 0.12;
   group.traverse((obj) => { if (obj.isMesh) obj.castShadow = true; });
   scene.add(group);
@@ -272,17 +299,19 @@ async function addStoryEnvironment(scene) {
   const gateLanterns = new THREE.Group();
   const lanternMat = new THREE.MeshStandardMaterial({ color: 0xffd27a, emissive: 0xb85d18, emissiveIntensity: 0.9 });
   for (const x of [650, 750]) {
+    const h = sampleHeight(x, 900);
     const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), lanternMat);
-    lantern.position.copy(worldPoint(x, 900, 1.75));
+    lantern.position.copy(worldPoint(x, 900, h + 1.75));
     gateLanterns.add(lantern);
   }
   scene.add(gateLanterns);
 
   const crossingGlow = new THREE.Group();
   for (const [x, y] of [[860, 770], [960, 720], [1080, 700]]) {
+    const h = sampleHeight(x, y);
     const pad = new THREE.Mesh(new THREE.CircleGeometry(0.34, 24), glowMat(0xffdc73, 0.28));
     pad.rotation.x = -Math.PI / 2;
-    pad.position.copy(worldPoint(x, y, 0.075));
+    pad.position.copy(worldPoint(x, y, h + 0.075));
     crossingGlow.add(pad);
   }
   scene.add(crossingGlow);
@@ -290,9 +319,12 @@ async function addStoryEnvironment(scene) {
   const mist = new THREE.Group();
   const mistMat = new THREE.MeshBasicMaterial({ color: 0xd9ffff, transparent: true, opacity: 0.14, depthWrite: false });
   for (let i = 0; i < 8; i += 1) {
+    const x = 1010 + (i % 4) * 85;
+    const y = 470 + Math.floor(i / 4) * 75;
+    const h = sampleHeight(x, y);
     const puff = new THREE.Mesh(new THREE.SphereGeometry(0.42 + (i % 3) * 0.12, 14, 10), mistMat);
     puff.scale.y = 0.28;
-    puff.position.copy(worldPoint(1010 + (i % 4) * 85, 470 + Math.floor(i / 4) * 75, 0.38 + (i % 2) * 0.1));
+    puff.position.copy(worldPoint(x, y, h + 0.38 + (i % 2) * 0.1));
     mist.add(puff);
   }
   scene.add(mist);
@@ -300,18 +332,23 @@ async function addStoryEnvironment(scene) {
   const leafGlow = new THREE.Group();
   const leafMat = new THREE.MeshStandardMaterial({ color: 0x8fd971, emissive: 0x255a31, emissiveIntensity: 0.28, roughness: 0.75 });
   for (let i = 0; i < 14; i += 1) {
+    const x = 1185 + (i % 5) * 30;
+    const y = 440 + Math.floor(i / 5) * 26;
+    const h = sampleHeight(x, y);
     const leaf = new THREE.Mesh(new THREE.CircleGeometry(0.06 + (i % 3) * 0.018, 8), leafMat);
     leaf.rotation.x = -Math.PI / 2;
-    leaf.position.copy(worldPoint(1185 + (i % 5) * 30, 440 + Math.floor(i / 5) * 26, 0.13));
+    leaf.position.copy(worldPoint(x, y, h + 0.13));
     leafGlow.add(leaf);
   }
   scene.add(leafGlow);
 
+  const lookoutGlowH = sampleHeight(1450, 330);
   const lookoutGlow = new THREE.Mesh(new THREE.RingGeometry(0.48, 0.64, 32), glowMat(0xffd27a, 0.3));
   lookoutGlow.rotation.x = -Math.PI / 2;
-  lookoutGlow.position.copy(worldPoint(1450, 330, 0.1));
+  lookoutGlow.position.copy(worldPoint(1450, 330, lookoutGlowH + 0.1));
   scene.add(lookoutGlow);
 
+  const rewardH = sampleHeight(1410, 400);
   const reward = new THREE.Group();
   const sparkleMat = new THREE.MeshBasicMaterial({ color: 0xfff3a8, transparent: true, opacity: 0.86 });
   for (let i = 0; i < 16; i += 1) {
@@ -319,7 +356,7 @@ async function addStoryEnvironment(scene) {
     sparkle.userData.phase = i * 0.52;
     reward.add(sparkle);
   }
-  reward.position.copy(worldPoint(1410, 400, 1.25));
+  reward.position.copy(worldPoint(1410, 400, rewardH + 1.25));
   scene.add(reward);
 
   let kingfisher = null;
@@ -328,11 +365,13 @@ async function addStoryEnvironment(scene) {
     texture.colorSpace = THREE.SRGBColorSpace;
     kingfisher = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
     kingfisher.scale.set(0.86, 0.86, 1);
-    kingfisher.position.copy(worldPoint(1410, 400, 2.15));
+    const kingfisherH = sampleHeight(1410, 400);
+    kingfisher.position.copy(worldPoint(1410, 400, kingfisherH + 2.15));
     scene.add(kingfisher);
   } catch {
+    const kingfisherH = sampleHeight(1410, 400);
     kingfisher = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), new THREE.MeshBasicMaterial({ color: 0x3c7bea }));
-    kingfisher.position.copy(worldPoint(1410, 400, 2.15));
+    kingfisher.position.copy(worldPoint(1410, 400, kingfisherH + 2.15));
     scene.add(kingfisher);
   }
   return { gateLanterns, crossingGlow, mist, leafGlow, lookoutGlow, kingfisher, reward };
@@ -579,12 +618,13 @@ export async function startThreeWaterfallPreview(canvas, statusEl, options = {})
     { key: "kingfisherComplete", point: [1410, 400] },
     { key: "rewardComplete", point: [1410, 400] },
   ].map((cue) => {
+    const h = sampleHeight(cue.point[0], cue.point[1]);
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(0.18, 0.27, 24),
       new THREE.MeshBasicMaterial({ color: 0xffe28a, transparent: true, opacity: 0.72, side: THREE.DoubleSide })
     );
     ring.rotation.x = -Math.PI / 2;
-    ring.position.copy(worldPoint(...cue.point, 0.08));
+    ring.position.copy(worldPoint(...cue.point, h + 0.08));
     scene.add(ring);
     return { ...cue, ring };
   });
@@ -605,7 +645,11 @@ export async function startThreeWaterfallPreview(canvas, statusEl, options = {})
     fall.foam.material.opacity = 0.45 + Math.sin(t * 1.7) * 0.08;
     water.basin.material.opacity = 0.72 + Math.sin(t * 0.9) * 0.03;
     stones.forEach((stone, index) => {
-      stone.position.y = 0.18 + Math.sin(t * 1.5 + index * 0.7) * 0.012;
+      const baseH = sampleHeight(
+        [860, 920, 980, 1040, 1080][index],
+        [770, 745, 720, 705, 700][index]
+      );
+      stone.position.y = baseH + 0.18 + Math.sin(t * 1.5 + index * 0.7) * 0.012;
     });
     const state = options.getState?.() || null;
     const clues = state?.discoveredClues || [];
@@ -649,6 +693,7 @@ export async function startThreeWaterfallPreview(canvas, statusEl, options = {})
       const logical = options.getPlayer?.();
       if (logical) {
         const p = worldPoint(logical.x, logical.y, 0);
+        const playerH = sampleHeight(logical.x, logical.y);
         const targetX = THREE.MathUtils.clamp(p.x, -3.1, 3.1);
         const targetZ = THREE.MathUtils.clamp(p.z * 0.62 - 0.55, -3.0, 3.0);
         controls.target.x += (targetX - controls.target.x) * 0.08;
@@ -658,8 +703,8 @@ export async function startThreeWaterfallPreview(canvas, statusEl, options = {})
         camera.position.y = 11.5;
         if (player?.sprite) {
           player.sprite.position.copy(p);
-          player.sprite.position.y = 1.02;
-          player.glow.position.set(p.x, 0.85, p.z + 0.08);
+          player.sprite.position.y = playerH + 1.02;
+          player.glow.position.set(p.x, playerH + 0.85, p.z + 0.08);
           const image = options.getPlayerImage?.();
           if (image && player.sprite.material.map?.image !== image) {
             player.sprite.material.map = player.cacheTexture(image);

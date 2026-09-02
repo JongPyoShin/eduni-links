@@ -1,0 +1,20 @@
+import { chromium } from "playwright";
+const b = await chromium.launch({ headless: true });
+const c = await b.newContext({ viewport: { width: 1280, height: 720 } });
+const p = await c.newPage();
+await p.setViewportSize({ width: 1280, height: 720 });
+p.on("pageerror", e => console.log(`ERR: ${e.message}`));
+p.on("console", m => { if (m.type() === "error") console.log(`CONSOLE: ${m.text()}`); });
+console.log("Navigating to sky-ridge-game.html...");
+const resp = await p.goto("http://localhost:8124/sky-ridge-game.html?qa=1", { waitUntil: "domcontentloaded", timeout: 10000 });
+console.log(`Status: ${resp?.status()}`);
+await p.waitForTimeout(5000);
+const game = await p.evaluate(() => {
+  const g = globalThis.__eduniJungleGame;
+  if (!g) return "no game object";
+  return { stageId: g.stageId, x: g.player?.x, y: g.player?.y, hasGI: typeof g.getInteractables, hasNear: typeof g.getNearestInteractable };
+});
+console.log(`Game: ${JSON.stringify(game)}`);
+await p.screenshot({ path: "D:\\Codex\\Projects\\eduni-links\\jungle-web-canvas-poc\\artifacts\\jungle-e2e\\sr-debug.png" });
+await p.close();
+await b.close();

@@ -91,6 +91,12 @@ export async function start(canvas, modalEl) {
     getPhase: qaPhase,
     getTarget: qaTarget,
     getObjective: () => waterfallStage ? waterfallObjective(waterfall) : chapterObjective(chapter),
+    getInteractables: () => waterfallStage
+      ? waterfallInteractables(waterfall)
+      : buildInteractables(chapter, { bluebirdReady: sequences.ridgeArrivalPlayed }),
+    getNearestInteractable: () => waterfallStage
+      ? nearestWaterfallInteractable(player, waterfall)
+      : nearestInteractable(player, chapter, { bluebirdReady: sequences.ridgeArrivalPlayed }),
   });
 
   let bluebirdAsset;
@@ -466,16 +472,18 @@ export async function start(canvas, modalEl) {
     if (!waterfallStage) {
       if (sequences.introStartedAt === null && !sequences.introPlayed) sequences = beginIntro(sequences, ts || 0);
       sequences = advanceSequences(sequences, ts || 0);
-      if (sequences.rewardShown && panel.payload?.kind === "reward" && !panel.payload.revealReady) {
-        panel.payload = { ...panel.payload, revealReady: true };
-        updateUi();
-      }
       if (!panel.blocksMovement()) sequences = beginRidgeArrival(sequences, chapter, player, ts || 0);
       directing = activeDirection(sequences, ts || 0);
       if (directing?.type === "ridge" && previousDirectionType !== "ridge") {
         cue("ridgeArrival", "leaf", BLUEBIRD.VISUAL.x, BLUEBIRD.VISUAL.y, ts || 0, 3);
       }
       previousDirectionType = directing?.type || null;
+    } else {
+      sequences = advanceSequences(sequences, ts || 0);
+    }
+    if (sequences.rewardShown && panel.payload?.kind === "reward" && !panel.payload.revealReady) {
+      panel.payload = { ...panel.payload, revealReady: true };
+      updateUi();
     }
     document.querySelector("#objective-hud").classList.toggle("softened", Boolean(directing));
 

@@ -336,6 +336,8 @@ export async function startSkyRidgeGame(canvas, modalEl, statusEl) {
     player,
     getState: () => sky,
     getPhase: () => skyRidgeVisualPhase(sky).phaseId,
+    getInteractables: () => skyRidgeInteractables(sky),
+    getNearestInteractable: () => nearestSkyRidgeInteractable(player, sky),
     dispose,
   };
   return globalThis.__eduniSkyRidgeGame;

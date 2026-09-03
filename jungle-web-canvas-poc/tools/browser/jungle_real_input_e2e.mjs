@@ -52,6 +52,20 @@ async function readConfirmVisible(p) {
     return s.display !== "none" && s.visibility !== "hidden" && !btn.disabled;
   });
 }
+async function readModalTitle(p) {
+  return p.evaluate(() => document.querySelector("#modal-title")?.textContent || "");
+}
+async function readHintText(p) {
+  return p.evaluate(() => document.querySelector("#modal-hint")?.textContent || "");
+}
+async function readRewardComplete(p) {
+  return p.evaluate(() => {
+    const g = globalThis.__eduniJungleGame;
+    if (!g?.getState) return null;
+    const st = g.getState();
+    return { rewardComplete: st?.rewardComplete };
+  });
+}
 
 // ─── SCREENSHOT ────────────────────────────────────────────
 async function shot(p, name) {
@@ -573,28 +587,39 @@ async function waterfall(ctx) {
   log(`lookoutComplete: ${st?.lookoutComplete}, clueQuizzesComplete: ${st?.adventure?.clueQuizzesComplete}, discoveredClues: ${st?.adventure?.discoveredClues?.length}, clueQuizScore: ${st?.adventure?.clueQuizScore}`);
   await shot(p, "wf-lookout-done");
 
-  // Lookout confirmation auto-opens kingfisher encounter panel — confirm it too
-  await p.waitForTimeout(500); // let encounter panel open
-  const kfPanel = await readModalVisible(p);
-  log(`kingfisher encounter panel visible: ${kfPanel}`);
-  if (kfPanel) {
-    log("press A → confirm kingfisher encounter");
-    await pressA(p);
-    await p.waitForTimeout(800);
-    await shot(p, "kf-encounter-confirmed");
-  }
-
-  // Kingfisher encounter confirmation auto-opens reward panel — wait for reveal then confirm
+  // [2] A → confirm lookout
+  let title = await readModalTitle(p);
+  log(`  [2] A → confirm lookout (title=${title})`);
+  await pressA(p);
   await p.waitForTimeout(500);
-  const rewardPanel = await readModalVisible(p);
-  log(`reward panel visible after capture: ${rewardPanel}`);
+  await shot(p, "wf-lookout-confirmed");
 
-  // ── kingfisher reward reveal ──
-  log("waiting for reward reveal...");
+  // [3] A → confirm kingfisher encounter (auto-opened by lookout)
+  title = await readModalTitle(p);
+  log(`  [3] A → confirm kingfisher (title=${title})`);
+  if (title !== "물총새를 만났어!") {
+    log(`  WARN: expected kingfisher encounter title, got "${title}", pressing A anyway`);
+  }
+  await pressA(p);
+  await p.waitForTimeout(500);
+  await shot(p, "kf-encounter-confirmed");
+
+  // [4] wait for reward panel revealReady
+  title = await readModalTitle(p);
+  let hint = await readHintText(p);
+  let cv = await readConfirmVisible(p);
+  log(`  [4] reward panel: title="${title}" confirmVisible=${cv} hint="${hint}"`);
+  await shot(p, "wf-reward-wait");
+
   const revealStart = Date.now();
-  const revealed = await waitForConfirm(p, 8000);
+  let revealed = false;
+  while (Date.now() - revealStart < 8000) {
+    cv = await readConfirmVisible(p);
+    if (cv) { revealed = true; break; }
+    await p.waitForTimeout(100);
+  }
   const revealMs = Date.now() - revealStart;
-  log(`reward reveal: ${revealed ? "VISIBLE" : "TIMEOUT"} after ${revealMs}ms`);
+  log(`  [4] revealReady after ${revealMs}ms: ${revealed}`);
   await shot(p, "wf-reward-visible");
 
   if (!revealed) {
@@ -604,13 +629,27 @@ async function waterfall(ctx) {
     return;
   }
 
-  // Step 4: Confirm reward
+  // [5] A → confirm reward
+  log("pressing A to confirm reward...");
   await pressA(p);
-  await p.waitForTimeout(1000);
+  await p.waitForTimeout(500);
+  let rewardSt = await readRewardComplete(p);
+  log(`reward state after A: ${JSON.stringify(rewardSt)}`);
   await shot(p, "wf-reward-done");
 
   const wfSt = await readState(p);
   log(`state: ${JSON.stringify(wfSt)}`);
+
+  // Reload persistence check
+  await p.reload({ waitUntil: "domcontentloaded" });
+  await p.waitForTimeout(3000);
+  await rdy(p);
+  const wfStAfter = await readState(p);
+  log(`state after reload: ${JSON.stringify(wfStAfter)}`);
+  const cx = await readCodex(p);
+  log(`codex after reload: ${JSON.stringify(cx)}`);
+  await shot(p, "wf-persist");
+
   await p.close();
 }
 
@@ -704,15 +743,19 @@ async function skyRidge(ctx) {
   log(`  right: ${r.pos?.x?.toFixed(0)},${r.pos?.y?.toFixed(0)}`);
   r = await moveTo(p, 1130, 420);
   log(`  up: ${r.pos?.x?.toFixed(0)},${r.pos?.y?.toFixed(0)}`);
+  near = await readNearest(p);
+  log(`near before bridge: ${JSON.stringify(near)}`);
+  await shot(p, "sr-near-bridge-pre");
+
+  log("press A → summit bridge confirm");
+  await interactAndConfirm(p);
+  await shot(p, "sr-bridge-done");
+
   r = await moveTo(p, 1300, 420);
   log(`  right: ${r.pos?.x?.toFixed(0)},${r.pos?.y?.toFixed(0)} d=${r.dist?.toFixed(0)}`);
   near = await readNearest(p);
   log(`near: ${JSON.stringify(near)}`);
   await shot(p, "sr-near-bridge");
-
-  log("press A → summit bridge confirm");
-  await interactAndConfirm(p);
-  await shot(p, "sr-bridge-done");
 
   // ── hawk (1450,310) ──
   log("move → hawk");

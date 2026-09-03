@@ -206,19 +206,19 @@ export async function startSkyRidgeGame(canvas, modalEl, statusEl) {
     const result = panel.activate();
     if (result.type === "choice") {
       if (result.kind === "clueQuiz") {
+        if (!birdQuiz || birdQuiz.complete) return;
         const answer = answerBirdQuiz(birdQuiz, result.choice.id);
         birdQuiz = answer.session;
         if (!answer.correct) {
           audio.play("wrong");
-          panel.setResponse(`아쉬워! ${answer.lastAnswer.explanation}`, "gentle");
+          panel.setResponse(`아쉬워! ${answer.lastAnswer?.explanation || "다시 생각해 보자!"}`, "gentle");
         } else {
           audio.play("correct");
           panel.setResponse("정답!", "gentle");
         }
         sky = collectSkyRidgeClue(sky, panel.payload.clueId);
         sky = addSkyRidgeQuizAnswer(sky, answer.correct);
-        setTimeout(() => panel.closePanel(), 600);
-        updateUi();
+        setTimeout(() => { panel.closePanel(); updateUi(); }, 600);
         return;
       }
       return;

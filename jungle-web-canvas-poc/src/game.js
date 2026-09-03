@@ -297,11 +297,12 @@ export async function start(canvas, modalEl) {
     const result = panel.activate();
     if (result.type === "choice") {
       if (result.kind === "clueQuiz") {
+        if (!birdQuiz || birdQuiz.complete) return;
         const answer = answerBirdQuiz(birdQuiz, result.choice.id);
         birdQuiz = answer.session;
         if (!answer.correct) {
           cue("wrong", "soft-burst", 920, 820, ts || 0, 1);
-          panel.setResponse(`아쉬워! ${answer.lastAnswer.explanation}`, "gentle");
+          panel.setResponse(`아쉬워! ${answer.lastAnswer?.explanation || "다시 생각해 보자!"}`, "gentle");
         } else {
           cue("correct", "sparkle", 920, 820, ts || 0, 1);
           panel.setResponse("정답!", "gentle");
@@ -316,8 +317,7 @@ export async function start(canvas, modalEl) {
           chapter = addClueQuizScore(chapter, answer.correct);
           feedback = { x: CLUES.find((c) => c.id === panel.payload.clueId)?.x || 0, y: CLUES.find((c) => c.id === panel.payload.clueId)?.y || 0, until: ts + 650 };
         }
-        setTimeout(() => panel.closePanel(), 600);
-        updateUi();
+        setTimeout(() => { panel.closePanel(); updateUi(); }, 600);
         return;
       }
     } else if (result.type === "confirm") {

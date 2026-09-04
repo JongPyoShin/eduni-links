@@ -62,6 +62,26 @@ describe('BIRD_QUIZ_BANK', () => {
     }
   });
 
+  it('no empty question/label/explanation strings', () => {
+    for (const q of BIRD_QUIZ_BANK) {
+      assert.ok(q.question && q.question.trim().length > 0, `Question ${q.id} has empty question`);
+      assert.ok(q.explanation && q.explanation.trim().length > 0, `Question ${q.id} has empty explanation`);
+      for (const c of q.choices) {
+        assert.ok(c.label && c.label.trim().length > 0, `Question ${q.id} choice ${c.id} has empty label`);
+      }
+    }
+  });
+
+  it('random picker session has no duplicates', () => {
+    const shuffled = [...BIRD_QUIZ_BANK].sort(() => Math.random() - 0.5);
+    const picked = [];
+    for (const q of shuffled) {
+      assert.ok(!picked.includes(q.id), `Question ${q.id} picked twice in session`);
+      picked.push(q.id);
+    }
+    assert.equal(picked.length, 265, 'Session should pick all 265 questions');
+  });
+
   it('all questions are frozen objects', () => {
     assert.ok(Object.isFrozen(BIRD_QUIZ_BANK), 'BIRD_QUIZ_BANK should be frozen');
     for (const q of BIRD_QUIZ_BANK) {

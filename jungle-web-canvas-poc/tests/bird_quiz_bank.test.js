@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { BIRD_QUIZ_BANK } from '../src/content/bird_quiz_bank.js';
+import { pickQuestions, QUIZ_LENGTH } from '../src/content/bird_quiz.js';
 
 describe('BIRD_QUIZ_BANK', () => {
   it('exports an array with exactly 265 questions', () => {
@@ -72,14 +73,18 @@ describe('BIRD_QUIZ_BANK', () => {
     }
   });
 
-  it('random picker session has no duplicates', () => {
-    const shuffled = [...BIRD_QUIZ_BANK].sort(() => Math.random() - 0.5);
-    const picked = [];
-    for (const q of shuffled) {
-      assert.ok(!picked.includes(q.id), `Question ${q.id} picked twice in session`);
-      picked.push(q.id);
+  it('pickQuestions returns QUIZ_LENGTH unique questions per session (500 iterations)', () => {
+    const ITERATIONS = 500;
+    for (let i = 0; i < ITERATIONS; i++) {
+      const picked = pickQuestions(BIRD_QUIZ_BANK, QUIZ_LENGTH);
+      assert.equal(picked.length, QUIZ_LENGTH, `Iteration ${i}: expected ${QUIZ_LENGTH} questions`);
+      const ids = picked.map(q => q.id);
+      const uniqueIds = new Set(ids);
+      assert.equal(ids.length, uniqueIds.size, `Iteration ${i}: duplicate in session — ${ids.join(', ')}`);
+      for (const q of picked) {
+        assert.ok(BIRD_QUIZ_BANK.some(bq => bq.id === q.id), `Iteration ${i}: ${q.id} not in bank`);
+      }
     }
-    assert.equal(picked.length, 265, 'Session should pick all 265 questions');
   });
 
   it('all questions are frozen objects', () => {

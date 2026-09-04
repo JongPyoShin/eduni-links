@@ -39,9 +39,15 @@
 ✔ no duplicate question stems
 ✔ all categories are from the expected set
 ✔ no empty question/label/explanation strings
-✔ random picker session has no duplicates
+✔ pickQuestions returns QUIZ_LENGTH unique questions per session (500 iterations)
 ✔ all questions are frozen objects
 ```
+
+## 랜덤 세션 검증
+- `pickQuestions(bank, QUIZ_LENGTH)` 실제 호출 기반
+- 500회 반복 시뮬레이션
+- 각 세션 내 중복 0건 확인
+- `shuffleChoices` 포함 Fisher-Yates 셔플 사용
 
 ## 품질 감사 결과
 
@@ -64,10 +70,9 @@
 - 중국어(한자) 문자: 0건
 - 비한글 영문(카테고리명 제외): 0건
 - 빈 문자열: 0건
-- 랜덤 세션 중복: 0건
-- trailing whitespace: 0건 (CRLF→LF 정규화 완료)
+- trailing whitespace: 0건
 
 ## 호환성
 - 기존 `BIRD_QUIZ_BANK` export 유지
+- `pickQuestions`, `shuffleChoices`, `createBirdQuizSession` 등 기존 API 변경 없음
 - 기존 game.js/clue/stage mapping 변경 없음
-- 새 문제는 기존 카테고리 체계 사용

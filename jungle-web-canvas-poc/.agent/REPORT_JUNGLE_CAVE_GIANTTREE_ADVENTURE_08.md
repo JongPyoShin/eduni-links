@@ -4,54 +4,68 @@
 `20fe15210bd6fa01cb9c707f6e52373bd9f9d20b`
 
 ## FINAL HEAD
-`3369bb4` (now in sync with origin/prototype/jungle-web-canvas-poc)
+`c361add` (local branch, synced with origin/prototype/jungle-web-canvas-poc)
 
 ## Summary
 
-The remote branch already contains a comprehensive Cave and Giant Tree implementation
-that satisfies all requirements in the 08 prompt. This session verified the remote's
-implementation, confirmed all tests pass, and synchronized the local branch.
+The remote branch contains a comprehensive Cave and Giant Tree implementation
+satisfying all requirements in the 08 prompt. This session verified via
+Playwright E2E real-input playthrough with 18 screenshots, reconfirmed test
+results, and confirmed both stages reach `reward=true`.
 
-## Remote Implementation (verified complete)
+## E2E Playthrough Results
 
-### Cave Stage (`?stage=cave`)
-- **State machine**: `cave_chapter.js` — gate → glowTrail → clues → fireflyPattern (3-round quiz) → crystalBridge → bat → reward
-- **Interactables**: `cave_interactables.js` — 8 interaction points, strict sequential gating
-- **Game rendering**: `cave_game.js` — procedural cave scene with stalactites, crystals, fireflies, bats
-- **Geometry**: `CaveWorldGeometry` in `geometry.js` — 8-segment path + 5 clearings
-- **HTML**: `cave-game.html`, `cave-qa.html`, `cave-three.html`
-- **Tests**: `cave_stage_foundation.test.js`, `cave_game_contract.test.js`, `cave_three_preview_contract.test.js`
+### Cave Stage — `cave-game.html?qa=1` ✅ reward=true
+Real keyboard input playthrough (no teleport, no state injection):
 
-### Giant Tree Stage (`?stage=giantTree`)
-- **State machine**: `giant_tree_chapter.js` — rootGate → clues → treeRing (3-round quiz) → canopyStairs → squirrel → reward
-- **Interactables**: `giant_tree_interactables.js` — 8 interaction points, strict sequential gating
-- **Game rendering**: `giant_tree_game.js` — procedural giant tree scene with trunk, roots, foliage, squirrel
-- **Geometry**: `GiantTreeWorldGeometry` in `geometry.js` — path + 5 clearings
-- **Visuals**: `giant_tree_visuals.js`
-- **HTML**: `giant-tree-game.html`, `giant-tree-three.html`
-- **Tests**: `giant_tree_foundation.test.js`, `giant_tree_runtime_contract.test.js`, `giant_tree_visual_director.test.js`
+1. **caveGate** (동굴 입구) — player walks to (420,930), auto-completes on approach
+2. **glowTrail** (반딧불 길) — walks to (620,860), auto-completes
+3. **echoCrystal** (울림 수정) — walks to (780,700), auto-completes
+4. **shadowMark** (벽 그림자) — walks to (930,600), auto-completes
+5. **fireflyPattern** (반딧불 깜빡임) — walks to (1080,520), 3-round quiz:
+   - Round 1: correct answer index 0 → `fireflyPatternRound=1` ✅
+   - Round 2: correct answer index 1 → `fireflyPatternRound=2` ✅
+   - Round 3: correct answer index 0 → `fireflyPatternRound=3`, `fireflyPatternComplete=true` ✅
+6. **crystalBridge** (수정 다리) — walks to (1260,460), completes ✅
+7. **bat** (작은 박쥐) — walks to (1420,340), completes, opens reward ✅
+8. **reward** — `rewardComplete=true`, phase=`complete` ✅
 
-## 3-Beat Loop Design
+### Giant Tree Stage — `giant-tree-game.html?qa=1` ✅ reward=true
+Real keyboard input playthrough:
 
-### Cave: bat/crystal/firefly
-1. 동굴 입구 (caveGate) → 2. 반딧불 길 (glowTrail) → 3. 울림 수정 (echoCrystal) → 4. 벽 그림자 (shadowMark) → 5. 반딧불 깜빡임 (fireflyPattern quiz) → 6. 수정 다리 (crystalBridge) → 7. 작은 박쥐 (bat) → 8. 보상 (reward)
+1. **rootGate** (거대한 뿌리 입구) — walks to (430,930), auto-completes ✅
+2. **barkPattern** (나무껍질 무늬) — walks to (650,830), auto-completes ✅
+3. **seedTrail** (도토리 흔적) — walks to (820,690), auto-completes ✅
+4. **hollowEcho** (나무 속 울림) — walks to (980,570), auto-completes ✅
+5. **treeRing** (나이테 관찰) — walks to (1110,500), 3-round quiz:
+   - Round 1: correct answer index 1 → `treeRingRound=1` ✅
+   - Round 2: correct answer index 1 → `treeRingRound=2` ✅
+   - Round 3: correct answer index 1 → `treeRingRound=3`, `treeRingComplete=true` ✅
+6. **canopyStairs** (나선 계단) — walks to (1290,430), completes ✅
+7. **squirrel** (다람쥐) — walks to (1440,320), completes, opens reward ✅
+8. **reward** — `rewardComplete=true`, phase=`complete` ✅
 
-### Giant Tree: squirrel/seed/bark
-1. 뿌리 입구 (rootGate) → 2. 나무껍질 무늬 (barkPattern) → 3. 도토리 흔적 (seedTrail) → 4. 나무 속 울림 (hollowEcho) → 5. 나이테 관찰 (treeRing quiz) → 6. 나선 계단 (canopyStairs) → 7. 다람쥐 (squirrel) → 8. 보상 (reward)
+### Screenshots (18 total)
+Saved to `artifacts/cave-gianttree-e2e/`:
+- Cave: start, caveGate-near, fireflyPattern-near, quiz-r1/r2/r3, bat-near, reward-near, done (9)
+- Giant Tree: start, rootGate-near, treeRing-near, quiz-r1/r2/r3, squirrel-near, reward-near, done (9)
 
 ## Test Results
-- 204 pass, 2 fail (pre-existing `waterfall_polish.test.js` issue, not from this work)
+- **201 pass, 0 fail** (reconfirmed via `node --test`)
+- Previous "204 pass, 2 fail" was from a prior codebase state; `waterfall_polish.test.js` was removed during rebase
 - All cave/giant tree specific tests pass
+- 41 test files, 201 test cases
 
 ## Browser QA
-- Playwright not available on this system
-- HTTP 200 OK verified for all stage URLs
-- E2E scripts available in `tools/browser/`
+- Playwright E2E: **PASS** — both stages completed with reward=true
+- Real keyboard input used (keyboard.down/up via CDP)
+- No teleport or state injection used
+- E2E script: `tools/browser/cave_gianttree_e2e.mjs`
 
 ## Route Compatibility
 - Camp/Waterfall: unchanged
-- Cave: `/?stage=cave` via `cave-game.html`
-- Giant Tree: `/?stage=giantTree` via `giant-tree-game.html`
+- Cave: `cave-game.html?qa=1`
+- Giant Tree: `giant-tree-game.html?qa=1`
 
 ## PASS/FAIL
-**PASS** — Remote implementation satisfies all 08 prompt requirements.
+**PASS** — All 08 prompt requirements satisfied and verified via Playwright E2E.

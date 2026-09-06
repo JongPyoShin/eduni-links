@@ -6,7 +6,7 @@
 
 ## 2. FINAL HEAD
 
-`<pending commit>` — this REPORT will be included in the commit.
+`d558860` (E2E: align PROMPT/REPORT to discovery 5/5+badge 5/5, assert errors===0, Hub text verification)
 
 ## 3. Changed Files
 

@@ -61,13 +61,19 @@ function pathStroke(ctx, points, width, color, dash = null) {
   ctx.restore();
 }
 
-function drawSpriteBottom(ctx, img, s, widthWorld, cam, alpha = 1) {
+function drawSpriteBottom(ctx, img, s, widthWorld, cam, alpha = 1, rot = 0) {
   if (!img || !img.width || !img.height) return false;
   const width = widthWorld * cam.zoom;
   const height = width * (img.height / img.width);
   ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.drawImage(img, s.x - width / 2, s.y - height, width, height);
+  if (alpha < 1) ctx.globalAlpha = alpha;
+  if (rot) {
+    ctx.translate(s.x, s.y);
+    ctx.rotate(rot);
+    ctx.drawImage(img, -width / 2, -height, width, height);
+  } else {
+    ctx.drawImage(img, s.x - width / 2, s.y - height, width, height);
+  }
   ctx.restore();
   return true;
 }
@@ -245,13 +251,85 @@ function drawWalkableRoute(ctx, cam, viewW, viewH) {
   const route = WATERFALL_GEOMETRY.paths[0] || [];
   if (route.length < 2) return;
   const points = route.map((point) => worldToScreen(point.x, point.y, cam, viewW, viewH));
+  const halfW = WATERFALL_GEOMETRY.pathHalfWidth;
 
   // The visible trail is derived directly from WaterfallWorldGeometry, preserving
-  // the core invariant that the painted route and collision route share one source.
-  pathStroke(ctx, points, WATERFALL_GEOMETRY.pathHalfWidth * 2 * cam.zoom, "rgba(30,54,45,.82)");
-  pathStroke(ctx, points, WATERFALL_GEOMETRY.pathHalfWidth * 1.62 * cam.zoom, "rgba(106,118,76,.88)");
-  pathStroke(ctx, points, WATERFALL_GEOMETRY.pathHalfWidth * 0.94 * cam.zoom, "rgba(184,158,96,.78)");
-  pathStroke(ctx, points, 3 * cam.zoom, "rgba(247,227,151,.18)", [18 * cam.zoom, 28 * cam.zoom]);
+  // the core invariant that the painted route and collision route share one
+  // source. No new geometry is added; this is purely a presentation stack
+  // built on top of the same path points.
+  // 1. Dark earth outer bank (gives the trail a soft, mossy edge).
+  pathStroke(ctx, points, halfW * 2.05 * cam.zoom, "rgba(28,46,36,.78)");
+  // 2. Muted mossy mid band.
+  pathStroke(ctx, points, halfW * 1.68 * cam.zoom, "rgba(94,114,72,.85)");
+  // 3. Warm sandy inner trail.
+  pathStroke(ctx, points, halfW * 1.18 * cam.zoom, "rgba(178,150,90,.82)");
+  // 4. Slightly darker wheel-track centerline.
+  pathStroke(ctx, points, halfW * 0.42 * cam.zoom, "rgba(124,98,56,.55)");
+  // 5. Sparse gold accent dashes.
+  pathStroke(ctx, points, 3 * cam.zoom, "rgba(247,227,151,.16)", [18 * cam.zoom, 28 * cam.zoom]);
+
+  // Edge pebble accents. These are derived from the route's own segments so
+  // they always sit on the actual walkable geometry, never on free world.
+  drawRouteEdgeAccents(ctx, route, cam, viewW, viewH, halfW);
+}
+
+// A tiny deterministic PRNG so the same path always paints the same pebbles.
+function routeHash(seed) {
+  let x = (seed * 9301 + 49297) % 233280;
+  let y = (seed * 4093 + 21389) % 23321;
+  return () => {
+    const t = (x = (x * 9301 + 49297) % 233280) / 233280;
+    const u = (y = (y * 4093 + 21389) % 23321) / 23321;
+    return { t, u };
+  };
+}
+
+function drawRouteEdgeAccents(ctx, route, cam, viewW, viewH, halfW) {
+  // Walk each segment, place a sparse set of small pebbles and leaf-litter
+  // marks on alternating sides of the trail. Off-side alternates per stone
+  // so the same stretch does not look like a beaded necklace.
+  const p = (x, y) => worldToScreen(x, y, cam, viewW, viewH);
+  for (let i = 0; i < route.length - 1; i += 1) {
+    const a = route[i];
+    const b = route[i + 1];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const segLen = Math.hypot(dx, dy) || 1;
+    const nx = -dy / segLen;
+    const ny = dx / segLen;
+    const rng = routeHash((i + 1) * 73 + Math.round(a.x + a.y));
+    if (segLen < 40) continue;
+    const step = 26;
+    let t = step;
+    let side = -1;
+    while (t < segLen - 12) {
+      const { u } = rng();
+      const along = 1 - (u * 0.7 + 0.15);
+      const cx = a.x + dx * along;
+      const cy = a.y + dy * along;
+      const offset = halfW * 0.92 + (rng().t * 6 - 3);
+      const wx = cx + nx * offset * side;
+      const wy = cy + ny * offset * side;
+      const ss = p(wx, wy);
+      const pebbleR = (2 + rng().t * 1.6) * cam.zoom;
+      ctx.fillStyle = i % 2 === 0 ? "rgba(60,52,40,.78)" : "rgba(90,82,62,.7)";
+      ctx.beginPath();
+      ctx.ellipse(ss.x, ss.y, pebbleR, pebbleR * 0.7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      if (rng().t > 0.62) {
+        const off2 = halfW * 0.6 + rng().t * 4;
+        const lx = cx - nx * off2 * side;
+        const ly = cy - ny * off2 * side;
+        const ll = p(lx, ly);
+        ctx.fillStyle = "rgba(40,72,42,.7)";
+        ctx.beginPath();
+        ctx.ellipse(ll.x, ll.y, pebbleR * 0.9, pebbleR * 0.4, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      t += step + rng().t * 8;
+      side = -side;
+    }
+  }
 }
 
 function drawWetRock(ctx, p, x, y, r, cam) {
@@ -319,23 +397,126 @@ function drawWaterfall(ctx, p, cam, t) {
 }
 
 function drawSteppingStones(ctx, p, cam, t, active) {
-  const steppingStones = [[860,770],[920,745],[980,720],[1040,705],[1080,700]];
+  // Three shape variants give the crossing an authored look instead of five
+  // identical ellipses. Coordinates are unchanged so the interaction/collision
+  // surface is preserved.
+  const steppingStones = [
+    { x: 860, y: 770, shape: "rocky", rot: 0.12 },
+    { x: 920, y: 745, shape: "slab", rot: -0.18 },
+    { x: 980, y: 720, shape: "rocky", rot: 0.06 },
+    { x: 1040, y: 705, shape: "rounded", rot: -0.08 },
+    { x: 1080, y: 700, shape: "slab", rot: 0.14 },
+  ];
   for (let i = 0; i < steppingStones.length; i += 1) {
-    const [x, y] = steppingStones[i];
-    const s = p(x, y);
-    blob(ctx, s.x + 4 * cam.zoom, s.y + 7 * cam.zoom, 35 * cam.zoom, 17 * cam.zoom, "rgba(11,48,53,.34)");
-    blob(ctx, s.x, s.y, 32 * cam.zoom, 18 * cam.zoom, "#817e68");
-    blob(ctx, s.x - 4 * cam.zoom, s.y - 5 * cam.zoom, 22 * cam.zoom, 8 * cam.zoom, "#b7b292");
-    const ripple = 25 + ((t / 70 + i * 11) % 18);
-    ctx.strokeStyle = active ? "rgba(173,255,237,.42)" : "rgba(138,236,235,.18)";
-    ctx.lineWidth = active ? 3 * cam.zoom : 2 * cam.zoom;
+    const stone = steppingStones[i];
+    const s = p(stone.x, stone.y);
+    drawSteppingStone(ctx, s, stone.shape, stone.rot, cam, t, active, i);
+  }
+}
+
+function drawSteppingStone(ctx, s, shape, rot, cam, t, active, index) {
+  const z = cam.zoom;
+  // Water contact shadow under the stone.
+  blob(ctx, s.x + 5 * z, s.y + 9 * z, 38 * z, 14 * z, "rgba(6,32,40,.42)");
+  // Soft wet reflection in the water.
+  blob(ctx, s.x, s.y + 6 * z, 30 * z, 5 * z, "rgba(120,200,210,.18)");
+
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.rotate(rot);
+  if (shape === "slab") {
+    // Long flat slab.
+    ctx.fillStyle = "#7a7660";
     ctx.beginPath();
-    ctx.ellipse(s.x, s.y + 8 * cam.zoom, ripple * cam.zoom, ripple * 0.35 * cam.zoom, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 36 * z, 12 * z, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#a39a7a";
+    ctx.beginPath();
+    ctx.ellipse(-2 * z, -3 * z, 28 * z, 7 * z, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Crack.
+    ctx.strokeStyle = "rgba(40,30,18,.55)";
+    ctx.lineWidth = 1.2 * z;
+    ctx.beginPath();
+    ctx.moveTo(-22 * z, -2 * z);
+    ctx.quadraticCurveTo(0, 4 * z, 20 * z, 0);
     ctx.stroke();
-    if (active) {
-      const sparkle = 3 + Math.sin(t / 160 + i) * 1.2;
-      blob(ctx, s.x + 9 * cam.zoom, s.y - 15 * cam.zoom, sparkle * cam.zoom, sparkle * cam.zoom, "rgba(247,245,183,.72)");
-    }
+  } else if (shape === "rounded") {
+    // Wider, low rounded boulder.
+    ctx.fillStyle = "#878266";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 30 * z, 14 * z, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#b0a988";
+    ctx.beginPath();
+    ctx.ellipse(-2 * z, -4 * z, 22 * z, 8 * z, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Tiny moss edge.
+    ctx.fillStyle = "rgba(86,118,62,.7)";
+    ctx.beginPath();
+    ctx.ellipse(12 * z, -7 * z, 7 * z, 2.4 * z, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // Rocky: irregular composite.
+    ctx.fillStyle = "#6f6a58";
+    ctx.beginPath();
+    ctx.moveTo(-26 * z, 4 * z);
+    ctx.lineTo(-22 * z, -10 * z);
+    ctx.lineTo(-6 * z, -14 * z);
+    ctx.lineTo(10 * z, -12 * z);
+    ctx.lineTo(24 * z, -6 * z);
+    ctx.lineTo(28 * z, 6 * z);
+    ctx.lineTo(12 * z, 12 * z);
+    ctx.lineTo(-8 * z, 12 * z);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#9c9175";
+    ctx.beginPath();
+    ctx.moveTo(-18 * z, -4 * z);
+    ctx.lineTo(-2 * z, -10 * z);
+    ctx.lineTo(16 * z, -8 * z);
+    ctx.lineTo(20 * z, 0);
+    ctx.lineTo(4 * z, 2 * z);
+    ctx.lineTo(-14 * z, 2 * z);
+    ctx.closePath();
+    ctx.fill();
+    // Moss cluster on the rocky silhouette.
+    ctx.fillStyle = "rgba(94,126,64,.7)";
+    ctx.beginPath();
+    ctx.ellipse(-14 * z, -8 * z, 6 * z, 2 * z, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(10 * z, -9 * z, 5 * z, 1.8 * z, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Wet highlight.
+  ctx.fillStyle = "rgba(220,255,250,.32)";
+  ctx.beginPath();
+  ctx.ellipse(-6 * z, -6 * z, 9 * z, 2.2 * z, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Ripple / foam ring under each stone.
+  const ripple = 26 + ((t / 70 + index * 11) % 18);
+  ctx.strokeStyle = active ? "rgba(173,255,237,.45)" : "rgba(138,236,235,.18)";
+  ctx.lineWidth = active ? 2.6 * z : 1.8 * z;
+  ctx.beginPath();
+  ctx.ellipse(s.x, s.y + 9 * z, ripple * z, ripple * 0.34 * z, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  // Foam specks.
+  ctx.fillStyle = active ? "rgba(232,255,250,.6)" : "rgba(220,240,235,.25)";
+  for (let f = 0; f < 3; f += 1) {
+    const ang = (t / 240 + index * 0.9 + f * 2.1);
+    const fx = s.x + Math.cos(ang) * (ripple + 4) * z;
+    const fy = s.y + 10 * z + Math.sin(ang) * 4 * z;
+    ctx.beginPath();
+    ctx.ellipse(fx, fy, 1.6 * z, 0.9 * z, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (active) {
+    const sparkle = 2.4 + Math.sin(t / 160 + index) * 1.0;
+    blob(ctx, s.x + 9 * z, s.y - 15 * z, sparkle * z, sparkle * z, "rgba(247,245,183,.7)");
   }
 }
 
@@ -400,32 +581,47 @@ function drawLookout(ctx, p, cam, active) {
 }
 
 function drawArtProps(ctx, p, cam, images) {
-  for (const prop of ART_PROPS) {
+  for (let i = 0; i < ART_PROPS.length; i += 1) {
+    const prop = ART_PROPS[i];
     const s = p(prop.x, prop.y);
     const img = images?.[prop.type];
-    if (drawSpriteBottom(ctx, img, s, prop.width, cam, prop.alpha)) continue;
+    // Small deterministic rotation per prop so identical tree/grass sprites
+    // do not all stand perfectly vertical. Falls back to the sprite's own
+    // orientation when the asset is present.
+    const rot = ((i * 0.41) % 1 - 0.5) * 0.22;
+    if (drawSpriteBottom(ctx, img, s, prop.width, cam, prop.alpha, rot)) continue;
 
     // Fallback if a source sprite failed to load.
     if (prop.type === "rock") {
       blob(ctx, s.x, s.y - 10 * cam.zoom, prop.width * 0.42 * cam.zoom, prop.width * 0.2 * cam.zoom, "#647a70");
     } else if (prop.type === "tall_grass") {
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.rotate(rot);
       ctx.strokeStyle = "#4d7654";
       ctx.lineWidth = 5 * cam.zoom;
-      for (let i = -3; i <= 3; i += 1) {
+      for (let k = -3; k <= 3; k += 1) {
         ctx.beginPath();
-        ctx.moveTo(s.x, s.y);
-        ctx.quadraticCurveTo(s.x + i * 8 * cam.zoom, s.y - 36 * cam.zoom, s.x + i * 13 * cam.zoom, s.y - 58 * cam.zoom);
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(k * 8 * cam.zoom, -36 * cam.zoom, k * 13 * cam.zoom, -58 * cam.zoom);
         ctx.stroke();
       }
+      ctx.restore();
     } else {
-      blob(ctx, s.x, s.y - prop.width * 0.42 * cam.zoom, prop.width * 0.34 * cam.zoom, prop.width * 0.26 * cam.zoom, "#2f6c49");
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.rotate(rot);
+      blob(ctx, 0, -prop.width * 0.42 * cam.zoom, prop.width * 0.34 * cam.zoom, prop.width * 0.26 * cam.zoom, "#2f6c49");
+      ctx.restore();
     }
   }
 }
 
 function drawFlowersAndLeafBeds(ctx, p, cam, t, state) {
+  // Flower-only beds. The leaf-themed observation patch lives in
+  // drawLeafFamilies so the leaf match area reads as a leaf landmark first.
   const beds = [
-    [585, 945], [690, 830], [1015, 510], [1115, 445], [1285, 445], [1390, 395], [1515, 345],
+    [585, 945], [690, 830], [1015, 510], [1115, 445], [1390, 395], [1515, 345],
   ];
   for (let b = 0; b < beds.length; b += 1) {
     const [x, y] = beds[b];
@@ -462,6 +658,146 @@ function drawFlowersAndLeafBeds(ctx, p, cam, t, state) {
   }
 }
 
+// Three distinguishable leaf families arranged as a small observation patch
+// around the leaf match interaction. Pure presentation: drawn outside the
+// 110-radius interaction circle so the cue stays readable and the walkable
+// route (passes through (1250, 470)) is never covered.
+function drawLeafFamilies(ctx, p, cam, t) {
+  const cx = 1250;
+  const cy = 470;
+  const r = 110;
+  // Patch anchor positions sit on a ring around the interaction. The angle
+  // sequence is fixed so the patch is deterministic.
+  const patches = [
+    { kind: "round", ax: cx - 95, ay: cy - 32, rot: -0.35 },
+    { kind: "long", ax: cx + 88, ay: cy - 48, rot: 0.4 },
+    { kind: "split", ax: cx + 30, ay: cy + 92, rot: -0.15 },
+    { kind: "round", ax: cx + 105, ay: cy + 38, rot: 0.55 },
+    { kind: "long", ax: cx - 110, ay: cy + 60, rot: -0.5 },
+    { kind: "split", ax: cx - 50, ay: cy - 100, rot: 0.25 },
+  ];
+  // A soft ground shadow under the patch keeps the silhouettes readable.
+  const sCenter = p(cx, cy + 6);
+  const ground = ctx.createRadialGradient(sCenter.x, sCenter.y, 8, sCenter.x, sCenter.y, 150 * cam.zoom);
+  ground.addColorStop(0, "rgba(20,42,28,.30)");
+  ground.addColorStop(1, "rgba(20,42,28,0)");
+  ctx.fillStyle = ground;
+  ctx.beginPath();
+  ctx.ellipse(sCenter.x, sCenter.y, 150 * cam.zoom, 80 * cam.zoom, 0, 0, Math.PI * 2);
+  ctx.fill();
+  for (let i = 0; i < patches.length; i += 1) {
+    const { kind, ax, ay, rot } = patches[i];
+    // Skip if it would land inside the interaction radius (keep the cue clear).
+    const distToCenter = Math.hypot(ax - cx, ay - cy);
+    if (distToCenter < r - 6) continue;
+    drawLeafFamily(ctx, p(ax, ay), kind, rot, cam, t, i);
+  }
+}
+
+function drawLeafFamily(ctx, s, kind, rot, cam, t, index) {
+  const z = cam.zoom;
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.rotate(rot);
+  if (kind === "round") {
+    // Round leaf: circular blade with a single central vein.
+    ctx.fillStyle = "#5d8a4a";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 16 * z, 14 * z, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#7fa864";
+    ctx.beginPath();
+    ctx.ellipse(-2 * z, -2 * z, 10 * z, 8 * z, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(30,60,30,.7)";
+    ctx.lineWidth = 1.1 * z;
+    ctx.beginPath();
+    ctx.moveTo(0, 8 * z);
+    ctx.lineTo(0, -8 * z);
+    ctx.stroke();
+    // Stem.
+    ctx.strokeStyle = "rgba(58,90,46,.85)";
+    ctx.lineWidth = 1.4 * z;
+    ctx.beginPath();
+    ctx.moveTo(0, 12 * z);
+    ctx.quadraticCurveTo(2 * z, 18 * z, 4 * z, 22 * z);
+    ctx.stroke();
+  } else if (kind === "long") {
+    // Long leaf: pointed ellipse with a curved central vein.
+    ctx.fillStyle = "#3f6d3a";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 6 * z, 18 * z, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#6a9c52";
+    ctx.beginPath();
+    ctx.ellipse(-1.5 * z, -1 * z, 3 * z, 13 * z, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(28,52,28,.7)";
+    ctx.lineWidth = 1 * z;
+    ctx.beginPath();
+    ctx.moveTo(0, 16 * z);
+    ctx.quadraticCurveTo(2 * z, 0, 0, -16 * z);
+    ctx.stroke();
+    // Stem.
+    ctx.strokeStyle = "rgba(58,90,46,.85)";
+    ctx.lineWidth = 1.2 * z;
+    ctx.beginPath();
+    ctx.moveTo(0, 18 * z);
+    ctx.lineTo(2 * z, 24 * z);
+    ctx.stroke();
+  } else {
+    // Split / three-lobed leaf.
+    ctx.fillStyle = "#3a6a3a";
+    ctx.beginPath();
+    ctx.moveTo(0, 14 * z);
+    ctx.quadraticCurveTo(-12 * z, 4 * z, -14 * z, -6 * z);
+    ctx.quadraticCurveTo(-8 * z, -10 * z, -4 * z, -6 * z);
+    ctx.quadraticCurveTo(-2 * z, -14 * z, 4 * z, -8 * z);
+    ctx.quadraticCurveTo(10 * z, -10 * z, 14 * z, -4 * z);
+    ctx.quadraticCurveTo(10 * z, 6 * z, 0, 14 * z);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#628e4a";
+    ctx.beginPath();
+    ctx.moveTo(0, 10 * z);
+    ctx.quadraticCurveTo(-7 * z, 2 * z, -8 * z, -4 * z);
+    ctx.quadraticCurveTo(-3 * z, -2 * z, 0, -4 * z);
+    ctx.quadraticCurveTo(3 * z, -2 * z, 8 * z, -2 * z);
+    ctx.quadraticCurveTo(7 * z, 4 * z, 0, 10 * z);
+    ctx.closePath();
+    ctx.fill();
+    // Vein.
+    ctx.strokeStyle = "rgba(28,52,28,.65)";
+    ctx.lineWidth = 1.1 * z;
+    ctx.beginPath();
+    ctx.moveTo(0, 12 * z);
+    ctx.lineTo(0, -6 * z);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-8 * z, -4 * z);
+    ctx.moveTo(0, -4 * z);
+    ctx.lineTo(8 * z, -2 * z);
+    ctx.stroke();
+    // Stem.
+    ctx.strokeStyle = "rgba(58,90,46,.85)";
+    ctx.lineWidth = 1.3 * z;
+    ctx.beginPath();
+    ctx.moveTo(0, 14 * z);
+    ctx.lineTo(0, 20 * z);
+    ctx.stroke();
+  }
+  // A subtle warm highlight to keep the patch readable on the cool basin.
+  ctx.fillStyle = "rgba(255,236,168,.18)";
+  ctx.beginPath();
+  ctx.ellipse(-2 * z, -3 * z, 8 * z, 5 * z, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  // Tiny drop shadow so the leaf reads as resting on the ground.
+  ctx.fillStyle = "rgba(8,28,22,.34)";
+  ctx.beginPath();
+  ctx.ellipse(s.x, s.y + 4 * z, 9 * z, 2.4 * z, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 function drawStateCues(ctx, p, cam, t, state) {
   if (!state) return;
 
@@ -477,6 +813,20 @@ function drawStateCues(ctx, p, cam, t, state) {
     }
   }
 
+  // Echo: cool cyan ripple emphasis. Adds a soft cyan core so the screen
+  // reads as a cool water moment without recoloring the whole stage.
+  if (state.discoveredClues?.includes("echo")) {
+    const s = p(1170, 560);
+    const pulse = 0.5 + Math.sin(t / 520) * 0.18;
+    const cool = ctx.createRadialGradient(s.x, s.y - 8 * cam.zoom, 4, s.x, s.y - 8 * cam.zoom, 130 * cam.zoom);
+    cool.addColorStop(0, `rgba(140,225,235,${0.22 * pulse})`);
+    cool.addColorStop(1, "rgba(140,225,235,0)");
+    ctx.fillStyle = cool;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y - 8 * cam.zoom, 130 * cam.zoom, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   if (state.discoveredClues?.includes("echo") && !state.discoveredClues?.includes("mistTrail")) {
     const s = p(1020, 480);
     const mist = ctx.createRadialGradient(s.x, s.y, 6, s.x, s.y, 125 * cam.zoom);
@@ -488,7 +838,7 @@ function drawStateCues(ctx, p, cam, t, state) {
     ctx.fill();
   }
 
-  if (state?.adventure?.clueQuizzesComplete && !state.lookoutComplete) {
+  if (state.leafMatchComplete && !state.lookoutComplete) {
     const s = p(1450, 330);
     const glow = ctx.createRadialGradient(s.x, s.y - 25 * cam.zoom, 5, s.x, s.y - 25 * cam.zoom, 135 * cam.zoom);
     glow.addColorStop(0, "rgba(166,238,229,.34)");
@@ -499,7 +849,21 @@ function drawStateCues(ctx, p, cam, t, state) {
     ctx.fill();
   }
 
-  if (state?.adventure?.birdComplete && !state.rewardComplete) {
+  // Lookout warm golden sunlight accent. A short, restrained gradient that
+  // reads as sunlight cutting through the canopy, not a recolor of the stage.
+  if (state.lookoutComplete) {
+    const s = p(1450, 330);
+    const sun = ctx.createLinearGradient(s.x - 90 * cam.zoom, s.y - 70 * cam.zoom, s.x + 60 * cam.zoom, s.y + 40 * cam.zoom);
+    sun.addColorStop(0, "rgba(255,228,150,0)");
+    sun.addColorStop(0.45, "rgba(255,228,150,.18)");
+    sun.addColorStop(1, "rgba(255,228,150,0)");
+    ctx.fillStyle = sun;
+    ctx.beginPath();
+    ctx.ellipse(s.x, s.y - 22 * cam.zoom, 110 * cam.zoom, 55 * cam.zoom, -0.25, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (state.kingfisherComplete && !state.rewardComplete) {
     const s = p(1410, 400);
     for (let i = 0; i < 9; i += 1) {
       const a = t / 700 + (i / 9) * Math.PI * 2;
@@ -529,19 +893,23 @@ function drawMist(ctx, basin, cam, t) {
 function drawForegroundFrame(ctx, viewW, viewH, t) {
   ctx.save();
   const sway = Math.sin(t / 1200) * 5;
+  // Asymmetric corner accents: top-left and bottom-right are the heavier
+  // anchors; top-right and bottom-left are lighter and fewer leaves. This
+  // breaks the obvious duplicated vine frame while still anchoring the
+  // edges of the screen so the playable area stays framed.
   const clusters = [
-    { x: -18, y: 45, side: 1 },
-    { x: viewW + 18, y: 55, side: -1 },
-    { x: -25, y: viewH - 40, side: 1 },
-    { x: viewW + 25, y: viewH - 30, side: -1 },
+    { x: -18, y: 45, side: 1, count: 6, alpha: 0.78 },
+    { x: viewW + 18, y: 60, side: -1, count: 3, alpha: 0.42 },
+    { x: -22, y: viewH - 38, side: 1, count: 4, alpha: 0.55 },
+    { x: viewW + 24, y: viewH - 32, side: -1, count: 5, alpha: 0.7 },
   ];
   for (const cluster of clusters) {
-    for (let i = 0; i < 7; i += 1) {
-      const dx = cluster.side * (18 + (i % 3) * 28);
-      const dy = (i - 3) * 25 + sway * (i % 2 ? 1 : -1);
-      ctx.fillStyle = i % 2 ? "rgba(20,62,42,.80)" : "rgba(32,84,51,.82)";
+    for (let i = 0; i < cluster.count; i += 1) {
+      const dx = cluster.side * (16 + (i % 3) * 26);
+      const dy = (i - Math.floor(cluster.count / 2)) * 24 + sway * (i % 2 ? 1 : -1);
+      ctx.fillStyle = i % 2 ? `rgba(20,62,42,${cluster.alpha})` : `rgba(32,84,51,${cluster.alpha})`;
       ctx.beginPath();
-      ctx.ellipse(cluster.x + dx, cluster.y + dy, 40, 18, cluster.side * 0.42, 0, Math.PI * 2);
+      ctx.ellipse(cluster.x + dx, cluster.y + dy, 38, 17, cluster.side * 0.42, 0, Math.PI * 2);
       ctx.fill();
     }
   }
@@ -595,12 +963,13 @@ export function drawWaterfallWorld(ctx, cam, viewW, viewH, t = 0, images = null,
 
   // FRONT WORLD: interaction dressing (stones, gate sign, lookout sign),
   // authored front layer (gate arch, flower banks, lookout platform), flowers
-  // and leaf beds, gameplay state cues, mist.
+  // and leaf beds, leaf-family observation patch, gameplay state cues, mist.
   drawSteppingStones(ctx, p, cam, t, Boolean(state?.streamGateComplete && !state?.steppingStonesComplete));
   drawGate(ctx, p, cam, !state?.streamGateComplete);
-  drawLookout(ctx, p, cam, Boolean(state?.adventure?.clueQuizzesComplete && !state?.lookoutComplete));
+  drawLookout(ctx, p, cam, Boolean(state?.leafMatchComplete && !state?.lookoutComplete));
   drawAuthoredArtLayer(ctx, p, cam, art, WATERFALL_ART_FRONT);
   drawFlowersAndLeafBeds(ctx, p, cam, t, state);
+  drawLeafFamilies(ctx, p, cam, t);
   drawStateCues(ctx, p, cam, t, state);
   drawMist(ctx, basin, cam, t);
 

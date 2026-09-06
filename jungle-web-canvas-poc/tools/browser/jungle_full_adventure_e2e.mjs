@@ -639,8 +639,12 @@ async function verifyHub(p) {
   const progress = await readHubProgress(p);
   log(`hub progress: ${progress}`);
 
+  const has5of5 = progress.includes("5 / 5");
+  const hasComplete = progress.includes("정글 탐험 완주!");
+  log(`hub assert 5/5: ${has5of5}, 완주: ${hasComplete}`);
+
   await shot(p, "hub-final");
-  return { rewardCount: rewards.length };
+  return { rewardCount: rewards.length, has5of5, hasComplete };
 }
 
 // ─── PERSISTENCE CHECK ────────────────────────────────────
@@ -667,7 +671,16 @@ async function main() {
   const p = await ctx.newPage();
   p.on("pageerror", (e) => E.push({ s: "pageerror", m: e.message }));
   p.on("console", (msg) => {
-    if (msg.type() === "error") E.push({ s: "console.error", m: msg.text() });
+    if (msg.type() === "error") {
+      const t = msg.text();
+      if (t.includes("404")) return;
+      E.push({ s: "console.error", m: t });
+    }
+  });
+  p.on("response", (res) => {
+    if (res.status() >= 400 && !res.url().includes("/assets/vendor/")) {
+      E.push({ s: "response-error", m: `${res.status()} ${res.url()}` });
+    }
   });
 
   const results = {};
@@ -710,6 +723,8 @@ async function main() {
   await backToHub(p);
   const hub = await verifyHub(p);
   results.rewardCount = hub.rewardCount;
+  results.has5of5 = hub.has5of5;
+  results.hasComplete = hub.hasComplete;
 
   // Run B: Persistence check
   log("━━━ RUN B: PERSISTENCE CHECK ━━━");
@@ -736,6 +751,8 @@ async function main() {
   log(`Giant Tree: ${results.giantTree ? "PASS" : "FAIL"}`);
   log(`Sky Ridge: ${results.skyRidge ? "PASS" : "FAIL"}`);
   log(`Rewards: ${results.rewardCount}/5`);
+  log(`Hub 5/5: ${results.has5of5}`);
+  log(`Hub 완주: ${results.hasComplete}`);
   log(`Persist rewards: ${results.persistRewards}/5`);
   log(`Screenshots: ${R.length}`);
   log(`Errors: ${E.length}`);
@@ -744,7 +761,10 @@ async function main() {
   const allPass = results.camp && results.waterfall && results.cave &&
                   results.giantTree && results.skyRidge &&
                   results.rewardCount === 5 &&
-                  results.persistRewards === 5;
+                  results.has5of5 &&
+                  results.hasComplete &&
+                  results.persistRewards === 5 &&
+                  E.length === 0;
   process.exit(allPass ? 0 : 1);
 }
 

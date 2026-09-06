@@ -5,9 +5,21 @@
 
 목표는 단순히 각 스테이지 URL이 열리는지 확인하는 것이 아니다.
 
-**Camp → Waterfall → Cave → Giant Tree → Sky Ridge → 발견/마일스톤 5/5 + 보상 5/5 → 정글 탐험 완주**를 실제 사용자 입력만으로 끝까지 진행하고, 중간 저장/재로드/보상 누적까지 검증한다.
+**Hub → 5 stages → 발견/마일스톤 5/5 + 보상(badge) 5/5 → 정글 탐험 완주**를 실제 사용자 입력만으로 끝까지 진행하고, Hub 내비게이션 연결 + 중간 저장/재로드/보상 누적까지 검증한다.
 
-참고: bat(Cave)와 squirrel(Giant Tree)는 birdCodex에 등록되지 않는다 (captureBird 미호출). 5/5는 **스테이지 보상(badge) 5개** 기준이다: bluebird-feather, kingfisher-drop, firefly-crystal, ancient-seed, sky-star.
+### 발견/마일스톤 5/5 (스테이지 완료 기준)
+bat(Cave)와 squirrel(Giant Tree)는 birdCodex에 등록되지 않는다 (`captureBird` 미호출).
+5/5는 **스테이지 보상(badge) 5개** 기준이다.
+
+| # | Stage | Milestone | Badge ID |
+|---|---|---|---|
+| 1 | Camp | Bluebird 발견 | bluebird-feather |
+| 2 | Waterfall | Kingfisher 발견 | kingfisher-drop |
+| 3 | Cave | Bat 발견 | firefly-crystal |
+| 4 | Giant Tree | Squirrel 발견 | ancient-seed |
+| 5 | Sky Ridge | Hawk 발견 | sky-star |
+
+Hub에서 **배지 5 / 5 · 정글 탐험 완주!** 텍스트가 보여야 한다.
 
 ## Branch
 `prototype/jungle-web-canvas-poc`
@@ -41,21 +53,21 @@ git fetch origin prototype/jungle-web-canvas-poc
 새 브라우저 컨텍스트에서 Camp부터 시작한다.
 
 ```text
-Camp
-  ↓
-Waterfall
-  ↓
-Cave
-  ↓
-Giant Tree
-  ↓
-Sky Ridge
-  ↓
-도감 5종 등록
-  ↓
-보상/배지 5 / 5
-  ↓
-정글 탐험 완주
+Hub (jungle-hub.html)
+  ↓ clickHubLink
+Camp → Bluebird 발견 → bluebird-feather 배지
+  ↓ backToHub → clickHubLink
+Waterfall → Kingfisher 발견 → kingfisher-drop 배지
+  ↓ backToHub → reload (중간 persistence 검증)
+Cave → Bat 발견 → firefly-crystal 배지
+  ↓ backToHub → clickHubLink
+Giant Tree → Squirrel 발견 → ancient-seed 배지
+  ↓ backToHub → clickHubLink
+Sky Ridge → Hawk 발견 → sky-star 배지
+  ↓ backToHub
+Hub: 배지 5 / 5 · 정글 탐험 완주!
+  ↓ reload
+Persistence: 배지 5/5 유지 확인
 ```
 
 ### 기대 발견/마일스톤 (스테이지 완료 기준)
@@ -72,7 +84,7 @@ Sky Ridge
 - Giant Tree: 고목 씨앗 배지 (ancient-seed)
 - Sky Ridge: 하늘별 배지 (sky-star)
 
-최종 Hub에 **배지 5 / 5 및 완주 상태**가 보여야 한다.
+Hub에서 **readHubProgress** 텍스트가 `배지 5 / 5 · 정글 탐험 완주!`를 포함해야 한다.
 
 ---
 
@@ -331,29 +343,37 @@ git diff --check
 
 다음 모두 만족해야 **PASS**다.
 
-- [ ] Camp부터 시작
-- [ ] Waterfall 실제 내부 transition
-- [ ] Cave 실제 내부 transition
-- [ ] Giant Tree 실제 내부 transition
-- [ ] Sky Ridge 실제 내부 transition
-- [ ] 5개 stage 모두 real input 완주
+### Hub → Stage 연결
+- [ ] Hub에서 시작, `clickHubLink`로 각 stage 진입
+- [ ] `backToHub` + `page.reload()`으로 Hub 복귀
+- [ ] `page.goto` 미사용 (첫 Hub 진입 제외)
+
+### Stage 완주
+- [ ] Camp: real input 완주 + bluebird-feather
+- [ ] Waterfall: real input 완주 + kingfisher-drop
+- [ ] Cave: real input 완주 + firefly-crystal
+- [ ] Giant Tree: real input 완주 + ancient-seed
+- [ ] Sky Ridge: real input 완주 + sky-star
+
+### 금지행위
 - [ ] teleport 0
 - [ ] state injection 0
 - [ ] DOM force 0
 - [ ] storage injection 0
 - [ ] direct progression call 0
-- [ ] Bluebird 등록
-- [ ] Kingfisher 등록
-- [ ] Bat 등록
-- [ ] Squirrel 등록
-- [ ] Hawk 등록
-- [ ] reward/badge 5 / 5
-- [ ] 최종 정글 탐험 완주 표시
-- [ ] reload 후 도감/5/5/완주 유지
-- [ ] quiz session 내 중복 0
+
+### 보상/버그
+- [ ] discovered 5/5 (Bluebird, Kingfisher, Bat, Squirrel, Hawk)
+- [ ] reward/badge 5/5 (UI `readRewards().earned.length === 5`)
+- [ ] Hub progress 텍스트에 `배지 5 / 5` 포함
+- [ ] Hub progress 텍스트에 `정글 탐험 완주!` 포함
+- [ ] reload 후 badge 5/5 유지
+- [ ] errors.length === 0 (pageerror + console.error 0건)
+
+### 테스트/검증
 - [ ] screenshot >= 30
-- [ ] pageerror 0
-- [ ] 전체 `node --test` 0 fail
+- [ ] quiz session 내 중복 0
+- [ ] `node --test` 0 fail
 - [ ] `git diff --check` clean
 
 하나라도 핵심 항목이 미충족이면 PASS라고 쓰지 않는다.
@@ -372,19 +392,20 @@ git diff --check
 2. FINAL HEAD
 3. changed files
 4. production code 변경 여부
-5. 실제 5-stage route
-6. stage별 시작/완료/reward 결과
-7. 동물/도감 등록 결과
-8. reward/badge 5/5 결과
-9. quiz 실제 출제 evidence
-10. reload/persistence 결과
-11. screenshot 수/경로
-12. pageerror/console/request failure 집계
-13. `node --test` 결과
-14. `git diff --check` 결과
-15. 금지행위 사용 여부를 명시적으로 0건 표기
-16. 남은 이슈
-17. 최종 PASS/FAIL
+5. 실제 5-stage route (Hub → clickHubLink → stage → backToHub → reload)
+6. stage별 시작/완료/reward 결과 (5행 표)
+7. 발견/마일스톤 5/5 결과 (Bluebird, Kingfisher, Bat, Squirrel, Hawk)
+8. reward/badge 5/5 결과 (`readRewards().earned` + Hub UI)
+9. Hub progress 텍스트 확인 (`배지 5 / 5 · 정글 탐험 완주!`)
+10. quiz 실제 출제 evidence (질문 id, 선택지 수, session 중복 0)
+11. reload/persistence 결과 (중간 1회 + 최종 1회)
+12. screenshot 수/경로
+13. pageerror/console.error/request failure 집계 → **0건**
+14. `node --test` 결과 (N pass / 0 fail)
+15. `git diff --check` 결과 (clean)
+16. 금지행위 사용 여부 → **0건** (teleport, injection, DOM force, storage, progression call)
+17. 남은 이슈
+18. 최종 **PASS/FAIL**
 
 REPORT에 단순 주장만 쓰지 말고 E2E 로그/DOM/read-only state에서 관찰한 구체 evidence를 적는다.
 

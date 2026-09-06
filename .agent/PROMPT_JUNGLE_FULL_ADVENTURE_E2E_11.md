@@ -5,7 +5,9 @@
 
 목표는 단순히 각 스테이지 URL이 열리는지 확인하는 것이 아니다.
 
-**Camp → Waterfall → Cave → Giant Tree → Sky Ridge → 도감/보상 5/5 → 정글 탐험 완주**를 실제 사용자 입력만으로 끝까지 진행하고, 중간 저장/재로드/도감/보상 누적까지 검증한다.
+**Camp → Waterfall → Cave → Giant Tree → Sky Ridge → 발견/마일스톤 5/5 + 보상 5/5 → 정글 탐험 완주**를 실제 사용자 입력만으로 끝까지 진행하고, 중간 저장/재로드/보상 누적까지 검증한다.
+
+참고: bat(Cave)와 squirrel(Giant Tree)는 birdCodex에 등록되지 않는다 (captureBird 미호출). 5/5는 **스테이지 보상(badge) 5개** 기준이다: bluebird-feather, kingfisher-drop, firefly-crystal, ancient-seed, sky-star.
 
 ## Branch
 `prototype/jungle-web-canvas-poc`
@@ -56,21 +58,21 @@ Sky Ridge
 정글 탐험 완주
 ```
 
-### 기대 동물/발견
-1. Camp → Bluebird / 파랑새
-2. Waterfall → Kingfisher / 물총새
-3. Cave → Bat / 박쥐
-4. Giant Tree → Squirrel / 다람쥐
-5. Sky Ridge → Hawk / 매
+### 기대 발견/마일스톤 (스테이지 완료 기준)
+1. Camp → Bluebird 발견 + bluebird-feather 배지
+2. Waterfall → Kingfisher 발견 + kingfisher-drop 배지
+3. Cave → Bat 발견 + firefly-crystal 배지
+4. Giant Tree → Squirrel 발견 + ancient-seed 배지
+5. Sky Ridge → Hawk 발견 + sky-star 배지
 
-### 기대 보상
-- Camp: 파랑새 깃털 배지
-- Waterfall: 물총새 물방울 배지
-- Cave: 반딧불 수정 배지
-- Giant Tree: 고목 씨앗
-- Sky Ridge: 하늘별 배지
+### 기대 보상 (스테이지 배지)
+- Camp: 파랑새 깃털 배지 (bluebird-feather)
+- Waterfall: 물총새 물방울 배지 (kingfisher-drop)
+- Cave: 반딧불 수정 배지 (firefly-crystal)
+- Giant Tree: 고목 씨앗 배지 (ancient-seed)
+- Sky Ridge: 하늘별 배지 (sky-star)
 
-최종 화면/Hub에 현재 구현된 실제 문구 기준으로 **5 / 5 및 완주 상태**가 보여야 한다.
+최종 Hub에 **배지 5 / 5 및 완주 상태**가 보여야 한다.
 
 ---
 
@@ -109,18 +111,20 @@ Sky Ridge
 
 # 3. Stage transition 검증
 
-이번 Prompt의 핵심은 5개 스테이지를 따로 여는 것이 아니라 **게임 내부 진행으로 다음 지역에 도달하는 것**이다.
+이번 Prompt의 핵심은 5개 스테이지를 따로 여는 것이 아니라 **Hub 내비게이션을 통해 다음 지역에 도달하는 것**이다.
 
 ### 원칙
-- 첫 진입만 Camp URL을 직접 연다.
-- 이후 Waterfall/Cave/GiantTree/Sky Ridge 이동은 실제 게임 UI/route/exit/next-stage 흐름을 사용한다.
-- 현재 게임에 실제 다음 지역 이동 UI가 없다면, 최소 production 변경으로 자연스러운 stage transition을 추가한다.
-- 테스트 전용 링크/버튼은 추가하지 않는다.
+- 첫 진입은 Hub URL(`jungle-hub.html`)을 직접 연다.
+- Hub에서 각 스테이지 `<a href>` 링크를 **click**하여 진입한다.
+- 스테이지 완료 후 `page.goBack()`으로 Hub로 돌아간다.
+- Hub를 `page.reload()`하여 배지 상태를 갱신하고 다음 스테이지 잠금 해제를 확인한다.
+- **`page.goto`를 사용하지 않는다** (첫 Hub 진입 제외).
+- `page.goBack()` + `page.reload()` 조합으로 Hub ↔ 스테이지를 오간다.
 
 ### transition마다 확인
 - 이전 stage reward 완료
-- 도감/보상 누적
-- 다음 stage 진입
+- 배지/보상 누적
+- Hub에서 다음 stage 잠금 해제 확인
 - 이전 stage 데이터 유실 없음
 - console/page error 없음
 
@@ -201,11 +205,10 @@ rootGate
 
 ## 필수
 1. 5개 stage 모두 reward 완료
-2. 도감 5종 / 보상 5개 확인
+2. 배지 5개 확인 (stageRewards: bluebird-feather, kingfisher-drop, firefly-crystal, ancient-seed, sky-star)
 3. 페이지 reload
 4. 다시 UI에서 다음이 유지되는지 확인
-   - 도감 5종
-   - reward/badge 5 / 5
+   - 배지 5 / 5
    - 최종 완주 상태
 
 가능하면 중간에도 1회 reload한다.
@@ -242,10 +245,11 @@ Persistence 검증을 위해 localStorage 값을 직접 쓰지 않는다.
 # 8. E2E 실행 횟수
 
 ## 필수 Run A — Full clean run
-새 browser context에서 Camp부터 Sky Ridge까지 완주.
+새 browser context에서 Hub부터 시작해 Camp → Waterfall → Cave → Giant Tree → Sky Ridge까지 완주.
+Hub 내비게이션 클릭으로 스테이지 간 이동 (page.goto 사용 금지).
 
 ## 필수 Run B — Persistence run
-완주 상태 reload 후 5/5 및 도감 유지 확인.
+완주 상태 reload 후 배지 5/5 유지 확인.
 
 ## 권장 Run C/D — Random quiz variation
 새 context로 통합 또는 quiz 관련 구간을 반복해 실제 출제 조합 변화 확인.

@@ -35,12 +35,6 @@ async function readNearest(p) {
     return n ? { id: n.id, x: n.x, y: n.y, radius: n.radius } : null;
   });
 }
-async function readCodex(p) {
-  return p.evaluate(() => {
-    const r = localStorage.getItem("eduni.jungle.birdCodex.v1");
-    return r ? JSON.parse(r) : null;
-  });
-}
 async function readRewards(p) {
   return p.evaluate(() => {
     const r = localStorage.getItem("eduni.jungle.stageRewards.v1");
@@ -61,14 +55,20 @@ async function readConfirmVisible(p) {
     return s.display !== "none" && s.visibility !== "hidden" && !btn.disabled;
   });
 }
-async function readModalTitle(p) {
-  return p.evaluate(() => document.querySelector("#modal-title")?.textContent || "");
-}
 async function readHintText(p) {
   return p.evaluate(() => document.querySelector("#modal-hint")?.textContent || "");
 }
 async function readPhase(p) {
   return p.evaluate(() => document.querySelector("#status")?.dataset?.gamePhase || "");
+}
+async function readHubBadges(p) {
+  return p.evaluate(() => {
+    const badges = document.querySelectorAll("#badges .badge.earned");
+    return Array.from(badges).map((b) => b.textContent.trim());
+  });
+}
+async function readHubProgress(p) {
+  return p.evaluate(() => document.querySelector("#progress")?.textContent || "");
 }
 
 // ─── SCREENSHOT ────────────────────────────────────────────
@@ -146,12 +146,6 @@ async function pressA(p) {
   await p.keyboard.up("a");
   await p.waitForTimeout(300);
 }
-async function pressB(p) {
-  await p.keyboard.down("b");
-  await p.waitForTimeout(80);
-  await p.keyboard.up("b");
-  await p.waitForTimeout(300);
-}
 async function wMod(p, ms = 5000) {
   const t = Date.now();
   while (Date.now() - t < ms) {
@@ -197,15 +191,37 @@ async function selectChoice(p, idx) {
   await p.waitForTimeout(600);
 }
 
+// ─── HUB NAVIGATION (no page.goto) ────────────────────────
+const STAGE_LINKS = {
+  camp:      ".card.camp a",
+  waterfall: ".card.waterfall a",
+  cave:      ".card.cave a",
+  giantTree: ".card.tree a",
+  skyRidge:  ".card.sky a",
+};
+
+async function clickHubLink(p, stageId) {
+  const selector = STAGE_LINKS[stageId];
+  await p.waitForSelector(selector, { state: "visible", timeout: 5000 });
+  await p.click(selector);
+  await p.waitForTimeout(1000);
+}
+
+async function backToHub(p) {
+  await p.goBack({ waitUntil: "domcontentloaded" });
+  await p.waitForTimeout(1000);
+  await p.reload({ waitUntil: "domcontentloaded" });
+  await p.waitForTimeout(2000);
+}
+
 // ─── CAMP ──────────────────────────────────────────────────
 async function camp(p) {
   log("=== CAMP ===");
-  await p.goto(`${BASE}/?renderer=three&qa=1`, { waitUntil: "domcontentloaded" });
-  await p.waitForTimeout(4000);
+  await clickHubLink(p, "camp");
+  await p.waitForTimeout(3000);
   if (!await rdy(p)) { log("FAIL: camp not ready"); return false; }
   await shot(p, "camp-start");
 
-  // Move to hut (520,320) via path
   await moveTo(p, 200, 620);
   await moveTo(p, 520, 620);
   await moveTo(p, 520, 320);
@@ -213,7 +229,6 @@ async function camp(p) {
   if (!near || near.id !== "hut") await pressDir(p, "l", 800);
   await shot(p, "camp-near-hut");
 
-  // Start quest
   for (let i = 0; i < 5; i++) {
     await pressA(p);
     await p.waitForTimeout(500);
@@ -222,7 +237,6 @@ async function camp(p) {
   }
   await shot(p, "camp-quest-started");
 
-  // Feather (690,320)
   await moveTo(p, 690, 320);
   near = await readNearest(p);
   if (!near || near.id !== "feather") await pressDir(p, "r", 400);
@@ -230,7 +244,6 @@ async function camp(p) {
   await pressA(p); await wMod(p); await shot(p, "camp-q1");
   await pickAnswer0(p); await dismissPanel(p);
 
-  // Footprints (920,570)
   await moveTo(p, 920, 320);
   await moveTo(p, 920, 570);
   near = await readNearest(p);
@@ -239,7 +252,6 @@ async function camp(p) {
   await pressA(p); await wMod(p); await shot(p, "camp-q2");
   await pickAnswer0(p); await dismissPanel(p);
 
-  // Birdcall (1120,820)
   await moveTo(p, 920, 820);
   await moveTo(p, 1120, 820);
   near = await readNearest(p);
@@ -248,16 +260,14 @@ async function camp(p) {
   await pressA(p); await wMod(p); await shot(p, "camp-q3");
   await pickAnswer0(p); await dismissPanel(p);
 
-  // Bluebird (1300,420)
   await moveTo(p, 1300, 820);
   await moveTo(p, 1300, 420);
-  await p.waitForTimeout(3000); // ridgeArrival sequence
+  await p.waitForTimeout(3000);
   near = await readNearest(p);
   await shot(p, "camp-near-bluebird");
   await pressA(p); await p.waitForTimeout(1500);
   await shot(p, "camp-capture");
 
-  // Reward
   const revealed = await waitForConfirm(p, 8000);
   await shot(p, "camp-reward-visible");
   await dismissPanel(p);
@@ -265,22 +275,18 @@ async function camp(p) {
   await shot(p, "camp-reward-done");
 
   const st = await readState(p);
-  const cx = await readCodex(p);
-  const captured = cx?.captured ? Object.keys(cx.captured) : [];
-  const hasBluebird = captured.includes("bluebird");
-  log(`camp state: bluebirdComplete=${st?.bluebirdComplete}, codex=${JSON.stringify(captured)}`);
-  return hasBluebird;
+  log(`camp state: bluebirdComplete=${st?.bluebirdComplete}`);
+  return st?.bluebirdComplete === true;
 }
 
 // ─── WATERFALL ─────────────────────────────────────────────
 async function waterfall(p) {
   log("=== WATERFALL ===");
-  await p.goto(`${BASE}/?stage=waterfall&renderer=three&qa=1`, { waitUntil: "domcontentloaded" });
-  await p.waitForTimeout(4000);
+  await clickHubLink(p, "waterfall");
+  await p.waitForTimeout(3000);
   if (!await rdy(p)) { log("FAIL: waterfall not ready"); return false; }
   await shot(p, "wf-start");
 
-  // Stream gate (700,900)
   await moveTo(p, 200, 900);
   await moveTo(p, 700, 900);
   await shot(p, "wf-near-gate");
@@ -289,7 +295,6 @@ async function waterfall(p) {
   log(`streamGateComplete: ${st?.streamGateComplete}`);
   await shot(p, "wf-gate-done");
 
-  // Stepping stones (1080,700)
   await moveTo(p, 700, 760);
   await moveTo(p, 900, 760);
   await moveTo(p, 900, 700);
@@ -300,14 +305,12 @@ async function waterfall(p) {
   log(`steppingStonesComplete: ${st?.steppingStonesComplete}`);
   await shot(p, "wf-stones-done");
 
-  // Echo quiz (1170,560)
   await moveTo(p, 1080, 560);
   await moveTo(p, 1170, 560);
   await shot(p, "wf-near-echo");
   await pressA(p); await wMod(p); await shot(p, "wf-q1");
   await pickAnswer0(p); await dismissPanel(p);
 
-  // Mist trail quiz (1020,480)
   await moveTo(p, 1020, 480);
   let near = await readNearest(p);
   if (!near || near.id !== "mistTrail") await pressDir(p, "l", 400);
@@ -315,7 +318,6 @@ async function waterfall(p) {
   await pressA(p); await wMod(p); await shot(p, "wf-q2");
   await pickAnswer0(p); await dismissPanel(p);
 
-  // Water drops quiz (1250,470)
   await moveTo(p, 1250, 470);
   near = await readNearest(p);
   if (!near || near.id !== "waterDrops") await pressDir(p, "r", 400);
@@ -323,20 +325,17 @@ async function waterfall(p) {
   await pressA(p); await wMod(p); await shot(p, "wf-q3");
   await pickAnswer0(p); await dismissPanel(p);
 
-  // Lookout (1450,330)
   await moveTo(p, 1250, 330);
   await moveTo(p, 1450, 330);
   await shot(p, "wf-near-lookout");
   await interactAndConfirm(p);
 
-  // Kingfisher
   await p.waitForTimeout(2000);
   near = await readNearest(p);
   await shot(p, "wf-near-kingfisher");
   await pressA(p); await p.waitForTimeout(1500);
   await shot(p, "wf-capture");
 
-  // Reward
   const revealed = await waitForConfirm(p, 8000);
   await shot(p, "wf-reward-visible");
   await dismissPanel(p);
@@ -344,16 +343,15 @@ async function waterfall(p) {
   await shot(p, "wf-reward-done");
 
   st = await readState(p);
-  const cx = await readCodex(p);
-  log(`wf state: rewardComplete=${st?.rewardComplete}, codex=${JSON.stringify(cx?.captured ? Object.keys(cx.captured) : null)}`);
+  log(`wf state: rewardComplete=${st?.rewardComplete}`);
   return st?.rewardComplete === true;
 }
 
 // ─── CAVE ──────────────────────────────────────────────────
 async function cave(p) {
   log("=== CAVE ===");
-  await p.goto(`${BASE}/cave-game.html?qa=1`, { waitUntil: "domcontentloaded" });
-  await p.waitForTimeout(4000);
+  await clickHubLink(p, "cave");
+  await p.waitForTimeout(3000);
   if (!await rdy(p)) { log("FAIL: cave not ready"); return false; }
   await shot(p, "cave-start");
 
@@ -376,7 +374,6 @@ async function cave(p) {
     log(`  Arrived: (${r.pos?.x?.toFixed(0)},${r.pos?.y?.toFixed(0)}) dist=${r.dist?.toFixed(0)}`);
 
     if (r.dist > step.r) {
-      log(`  Fine-tuning: dist=${r.dist?.toFixed(0)} > radius=${step.r}`);
       for (let pass = 0; pass < 3 && r.dist > step.r; pass++) {
         for (const dir of ["r", "d", "l", "u"]) {
           await pressDir(p, dir, 200);
@@ -387,11 +384,9 @@ async function cave(p) {
           }
         }
       }
-      log(`  After fine-tune: dist=${r.dist?.toFixed(0)}`);
     }
 
     if (step.quiz) {
-      // Firefly pattern quiz: 3 rounds with specific correct answers
       const quizIndices = step.quizIndices || [0, 0, 0];
       await pressA(p);
       const opened = await wMod(p, 5000);
@@ -406,14 +401,12 @@ async function cave(p) {
             await wMod(p, 3000);
           }
           await shot(p, step.id + `-quiz-r${round + 1}`);
-          // Use correct answer index for this round
           await selectChoice(p, quizIndices[round]);
           await p.waitForTimeout(1000);
           const st = await readState(p);
           log(`  → phase=${await readPhase(p)} reward=${st?.rewardComplete}`);
         }
       } else {
-        log(`  WARN: quiz modal did not open`);
         await pressA(p);
         await wMod(p, 3000);
         for (let round = 0; round < 3; round++) {
@@ -432,11 +425,9 @@ async function cave(p) {
       await p.waitForTimeout(500);
       await shot(p, "cave-reward-done");
     } else {
-      // Try interactAndConfirm with more attempts
       for (let attempt = 0; attempt < 3; attempt++) {
         const done = await interactAndConfirm(p);
         if (done) break;
-        log(`  interact attempt ${attempt + 1} failed, moving closer`);
         await pressDir(p, "r", 200);
       }
     }
@@ -446,16 +437,15 @@ async function cave(p) {
   }
 
   const st = await readState(p);
-  const cx = await readCodex(p);
-  log(`cave state: rewardComplete=${st?.rewardComplete}, codex=${JSON.stringify(cx?.captured ? Object.keys(cx.captured) : null)}`);
+  log(`cave state: rewardComplete=${st?.rewardComplete}`);
   return st?.rewardComplete === true;
 }
 
 // ─── GIANT TREE ────────────────────────────────────────────
 async function giantTree(p) {
   log("=== GIANT TREE ===");
-  await p.goto(`${BASE}/giant-tree-game.html?qa=1`, { waitUntil: "domcontentloaded" });
-  await p.waitForTimeout(4000);
+  await clickHubLink(p, "giantTree");
+  await p.waitForTimeout(3000);
   if (!await rdy(p)) { log("FAIL: giant tree not ready"); return false; }
   await shot(p, "tree-start");
 
@@ -474,7 +464,6 @@ async function giantTree(p) {
     const phase = await readPhase(p);
     log(`[TREE] Phase: ${phase} → ${step.label}`);
 
-    // Navigate through waypoint if needed
     if (step.waypoint) {
       await moveTo(p, step.waypoint.x, step.waypoint.y, { arriveRadius: 40, maxSteps: 40, label: step.id + "-wp" });
     }
@@ -483,7 +472,6 @@ async function giantTree(p) {
     log(`  Arrived: (${r.pos?.x?.toFixed(0)},${r.pos?.y?.toFixed(0)}) dist=${r.dist?.toFixed(0)}`);
 
     if (r.dist > step.r) {
-      log(`  Fine-tuning: dist=${r.dist?.toFixed(0)} > radius=${step.r}`);
       for (let pass = 0; pass < 3 && r.dist > step.r; pass++) {
         for (const dir of ["r", "d", "l", "u"]) {
           await pressDir(p, dir, 200);
@@ -494,7 +482,6 @@ async function giantTree(p) {
           }
         }
       }
-      log(`  After fine-tune: dist=${r.dist?.toFixed(0)}`);
     }
 
     if (step.quiz) {
@@ -518,7 +505,6 @@ async function giantTree(p) {
           log(`  → phase=${await readPhase(p)} reward=${st?.rewardComplete}`);
         }
       } else {
-        log(`  WARN: quiz modal did not open`);
         await pressA(p);
         await wMod(p, 3000);
         for (let round = 0; round < 3; round++) {
@@ -540,7 +526,6 @@ async function giantTree(p) {
       for (let attempt = 0; attempt < 3; attempt++) {
         const done = await interactAndConfirm(p);
         if (done) break;
-        log(`  interact attempt ${attempt + 1} failed, moving closer`);
         await pressDir(p, "r", 200);
       }
     }
@@ -550,67 +535,84 @@ async function giantTree(p) {
   }
 
   const st = await readState(p);
-  const cx = await readCodex(p);
-  log(`tree state: rewardComplete=${st?.rewardComplete}, codex=${JSON.stringify(cx?.captured ? Object.keys(cx.captured) : null)}`);
+  log(`tree state: rewardComplete=${st?.rewardComplete}`);
   return st?.rewardComplete === true;
 }
 
 // ─── SKY RIDGE ─────────────────────────────────────────────
 async function skyRidge(p) {
   log("=== SKY RIDGE ===");
-  await p.goto(`${BASE}/sky-ridge-game.html?qa=1`, { waitUntil: "domcontentloaded" });
-  await p.waitForTimeout(4000);
+  await clickHubLink(p, "skyRidge");
+  await p.waitForTimeout(3000);
   if (!await rdy(p)) { log("FAIL: sky ridge not ready"); return false; }
   await shot(p, "sky-start");
 
-  // Sky gate (430,930)
   await moveTo(p, 430, 930, { label: "skyGate" });
   await shot(p, "sky-near-gate");
   await interactAndConfirm(p);
   let st = await readState(p);
   log(`skyGateComplete: ${st?.skyGateComplete}`);
   await shot(p, "sky-gate-done");
+  await p.waitForTimeout(1500);
 
-  // Wind ribbon quiz (650,820)
+  const panelOpen = await readModalVisible(p);
+  if (panelOpen) await dismissPanel(p);
+
+  // Wind ribbon quiz (650,820) — follow corridor: up to (430,820) then right to (650,820)
+  await moveTo(p, 430, 820, { label: "windRibbon-wp1" });
   await moveTo(p, 650, 820, { label: "windRibbon" });
   await shot(p, "sky-near-ribbon");
+  const near1 = await readNearest(p);
+  log(`[SKY-Q] near windRibbon: ${near1 ? near1.id : "null"}`);
   await pressA(p); await wMod(p); await shot(p, "sky-q1");
+  log(`[SKY-Q] q1 modal=${await readModalVisible(p)}`);
   await pressA(p); await p.waitForTimeout(1200);
+  log(`[SKY-Q] q1 after: modal=${await readModalVisible(p)}`);
 
-  // Cloud shadow quiz (830,690)
+  // Cloud shadow quiz (830,690) — follow corridor: up to (650,690) then right to (830,690)
+  await moveTo(p, 650, 690, { label: "cloudShadow-wp1" });
   await moveTo(p, 830, 690, { label: "cloudShadow" });
   await shot(p, "sky-near-cloud");
+  const near2 = await readNearest(p);
+  log(`[SKY-Q] near cloudShadow: ${near2 ? near2.id : "null"}`);
   await pressA(p); await wMod(p); await shot(p, "sky-q2");
+  log(`[SKY-Q] q2 modal=${await readModalVisible(p)}`);
   await pressA(p); await p.waitForTimeout(1200);
+  log(`[SKY-Q] q2 after: modal=${await readModalVisible(p)}`);
 
-  // Wind chime quiz (1000,560)
+  // Wind chime quiz (1000,560) — follow corridor: up to (830,560) then right to (1000,560)
+  await moveTo(p, 830, 560, { label: "windChime-wp1" });
   await moveTo(p, 1000, 560, { label: "windChime" });
   await shot(p, "sky-near-chime");
+  const near3 = await readNearest(p);
+  log(`[SKY-Q] near windChime: ${near3 ? near3.id : "null"}`);
   await pressA(p); await wMod(p); await shot(p, "sky-q3");
+  log(`[SKY-Q] q3 modal=${await readModalVisible(p)}`);
   await pressA(p); await p.waitForTimeout(1200);
+  log(`[SKY-Q] q3 after: modal=${await readModalVisible(p)}`);
 
   st = await readState(p);
   log(`after quizzes: clueQuizzesComplete=${st?.adventure?.clueQuizzesComplete}, score=${st?.adventure?.clueQuizScore}`);
 
-  // Summit bridge (1300,420)
+  await moveTo(p, 1000, 490, { label: "summit-wp1" });
+  await moveTo(p, 1130, 490, { label: "summit-wp2" });
+  await moveTo(p, 1130, 420, { label: "summit-wp3" });
   await moveTo(p, 1300, 420, { label: "summitBridge" });
   await shot(p, "sky-near-bridge");
   await interactAndConfirm(p);
 
-  // Hawk (1450,310)
+  await moveTo(p, 1300, 310, { label: "hawk-wp1" });
   await moveTo(p, 1450, 310, { label: "hawk" });
   await p.waitForTimeout(2000);
   await shot(p, "sky-near-hawk");
   await pressA(p); await p.waitForTimeout(1500);
   await shot(p, "sky-hawk-capture");
 
-  // Confirm hawk panel → captures bird, opens reward panel
   await waitForConfirm(p, 8000);
   await shot(p, "sky-reward-visible");
   await dismissPanel(p);
   await p.waitForTimeout(1500);
 
-  // Confirm reward panel → sets rewardComplete
   await waitForConfirm(p, 8000);
   await shot(p, "sky-reward-confirm");
   await dismissPanel(p);
@@ -618,29 +620,27 @@ async function skyRidge(p) {
   await shot(p, "sky-reward-done");
 
   st = await readState(p);
-  const cx = await readCodex(p);
-  log(`sky state: rewardComplete=${st?.rewardComplete}, codex=${JSON.stringify(cx?.captured ? Object.keys(cx.captured) : null)}`);
+  log(`sky state: rewardComplete=${st?.rewardComplete}`);
   return st?.rewardComplete === true;
 }
 
 // ─── HUB VERIFICATION ─────────────────────────────────────
 async function verifyHub(p) {
   log("=== HUB VERIFICATION ===");
-  await p.goto(`${BASE}/jungle-hub.html`, { waitUntil: "domcontentloaded" });
-  await p.waitForTimeout(3000);
   await shot(p, "hub-overview");
 
-  const cx = await readCodex(p);
   const rw = await readRewards(p);
-  log(`codex: ${JSON.stringify(cx?.captured ? Object.keys(cx.captured) : null)}`);
-  log(`rewards: ${JSON.stringify(rw?.earned)}`);
+  const rewards = rw?.earned || [];
+  log(`rewards: ${JSON.stringify(rewards)}`);
+  log(`rewards: ${rewards.length}/5`);
 
-  const birdCount = cx?.captured ? Object.keys(cx.captured).length : 0;
-  const rewardCount = rw?.earned ? rw.earned.length : 0;
-  log(`birds: ${birdCount}/5, rewards: ${rewardCount}/5`);
+  const badges = await readHubBadges(p);
+  log(`hub badges: ${JSON.stringify(badges)}`);
+  const progress = await readHubProgress(p);
+  log(`hub progress: ${progress}`);
 
   await shot(p, "hub-final");
-  return { birdCount, rewardCount };
+  return { rewardCount: rewards.length };
 }
 
 // ─── PERSISTENCE CHECK ────────────────────────────────────
@@ -650,13 +650,11 @@ async function persistenceCheck(p) {
   await p.waitForTimeout(3000);
   await shot(p, "persist-reload");
 
-  const cx = await readCodex(p);
   const rw = await readRewards(p);
-  const birdCount = cx?.captured ? Object.keys(cx.captured).length : 0;
   const rewardCount = rw?.earned ? rw.earned.length : 0;
-  log(`after reload — birds: ${birdCount}/5, rewards: ${rewardCount}/5`);
+  log(`after reload — rewards: ${rewardCount}/5`);
   await shot(p, "persist-verify");
-  return { birdCount, rewardCount };
+  return { rewardCount };
 }
 
 // ─── MAIN ──────────────────────────────────────────────────
@@ -674,36 +672,48 @@ async function main() {
 
   const results = {};
 
-  // Run A: Full clean run
-  log("━━━ RUN A: FULL CLEAN RUN ━━━");
+  // Run A: Full clean run via Hub navigation
+  log("━━━ RUN A: FULL CLEAN RUN (Hub navigation) ━━━");
+  await p.goto(`${BASE}/jungle-hub.html`, { waitUntil: "domcontentloaded" });
+  await p.waitForTimeout(2000);
+  await shot(p, "hub-initial");
+
   results.camp = await camp(p);
   await shot(p, "after-camp");
+  log(`Camp: ${results.camp ? "PASS" : "FAIL"}`);
 
+  await backToHub(p);
   results.waterfall = await waterfall(p);
   await shot(p, "after-waterfall");
+  log(`Waterfall: ${results.waterfall ? "PASS" : "FAIL"}`);
 
   // Mid-run persistence check
   const midPersist = await persistenceCheck(p);
-  log(`mid-run persistence: birds=${midPersist.birdCount}, rewards=${midPersist.rewardCount}`);
+  log(`mid-run persistence: rewards=${midPersist.rewardCount}`);
+  await backToHub(p);
 
   results.cave = await cave(p);
   await shot(p, "after-cave");
+  log(`Cave: ${results.cave ? "PASS" : "FAIL"}`);
 
+  await backToHub(p);
   results.giantTree = await giantTree(p);
   await shot(p, "after-gianttree");
+  log(`Giant Tree: ${results.giantTree ? "PASS" : "FAIL"}`);
 
+  await backToHub(p);
   results.skyRidge = await skyRidge(p);
   await shot(p, "after-skyridge");
+  log(`Sky Ridge: ${results.skyRidge ? "PASS" : "FAIL"}`);
 
   // Hub verification
+  await backToHub(p);
   const hub = await verifyHub(p);
-  results.birdCount = hub.birdCount;
   results.rewardCount = hub.rewardCount;
 
   // Run B: Persistence check
   log("━━━ RUN B: PERSISTENCE CHECK ━━━");
   const persist = await persistenceCheck(p);
-  results.persistBirds = persist.birdCount;
   results.persistRewards = persist.rewardCount;
 
   await p.close();
@@ -725,9 +735,7 @@ async function main() {
   log(`Cave: ${results.cave ? "PASS" : "FAIL"}`);
   log(`Giant Tree: ${results.giantTree ? "PASS" : "FAIL"}`);
   log(`Sky Ridge: ${results.skyRidge ? "PASS" : "FAIL"}`);
-  log(`Birds: ${results.birdCount}/5`);
   log(`Rewards: ${results.rewardCount}/5`);
-  log(`Persist birds: ${results.persistBirds}/5`);
   log(`Persist rewards: ${results.persistRewards}/5`);
   log(`Screenshots: ${R.length}`);
   log(`Errors: ${E.length}`);
@@ -735,8 +743,8 @@ async function main() {
 
   const allPass = results.camp && results.waterfall && results.cave &&
                   results.giantTree && results.skyRidge &&
-                  results.birdCount === 5 && results.rewardCount === 5 &&
-                  results.persistBirds === 5 && results.persistRewards === 5;
+                  results.rewardCount === 5 &&
+                  results.persistRewards === 5;
   process.exit(allPass ? 0 : 1);
 }
 

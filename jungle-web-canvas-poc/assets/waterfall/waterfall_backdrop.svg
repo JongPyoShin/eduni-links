@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1200">
+<defs>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#c6ece2"/><stop offset=".28" stop-color="#92cfc3"/><stop offset=".7" stop-color="#4d8175"/><stop offset="1" stop-color="#244f49"/></linearGradient>
+  <linearGradient id="far" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#729f8c"/><stop offset="1" stop-color="#426b5d"/></linearGradient>
+  <linearGradient id="rock" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#8f9b87"/><stop offset=".48" stop-color="#657466"/><stop offset="1" stop-color="#3c5148"/></linearGradient>
+  <linearGradient id="rockDark" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#5e7568"/><stop offset="1" stop-color="#283f39"/></linearGradient>
+  <linearGradient id="water" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e8ffff"/><stop offset=".25" stop-color="#9ce7e3"/><stop offset=".68" stop-color="#47b8bb"/><stop offset="1" stop-color="#207789"/></linearGradient>
+  <linearGradient id="river" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#57c6c4"/><stop offset="1" stop-color="#176c79"/></linearGradient>
+  <radialGradient id="sun"><stop stop-color="#fff5bf" stop-opacity=".8"/><stop offset="1" stop-color="#fff2bd" stop-opacity="0"/></radialGradient>
+  <radialGradient id="mist"><stop stop-color="#efffff" stop-opacity=".75"/><stop offset="1" stop-color="#efffff" stop-opacity="0"/></radialGradient>
+  <filter id="blur8"><feGaussianBlur stdDeviation="8"/></filter>
+  <filter id="blur18"><feGaussianBlur stdDeviation="18"/></filter>
+  <filter id="shadow"><feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#0f312b" flood-opacity=".34"/></filter>
+  <pattern id="stoneMarks" width="58" height="54" patternUnits="userSpaceOnUse"><path d="M5 42 Q24 23 49 31" fill="none" stroke="#d2d6c5" stroke-width="3" opacity=".14"/><path d="M18 9 Q31 4 42 13" fill="none" stroke="#203c35" stroke-width="3" opacity=".12"/></pattern>
+</defs>
+
+<rect width="1600" height="1200" fill="url(#sky)"/>
+<circle cx="1160" cy="160" r="360" fill="url(#sun)"/>
+
+<!-- distant mountain silhouettes -->
+<path d="M0 430 L120 312 L215 356 L360 225 L490 352 L615 245 L775 375 L920 260 L1080 365 L1240 238 L1390 356 L1600 270 L1600 610 L0 610Z" fill="#688f7d" opacity=".38"/>
+<path d="M0 505 L180 350 L330 446 L505 322 L650 438 L800 308 L975 451 L1115 332 L1290 430 L1460 325 L1600 404 L1600 670 L0 670Z" fill="url(#far)" opacity=".58"/>
+<g fill="#d6f1e8" opacity=".28" filter="url(#blur18)"><ellipse cx="420" cy="382" rx="330" ry="62"/><ellipse cx="1060" cy="420" rx="390" ry="72"/></g>
+
+<!-- major left/right cliff walls -->
+<g filter="url(#shadow)">
+  <path d="M0 390 C160 360 270 410 365 522 C408 570 428 670 410 790 C286 806 166 845 0 940Z" fill="url(#rockDark)"/>
+  <path d="M1600 370 C1440 350 1326 398 1230 510 C1172 576 1146 680 1178 790 C1320 818 1450 860 1600 925Z" fill="url(#rockDark)"/>
+  <path d="M38 460 C145 418 252 455 321 536 C235 528 150 566 64 650Z" fill="#6d8170" opacity=".7"/>
+  <path d="M1560 448 C1454 414 1362 446 1288 530 C1378 521 1464 560 1542 642Z" fill="#6e8271" opacity=".7"/>
+  <path d="M0 390 C160 360 270 410 365 522 C408 570 428 670 410 790 C286 806 166 845 0 940Z" fill="url(#stoneMarks)"/>
+  <path d="M1600 370 C1440 350 1326 398 1230 510 C1172 576 1146 680 1178 790 C1320 818 1450 860 1600 925Z" fill="url(#stoneMarks)"/>
+</g>
+
+<!-- central waterfall amphitheatre -->
+<path d="M470 330 C620 275 794 255 960 286 C1090 310 1190 372 1238 472 L1167 730 C1016 784 847 797 650 762 C535 739 454 675 423 592Z" fill="url(#rock)" filter="url(#shadow)"/>
+<path d="M510 372 C640 333 758 329 876 351" fill="none" stroke="#a8b69b" stroke-width="22" stroke-linecap="round" opacity=".35"/>
+<path d="M920 342 C1046 354 1123 400 1162 457" fill="none" stroke="#a9b99e" stroke-width="18" stroke-linecap="round" opacity=".32"/>
+<g stroke="#324940" stroke-width="7" opacity=".42"><path d="M548 390L520 675"/><path d="M642 332L618 742"/><path d="M1038 340L1075 735"/><path d="M1140 406L1165 657"/></g>
+
+<!-- multi-tier water -->
+<path d="M697 318 C747 306 813 307 865 322 L850 606 C817 650 762 665 715 630Z" fill="url(#water)"/>
+<path d="M706 324 C730 405 723 500 712 581 C708 611 722 631 742 646" fill="none" stroke="#fff" stroke-width="20" stroke-linecap="round" opacity=".72"/>
+<path d="M766 318 C796 405 789 504 780 591 C777 618 789 641 807 651" fill="none" stroke="#f4ffff" stroke-width="30" stroke-linecap="round" opacity=".74"/>
+<path d="M830 323 C851 411 846 505 838 591 C835 616 843 637 858 648" fill="none" stroke="#c5f5f3" stroke-width="16" stroke-linecap="round" opacity=".74"/>
+<path d="M1004 433 C1032 424 1062 428 1086 440 L1077 615 C1044 637 1018 638 991 617Z" fill="url(#water)" opacity=".8"/>
+<path d="M590 475 C615 468 645 471 665 485 L657 590 C634 611 607 614 581 592Z" fill="url(#water)" opacity=".74"/>
+
+<!-- basin / river -->
+<ellipse cx="790" cy="676" rx="302" ry="103" fill="#55c5c3" opacity=".82"/>
+<path d="M532 690 C670 656 816 660 938 711 C1082 771 1178 866 1275 1025 C1102 1095 882 1120 655 1092 C512 1074 395 1026 292 944 C405 848 474 764 532 690Z" fill="url(#river)" opacity=".92"/>
+<g fill="none" stroke="#d5ffff" stroke-linecap="round" opacity=".38"><path d="M457 818 Q625 754 782 815" stroke-width="9"/><path d="M600 932 Q782 874 970 947" stroke-width="7"/><path d="M736 1025 Q891 992 1082 1035" stroke-width="6"/></g>
+<g fill="#e9ffff" opacity=".48"><ellipse cx="731" cy="685" rx="235" ry="70"/><ellipse cx="1008" cy="618" rx="82" ry="42"/></g>
+<g fill="url(#mist)" filter="url(#blur8)"><ellipse cx="790" cy="662" rx="300" ry="120"/><ellipse cx="1028" cy="610" rx="130" ry="62"/><ellipse cx="616" cy="593" rx="115" ry="54"/></g>
+
+<!-- lush canopy masses -->
+<g fill="#173f34"><circle cx="30" cy="365" r="165"/><circle cx="142" cy="325" r="126"/><circle cx="262" cy="365" r="108"/><circle cx="1570" cy="350" r="160"/><circle cx="1455" cy="315" r="122"/><circle cx="1340" cy="365" r="112"/></g>
+<g fill="#23533d"><circle cx="70" cy="500" r="118"/><circle cx="188" cy="474" r="95"/><circle cx="316" cy="500" r="88"/><circle cx="1520" cy="494" r="118"/><circle cx="1400" cy="468" r="94"/><circle cx="1283" cy="495" r="86"/></g>
+<g fill="#36714a"><circle cx="330" cy="410" r="62"/><circle cx="412" cy="430" r="58"/><circle cx="1190" cy="408" r="60"/><circle cx="1270" cy="430" r="56"/></g>
+<g fill="#6f9f58" opacity=".84"><circle cx="390" cy="454" r="32"/><circle cx="452" cy="474" r="30"/><circle cx="1155" cy="456" r="34"/><circle cx="1218" cy="474" r="31"/></g>
+
+<!-- moss edges -->
+<g fill="#628a4d"><path d="M398 560 Q450 522 512 545 Q472 587 415 595Z"/><path d="M1105 528 Q1160 510 1219 548 Q1171 582 1114 579Z"/><path d="M553 720 Q617 690 680 718 Q627 756 569 760Z"/><path d="M926 724 Q991 694 1055 728 Q999 759 942 763Z"/></g>
+
+<!-- tree trunks framing -->
+<g stroke="#5a3b2a" stroke-linecap="round" fill="none"><path d="M85 -40 C160 175 142 355 63 570" stroke-width="50"/><path d="M1515 -40 C1445 168 1456 352 1538 568" stroke-width="50"/><path d="M0 76 C165 87 268 134 356 225" stroke-width="30"/><path d="M1600 72 C1440 90 1333 137 1245 228" stroke-width="30"/></g>
+<g stroke="#7b5334" stroke-width="9" opacity=".45"><path d="M77 8 C122 190 108 350 60 496"/><path d="M1521 4 C1477 190 1490 350 1538 496"/></g>
+<g fill="#173f2c"><ellipse cx="138" cy="110" rx="205" ry="78" transform="rotate(-18 138 110)"/><ellipse cx="1460" cy="112" rx="210" ry="80" transform="rotate(18 1460 112)"/><ellipse cx="40" cy="240" rx="160" ry="62" transform="rotate(-28 40 240)"/><ellipse cx="1560" cy="245" rx="160" ry="62" transform="rotate(28 1560 245)"/></g>
+
+<!-- vines -->
+<g stroke="#477344" stroke-width="9" fill="none" stroke-linecap="round"><path d="M275 32 Q300 145 260 275"/><path d="M330 70 Q348 173 316 292"/><path d="M1325 35 Q1298 148 1343 277"/><path d="M1278 70 Q1255 175 1288 294"/></g>
+<g fill="#699a55"><ellipse cx="276" cy="118" rx="27" ry="10" transform="rotate(-35 276 118)"/><ellipse cx="262" cy="190" rx="26" ry="10" transform="rotate(30 262 190)"/><ellipse cx="1327" cy="122" rx="27" ry="10" transform="rotate(35 1327 122)"/><ellipse cx="1340" cy="194" rx="26" ry="10" transform="rotate(-30 1340 194)"/></g>
+
+<!-- flowers and tiny lights -->
+<g fill="#d88cab"><circle cx="350" cy="690" r="9"/><circle cx="385" cy="710" r="7"/><circle cx="1225" cy="700" r="9"/><circle cx="1265" cy="722" r="7"/></g>
+<g fill="#f2c665"><circle cx="368" cy="675" r="7"/><circle cx="1210" cy="684" r="7"/><circle cx="1140" cy="775" r="6"/></g>
+<g fill="#8e78c7"><circle cx="405" cy="735" r="7"/><circle cx="1185" cy="742" r="7"/></g>
+<g fill="#fff3a8" opacity=".62"><circle cx="520" cy="512" r="4"/><circle cx="1090" cy="490" r="4"/><circle cx="466" cy="620" r="3"/><circle cx="1150" cy="635" r="3"/></g>
+
+<!-- subtle sun shafts -->
+<g fill="#fff2bb" opacity=".1"><path d="M1010 0 L1230 0 L890 820 L760 820Z"/><path d="M1220 0 L1350 0 L1080 700 L990 700Z"/></g>
+
+<!-- lower dark framing so foreground props blend in -->
+<path d="M0 1010 C220 934 410 963 575 1088 L575 1200 L0 1200Z" fill="#12372e" opacity=".92"/>
+<path d="M1600 1010 C1380 934 1190 963 1025 1088 L1025 1200 L1600 1200Z" fill="#12372e" opacity=".92"/>
+</svg>

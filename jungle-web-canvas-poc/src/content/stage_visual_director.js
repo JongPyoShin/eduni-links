@@ -1,0 +1,97 @@
+import { getStageVisualPhase } from "./stage_manifest.js";
+import { getGiantTreeVisualPhase } from "./giant_tree_visuals.js";
+import { getSkyRidgeVisualPhase } from "./sky_ridge_visuals.js";
+
+const PHASE_CACHE = new Map();
+
+function phaseSource(stageId, phaseId) {
+  if (stageId === "giantTree") return getGiantTreeVisualPhase(phaseId);
+  if (stageId === "skyRidge") return getSkyRidgeVisualPhase(phaseId);
+  return getStageVisualPhase(stageId, phaseId);
+}
+
+function withPhase(stageId, phaseId) {
+  const key = `${stageId}:${phaseId}`;
+  if (PHASE_CACHE.has(key)) return PHASE_CACHE.get(key);
+  const visual = phaseSource(stageId, phaseId);
+  if (!visual) throw new Error(`Unknown visual phase ${stageId}:${phaseId}`);
+  const resolved = Object.freeze({ stageId, phaseId, ...visual });
+  PHASE_CACHE.set(key, resolved);
+  return resolved;
+}
+
+export function campVisualPhase(state, sequence = {}) {
+  if (state?.bluebirdComplete) return withPhase("camp", "reward");
+  if (state?.clueQuizzesComplete) {
+    const ridgeComplete = Boolean(sequence?.ridgeArrivalPlayed);
+    return withPhase("camp", ridgeComplete ? "bluebird" : "ridge");
+  }
+  const clues = state?.discoveredClues || [];
+  if (clues.length >= 3) return withPhase("camp", "firePit");
+  if (!state?.questStarted) return withPhase("camp", "hut");
+  if (clues.length === 0) return withPhase("camp", "feather");
+  if (clues.length === 1) return withPhase("camp", "footprints");
+  return withPhase("camp", "birdcall");
+}
+
+export function waterfallVisualPhase(state) {
+  const clues = state?.adventure?.discoveredClues || [];
+  if (state?.rewardComplete) return withPhase("waterfall", "complete");
+  if (state?.adventure?.birdComplete) return withPhase("waterfall", "reward");
+  if (state?.lookoutComplete) return withPhase("waterfall", "kingfisher");
+  if (state?.adventure?.clueQuizzesComplete) return withPhase("waterfall", "lookout");
+  if (clues.includes("echo") && clues.includes("mistTrail") && clues.includes("waterDrops")) return withPhase("waterfall", "lookout");
+  if (clues.includes("echo") && clues.includes("mistTrail")) return withPhase("waterfall", "waterDrops");
+  if (clues.includes("echo")) return withPhase("waterfall", "mistTrail");
+  if (state?.steppingStonesComplete) return withPhase("waterfall", "echo");
+  if (state?.streamGateComplete) return withPhase("waterfall", "steppingStones");
+  return withPhase("waterfall", "streamGate");
+}
+
+export function caveVisualPhase(state) {
+  const clues = state?.discoveredClues || [];
+  if (state?.rewardComplete) return withPhase("cave", "complete");
+  if (state?.batComplete) return withPhase("cave", "reward");
+  if (state?.crystalBridgeComplete) return withPhase("cave", "bat");
+  if (state?.fireflyPatternComplete) return withPhase("cave", "crystalBridge");
+  if (clues.includes("echoCrystal") && clues.includes("shadowMark")) return withPhase("cave", "fireflyPattern");
+  if (clues.includes("echoCrystal")) return withPhase("cave", "shadowMark");
+  if (state?.glowTrailComplete) return withPhase("cave", "echoCrystal");
+  if (state?.caveGateComplete) return withPhase("cave", "glowTrail");
+  return withPhase("cave", "caveGate");
+}
+
+export function giantTreeVisualPhase(state) {
+  const clues = state?.discoveredClues || [];
+  if (state?.rewardComplete) return withPhase("giantTree", "complete");
+  if (state?.squirrelComplete) return withPhase("giantTree", "reward");
+  if (state?.canopyStairsComplete) return withPhase("giantTree", "squirrel");
+  if (state?.treeRingComplete) return withPhase("giantTree", "canopyStairs");
+  if (clues.includes("hollowEcho")) return withPhase("giantTree", "treeRing");
+  if (clues.includes("seedTrail")) return withPhase("giantTree", "hollowEcho");
+  if (clues.includes("barkPattern")) return withPhase("giantTree", "seedTrail");
+  if (state?.rootGateComplete) return withPhase("giantTree", "barkPattern");
+  return withPhase("giantTree", "rootGate");
+}
+
+export function skyRidgeVisualPhase(state) {
+  const clues = state?.adventure?.discoveredClues || [];
+  if (state?.rewardComplete) return withPhase("skyRidge", "complete");
+  if (state?.adventure?.birdComplete) return withPhase("skyRidge", "reward");
+  if (state?.summitBridgeComplete) return withPhase("skyRidge", "hawk");
+  if (state?.adventure?.clueQuizzesComplete) return withPhase("skyRidge", "summitBridge");
+  if (clues.includes("windChime")) return withPhase("skyRidge", "summitBridge");
+  if (clues.includes("cloudShadow")) return withPhase("skyRidge", "windChime");
+  if (clues.includes("windRibbon")) return withPhase("skyRidge", "cloudShadow");
+  if (state?.skyGateComplete) return withPhase("skyRidge", "windRibbon");
+  return withPhase("skyRidge", "skyGate");
+}
+
+export function stageVisualPhase(stageId, state, context = {}) {
+  if (stageId === "camp") return campVisualPhase(state, context.sequence);
+  if (stageId === "waterfall") return waterfallVisualPhase(state);
+  if (stageId === "cave") return caveVisualPhase(state);
+  if (stageId === "giantTree") return giantTreeVisualPhase(state);
+  if (stageId === "skyRidge") return skyRidgeVisualPhase(state);
+  throw new Error(`Unknown stage visual director: ${stageId}`);
+}

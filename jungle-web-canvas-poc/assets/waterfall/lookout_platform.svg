@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 360">
+<defs>
+  <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#a87847"/><stop offset="1" stop-color="#5b3d2a"/></linearGradient>
+  <linearGradient id="stone" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#87917e"/><stop offset="1" stop-color="#48584e"/></linearGradient>
+  <filter id="sh"><feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#102d25" flood-opacity=".45"/></filter>
+</defs>
+<g filter="url(#sh)">
+  <ellipse cx="272" cy="319" rx="198" ry="25" fill="#163a30" opacity=".35"/>
+  <path d="M70 266 Q165 235 263 240 Q366 242 459 268 L433 320 Q264 336 95 316Z" fill="url(#stone)"/>
+  <path d="M90 258 Q180 220 275 225 Q374 225 445 256 L414 285 Q273 299 112 282Z" fill="#6f805e"/>
+  <path d="M116 235 L402 235 L437 275 L94 275Z" fill="url(#wood)" stroke="#4a3022" stroke-width="5"/>
+  <g stroke="#d1a36a" stroke-width="3" opacity=".45"><path d="M135 246L382 246"/><path d="M150 258L401 258"/></g>
+  <g fill="#69472f">
+    <rect x="112" y="137" width="13" height="105" rx="5"/><rect x="396" y="137" width="13" height="105" rx="5"/><rect x="198" y="154" width="12" height="82" rx="5"/><rect x="311" y="154" width="12" height="82" rx="5"/>
+  </g>
+  <g stroke="#a87948" stroke-width="9" stroke-linecap="round"><path d="M118 156 Q258 122 403 156"/><path d="M119 190 Q258 161 402 191"/></g>
+  <g stroke="#d7b377" stroke-width="3" fill="none"><path d="M118 165 Q258 137 403 165"/><path d="M120 199 Q258 173 400 200"/></g>
+  <g fill="#487248"><ellipse cx="112" cy="176" rx="27" ry="10" transform="rotate(-20 112 176)"/><ellipse cx="405" cy="178" rx="28" ry="10" transform="rotate(20 405 178)"/><ellipse cx="195" cy="172" rx="24" ry="9" transform="rotate(-18 195 172)"/></g>
+  <g fill="#f0c86b"><circle cx="128" cy="211" r="6"/><circle cx="385" cy="214" r="6"/><circle cx="214" cy="226" r="5"/></g>
+  <g fill="#db91b1"><circle cx="143" cy="219" r="6"/><circle cx="367" cy="221" r="5"/></g>
+  <path d="M79 277 Q49 243 62 207" fill="none" stroke="#3e6a3c" stroke-width="7" stroke-linecap="round"/><path d="M445 278 Q478 247 466 208" fill="none" stroke="#3e6a3c" stroke-width="7" stroke-linecap="round"/>
+  <g fill="#5d8b53"><ellipse cx="61" cy="218" rx="30" ry="11" transform="rotate(-50 61 218)"/><ellipse cx="472" cy="221" rx="30" ry="11" transform="rotate(50 472 221)"/></g>
+  <path d="M248 228 Q260 202 272 228" fill="none" stroke="#d6b16f" stroke-width="4"/><circle cx="260" cy="199" r="14" fill="#ffd878" opacity=".78"/><circle cx="260" cy="199" r="30" fill="#ffd878" opacity=".12"/>
+</g></svg>

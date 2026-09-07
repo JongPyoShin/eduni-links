@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta http-equiv="cache-control" content="no-store" />
+    <title>EDUNI Jungle — 탐험 지도</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; background: linear-gradient(#18352c,#10261f); color: #f7ffe9; font-family: system-ui,sans-serif; }
+      body { min-height: 100vh; padding: 18px; }
+      .wrap { width: min(980px,100%); margin: 0 auto; }
+      h1 { margin: 4px 0 3px; font-size: clamp(26px,5vw,42px); }
+      .lead { margin: 0 0 16px; color: #dceecb; }
+      .badges { display: flex; gap: 9px; flex-wrap: wrap; margin-bottom: 18px; padding: 12px; border-radius: 16px; background: rgba(6,22,16,.36); border: 1px solid rgba(213,240,180,.22); }
+      .badge { display: flex; align-items: center; gap: 7px; padding: 7px 10px; border-radius: 999px; background: rgba(255,255,255,.09); color: #aebca7; font-weight: 800; }
+      .badge.earned { color: #fff6c0; background: rgba(223,184,70,.2); border: 1px solid rgba(255,224,126,.42); }
+      .grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+      .card { position: relative; min-height: 220px; overflow: hidden; border-radius: 22px; padding: 18px; border: 1px solid rgba(235,255,218,.22); box-shadow: 0 12px 30px rgba(0,0,0,.22); display: flex; flex-direction: column; justify-content: flex-end; }
+      .card h2 { margin: 0 0 5px; font-size: 23px; }
+      .card p { margin: 0 0 12px; color: rgba(248,255,240,.78); line-height: 1.45; }
+      .card a { align-self: flex-start; text-decoration: none; padding: 10px 13px; border-radius: 12px; background: rgba(255,255,255,.9); color: #17382e; font-weight: 900; }
+      .camp { background: radial-gradient(circle at 25% 20%,rgba(255,210,110,.34),transparent 30%), linear-gradient(145deg,#506b31,#2e4728); }
+      .waterfall { background: radial-gradient(circle at 75% 15%,rgba(202,250,255,.28),transparent 28%), linear-gradient(145deg,#216f79,#294e62); }
+      .cave { background: radial-gradient(circle at 70% 25%,rgba(204,255,113,.28),transparent 26%), radial-gradient(circle at 30% 38%,rgba(113,224,255,.2),transparent 20%), linear-gradient(145deg,#302d59,#20263d); }
+      .tree { background: radial-gradient(circle at 50% 10%,rgba(255,224,120,.25),transparent 24%), linear-gradient(145deg,#6d4d27,#314a29); }
+      .sky { background: radial-gradient(circle at 62% 14%,rgba(255,235,157,.28),transparent 24%), radial-gradient(circle at 22% 26%,rgba(217,243,255,.24),transparent 28%), linear-gradient(145deg,#5e86a0,#536986); }
+      .locked::after { content:attr(data-lock); position:absolute; top:14px; right:14px; padding:6px 9px; border-radius:999px; background:rgba(15,20,15,.55); font-size:12px; font-weight:850; color:#fbe7ac; }
+      .locked a { opacity:.42; pointer-events:none; }
+      .progress { margin-top: 16px; font-weight: 850; color: #e8f7d8; }
+      @media (max-width:700px) { .grid { grid-template-columns:1fr; } .card { min-height:190px; } }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <h1>정글 탐험 지도</h1>
+      <p class="lead">탐험 배지를 차례로 모아 마지막 하늘 능선까지 올라가 보자!</p>
+      <section class="badges" id="badges" aria-label="탐험 배지"></section>
+      <section class="grid">
+        <article class="card camp"><h2>🌿 숲속 탐험 캠프</h2><p>오두막에서 출발해 단서를 모으고 능선의 파랑새를 찾아가자.</p><a href="./?renderer=three">탐험 시작</a></article>
+        <article class="card waterfall"><h2>💦 안개 폭포</h2><p>물소리와 안개 흔적을 따라 전망대의 물총새를 관찰하자.</p><a href="./?stage=waterfall&amp;renderer=three">탐험 시작</a></article>
+        <article class="card cave"><h2>✨ 반딧불 동굴</h2><p>빛의 순서를 기억하고 수정 다리를 건너 작은 박쥐를 만나자.</p><a href="./cave-game.html">탐험 시작</a></article>
+        <article class="card tree locked" data-lock="배지 3개 필요" id="giant-tree-card"><h2>🌳 거대한 고목</h2><p>나무껍질과 도토리 흔적을 따라 나이테를 관찰하고, 나선 계단 위 다람쥐를 만나자.</p><a href="./giant-tree-game.html">탐험 시작</a></article>
+        <article class="card sky locked" data-lock="고목 씨앗 배지 필요" id="sky-ridge-card"><h2>☁️ 하늘 능선</h2><p>바람 리본과 구름 그림자를 따라 정상의 하늘매를 만나 마지막 하늘별 배지를 얻자.</p><a href="./sky-ridge-game.html">최종 탐험</a></article>
+      </section>
+      <div class="progress" id="progress"></div>
+    </main>
+    <script type="module">
+      import { STAGE_REWARDS, hasStageReward, loadRewardCollection } from "./src/content/stage_rewards.js";
+      const collection = loadRewardCollection();
+      const container = document.querySelector("#badges");
+      const stageOrder = ["camp","waterfall","cave","giantTree","skyRidge"];
+      const giantTreePrerequisites = ["camp","waterfall","cave"];
+      let earnedCount = 0;
+      for (const stageId of stageOrder) {
+        const reward = STAGE_REWARDS[stageId];
+        const earned = hasStageReward(collection, stageId);
+        if (earned) earnedCount += 1;
+        const el = document.createElement("div");
+        el.className = `badge${earned ? " earned" : ""}`;
+        el.textContent = `${reward.icon} ${earned ? reward.name : "??? 배지"}`;
+        container.append(el);
+      }
+      const giantTreeUnlocked = giantTreePrerequisites.every((stageId) => hasStageReward(collection, stageId));
+      const skyRidgeUnlocked = hasStageReward(collection, "giantTree");
+      if (giantTreeUnlocked) document.querySelector("#giant-tree-card").classList.remove("locked");
+      if (skyRidgeUnlocked) document.querySelector("#sky-ridge-card").classList.remove("locked");
+      const finalComplete = hasStageReward(collection, "skyRidge");
+      document.querySelector("#progress").textContent = finalComplete
+        ? `배지 ${earnedCount} / ${stageOrder.length} · 정글 탐험 완주!`
+        : `배지 ${earnedCount} / ${stageOrder.length}${skyRidgeUnlocked ? " · 하늘 능선 OPEN!" : giantTreeUnlocked ? " · 거대한 고목 OPEN" : " · 앞의 3개를 모으면 거대한 고목 OPEN"}`;
+    </script>
+  </body>
+</html>

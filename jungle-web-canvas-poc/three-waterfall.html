@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>EDUNI Jungle — Three.js Waterfall Preview</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #173b35; font-family: system-ui, sans-serif; }
+      #three-waterfall { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+      #preview-ui { position: fixed; inset: 0; pointer-events: none; color: #f8ffe9; }
+      #title-card { position: absolute; top: 16px; left: 16px; max-width: min(410px, calc(100vw - 32px)); padding: 12px 15px; border-radius: 16px; background: rgba(14,45,36,.76); border: 1px solid rgba(222,247,200,.38); box-shadow: 0 8px 28px rgba(0,0,0,.22); backdrop-filter: blur(8px); }
+      #title-card strong { display: block; font-size: 17px; margin-bottom: 4px; }
+      #title-card span { color: #d7eac8; font-size: 12px; line-height: 1.45; }
+      #status { position: absolute; left: 16px; bottom: 16px; padding: 8px 11px; border-radius: 12px; background: rgba(11,33,30,.72); border: 1px solid rgba(199,235,218,.28); color: #dff7ed; font-size: 12px; }
+      #hint { position: absolute; right: 16px; bottom: 16px; padding: 8px 11px; border-radius: 12px; background: rgba(11,33,30,.65); color: #dff7ed; font-size: 12px; }
+      #back { pointer-events: auto; position: absolute; top: 16px; right: 16px; border: 0; border-radius: 12px; padding: 9px 12px; color: #173d31; background: rgba(245,255,235,.88); font-weight: 800; cursor: pointer; }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./node_modules/three/build/three.module.js",
+          "three/addons/loaders/DRACOLoader.js": "./src/local_draco_loader.js",
+          "three/addons-local/": "./node_modules/three/examples/jsm/",
+          "three/addons/": "./node_modules/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="three-waterfall"></canvas>
+    <div id="preview-ui">
+      <div id="title-card">
+        <strong>안개 폭포 · Three.js 2.5D Preview</strong>
+        <span>기존 Waterfall gameplay/state/geometry를 유지한 채, 3D 환경 렌더러와 threejsassets GLB를 검증하기 위한 독립 PoC.</span>
+      </div>
+      <button id="back" type="button">Canvas 버전</button>
+      <div id="status">Three.js 초기화 중…</div>
+      <div id="hint">드래그: 시점 · 휠/핀치: 확대</div>
+    </div>
+
+    <script type="module">
+      import { startThreeWaterfallPreview } from "./src/three_waterfall_preview.js";
+      const canvas = document.querySelector("#three-waterfall");
+      const status = document.querySelector("#status");
+      document.querySelector("#back").addEventListener("click", () => {
+        location.href = "./?stage=waterfall";
+      });
+      startThreeWaterfallPreview(canvas, status).catch((error) => {
+        console.error(error);
+        status.textContent = `Three.js preview failed: ${error?.message || error}`;
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta http-equiv="cache-control" content="no-store" />
+    <title>EDUNI Jungle — Cave QA</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #111827; font-family: system-ui, sans-serif; }
+      #game { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; }
+      #qa { position: fixed; top: 12px; right: 12px; z-index: 50; width: min(330px, calc(100vw - 24px)); padding: 10px 12px; border-radius: 12px; color: #ecfeff; background: rgba(8,15,30,.86); border: 1px solid rgba(103,232,249,.35); box-shadow: 0 8px 28px rgba(0,0,0,.35); pointer-events: none; font-size: 12px; line-height: 1.5; }
+      #qa strong { color: #fde68a; }
+      #qa .ok { color: #86efac; }
+      #qa .warn { color: #fca5a5; }
+      #qa .row { display: flex; justify-content: space-between; gap: 10px; }
+      #qa .objective { margin-top: 5px; color: #dbeafe; }
+      #qa .hint { margin-top: 6px; color: #a5f3fc; }
+    </style>
+  </head>
+  <body>
+    <iframe id="game" src="./cave-game.html?v=qa-overlay-1" title="반딧불 동굴 게임"></iframe>
+    <div id="qa">
+      <div><strong>READ-ONLY QA</strong> · 실제 입력만 사용</div>
+      <div class="row"><span>phase</span><span id="phase">boot</span></div>
+      <div class="row"><span>player</span><span id="player">-</span></div>
+      <div class="row"><span>target</span><span id="target">-</span></div>
+      <div class="row"><span>distance</span><span id="distance">-</span></div>
+      <div class="row"><span>reward</span><span id="reward">미획득</span></div>
+      <div class="objective" id="objective">게임 로딩 중…</div>
+      <div class="hint">목표 근처에서 A/Enter. 이 화면은 좌표/상태를 읽기만 하며 게임 state를 변경하지 않습니다.</div>
+    </div>
+    <script type="module">
+      import { caveInteractables } from "./src/content/cave_interactables.js";
+      import { hasStageReward, loadRewardCollection } from "./src/content/stage_rewards.js";
+
+      const frame = document.querySelector("#game");
+      const els = Object.fromEntries(["phase","player","target","distance","reward","objective"].map((id) => [id, document.querySelector(`#${id}`)]));
+
+      function fmt(value) { return Number.isFinite(value) ? Math.round(value) : "-"; }
+
+      function update() {
+        try {
+          const win = frame.contentWindow;
+          const game = win?.__eduniCaveGame;
+          const doc = frame.contentDocument;
+          if (!game || !doc) return;
+          const state = game.getState();
+          const player = game.player;
+          const target = caveInteractables(state)[0] || null;
+          els.phase.textContent = game.getPhase();
+          els.player.textContent = `${fmt(player.x)}, ${fmt(player.y)}`;
+          if (target) {
+            const distance = Math.hypot(player.x - target.x, player.y - target.y);
+            els.target.textContent = `${target.label} (${target.x}, ${target.y})`;
+            els.distance.textContent = `${Math.round(distance)} / r${target.radius}`;
+            els.distance.className = distance <= target.radius ? "ok" : "";
+          } else {
+            els.target.textContent = "완료";
+            els.distance.textContent = "0";
+            els.distance.className = "ok";
+          }
+          const objective = doc.querySelector("#objective-hud")?.textContent || "";
+          const modalTitle = doc.querySelector("#modal-title")?.textContent || "";
+          const modalBody = doc.querySelector("#modal-body")?.textContent || "";
+          els.objective.textContent = [objective, modalTitle, modalBody].filter(Boolean).join(" · ");
+          const earned = hasStageReward(loadRewardCollection(win.localStorage), "cave");
+          els.reward.textContent = earned ? "반딧불 수정 배지 획득" : "미획득";
+          els.reward.className = earned ? "ok" : "";
+        } catch (error) {
+          els.objective.textContent = `QA 읽기 실패: ${error?.message || error}`;
+          els.objective.className = "objective warn";
+        }
+      }
+
+      frame.addEventListener("load", () => setInterval(update, 120));
+    </script>
+  </body>
+</html>

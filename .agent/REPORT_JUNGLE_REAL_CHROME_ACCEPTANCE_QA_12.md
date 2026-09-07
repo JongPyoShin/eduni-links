@@ -4,7 +4,7 @@
 `5f78960` (docs: add real Chrome acceptance QA prompt 12)
 
 ## 2. FINAL HEAD
-`<pending commit>`
+`77205a5` (Chrome acceptance QA: Run A/B/C PASS, 149 screenshots, 201 tests, 0 errors)
 
 ## 3. Browser
 Google Chrome, headed mode (`channel: "chrome"`, `headless: false`)

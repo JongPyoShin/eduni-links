@@ -34,6 +34,8 @@ import { nearestWaterfallInteractable, waterfallInteractables } from "./content/
 import { WATERFALL_ART_IMAGES } from "./waterfall_art_manifest.js";
 import { stageReward, awardAndSaveStageReward } from "./content/stage_rewards.js";
 import { campVisualPhase, waterfallVisualPhase } from "./content/stage_visual_director.js";
+import { pickStageQuestions } from "./content/stage_quiz_pools.js";
+import { getUsedQuestionIds, markQuestionsUsed } from "./content/bird_quiz.js";
 
 export async function start(canvas, modalEl) {
   const ctx = canvas.getContext("2d");
@@ -196,19 +198,20 @@ export async function start(canvas, modalEl) {
     if (punch) camera.punch(punch, now);
   }
 
-  function openClueWithQuiz(clueId, clueDefs, getQuizIdFn, discoveredCount, totalCount) {
+  function openClueWithQuiz(clueId, clueDefs, stageId, discoveredCount, totalCount) {
     const clue = clueDefs.find((c) => c.id === clueId);
     if (!clue) return;
-    const quizId = getQuizIdFn(clueId);
-    const quizQuestion = BIRD_QUIZ_BANK.find((q) => q.id === quizId);
-    if (!quizQuestion) return;
-    birdQuiz = createBirdQuizSession("clue_" + clueId, [quizQuestion], Math.random);
+    const usedIds = getUsedQuestionIds();
+    const questions = pickStageQuestions(stageId, BIRD_QUIZ_BANK, usedIds, Math.random);
+    if (!questions.length) return;
+    birdQuiz = createBirdQuizSession("clue_" + clueId, questions, Math.random);
+    const q = questions[0];
     panel.openPanel({
       kind: "clueQuiz",
       clueId,
       title: clue.title,
-      body: (clue.fact || clue.objective) + "\n\n" + quizQuestion.question,
-      choices: quizQuestion.choices.map((c) => ({ id: c.id, label: c.label })),
+      body: (clue.fact || clue.objective) + "\n\n" + q.question,
+      choices: q.choices.map((c) => ({ id: c.id, label: c.label })),
       choiceMode: "single",
       progress: `흔적 ${discoveredCount + 1} / ${totalCount}`,
       confirmLabel: "답하기",
@@ -262,7 +265,7 @@ export async function start(canvas, modalEl) {
         return;
       } else if (waterfall.adventure.clueIds.includes(item.type)) {
         const discovered = waterfall.adventure.discoveredClues.length;
-        openClueWithQuiz(item.id, WATERFALL_CLUES, (id) => getWaterfallClueQuizId(waterfall, id), discovered, WATERFALL_CLUES.length);
+        openClueWithQuiz(item.id, WATERFALL_CLUES, "waterfall", discovered, WATERFALL_CLUES.length);
       } else {
         panel.openPanel({ kind: item.type, title: item.label, body: waterfallObjective(waterfall), confirmLabel: "계속" });
       }
@@ -288,7 +291,7 @@ export async function start(canvas, modalEl) {
       }
     } else {
       const discovered = chapter.discoveredClues.length;
-      openClueWithQuiz(item.id, CLUES, (id) => getClueQuizId(chapter, id), discovered, CLUES.length);
+      openClueWithQuiz(item.id, CLUES, "camp", discovered, CLUES.length);
     }
     updateUi();
   }
@@ -300,6 +303,9 @@ export async function start(canvas, modalEl) {
         if (!birdQuiz || birdQuiz.complete) return;
         const answer = answerBirdQuiz(birdQuiz, result.choice.id);
         birdQuiz = answer.session;
+        if (answer.complete) {
+          markQuestionsUsed(birdQuiz.questions.map((q) => q.id));
+        }
         if (!answer.correct) {
           cue("wrong", "soft-burst", 920, 820, ts || 0, 1);
           panel.setResponse(`아쉬워! ${answer.lastAnswer?.explanation || "다시 생각해 보자!"}`, "gentle");

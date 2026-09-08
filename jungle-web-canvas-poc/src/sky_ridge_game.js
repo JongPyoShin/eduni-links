@@ -27,6 +27,8 @@ import { skyRidgeLogicalToThree, startThreeSkyRidgePreview } from "./three_sky_r
 import { BIRD_QUIZ_BANK } from "./content/bird_quiz_bank.js";
 import { createBirdQuizSession, currentQuestion, answerBirdQuiz, isQuizComplete, isCaptureSuccess } from "./content/bird_quiz.js";
 import { loadBirdCodex, saveBirdCodex, captureBird, hasCapturedBird } from "./content/bird_codex.js";
+import { pickStageQuestions } from "./content/stage_quiz_pools.js";
+import { getUsedQuestionIds, markQuestionsUsed } from "./content/bird_quiz.js";
 
 function setObjective(text) {
   const hud = document.querySelector("#objective-hud");
@@ -128,16 +130,17 @@ export async function startSkyRidgeGame(canvas, modalEl, statusEl) {
   function openClueQuiz(clueId) {
     const clue = SKY_RIDGE_CLUES.find((c) => c.id === clueId);
     if (!clue) return;
-    const quizId = getSkyRidgeClueQuizId(sky, clueId);
-    const quizQuestion = BIRD_QUIZ_BANK.find((q) => q.id === quizId);
-    if (!quizQuestion) return;
-    birdQuiz = createBirdQuizSession("clue_" + clueId, [quizQuestion], Math.random);
+    const usedIds = getUsedQuestionIds();
+    const questions = pickStageQuestions("skyRidge", BIRD_QUIZ_BANK, usedIds, Math.random);
+    if (!questions.length) return;
+    birdQuiz = createBirdQuizSession("clue_" + clueId, questions, Math.random);
+    const q = questions[0];
     panel.openPanel({
       kind: "clueQuiz",
       clueId,
       title: clue.title,
-      body: clue.objective + "\n\n" + quizQuestion.question,
-      choices: quizQuestion.choices.map((c) => ({ id: c.id, label: c.label })),
+      body: clue.objective + "\n\n" + q.question,
+      choices: q.choices.map((c) => ({ id: c.id, label: c.label })),
       choiceMode: "single",
       progress: `흔적 ${sky.adventure.discoveredClues.length + 1} / ${SKY_RIDGE_CLUES.length}`,
       confirmLabel: "답하기",
@@ -209,6 +212,9 @@ export async function startSkyRidgeGame(canvas, modalEl, statusEl) {
         if (!birdQuiz || birdQuiz.complete) return;
         const answer = answerBirdQuiz(birdQuiz, result.choice.id);
         birdQuiz = answer.session;
+        if (answer.complete) {
+          markQuestionsUsed(birdQuiz.questions.map((q) => q.id));
+        }
         if (!answer.correct) {
           audio.play("wrong");
           panel.setResponse(`아쉬워! ${answer.lastAnswer?.explanation || "다시 생각해 보자!"}`, "gentle");

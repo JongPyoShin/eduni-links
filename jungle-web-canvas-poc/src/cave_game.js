@@ -7,13 +7,11 @@ import { frameDelta } from "./loop.js";
 import { AudioManager } from "./audio.js";
 import { ContentPanelController, renderContentPanel } from "./content/content_panel.js";
 import {
-  FIREFLY_PATTERN_ROUNDS,
   createCaveState,
   caveObjective,
   completeCaveGate,
   completeGlowTrail,
   collectCaveClue,
-  answerFireflyPatternRound,
   completeCrystalBridge,
   completeCaveBat,
   completeCaveReward,
@@ -22,12 +20,9 @@ import { nearestCaveInteractable } from "./content/cave_interactables.js";
 import { caveVisualPhase } from "./content/stage_visual_director.js";
 import { stageReward, awardAndSaveStageReward } from "./content/stage_rewards.js";
 import { caveLogicalToThree, startThreeCavePreview } from "./three_cave_preview.js";
-
-const PATTERN_LABELS = Object.freeze({ amber: "호박빛", cyan: "하늘빛", lime: "연두빛" });
-
-function patternLabel(id) {
-  return String(id).split("-").map((part) => PATTERN_LABELS[part] || part).join(" → ");
-}
+import { BIRD_QUIZ_BANK } from "./content/bird_quiz_bank.js";
+import { createBirdQuizSession, currentQuestion, answerBirdQuiz, isQuizComplete, isCaptureSuccess, getUsedQuestionIds, markQuestionsUsed } from "./content/bird_quiz.js";
+import { pickStageQuestions } from "./content/stage_quiz_pools.js";
 
 function setObjective(text) {
   const hud = document.querySelector("#objective-hud");
@@ -48,6 +43,7 @@ export async function startCaveGame(canvas, modalEl, statusEl) {
   await playerSprite.load();
 
   let cave = createCaveState();
+  let birdQuiz = null;
   const player = { x: geometry.clearings[0].x, y: geometry.clearings[0].y };
   const runtime = await startThreeCavePreview(canvas, statusEl, { phase: "caveGate", debugControls: false });
   const textureCache = new Map();
@@ -109,14 +105,20 @@ export async function startCaveGame(canvas, modalEl, statusEl) {
   }
 
   function openPatternRound() {
-    const round = FIREFLY_PATTERN_ROUNDS[cave.fireflyPatternRound];
-    if (!round) return;
+    if (!birdQuiz || birdQuiz.complete) {
+      const usedIds = getUsedQuestionIds();
+      const questions = pickStageQuestions("cave", BIRD_QUIZ_BANK, usedIds, Math.random);
+      if (!questions.length) return;
+      birdQuiz = createBirdQuizSession("cave_quiz", questions, Math.random);
+    }
+    const q = currentQuestion(birdQuiz);
+    if (!q) return;
     panel.openPanel({
       kind: "fireflyPattern",
       title: "반딧불 깜빡임 기억",
-      body: round.question,
-      progress: `${cave.fireflyPatternRound + 1} / ${FIREFLY_PATTERN_ROUNDS.length}`,
-      choices: round.choices.map((id) => ({ id, label: patternLabel(id) })),
+      body: q.question,
+      progress: `퀴즈 ${q.number} / ${q.total}`,
+      choices: q.choices.map((c) => ({ id: c.id, label: c.label })),
       choiceMode: "single",
     });
     updateUi();
@@ -165,15 +167,29 @@ export async function startCaveGame(canvas, modalEl, statusEl) {
   function confirmPanel() {
     const result = panel.activate();
     if (result.type === "choice" && result.kind === "fireflyPattern") {
-      const answer = answerFireflyPatternRound(cave, result.choice.id);
-      if (!answer.correct) {
-        audio.play("wrong");
-        panel.setResponse("빛 순서를 다시 한번 살펴보자!", "gentle");
+      if (!birdQuiz || birdQuiz.complete) return;
+      const answer = answerBirdQuiz(birdQuiz, result.choice.id);
+      birdQuiz = answer.session;
+      if (answer.complete) {
+        markQuestionsUsed(birdQuiz.questions.map((q) => q.id));
+        if (isCaptureSuccess(birdQuiz)) {
+          audio.play("correct");
+          cave = { ...cave, fireflyPatternComplete: true };
+          panel.closePanel();
+        } else {
+          audio.play("wrong");
+          panel.setResponse(`퀴즈 완료! ${birdQuiz.correctCount} / ${birdQuiz.questions.length} 정답. 다시 도전해 보자!`, "gentle");
+          birdQuiz = null;
+        }
       } else {
-        audio.play("correct");
-        cave = answer.state;
-        if (answer.completed) panel.closePanel();
-        else openPatternRound();
+        if (answer.correct) {
+          audio.play("correct");
+          panel.setResponse("정답!", "gentle");
+        } else {
+          audio.play("wrong");
+          panel.setResponse(`아쉬워! ${answer.lastAnswer?.explanation || "다시 생각해 보자!"}`, "gentle");
+        }
+        setTimeout(() => { openPatternRound(); }, 600);
       }
       updateUi();
       return;

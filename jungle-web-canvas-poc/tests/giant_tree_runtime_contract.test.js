@@ -38,7 +38,7 @@ test("Giant Tree game preserves real input, movement, progression and reward col
   assert.match(GAME, /new MovementController/);
   assert.match(GAME, /geometry\.isWalkable/);
   assert.match(GAME, /nearestGiantTreeInteractable/);
-  assert.match(GAME, /answerTreeRingRound/);
+  assert.match(GAME, /answerBirdQuiz/);
   assert.match(GAME, /awardAndSaveStageReward\("giantTree"\)/);
   assert.match(GAME_HTML, /startGiantTreeGame/);
   assert.match(GAME_HTML, /고목 씨앗 배지/);

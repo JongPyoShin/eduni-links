@@ -7,12 +7,10 @@ import { frameDelta } from "./loop.js";
 import { AudioManager } from "./audio.js";
 import { ContentPanelController, renderContentPanel } from "./content/content_panel.js";
 import {
-  TREE_RING_ROUNDS,
   createGiantTreeState,
   giantTreeObjective,
   completeRootGate,
   collectGiantTreeClue,
-  answerTreeRingRound,
   completeCanopyStairs,
   completeSquirrel,
   completeGiantTreeReward,
@@ -21,6 +19,9 @@ import { nearestGiantTreeInteractable } from "./content/giant_tree_interactables
 import { giantTreeVisualPhase } from "./content/stage_visual_director.js";
 import { stageReward, awardAndSaveStageReward } from "./content/stage_rewards.js";
 import { giantTreeLogicalToThree, startThreeGiantTreePreview } from "./three_giant_tree_preview.js";
+import { BIRD_QUIZ_BANK } from "./content/bird_quiz_bank.js";
+import { createBirdQuizSession, currentQuestion, answerBirdQuiz, isQuizComplete, isCaptureSuccess, getUsedQuestionIds, markQuestionsUsed } from "./content/bird_quiz.js";
+import { pickStageQuestions } from "./content/stage_quiz_pools.js";
 
 function setObjective(text) {
   const hud = document.querySelector("#objective-hud");
@@ -41,6 +42,7 @@ export async function startGiantTreeGame(canvas, modalEl, statusEl) {
   await playerSprite.load();
 
   let tree = createGiantTreeState();
+  let treeQuiz = null;
   const player = { x: geometry.clearings[0].x, y: geometry.clearings[0].y };
   const runtime = await startThreeGiantTreePreview(canvas, statusEl, { phase: "rootGate", debugControls: false });
   const textureCache = new Map();
@@ -100,14 +102,20 @@ export async function startGiantTreeGame(canvas, modalEl, statusEl) {
   }
 
   function openTreeRingRound() {
-    const round = TREE_RING_ROUNDS[tree.treeRingRound];
-    if (!round) return;
+    if (!treeQuiz || treeQuiz.complete) {
+      const usedIds = getUsedQuestionIds();
+      const questions = pickStageQuestions("giantTree", BIRD_QUIZ_BANK, usedIds, Math.random);
+      if (!questions.length) return;
+      treeQuiz = createBirdQuizSession("giantTree_quiz", questions, Math.random);
+    }
+    const q = currentQuestion(treeQuiz);
+    if (!q) return;
     panel.openPanel({
       kind: "treeRing",
       title: "나이테 관찰",
-      body: round.question,
-      progress: `${tree.treeRingRound + 1} / ${TREE_RING_ROUNDS.length}`,
-      choices: round.choices.map((id) => ({ id, label: `${id}줄` })),
+      body: q.question,
+      progress: `퀴즈 ${q.number} / ${q.total}`,
+      choices: q.choices.map((c) => ({ id: c.id, label: c.label })),
       choiceMode: "single",
     });
     updateUi();
@@ -156,15 +164,29 @@ export async function startGiantTreeGame(canvas, modalEl, statusEl) {
   function confirmPanel() {
     const result = panel.activate();
     if (result.type === "choice" && result.kind === "treeRing") {
-      const answer = answerTreeRingRound(tree, result.choice.id);
-      if (!answer.correct) {
-        audio.play("wrong");
-        panel.setResponse("나이테를 천천히 다시 세어 보자!", "gentle");
+      if (!treeQuiz || treeQuiz.complete) return;
+      const answer = answerBirdQuiz(treeQuiz, result.choice.id);
+      treeQuiz = answer.session;
+      if (answer.complete) {
+        markQuestionsUsed(treeQuiz.questions.map((q) => q.id));
+        if (isCaptureSuccess(treeQuiz)) {
+          audio.play("correct");
+          tree = { ...tree, treeRingComplete: true };
+          panel.closePanel();
+        } else {
+          audio.play("wrong");
+          panel.setResponse(`퀴즈 완료! ${treeQuiz.correctCount} / ${treeQuiz.questions.length} 정답. 다시 도전해 보자!`, "gentle");
+          treeQuiz = null;
+        }
       } else {
-        audio.play("correct");
-        tree = answer.state;
-        if (answer.completed) panel.closePanel();
-        else openTreeRingRound();
+        if (answer.correct) {
+          audio.play("correct");
+          panel.setResponse("정답!", "gentle");
+        } else {
+          audio.play("wrong");
+          panel.setResponse(`아쉬워! ${answer.lastAnswer?.explanation || "다시 생각해 보자!"}`, "gentle");
+        }
+        setTimeout(() => { openTreeRingRound(); }, 600);
       }
       updateUi();
       return;

@@ -2,6 +2,36 @@ import { BIRD_QUIZ_BANK } from "./bird_quiz_bank.js";
 
 export const QUIZ_LENGTH = 3;
 export const PASS_THRESHOLD = 2;
+const SESSION_STORAGE_KEY = "eduni.jungle.quizUsedIds.v1";
+
+export function getUsedQuestionIds() {
+  try {
+    const raw = globalThis.sessionStorage?.getItem(SESSION_STORAGE_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+export function markQuestionUsed(questionId) {
+  try {
+    const ids = getUsedQuestionIds();
+    ids.add(questionId);
+    globalThis.sessionStorage?.setItem(SESSION_STORAGE_KEY, JSON.stringify([...ids]));
+  } catch { /* ignore */ }
+}
+
+export function markQuestionsUsed(questionIds) {
+  try {
+    const ids = getUsedQuestionIds();
+    for (const id of questionIds) ids.add(id);
+    globalThis.sessionStorage?.setItem(SESSION_STORAGE_KEY, JSON.stringify([...ids]));
+  } catch { /* ignore */ }
+}
+
+export function clearUsedQuestionIds() {
+  try { globalThis.sessionStorage?.removeItem(SESSION_STORAGE_KEY); } catch { /* ignore */ }
+}
 
 export function pickQuestions(bank, count, rng = Math.random) {
   const shuffled = [...bank];
@@ -22,7 +52,10 @@ export function shuffleChoices(question, rng = Math.random) {
 }
 
 export function createBirdQuizSession(birdId, bank = BIRD_QUIZ_BANK, rng = Math.random) {
-  const questions = pickQuestions(bank, QUIZ_LENGTH, rng);
+  const questions = pickQuestions(bank, QUIZ_LENGTH, rng).map((q) => ({
+    ...q,
+    shuffledChoices: shuffleChoices(q, rng),
+  }));
   return {
     birdId,
     questions,
@@ -38,7 +71,7 @@ export function currentQuestion(session) {
   const q = session.questions[session.currentIndex];
   return {
     ...q,
-    choices: shuffleChoices(q, Math.random),
+    choices: q.shuffledChoices || shuffleChoices(q, Math.random),
     number: session.currentIndex + 1,
     total: session.questions.length,
   };

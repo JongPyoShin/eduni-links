@@ -192,15 +192,51 @@ async function addPlayer(scene) {
   }
 }
 
+function addWindParticles(scene) {
+  const count = 80;
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    positions[i * 3] = (Math.random() - 0.5) * 14;
+    positions[i * 3 + 1] = Math.random() * 4 + 0.5;
+    positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  const mat = new THREE.PointsMaterial({ color: 0xd8eef5, size: 0.04, transparent: true, opacity: 0.4, depthWrite: false, sizeAttenuation: true });
+  const points = new THREE.Points(geo, mat);
+  scene.add(points);
+  return points;
+}
+
+function addDistantMountains(scene) {
+  const group = new THREE.Group();
+  const mtMat = new THREE.MeshBasicMaterial({ color: 0x4a6670, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
+  const peaks = [
+    { x: -6, z: -7, sx: 3, sy: 2.5 }, { x: -2, z: -8, sx: 4, sy: 3.2 },
+    { x: 3, z: -7.5, sx: 3.5, sy: 2.8 }, { x: 7, z: -8, sx: 2.8, sy: 2.2 },
+  ];
+  for (const p of peaks) {
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(1, 1, 6), mtMat.clone());
+    cone.position.set(p.x, p.sy * 0.4, p.z);
+    cone.scale.set(p.sx, p.sy, 1);
+    group.add(cone);
+  }
+  scene.add(group);
+  return group;
+}
+
 function addAtmosphere(scene) {
   scene.background = new THREE.Color(PALETTES["dawn-sky"]);
   scene.fog = new THREE.FogExp2(PALETTES["dawn-sky"], .018);
-  scene.add(new THREE.HemisphereLight(0xe9f6ff, 0x56635f, 1.55));
-  const sun = new THREE.DirectionalLight(0xffedbd, 1.7);
+  scene.add(new THREE.HemisphereLight(0xe9f6ff, 0x56635f, 1.65));
+  const sun = new THREE.DirectionalLight(0xffedbd, 1.8);
   sun.position.set(-5, 11, 4);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024,1024);
   scene.add(sun);
+  const rimLight = new THREE.DirectionalLight(0x90c0d0, 0.35);
+  rimLight.position.set(6, 3, -8);
+  scene.add(rimLight);
 }
 
 function applyPhase(scene, renderer, story, player, phaseId) {
@@ -243,6 +279,8 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
   addRoute(scene);
   const story = addSkyEnvironment(scene);
   const player = await addPlayer(scene);
+  const wind = addWindParticles(scene);
+  const mountains = addDistantMountains(scene);
 
   const camera = new THREE.OrthographicCamera(-8,8,5,-5,.1,60);
   camera.position.set(8.5,12.2,10.8);
@@ -289,15 +327,27 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
   const clock = new THREE.Clock();
   let rafId = 0;
   let disposed = false;
+  let lastPhaseIndex = phaseIndex;
+  let cameraPunch = 0;
   function frame() {
     if (disposed) return;
     const t = clock.getElapsedTime();
+    if (phaseIndex !== lastPhaseIndex) { cameraPunch = 0.12; lastPhaseIndex = phaseIndex; }
+    if (cameraPunch > 0.001) { camera.zoom = 1 + cameraPunch; camera.updateProjectionMatrix(); cameraPunch *= 0.92; } else if (camera.zoom !== 1) { camera.zoom = 1; camera.updateProjectionMatrix(); }
     story.clouds.forEach((cloud, index) => { cloud.position.x += Math.sin(t * .22 + index) * .0008; });
     story.ribbons.children.forEach((ribbon,index) => { ribbon.rotation.y = Math.sin(t * 2 + index) * .22; ribbon.rotation.z = .2 + Math.sin(t * 1.7 + index) * .08; });
     story.chime.children.slice(1).forEach((tube,index) => { tube.rotation.z = Math.sin(t * 2.4 + index) * .08; });
     story.stars.children.forEach((star,index) => { star.scale.setScalar(.8 + Math.sin(t * 3 + index) * .22); star.rotation.y = t * .8; });
     if (story.hawk.visible) { story.hawk.position.y = 2.3 + Math.sin(t * 1.6) * .14; story.hawk.rotation.y = Math.sin(t * .7) * .25; }
     if (story.reward.visible) { story.reward.rotation.y = t * .5; story.reward.children[0].scale.setScalar(.92 + Math.sin(t * 3.2) * .1); }
+    const wPos = wind.geometry.attributes.position;
+    for (let i = 0; i < wPos.count; i++) {
+      wPos.array[i * 3] += 0.012 + Math.sin(t * 0.3 + i) * 0.003;
+      wPos.array[i * 3 + 1] += Math.sin(t * 0.8 + i * 1.5) * 0.001;
+      if (wPos.array[i * 3] > 7) { wPos.array[i * 3] = -7; wPos.array[i * 3 + 1] = Math.random() * 4 + 0.5; }
+    }
+    wPos.needsUpdate = true;
+    wind.material.opacity = 0.3 + Math.sin(t * 0.6) * 0.1;
     controls.update();
     renderer.render(scene,camera);
     if (statusEl) statusEl.dataset.rendererInfo = JSON.stringify({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures });
@@ -319,7 +369,7 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
     renderer.dispose();
   };
 
-  const api = { scene, camera, renderer, controls, geometryContract, story, player, phases: PHASES, setPhase, getPhase: () => PHASES[phaseIndex], dispose };
+  const api = { scene, camera, renderer, controls, geometryContract, story, player, wind, mountains, phases: PHASES, setPhase, getPhase: () => PHASES[phaseIndex], dispose };
   globalThis.__eduniThreeSkyRidge = api;
   return api;
 }

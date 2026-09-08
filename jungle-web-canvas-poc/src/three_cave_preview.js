@@ -337,19 +337,62 @@ async function addPlayer(scene) {
   }
 }
 
+function addAmbientDust(scene) {
+  const count = 120;
+  const positions = new Float32Array(count * 3);
+  const velocities = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    positions[i * 3] = (Math.random() - 0.5) * 14;
+    positions[i * 3 + 1] = Math.random() * 3 + 0.3;
+    positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
+    velocities[i * 3] = (Math.random() - 0.5) * 0.003;
+    velocities[i * 3 + 1] = Math.random() * 0.002 + 0.0005;
+    velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.002;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  const mat = new THREE.PointsMaterial({ color: 0xc8d8e8, size: 0.045, transparent: true, opacity: 0.35, depthWrite: false, sizeAttenuation: true });
+  const points = new THREE.Points(geo, mat);
+  scene.add(points);
+  return { points, velocities };
+}
+
+function addForegroundRocks(scene) {
+  const group = new THREE.Group();
+  const rockMat = new THREE.MeshBasicMaterial({ color: 0x0e0f18, side: THREE.DoubleSide });
+  const rocks = [
+    { x: -5.8, y: 0.6, z: 3.2, sx: 2.8, sy: 1.8, rz: 0.12 },
+    { x: -5.2, y: 0.3, z: 4.0, sx: 1.9, sy: 1.3, rz: -0.08 },
+    { x: 5.5, y: 0.5, z: 3.8, sx: 2.4, sy: 1.6, rz: -0.15 },
+    { x: 6.0, y: 0.25, z: 4.5, sx: 1.6, sy: 1.1, rz: 0.06 },
+  ];
+  for (const r of rocks) {
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 6, 5), rockMat);
+    mesh.position.set(r.x, r.y, r.z);
+    mesh.scale.set(r.sx, r.sy, 0.8);
+    mesh.rotation.z = r.rz;
+    group.add(mesh);
+  }
+  scene.add(group);
+  return group;
+}
+
 function addAtmosphere(scene) {
   scene.background = new THREE.Color(CAVE_PALETTES["twilight-violet"]);
   scene.fog = new THREE.FogExp2(CAVE_PALETTES["twilight-violet"], 0.022);
-  const hemi = new THREE.HemisphereLight(0xa9c6dc, 0x12131d, 1.25);
+  const hemi = new THREE.HemisphereLight(0xa9c6dc, 0x12131d, 1.35);
   scene.add(hemi);
-  const moon = new THREE.DirectionalLight(0xbcc8ff, 1.55);
+  const moon = new THREE.DirectionalLight(0xbcc8ff, 1.65);
   moon.position.set(-5, 10, 4);
   moon.castShadow = true;
   moon.shadow.mapSize.set(1024, 1024);
   scene.add(moon);
-  const cyanFill = new THREE.DirectionalLight(0x70e1d2, 0.45);
+  const cyanFill = new THREE.DirectionalLight(0x70e1d2, 0.55);
   cyanFill.position.set(8, 4, -6);
   scene.add(cyanFill);
+  const rimLight = new THREE.DirectionalLight(0x9070ff, 0.3);
+  rimLight.position.set(-3, 2, -8);
+  scene.add(rimLight);
 }
 
 function applyPhase(scene, renderer, story, crystals, player, phaseId) {
@@ -400,6 +443,8 @@ export async function startThreeCavePreview(canvas, statusEl, options = {}) {
   addAtmosphere(scene);
   addGround(scene);
   addRoute(scene);
+  const dust = addAmbientDust(scene);
+  const fgRocks = addForegroundRocks(scene);
 
   const camera = new THREE.OrthographicCamera(-8, 8, 5, -5, 0.1, 60);
   camera.position.set(8.5, 11.8, 10.6);
@@ -457,9 +502,13 @@ export async function startThreeCavePreview(canvas, statusEl, options = {}) {
   const clock = new THREE.Clock();
   let rafId = 0;
   let disposed = false;
+  let lastPhaseIndex = phaseIndex;
+  let cameraPunch = 0;
   function frame() {
     if (disposed) return;
     const t = clock.getElapsedTime();
+    if (phaseIndex !== lastPhaseIndex) { cameraPunch = 0.12; lastPhaseIndex = phaseIndex; }
+    if (cameraPunch > 0.001) { camera.zoom = 1 + cameraPunch; camera.updateProjectionMatrix(); cameraPunch *= 0.92; } else if (camera.zoom !== 1) { camera.zoom = 1; camera.updateProjectionMatrix(); }
     story.entranceFireflies.material.opacity = 0.68 + Math.sin(t * 2.2) * 0.2;
     story.chamberFireflies.material.opacity = 0.7 + Math.sin(t * 2.8) * 0.18;
     story.reward.material.opacity = 0.72 + Math.sin(t * 3.1) * 0.2;
@@ -477,6 +526,15 @@ export async function startThreeCavePreview(canvas, statusEl, options = {}) {
     crystals.echo.rotation.y = t * 0.16;
     crystals.chamberA.rotation.y = -t * 0.1;
     crystals.chamberB.rotation.y = t * 0.12;
+    const dPos = dust.points.geometry.attributes.position;
+    for (let i = 0; i < dPos.count; i++) {
+      dPos.array[i * 3] += dust.velocities[i * 3];
+      dPos.array[i * 3 + 1] += dust.velocities[i * 3 + 1];
+      dPos.array[i * 3 + 2] += dust.velocities[i * 3 + 2];
+      if (dPos.array[i * 3 + 1] > 3.5) { dPos.array[i * 3 + 1] = 0.3; dPos.array[i * 3] = (Math.random() - 0.5) * 14; }
+    }
+    dPos.needsUpdate = true;
+    dust.points.material.opacity = 0.28 + Math.sin(t * 0.7) * 0.08;
     controls.update();
     renderer.render(scene, camera);
     if (statusEl) statusEl.dataset.rendererInfo = JSON.stringify({
@@ -506,7 +564,7 @@ export async function startThreeCavePreview(canvas, statusEl, options = {}) {
     renderer.dispose();
   };
 
-  const api = { scene, camera, renderer, controls, geometryContract, vendor, rocks, crystals, story, player, phases: PHASES, setPhase, getPhase: () => PHASES[phaseIndex], dispose };
+  const api = { scene, camera, renderer, controls, geometryContract, vendor, rocks, crystals, story, player, dust, fgRocks, phases: PHASES, setPhase, getPhase: () => PHASES[phaseIndex], dispose };
   globalThis.__eduniThreeCave = api;
   return api;
 }

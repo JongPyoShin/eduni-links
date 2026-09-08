@@ -322,12 +322,72 @@ async function addPlayer(scene) {
   } catch { return null; }
 }
 
+function addFallingLeaves(scene) {
+  const count = 60;
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  const leafColors = [[0.55,0.72,0.28],[0.68,0.82,0.35],[0.48,0.65,0.25],[0.72,0.85,0.4]];
+  for (let i = 0; i < count; i++) {
+    positions[i * 3] = (Math.random() - 0.5) * 10;
+    positions[i * 3 + 1] = Math.random() * 5 + 2;
+    positions[i * 3 + 2] = (Math.random() - 0.5) * 8;
+    const c = leafColors[i % leafColors.length];
+    colors[i * 3] = c[0]; colors[i * 3 + 1] = c[1]; colors[i * 3 + 2] = c[2];
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  const mat = new THREE.PointsMaterial({ size: 0.09, transparent: true, opacity: 0.7, vertexColors: true, depthWrite: false, sizeAttenuation: true });
+  const points = new THREE.Points(geo, mat);
+  scene.add(points);
+  return points;
+}
+
+function addLightShafts(scene) {
+  const group = new THREE.Group();
+  const shaftMat = new THREE.MeshBasicMaterial({ color: 0xffe8a0, transparent: true, opacity: 0.12, side: THREE.DoubleSide, depthWrite: false });
+  const shafts = [
+    { x: 0.5, z: -0.3, w: 0.35, h: 8, ry: 0.15 },
+    { x: 1.8, z: 0.2, w: 0.28, h: 7, ry: -0.1 },
+    { x: -0.8, z: -0.5, w: 0.22, h: 6.5, ry: 0.2 },
+  ];
+  for (const s of shafts) {
+    const shaft = new THREE.Mesh(new THREE.PlaneGeometry(s.w, s.h), shaftMat.clone());
+    shaft.position.set(s.x, s.h * 0.45, s.z);
+    shaft.rotation.y = s.ry;
+    group.add(shaft);
+  }
+  scene.add(group);
+  return group;
+}
+
+function addForegroundCanopy(scene) {
+  const group = new THREE.Group();
+  const leafMat = new THREE.MeshBasicMaterial({ color: 0x1a3318, side: THREE.DoubleSide });
+  const patches = [
+    { x: -5.5, y: 4.2, z: -2, sx: 3.5, sy: 2.2 },
+    { x: -4.8, y: 3.8, z: -1.5, sx: 2.8, sy: 1.8 },
+    { x: 5.2, y: 4.5, z: -2.5, sx: 3.2, sy: 2.0 },
+    { x: 4.5, y: 3.5, z: -1, sx: 2.5, sy: 1.5 },
+    { x: 0, y: 5.0, z: -3, sx: 4.0, sy: 1.2 },
+  ];
+  for (const p of patches) {
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 6), leafMat);
+    mesh.position.set(p.x, p.y, p.z);
+    mesh.scale.set(p.sx, p.sy, 1.2);
+    group.add(mesh);
+  }
+  scene.add(group);
+  return group;
+}
+
 function addAtmosphere(scene) {
   scene.background=new THREE.Color(PALETTES["root-amber"]);
   scene.fog=new THREE.FogExp2(PALETTES["root-amber"],.018);
-  const hemi=new THREE.HemisphereLight(0xcbe3af,0x1d251c,1.45); scene.add(hemi);
-  const sun=new THREE.DirectionalLight(0xffe1a3,1.7); sun.position.set(-5,11,4); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); scene.add(sun);
-  const fill=new THREE.DirectionalLight(0x83c9aa,.42); fill.position.set(7,5,-5); scene.add(fill);
+  const hemi=new THREE.HemisphereLight(0xcbe3af,0x1d251c,1.55); scene.add(hemi);
+  const sun=new THREE.DirectionalLight(0xffe1a3,1.85); sun.position.set(-5,11,4); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); scene.add(sun);
+  const fill=new THREE.DirectionalLight(0x83c9aa,.5); fill.position.set(7,5,-5); scene.add(fill);
+  const rimLight=new THREE.DirectionalLight(0xa0d4a0,.3); rimLight.position.set(3,8,-7); scene.add(rimLight);
 }
 
 function applyPhase(scene, renderer, story, player, phaseId) {
@@ -356,6 +416,7 @@ export async function startThreeGiantTreePreview(canvas,statusEl,options={}) {
   renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping;
   const scene=new THREE.Scene(); addAtmosphere(scene); addGround(scene); addRoute(scene);
   const tree=addAncientTree(scene); const rings=addRingGallery(scene); const seedTrail=addSeedTrail(scene); const echo=addHollowEcho(scene); const stairs=addSpiralStairs(scene); const squirrel=addSquirrel(scene); const reward=addReward(scene);
+  const leaves=addFallingLeaves(scene); const lightShafts=addLightShafts(scene); const fgCanopy=addForegroundCanopy(scene);
 
   const camera=new THREE.OrthographicCamera(-8,8,5,-5,.1,70); camera.position.set(8.5,12.5,11.0); camera.lookAt(1.2,1.2,-.6);
   const controls=new OrbitControls(camera,renderer.domElement); controls.enabled=options.debugControls??true; controls.enableDamping=true; controls.enablePan=false; controls.minZoom=.8; controls.maxZoom=1.6; controls.target.set(1.2,1.1,-.6); controls.update();
@@ -377,13 +438,25 @@ export async function startThreeGiantTreePreview(canvas,statusEl,options={}) {
   setPhase(phaseIndex);
 
   const clock=new THREE.Clock(); let rafId=0; let disposed=false;
+  let lastPhaseIndex=phaseIndex; let cameraPunch=0;
   function frame(){ if(disposed)return; const t=clock.getElapsedTime();
+    if(phaseIndex!==lastPhaseIndex){cameraPunch=0.12;lastPhaseIndex=phaseIndex;}
+    if(cameraPunch>0.001){camera.zoom=1+cameraPunch;camera.updateProjectionMatrix();cameraPunch*=0.92;}else if(camera.zoom!==1){camera.zoom=1;camera.updateProjectionMatrix();}
     story.tree.crowns.forEach((c,i)=>{ c.rotation.y=Math.sin(t*.35+i)*.035; c.position.y += Math.sin(t*.8+i)*.0008; });
     story.rings.rings.forEach((r,i)=>{ r.material.opacity=.76+Math.sin(t*2+i*.4)*.18; r.material.transparent=true; });
     story.seedTrail.children.forEach((a,i)=>{ a.position.y=.16+Math.sin(t*2.2+i*.5)*.025; });
     story.echo.children.forEach((r,i)=>{ r.scale.setScalar(.9+((t*.28+i*.22)%1)*.42); });
     if(story.squirrel.visible){ story.squirrel.position.y=1+Math.sin(t*2.5)*.05; story.squirrel.rotation.y=Math.sin(t*1.4)*.18; }
     if(story.reward.visible) story.reward.rotation.y=t*.55;
+    const lPos=leaves.geometry.attributes.position;
+    for(let i=0;i<lPos.count;i++){
+      lPos.array[i*3+1]-=0.006+Math.sin(t+i)*0.002;
+      lPos.array[i*3]+=Math.sin(t*0.4+i*1.7)*0.003;
+      lPos.array[i*3+2]+=Math.cos(t*0.3+i*2.1)*0.002;
+      if(lPos.array[i*3+1]<0.2){lPos.array[i*3+1]=5+Math.random()*2;lPos.array[i*3]=(Math.random()-0.5)*10;lPos.array[i*3+2]=(Math.random()-0.5)*8;}
+    }
+    lPos.needsUpdate=true;
+    lightShafts.children.forEach((s,i)=>{s.material.opacity=0.08+Math.sin(t*0.5+i*1.2)*0.05;});
     controls.update(); renderer.render(scene,camera);
     if(statusEl) statusEl.dataset.rendererInfo=JSON.stringify({calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures});
     rafId=requestAnimationFrame(frame);
@@ -391,6 +464,6 @@ export async function startThreeGiantTreePreview(canvas,statusEl,options={}) {
   rafId=requestAnimationFrame(frame);
 
   const dispose=()=>{ if(disposed)return; disposed=true; cancelAnimationFrame(rafId); globalThis.removeEventListener("resize",resize); controls.dispose(); scene.traverse((obj)=>{ obj.geometry?.dispose?.(); const materials=Array.isArray(obj.material)?obj.material:[obj.material]; materials.filter(Boolean).forEach((m)=>{ Object.values(m).forEach((v)=>v?.isTexture&&v.dispose()); m.dispose?.(); }); }); player?.texture?.dispose?.(); renderer.dispose(); };
-  const api={scene,camera,renderer,controls,geometryContract,vendor,forest,story,player,phases:PHASES,setPhase,getPhase:()=>PHASES[phaseIndex],dispose};
+  const api={scene,camera,renderer,controls,geometryContract,vendor,forest,story,player,leaves,lightShafts,fgCanopy,phases:PHASES,setPhase,getPhase:()=>PHASES[phaseIndex],dispose};
   globalThis.__eduniThreeGiantTree=api; return api;
 }

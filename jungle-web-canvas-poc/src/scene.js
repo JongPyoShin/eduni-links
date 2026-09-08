@@ -313,6 +313,47 @@ export function drawGroundLayer(ctx, cam, viewW, viewH, geometry) {
   ctx.fillStyle = vignette; ctx.fillRect(0, 0, viewW, viewH);
 
   drawBackdropFoliage(ctx, cam, viewW, viewH, geometry);
+  drawForegroundFoliage(ctx, cam, viewW, viewH);
+  drawSunbeams(ctx, cam, viewW, viewH);
+}
+
+function drawSunbeams(ctx, cam, viewW, viewH) {
+  const beams = [
+    { wx: 400, wy: 200, angle: 0.35, width: 55, length: 500, color: "rgba(255,232,166,0.04)" },
+    { wx: 900, wy: 150, angle: 0.28, width: 45, length: 480, color: "rgba(255,220,130,0.035)" },
+    { wx: 1350, wy: 200, angle: 0.42, width: 50, length: 460, color: "rgba(200,235,255,0.03)" },
+  ];
+  for (const b of beams) {
+    const s = worldToScreen(b.wx, b.wy, cam, viewW, viewH);
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(b.angle);
+    const grd = ctx.createLinearGradient(0, 0, 0, b.length * cam.zoom);
+    grd.addColorStop(0, b.color);
+    grd.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = grd;
+    ctx.fillRect(-b.width * cam.zoom / 2, 0, b.width * cam.zoom, b.length * cam.zoom);
+    ctx.restore();
+  }
+}
+
+function drawForegroundFoliage(ctx, cam, viewW, viewH) {
+  const patches = [
+    { wx: -20, wy: 1180, rx: 120, ry: 80, color: "rgba(12,32,18,0.45)" },
+    { wx: 100, wy: 1200, rx: 90, ry: 65, color: "rgba(15,38,22,0.38)" },
+    { wx: 1500, wy: 1180, rx: 130, ry: 85, color: "rgba(10,28,16,0.42)" },
+    { wx: 1560, wy: 1210, rx: 100, ry: 70, color: "rgba(14,35,20,0.35)" },
+  ];
+  for (const p of patches) {
+    const s = worldToScreen(p.wx, p.wy, cam, viewW, viewH);
+    const grd = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, p.rx * cam.zoom);
+    grd.addColorStop(0, p.color);
+    grd.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.ellipse(s.x, s.y, p.rx * cam.zoom, p.ry * cam.zoom, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function drawBackdropFoliage(ctx, cam, viewW, viewH, geometry) {

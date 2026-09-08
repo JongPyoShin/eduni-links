@@ -4,7 +4,7 @@
 `e5dc002` — docs: add jungle random quiz remaining stages prompt 15
 
 ## FINAL FUNCTIONAL HEAD
-`TBD` (will be set after commit)
+`0faacac` — feat: random quiz gameplay — 5 stage pools, session tracking, stable choice shuffle, 221 tests, Chrome QA
 
 ## Dirty changes preservation
 Previous partial PROMPT 14 work (stage_quiz_pools.js, bird_quiz.js session tracking, game.js Camp/Waterfall integration, sky_ridge_game.js integration) was stashed with `git stash --include-untracked`, origin/main was pulled, then stash was popped. All partial work was preserved and extended.

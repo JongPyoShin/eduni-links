@@ -205,7 +205,7 @@ export async function start(canvas, modalEl) {
     const questions = pickStageQuestions(stageId, BIRD_QUIZ_BANK, usedIds, Math.random);
     if (!questions.length) return;
     birdQuiz = createBirdQuizSession("clue_" + clueId, questions, Math.random);
-    const q = questions[0];
+    const q = currentQuestion(birdQuiz);
     panel.openPanel({
       kind: "clueQuiz",
       clueId,
@@ -314,16 +314,41 @@ export async function start(canvas, modalEl) {
           panel.setResponse("정답!", "gentle");
         }
         if (waterfallStage) {
-          waterfall = collectWaterfallClue(waterfall, panel.payload.clueId);
+          if (answer.complete) {
+            waterfall = collectWaterfallClue(waterfall, panel.payload.clueId);
+          }
           waterfall = addWaterfallQuizAnswer(waterfall, answer.correct);
           const clueDef = WATERFALL_CLUES.find((c) => c.id === panel.payload.clueId);
           feedback = { x: clueDef?.x || 0, y: clueDef?.y || 0, until: ts + 650 };
         } else {
-          chapter = collectClue(chapter, panel.payload.clueId);
+          if (answer.complete) {
+            chapter = collectClue(chapter, panel.payload.clueId);
+          }
           chapter = addClueQuizScore(chapter, answer.correct);
           feedback = { x: CLUES.find((c) => c.id === panel.payload.clueId)?.x || 0, y: CLUES.find((c) => c.id === panel.payload.clueId)?.y || 0, until: ts + 650 };
         }
-        setTimeout(() => { panel.closePanel(); updateUi(); }, 600);
+        setTimeout(() => {
+          if (birdQuiz && !birdQuiz.complete) {
+            const nextQ = currentQuestion(birdQuiz);
+            if (nextQ) {
+              const clue = (waterfallStage ? WATERFALL_CLUES : CLUES).find((c) => c.id === panel.payload.clueId);
+              panel.openPanel({
+                kind: "clueQuiz",
+                clueId: panel.payload.clueId,
+                title: clue?.title || panel.payload.title,
+                body: (clue?.fact || clue?.objective || "") + "\n\n" + nextQ.question,
+                choices: nextQ.choices.map((c) => ({ id: c.id, label: c.label })),
+                choiceMode: "single",
+                progress: panel.payload.progress,
+                confirmLabel: "답하기",
+              });
+              updateUi();
+              return;
+            }
+          }
+          panel.closePanel();
+          updateUi();
+        }, 600);
         return;
       }
     } else if (result.type === "confirm") {

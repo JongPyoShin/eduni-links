@@ -84,6 +84,8 @@ function expected(q) {
     case '식비교': { const [, a, b, c, d] = visual.match(/왼쪽: (\d+)\+(\d+) \/ 오른쪽: (\d+)\+(\d+)/); const left = Number(a) + Number(b), right = Number(c) + Number(d); return left === right ? '같다' : left > right ? '왼쪽' : '오른쪽'; }
     case '혼합연산': { const [, a, b, c] = visual.match(/(\d+) \+ (\d+) − (\d+)/); return String(Number(a) + Number(b) - Number(c)); }
     case '문장제변형': { const [, da, db] = visual.match(/지아 \+(\d+), 민아 \+(\d+)/); return Number(da) === Number(db) ? '같다' : Number(da) > Number(db) ? '지아' : '민아'; }
+    case '반대부등식': { const [, t, lim] = visual.match(/(\d+)□ > (\d+)/); return csv(Array.from({length:10},(_,n)=>n).filter(n=>Number(`${t}${n}`)>Number(lim))); }
+    case '가운데수': { const v=visual.split(' · ').map(Number).sort((a,b)=>a-b); return `${v[1]},${v[2]}`; }
     default: throw new Error(`unhandled family ${q.family}`);
   }
 }

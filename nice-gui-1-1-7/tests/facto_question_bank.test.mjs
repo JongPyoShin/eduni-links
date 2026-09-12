@@ -82,6 +82,8 @@ function expected(q) {
     case '뺄셈수직선': { const [, a, b] = visual.match(/(\d+) − (\d+)/); return String(Number(a) - Number(b)); }
     case '문장제': case '빼기문장제': { const [, a, opA, da, b, opB, db] = visual.match(/지아 (\d+)([+−])(\d+) \/ 민아 (\d+)([+−])(\d+)/); const calc = (n, op, d) => op === '+' ? Number(n) + Number(d) : Number(n) - Number(d); const left = calc(a, opA, da), right = calc(b, opB, db); return left === right ? '같다' : left > right ? '지아' : '민아'; }
     case '식비교': { const [, a, b, c, d] = visual.match(/왼쪽: (\d+)\+(\d+) \/ 오른쪽: (\d+)\+(\d+)/); const left = Number(a) + Number(b), right = Number(c) + Number(d); return left === right ? '같다' : left > right ? '왼쪽' : '오른쪽'; }
+    case '혼합연산': { const [, a, b, c] = visual.match(/(\d+) \+ (\d+) − (\d+)/); return String(Number(a) + Number(b) - Number(c)); }
+    case '문장제변형': { const [, da, db] = visual.match(/지아 \+(\d+), 민아 \+(\d+)/); return Number(da) === Number(db) ? '같다' : Number(da) > Number(db) ? '지아' : '민아'; }
     default: throw new Error(`unhandled family ${q.family}`);
   }
 }

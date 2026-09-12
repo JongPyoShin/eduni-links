@@ -86,6 +86,7 @@ function expected(q) {
     case '문장제변형': { const [, da, db] = visual.match(/지아 \+(\d+), 민아 \+(\d+)/); return Number(da) === Number(db) ? '같다' : Number(da) > Number(db) ? '지아' : '민아'; }
     case '반대부등식': { const [, t, lim] = visual.match(/(\d+)□ > (\d+)/); return csv(Array.from({length:10},(_,n)=>n).filter(n=>Number(`${t}${n}`)>Number(lim))); }
     case '가운데수': { const v=visual.split(' · ').map(Number).sort((a,b)=>a-b); return `${v[1]},${v[2]}`; }
+    case '이웃수': { const n=Number(visual.match(/(\d+) →/)[1]); return `${n-1},${n+1}`; }
     default: throw new Error(`unhandled family ${q.family}`);
   }
 }

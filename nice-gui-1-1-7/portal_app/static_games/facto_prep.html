@@ -9,7 +9,7 @@ for(let i=0;i<10;i++){let lo=5+i,hi=lo+6;add("multi",Array.from({length:hi-lo-1}
 for(let i=0;i<10;i++){let a=1+i%8,b=1+(i*3)%9;add("text",a*10+b,"동전을 바꾸어 세어 보고 모두 얼마인지 쓰세요.",`10원 동전 ${a}개 + 1원 동전 ${b}개`,null,"base","동전세기")}
 for(let i=0;i<10;i++){let a=1+i%4,b=1+(i*2)%9;add("text",a*10+b,"10개씩 묶어서 수를 세어 쓰세요.",`10개 묶음 ${a}개 + 낱개 ${b}개`,null,"base","묶어세기")}
 for(let i=0;i<10;i++){let end=12+i,miss=2+(i*3)%(end-2),s=[];for(let n=1;n<=end;n++)s.push(n===miss?"□":n);add("text",miss,`1부터 ${end}까지 순서대로 쓸 때 빠진 수를 찾으세요.`,s.join(" · "),null,"base","빠진수")}
-for(let i=0;i<10;i++){let st=26+i*2,step=i%2+1;add("text",`${st-3*step},${st-4*step}`,`${step}씩 작아지는 규칙을 이어 두 수를 쓰세요.",`${st} → ${st-step} → ${st-2*step} → □ → □`,null,"base","수규칙")}
+for(let i=0;i<10;i++){let st=26+i*2,step=i%2+1;add("text",`${st-3*step},${st-4*step}`,`${step}씩 작아지는 규칙을 이어 두 수를 쓰세요.`,`${st} → ${st-step} → ${st-2*step} → □ → □`,null,"base","수규칙")}
 for(let i=0;i<10;i++){let n=21+i;add("choice",n%2?"홀수":"짝수",`${n}은 짝수일까요, 홀수일까요?`,String(n),["짝수","홀수"],"base","짝홀")}
 for(let i=0;i<10;i++){let a=[28+i,43-i,35+i,51-i],mx=Math.max(...a),mn=Math.min(...a);add("text",`${mx},${mn}`,"가장 큰 수와 가장 작은 수를 차례로 쓰세요.",`${kor(a[0])} · ${a[1]} · ${kor(a[2])} · ${a[3]}`,null,"base","큰수작은수")}
 for(let i=0;i<10;i++){let t=[2+i%4,5+(i%3)],o=[i%3,4+(i%4),7+(i%3)];add("text",`${Math.max(...t)*10+Math.max(...o)},${Math.min(...t)*10+Math.min(...o)}`,"십의 자리 카드와 일의 자리 카드를 하나씩 골라 가장 큰 수와 가장 작은 수를 만드세요.",`십의 자리: ${t.join(", ")} / 일의 자리: ${o.join(", ")}`,null,"base","자리수카드")}

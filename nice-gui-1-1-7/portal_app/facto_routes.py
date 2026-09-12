@@ -21,3 +21,30 @@ def facto_competition_prep() -> HTMLResponse:
             status_code=404,
         )
     return HTMLResponse(path.read_text(encoding="utf-8"))
+
+
+def install_facto_portal_card() -> None:
+    """Add the Facto practice card beside Space Exploration on the portal home."""
+    from . import routes as portal_routes
+
+    original = portal_routes._portal_card
+    if getattr(original, "_facto_card_installed", False):
+        return
+
+    def portal_card_with_facto(href, title, description, badge, card_class="", *, icon=None, accent=None):
+        result = original(href, title, description, badge, card_class, icon=icon, accent=accent)
+        if href == portal_routes.EDUNI_SPACE_URL and title == "공간탐험":
+            original(
+                FACTO_PREP_URL,
+                "팩토대회준비",
+                "7세 팩토 대회 유형을 연습하는 사고력 수학 문제",
+                "대회 준비",
+                "portal-game-amber",
+            )
+        return result
+
+    portal_card_with_facto._facto_card_installed = True
+    portal_routes._portal_card = portal_card_with_facto
+
+
+install_facto_portal_card()

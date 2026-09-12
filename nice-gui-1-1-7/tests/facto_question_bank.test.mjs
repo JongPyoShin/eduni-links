@@ -78,7 +78,7 @@ function expected(q) {
       return csv(q.options.map(Number).filter((n) => n > Number(lo) && n < Number(hi) && n % 2 === parity && /^([0-9])\1$/.test(String(n))));
     }
     case '100수표': { const [, c, up, left, right, down] = q.title.match(/(\d+)에서 위 (\d+)칸, 왼쪽 (\d+)칸, 오른쪽 (\d+)칸, 아래 (\d+)칸/); return `${Number(c) - Number(up) * 10},${Number(c) - Number(left)},${Number(c) + Number(right)},${Number(c) + Number(down) * 10}`; }
-    case '100수표복합': { const [, c, up, right] = q.title.match(/(\d+)에서 위로 (\d+)칸 간 뒤 오른쪽으로 (\d+)칸/); return String(Number(c) - Number(up) * 10 + Number(right)); }
+    case '복합100수표': { const [, c, up, right] = q.title.match(/(\d+)에서 위 (\d+)칸, 오른쪽 (\d+)칸/); return String(Number(c) - Number(up) * 10 + Number(right)); }
     case '뺄셈수직선': { const [, a, b] = visual.match(/(\d+) − (\d+)/); return String(Number(a) - Number(b)); }
     case '문장제': case '빼기문장제': { const [, a, opA, da, b, opB, db] = visual.match(/지아 (\d+)([+−])(\d+) \/ 민아 (\d+)([+−])(\d+)/); const calc = (n, op, d) => op === '+' ? Number(n) + Number(d) : Number(n) - Number(d); const left = calc(a, opA, da), right = calc(b, opB, db); return left === right ? '같다' : left > right ? '지아' : '민아'; }
     case '식비교': { const [, a, b, c, d] = visual.match(/왼쪽: (\d+)\+(\d+) \/ 오른쪽: (\d+)\+(\d+)/); const left = Number(a) + Number(b), right = Number(c) + Number(d); return left === right ? '같다' : left > right ? '왼쪽' : '오른쪽'; }

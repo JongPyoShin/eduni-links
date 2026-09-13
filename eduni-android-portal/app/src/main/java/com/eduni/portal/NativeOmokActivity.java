@@ -3,6 +3,8 @@ package com.eduni.portal;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -10,6 +12,7 @@ import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -52,6 +55,8 @@ public class NativeOmokActivity extends Activity {
         static final int LIMIT_UNLIMITED = 999;
 
         final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        final Paint bitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
+        final RectF bitmapDestination = new RectF();
         final ArrayList<Move> history = new ArrayList<>();
         final Random random = new Random();
 
@@ -111,13 +116,51 @@ public class NativeOmokActivity extends Activity {
         RectF settingsResetAll = new RectF();
         RectF settingsClose = new RectF();
 
+        Bitmap stoneBlackNormal;
+        Bitmap stoneBlackLastMove;
+        Bitmap stoneWhiteNormal;
+        Bitmap stoneWhiteLastMove;
+        Bitmap cursorNormal;
+        Bitmap cursorValid;
+        Bitmap cursorOccupied;
+        Bitmap hintMarker;
+        Bitmap hintPulse;
+
         OmokView(Context context) {
             super(context);
             setFocusable(true);
             setFocusableInTouchMode(true);
             requestFocus();
             loadSettings();
+            loadVisualBitmaps();
             resetGame();
+        }
+
+        void loadVisualBitmaps() {
+            stoneBlackNormal = loadVisualBitmap("omok_stone_black_normal_v01");
+            stoneBlackLastMove = loadVisualBitmap("omok_stone_black_last_move_v01");
+            stoneWhiteNormal = loadVisualBitmap("omok_stone_white_normal_v01");
+            stoneWhiteLastMove = loadVisualBitmap("omok_stone_white_last_move_v01");
+            cursorNormal = loadVisualBitmap("omok_cursor_normal_v01");
+            cursorValid = loadVisualBitmap("omok_cursor_valid_v01");
+            cursorOccupied = loadVisualBitmap("omok_cursor_occupied_v01");
+            hintMarker = loadVisualBitmap("omok_hint_marker_v01");
+            hintPulse = loadVisualBitmap("omok_hint_pulse_v01");
+        }
+
+        Bitmap loadVisualBitmap(String drawableName) {
+            int resourceId = getResources().getIdentifier(drawableName, "drawable", getContext().getPackageName());
+            if (resourceId == 0) {
+                Log.w("NativeOmok", "Bitmap fallback for " + drawableName + ": drawable missing");
+                return null;
+            }
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inScaled = false;
+            Bitmap bitmap = BitmapFactory.decodeResource(getResources(), resourceId, options);
+            if (bitmap == null) {
+                Log.w("NativeOmok", "Bitmap fallback for " + drawableName + ": decode returned null");
+            }
+            return bitmap;
         }
 
         void loadSettings() {
@@ -1584,16 +1627,16 @@ void drawRailButton(Canvas c, RectF r, String icon, String label, String sub, bo
 
             drawStarPoints(c, br);
 
-            if (hintR >= 0 && hintC >= 0 && inside(hintR, hintC) && board[hintR][hintC] == EMPTY) {
+            if (OmokVisualBinding.isHintVisible(hintR, hintC, boardSize,
+                    inside(hintR, hintC) ? board[hintR][hintC] : -1)) {
                 float hx = br.left + hintC * br.cell;
                 float hy = br.top + hintR * br.cell;
-                p.setStyle(Paint.Style.FILL);
-                p.setColor(Color.argb(170, 20, 184, 166));
-                c.drawCircle(hx, hy, br.cell * .22f, p);
-                p.setStyle(Paint.Style.STROKE);
-                p.setStrokeWidth(Math.max(2.4f, br.cell * .06f));
-                p.setColor(Color.rgb(15, 118, 110));
-                c.drawCircle(hx, hy, br.cell * .38f, p);
+                if (hintMarker != null && hintPulse != null) {
+                    drawBitmapAtAnchor(c, hintPulse, hx, hy, 64f, 64f, br.cell * .90f);
+                    drawBitmapAtAnchor(c, hintMarker, hx, hy, 64f, 64f, br.cell * .72f);
+                } else {
+                    drawPrimitiveHint(c, hx, hy, br.cell);
+                }
             }
 
             if (winLine != null) {
@@ -1639,6 +1682,13 @@ void drawRailButton(Canvas c, RectF r, String icon, String label, String sub, bo
         void drawStone(Canvas c, BoardRect br, int r, int col, int color) {
             float cx = br.left + col * br.cell;
             float cy = br.top + r * br.cell;
+            Bitmap bitmap = stoneBitmap(color, r == lastR && col == lastC);
+            if (bitmap != null) {
+                drawBitmapAtAnchor(c, bitmap, cx, cy,
+                        OmokVisualBinding.STONE_PIVOT_X, OmokVisualBinding.STONE_PIVOT_Y,
+                        OmokVisualBinding.stoneFootprint(br.cell));
+                return;
+            }
             float radius = br.cell * .34f;
 
             p.setStyle(Paint.Style.FILL);
@@ -1681,6 +1731,15 @@ void drawRailButton(Canvas c, RectF r, String icon, String label, String sub, bo
         void drawCursor(Canvas c, BoardRect br) {
             float cx = br.left + cursorC * br.cell;
             float cy = br.top + cursorR * br.cell;
+            boolean occupied = board[cursorR][cursorC] != EMPTY;
+            boolean placeable = !gameOver && !aiThinking && currentTurn == BLACK;
+            Bitmap bitmap = cursorBitmap(OmokVisualBinding.cursorState(occupied, placeable));
+            if (bitmap != null) {
+                drawBitmapAtAnchor(c, bitmap, cx, cy,
+                        OmokVisualBinding.CURSOR_PIVOT_X, OmokVisualBinding.CURSOR_PIVOT_Y,
+                        OmokVisualBinding.cursorFootprint(br.cell));
+                return;
+            }
             float r = br.cell * .44f;
 
             p.setStyle(Paint.Style.STROKE);
@@ -1691,6 +1750,36 @@ void drawRailButton(Canvas c, RectF r, String icon, String label, String sub, bo
             p.setStyle(Paint.Style.FILL);
             p.setColor(Color.argb(25, 79, 70, 229));
             c.drawCircle(cx, cy, r * 1.10f, p);
+        }
+
+        Bitmap stoneBitmap(int color, boolean lastMove) {
+            if (color == BLACK) return lastMove ? stoneBlackLastMove : stoneBlackNormal;
+            if (color == WHITE) return lastMove ? stoneWhiteLastMove : stoneWhiteNormal;
+            return null;
+        }
+
+        Bitmap cursorBitmap(OmokVisualBinding.CursorState state) {
+            if (state == OmokVisualBinding.CursorState.VALID) return cursorValid;
+            if (state == OmokVisualBinding.CursorState.OCCUPIED) return cursorOccupied;
+            return cursorNormal;
+        }
+
+        void drawBitmapAtAnchor(Canvas canvas, Bitmap bitmap, float anchorX, float anchorY,
+                                float pivotX, float pivotY, float targetWidth) {
+            float left = OmokVisualBinding.anchoredLeft(anchorX, bitmap.getWidth(), pivotX, targetWidth);
+            float top = OmokVisualBinding.anchoredTop(anchorY, bitmap.getHeight(), pivotY, targetWidth);
+            bitmapDestination.set(left, top, left + targetWidth, top + targetWidth);
+            canvas.drawBitmap(bitmap, null, bitmapDestination, bitmapPaint);
+        }
+
+        void drawPrimitiveHint(Canvas canvas, float x, float y, float cell) {
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(Color.argb(170, 20, 184, 166));
+            canvas.drawCircle(x, y, cell * .22f, p);
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(Math.max(2.4f, cell * .06f));
+            p.setColor(Color.rgb(15, 118, 110));
+            canvas.drawCircle(x, y, cell * .38f, p);
         }
 
         void drawBottomTip(Canvas c, int w, int h, BoardRect br) {

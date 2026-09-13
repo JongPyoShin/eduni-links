@@ -31,7 +31,31 @@ public final class PlayerLocomotionController {
         return new Step(vx * dtSeconds, vy * dtSeconds, facingX, facingY, moving || Math.hypot(vx, vy) > .002f);
     }
 
+    /** D-pad movement is discrete: full speed on press and no residual slide on release. */
+    public Step updateDigital(float dtSeconds, float inputX, float inputY) {
+        return updateDigital(dtSeconds, inputX, inputY, 1f);
+    }
+
+    public Step updateDigital(float dtSeconds, float inputX, float inputY, float speedRatio) {
+        float length = (float) Math.hypot(inputX, inputY);
+        if (length > 1f) { inputX /= length; inputY /= length; }
+        boolean moving = length > .001f;
+        float speed = NORMALIZED_SPEED_PER_SECOND * Math.max(0f, Math.min(1f, speedRatio));
+        vx = moving ? inputX * speed : 0f;
+        vy = moving ? inputY * speed : 0f;
+        if (moving) faceImmediately(inputX, inputY);
+        return new Step(vx * dtSeconds, vy * dtSeconds, facingX, facingY, moving);
+    }
+
     public void stop() { vx = 0f; vy = 0f; }
+
+    /** Digital D-pad input is a discrete facing intent; do not wait for movement acceleration. */
+    public void faceImmediately(float x, float y) {
+        float length = (float) Math.hypot(x, y);
+        if (length <= .001f) return;
+        facingX = x / length;
+        facingY = y / length;
+    }
 
     public static final class Step {
         public final float dx, dy, facingX, facingY;

@@ -24,4 +24,25 @@ public class AdventureCameraControllerTest {
         assertEquals("파란색", camp.quizOptions[0]);
         assertEquals("collection_camp_bluebird", camp.collectionKey);
     }
+
+    @Test public void waterfallUsesDistinctDataAndTheSameCameraContract() {
+        StageWorldData camp = StageWorldData.camp();
+        StageWorldData waterfall = StageWorldData.waterfall();
+        AdventureCameraController camera = new AdventureCameraController();
+        AdventureCameraController.Frame frame = camera.update(.16f, .78f, waterfall, false);
+        assertEquals("waterfall", waterfall.id);
+        assertEquals("waterfall_kingfisher", waterfall.birdId);
+        assertTrue(!camp.collectionKey.equals(waterfall.collectionKey));
+        assertEquals(waterfall.birdX, frame.cueX, .0001f);
+        assertEquals(waterfall.birdY, frame.cueY, .0001f);
+    }
+
+    @Test public void resetDropsThePreviousStageCueBeforeWaterfallStarts() {
+        AdventureCameraController camera = new AdventureCameraController();
+        camera.update(.48f, .16f, StageWorldData.camp(), false);
+        camera.reset();
+        AdventureCameraController.Frame waterfall = camera.update(.16f, .78f, StageWorldData.waterfall(), false);
+        assertEquals(StageWorldData.waterfall().birdX, waterfall.cueX, .0001f);
+        assertEquals(StageWorldData.waterfall().birdY, waterfall.cueY, .0001f);
+    }
 }

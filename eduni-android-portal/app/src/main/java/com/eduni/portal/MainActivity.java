@@ -198,7 +198,8 @@ public class MainActivity extends Activity {
                 "window.__eduniNativeShimInstalled=true;" +
                 "window.__eduniNativeVector={x:0,y:0};" +
                 "window.addEventListener('eduni-native-move',function(e){window.__eduniNativeVector=e.detail||{x:0,y:0};});" +
-                "if(location.pathname.indexOf('/portal')>=0){" +
+                "var isPortalWorldHome = document.querySelector('[data-eduni-portal-world-home]') !== null;" +
+                "if(location.pathname.indexOf('/portal')>=0 && !isPortalWorldHome){" +
                 "var style=document.createElement('style');" +
                 "style.textContent='.__eduni-focus{outline:6px solid #facc15!important;outline-offset:4px!important;border-radius:18px!important;transform:scale(1.03)!important;} .__eduni-crazy{position:fixed;right:28px;bottom:28px;z-index:999999;background:#0891b2;color:white;border:0;border-radius:18px;padding:18px 24px;font-weight:900;font-size:22px;box-shadow:0 12px 26px rgba(8,47,73,.28)}';" +
                 "document.head.appendChild(style);" +

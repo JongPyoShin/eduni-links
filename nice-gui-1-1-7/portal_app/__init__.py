@@ -17,3 +17,6 @@ install_full_audit_guard()
 install_direction_answer_guard()
 install_pet_rewards()
 install_pet_growth()
+
+# Route extensions that should be installed as part of the family-server app.
+from . import baduk as _baduk  # noqa: E402,F401

@@ -293,7 +293,7 @@ def register_pages() -> None:
                 _portal_card(EDUNI_LINK_URL, "의준 링크", "의준 얼굴 블럭을 연결하는 모바일 퍼즐", "신규", "portal-game-pink")
                 _portal_card("/bubble-shooter", "한자 슈터", "목표 한자를 맞히는 버블 슈터 게임", "게임", "portal-game-blue")
                 _portal_card("/bubble", "버블 게임", "짧게 집중해서 푸는 한자 게임", "게임", "portal-game-amber")
-                _portal_card("/", "블록 퍼즐", "가볍게 머리를 깨우는 퍼즐", "게임", "portal-game-green")
+                _portal_card("/blockpuzzle", "블록 퍼즐", "가볍게 머리를 깨우는 퍼즐", "게임", "portal-game-green")
 
             _section_title("학습 세계", "동적 포털의 실제 학습 경로와 맞췄습니다.")
             with ui.element("section").classes("portal-worlds"):

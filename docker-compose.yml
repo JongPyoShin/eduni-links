@@ -10,7 +10,7 @@ services:
       PORT: 8080
       EDUNI_HANJA_DIR: /data/hanja
     ports:
-      - "127.0.0.1:8081:8080"
+      - "100.75.214.95:8081:8080"
     volumes:
       - eduni_data:/data
     healthcheck:

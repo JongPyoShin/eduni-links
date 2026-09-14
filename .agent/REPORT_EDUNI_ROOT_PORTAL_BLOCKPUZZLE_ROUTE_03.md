@@ -2,7 +2,7 @@
 
 - START HEAD: `c9354d9`
 - Implementation HEAD: recorded in the final commit
-- Container: `eduni-game`, `127.0.0.1:8081`, healthy
+- Container: `eduni-game`, Tailscale bind `100.75.214.95:8081`, healthy
 
 ## Route change
 
@@ -12,7 +12,7 @@
 ## Verification
 
 - Docker rebuild/recreate: PASS (`docker compose up -d --build --force-recreate`)
-- Container: one `eduni-game` app service, healthy, `unless-stopped`, `127.0.0.1:8081 -> 8080`
+- Container: one `eduni-game` app service, healthy, `unless-stopped`, `100.75.214.95:8081 -> 8080`
 - HTTP: `/` redirects to `/portal`; `/portal`, `/hanja`, `/blockpuzzle`, `/bubble`, `/bubble-shooter`, `/portal/world/math`, `/portal/parent`, `/link`, `/omok`, `/jungle`, `/space`, `/healthz` all returned expected 200/redirect responses.
 - Browser: `/portal` visibly rendered EDUNI Portal; its block-puzzle card target was `/blockpuzzle`; `/blockpuzzle` visibly rendered the existing block puzzle board and controls; `/hanja` remained available.
 - Tests: content validation, 84 unit tests, Python compile, and `git diff --check` passed.

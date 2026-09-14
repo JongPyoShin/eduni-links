@@ -7,6 +7,7 @@ from pathlib import Path
 from nicegui import ui
 
 from portal_app.routes import register_pages
+from portal_app import hanja  # register the single-process Hanja routes/API
 
 
 GAME_HTML = r'''

@@ -21,7 +21,7 @@ from .registry import get_world
 from .schemas import Activity
 
 
-HANJA_URL = "http://100.75.214.95:8080/hanja"
+HANJA_URL = "/hanja"
 EDUNI_LINK_URL = "/link"
 EDUNI_OMOK_URL = "/omok"
 EDUNI_JUNGLE_URL = "/jungle"

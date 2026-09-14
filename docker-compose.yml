@@ -1,0 +1,23 @@
+services:
+  eduni-game:
+    build:
+      context: .
+      dockerfile: nice-gui-1-1-7/Dockerfile
+    container_name: eduni-game
+    restart: unless-stopped
+    environment:
+      EDUNI_HOST: 0.0.0.0
+      PORT: 8080
+      EDUNI_HANJA_DIR: /data/hanja
+    ports:
+      - "127.0.0.1:8081:8080"
+    volumes:
+      - eduni_data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=3)"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+volumes:
+  eduni_data:

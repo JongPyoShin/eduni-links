@@ -41,7 +41,7 @@ def install_baduk_portal_card() -> None:
         icon: str | None = None,
         accent: str | None = None,
     ) -> None:
-        portal_card(href, title, subtitle, pill, classes, icon, accent)
+        portal_card(href, title, subtitle, pill, classes, icon=icon, accent=accent)
         if href == routes.EDUNI_OMOK_URL:
             portal_card(
                 EDUNI_BADUK_URL,

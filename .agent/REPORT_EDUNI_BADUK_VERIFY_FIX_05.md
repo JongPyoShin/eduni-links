@@ -28,3 +28,7 @@
 
 - No Phase 1 rule bug was reproduced in the available automated checks; no game engine rewrite was made.
 - Remaining limitation is environment-level headed-browser access to the Tailscale-only host binding. Area scoring remains the documented Chinese-area approximation; seki/real-eye nuances are out of scope.
+
+## Follow-up runtime fix
+
+The first fresh Docker rebuild exposed a real portal regression: the Facto and Baduk portal-card wrappers composed with incompatible positional arguments, producing HTTP 500 on `/portal`. The minimal fix passes `icon` and `accent` by keyword from the Baduk wrapper. After rebuild/recreate, `/portal`, `/baduk`, `/hanja`, `/blockpuzzle`, and `/healthz` all returned successfully; the full test suite remained green (88 tests).

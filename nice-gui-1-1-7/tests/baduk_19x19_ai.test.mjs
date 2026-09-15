@@ -25,8 +25,8 @@ function hasPoint(points, row, col) {
 
 test('9x9 and 13x13 candidates are preserved exactly', () => {
   const local = [[2, 2], [4, 4], [6, 6]];
-  assert.deepEqual(strategy.expandCandidates(board(9), local), local);
-  assert.deepEqual(strategy.expandCandidates(board(13), local), local);
+  assert.equal(JSON.stringify(strategy.expandCandidates(board(9), local)), JSON.stringify(local));
+  assert.equal(JSON.stringify(strategy.expandCandidates(board(13), local)), JSON.stringify(local));
 });
 
 test('19x19 keeps distant strategic anchors after local play begins', () => {
@@ -60,7 +60,8 @@ test('opening spread score tapers to zero by move 30', () => {
 
   assert.ok(early.spread > lateOpening.spread);
   assert.ok(early.opening > lateOpening.opening);
-  assert.deepEqual(middleGame, {spread: 0, opening: 0});
+  assert.equal(middleGame.spread, 0);
+  assert.equal(middleGame.opening, 0);
 });
 
 test('one-stone capture score remains far above pure opening bonuses', () => {

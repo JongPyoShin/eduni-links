@@ -2,6 +2,14 @@
 
 Keep repository exploration and output minimal. Follow only the rules relevant to the assigned task.
 
+## Codex model routing
+- Before starting a Codex task, read `docs/CODEX_MODEL_STRATEGY.md` and choose the lowest-cost model that is comfortably capable of the work.
+- Every new Codex task prompt should declare `Recommended`, `Reason`, and an escalation condition.
+- Default routing: Luna for bounded inspection/mechanical work, Terra for normal production implementation, Sol for architecture, ambiguous/high-risk diagnosis, migrations, and critical review.
+- Escalate when the task becomes materially more ambiguous, cross-cutting, destructive, or compatibility-sensitive. Do not keep a weaker model guessing.
+- A stronger model should hand already-defined mechanical implementation down when practical instead of remaining on routine work.
+- Task-specific model instructions override the default routing policy.
+
 ## Repository map
 - `portal/`: public static launcher and generated link config.
 - `nice-gui-1-1-7/`: family-server game app and learning portal.
@@ -55,3 +63,4 @@ Report only:
 - compatibility result for affected existing routes
 - commit SHA
 - remaining risks
+- model routing decision and whether escalation was needed

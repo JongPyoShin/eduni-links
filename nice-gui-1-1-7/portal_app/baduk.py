@@ -8,7 +8,7 @@ from . import routes
 
 EDUNI_BADUK_URL = "/baduk"
 _BADUK_CARD_MARKER = "__eduni_baduk_card_injected__"
-_BADUK_HTML = "eduni_baduk.html"
+_BADUK_HTML = "eduni_baduk_v2.html"
 _BADUK_COACH_LOGIC_JS = "eduni_baduk_coach_logic.js"
 _BADUK_COACH_JS = "eduni_baduk_coach.js"
 
@@ -32,9 +32,9 @@ _ENGINE_EXPORT_BLOCK_WITH_COACH = """      window.EDUNIBadukEngine = {\n        
 def _inject_beginner_coach(source: str, logic_script: str, coach_script: str) -> str:
     """Patch small integration hooks into the stable single-file Baduk game.
 
-    Keep the Phase 1 game file intact: if any expected hook is missing because the
-    upstream file changed, serve the original game rather than risking a broken
-    /baduk route. Tests guard the current source markers so drift is visible.
+    The current level-based v2 page already contains the coach directly. This
+    legacy patch path remains as a safe fallback for the Phase 1 page and simply
+    returns v2 unchanged when the old source markers are not present.
     """
     replacements = (
         (_AI_SCORE_BLOCK, _AI_SCORE_BLOCK_WITH_COACH),
@@ -84,11 +84,7 @@ def eduni_baduk_redirect() -> HTMLResponse:
 
 
 def install_baduk_portal_card() -> None:
-    """Inject the Baduk card immediately after the existing Omok quick-start card.
-
-    Phase 1 keeps the large portal route module untouched and installs the card as
-    a small extension. A later cleanup can fold this into routes.py directly.
-    """
+    """Inject the Baduk card immediately after the existing Omok quick-start card."""
     portal_card = routes._portal_card
     if getattr(portal_card, _BADUK_CARD_MARKER, False):
         return
@@ -107,7 +103,7 @@ def install_baduk_portal_card() -> None:
             portal_card(
                 EDUNI_BADUK_URL,
                 "바둑",
-                "9×9 바둑판에서 AI와 한 수씩 두는 입문 바둑",
+                "9×9부터 19×19까지 레벨별로 배우는 실시간 코치 바둑",
                 "AI 대국",
                 "portal-game-amber",
             )

@@ -94,7 +94,9 @@ _PERSISTENCE_RESTORE_BLOCK = (
     "const lv=document.getElementById('level');if(lv)lv.value=levelId;"
     "const md=document.getElementById('mode');if(md)md.value=s.mode;mode=s.mode;"
     "const ce=document.getElementById('coachEnabled');if(ce)ce.checked=!!s.coachEnabled;"
-    "updateHud();render();return s;}\n"
+    "updateHud();render();"
+    "if(s.mode==='ai'&&s.currentPlayer===2&&typeof scheduleAi==='function')scheduleAi();"
+    "return s;}\n"
 )
 
 

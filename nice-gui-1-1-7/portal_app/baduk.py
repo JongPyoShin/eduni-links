@@ -13,6 +13,7 @@ _BADUK_HTML = "eduni_baduk_v2.html"
 _BADUK_COACH_LOGIC_JS = "eduni_baduk_coach_logic.js"
 _BADUK_COACH_JS = "eduni_baduk_coach.js"
 _BADUK_AI_STRATEGY_JS = "eduni_baduk_ai_strategy.js"
+_BADUK_PERSISTENCE_JS = "eduni_baduk_persistence.js"
 
 _AI_SCORE_BLOCK = """          const afterAtari = enemyAtariCount(result.board, WHITE);\n          let score = result.captured * 60;\n          score += Math.max(0, afterAtari - beforeAtari) * 8;\n          score += result.liberties * 1.6;\n          score += neighbors * 2.2;\n          score += (8 - centerDistance) * 0.7;\n          if (row === 0 || row === 8 || col === 0 || col === 8) score -= 2.5;\n          score += Math.random() * 2.2;"""
 
@@ -65,11 +66,13 @@ def _baduk_html_response() -> HTMLResponse:
     logic_path = routes.GAME_STATIC_DIR / _BADUK_COACH_LOGIC_JS
     coach_path = routes.GAME_STATIC_DIR / _BADUK_COACH_JS
     strategy_path = routes.GAME_STATIC_DIR / _BADUK_AI_STRATEGY_JS
+    persistence_path = routes.GAME_STATIC_DIR / _BADUK_PERSISTENCE_JS
     if logic_path.exists():
         logic_script = logic_path.read_text(encoding="utf-8")
         if _BADUK_HTML == "eduni_baduk_v2.html":
             strategy_script = strategy_path.read_text(encoding="utf-8") if strategy_path.exists() else ""
-            source = integrate_v2_coach(source, logic_script, strategy_script)
+            persistence_script = persistence_path.read_text(encoding="utf-8") if persistence_path.exists() else ""
+            source = integrate_v2_coach(source, logic_script, strategy_script, persistence_script)
         elif coach_path.exists():
             source = _inject_beginner_coach(
                 source,

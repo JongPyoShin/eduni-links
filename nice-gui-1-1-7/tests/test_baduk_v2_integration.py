@@ -87,7 +87,7 @@ class BadukV2IntegrationTests(unittest.TestCase):
     def test_baduk_route_uses_v2_integration_layer(self) -> None:
         module_source = BADUK_MODULE.read_text(encoding="utf-8")
         self.assertIn("from .baduk_v2_integration import integrate_v2_coach", module_source)
-        self.assertIn("source = integrate_v2_coach(source, logic_script, strategy_script)", module_source)
+        self.assertIn("source = integrate_v2_coach(source, logic_script, strategy_script, persistence_script)", module_source)
 
 
 if __name__ == "__main__":

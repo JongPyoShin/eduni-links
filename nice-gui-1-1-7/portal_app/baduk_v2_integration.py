@@ -44,6 +44,7 @@ _AI_AND_LOCAL_POST_MOVE_BRANCH = (
     "showCoach({row,col,color,analysis,source:beforeBoard,explanation:`AI가 여기 둔 이유: ${strongestAiReason(aiMeta)}`},'ai')}"
     "else if(coachEnabled()&&mode==='local'&&source==='human'){const analysis=analyzeMove(beforeBoard,row,col,color,null);"
     "showCoach({row,col,color,analysis,source:beforeBoard,explanation:localMoveSummary(analysis)},'local')}"
+    "if(window.EDUNIBadukPersistence)window.EDUNIBadukPersistence.save({levelId,boardSize,mode,board,currentPlayer,previousPosition,captures,moveCount,consecutivePasses,lastMove,gameOver,coachEnabled:coachEnabledEl.checked});"
     "return true}"
 )
 
@@ -60,13 +61,51 @@ function aiPickMove"""
 
 _AI_COMPONENTS_WITH_STRATEGY = """const strategic=boardSize===19&&window.EDUNIBadukAiStrategy?window.EDUNIBadukAiStrategy.scoreMove(source,row,col,moveCount):{spread:0,opening:0};const components={capture:result.captured*w.capture,atari:Math.max(0,afterAtari-beforeAtari)*w.atari,liberties:result.liberties*w.liberties,neighbors:neighbors*w.neighbors,center:(maxCenter-centerDistance)*w.center,edge:(row===0||row===boardSize-1||col===0||col===boardSize-1)?-w.edge:0,spread:strategic.spread,opening:strategic.opening,jitter:Math.random()*w.jitter};"""
 
+_PERSISTENCE_RESET_MARKER = "function resetGame(){board=createBoard();"
+_PERSISTENCE_SAVE_HOOK = (
+    "function resetGame(){if(window._eduniRestoring){window._eduniRestoring=false;"
+    "updateHud();render();return;}"
+    "if(window.EDUNIBadukPersistence)window.EDUNIBadukPersistence.clear();"
+    "board=createBoard();"
+)
+_PERSISTENCE_ENGINE_EXPORT = re.compile(
+    r"window\.EDUNIBadukEngine\s*=\s*\{.*\};"
+)
+_PERSISTENCE_ENGINE_EXPORT_WITH_SAVE = (
+    "window.EDUNIBadukEngine={EMPTY,BLACK,WHITE,LEVELS,"
+    "get SIZE(){return boardSize},get KOMI(){return komi},"
+    "get LEVEL_ID(){return levelId},get LEVEL(){return profile()},"
+    "createBoard,cloneBoard,boardKey,groupAt,tryMove,legalMoves,scoreBoard,aiPickMove,analyzeMove,"
+    "getState:()=>({board:cloneBoard(board),boardSize,levelId,currentPlayer,previousPosition,"
+    "captures:{...captures},moveCount,gameOver,aiThinking,mode}),"
+    "setLevel:id=>{if(!LEVELS[id])return false;levelSelect.value=id;applyLevel(id);resetGame();return true},"
+    "saveGame:function(){if(window.EDUNIBadukPersistence)"
+    "window.EDUNIBadukPersistence.save({levelId,boardSize,mode,board,currentPlayer,previousPosition,"
+    "captures,moveCount,consecutivePasses,lastMove,gameOver,"
+    "coachEnabled:document.getElementById('coachEnabled')?.checked})}};"
+)
+_PERSISTENCE_RESTORE_BLOCK = (
+    "function _eduniRestore(){const P=window.EDUNIBadukPersistence;if(!P)return false;"
+    "const s=P.load();if(!s)return false;"
+    "window._eduniRestoring=true;"
+    "levelId=s.levelId;boardSize=s.boardSize;board=s.board;currentPlayer=s.currentPlayer;"
+    "previousPosition=s.previousPosition;captures=s.captures;moveCount=s.moveCount;"
+    "consecutivePasses=s.consecutivePasses;lastMove=s.lastMove;gameOver=s.gameOver;"
+    "const lv=document.getElementById('level');if(lv)lv.value=levelId;"
+    "const md=document.getElementById('mode');if(md)md.value=s.mode;mode=s.mode;"
+    "const ce=document.getElementById('coachEnabled');if(ce)ce.checked=!!s.coachEnabled;"
+    "updateHud();render();"
+    "if(s.mode==='ai'&&s.currentPlayer===2&&typeof scheduleAi==='function')scheduleAi();"
+    "return s;}\n"
+)
 
-def integrate_v2_coach(source: str, logic_script: str, ai_strategy_script: str = "") -> str:
-    """Bind tested coach and optional 19x19 strategy logic to Baduk v2.
 
-    Coach integration remains fail-safe. The optional AI strategy is applied only
-    when both candidate-generation and scoring markers match; otherwise the
-    verified coach integration is still served without a partial AI patch.
+def integrate_v2_coach(source: str, logic_script: str, ai_strategy_script: str = "", persistence_script: str = "") -> str:
+    """Bind tested coach, optional 19x19 strategy, and optional persistence to Baduk v2.
+
+    All integrations remain fail-safe. Each layer is applied only when its
+    expected source markers match; otherwise the already-working game is served
+    without that layer.
     """
     if not source or not logic_script.strip() or _MAIN_SCRIPT_MARKER not in source:
         return source
@@ -96,8 +135,29 @@ def integrate_v2_coach(source: str, logic_script: str, ai_strategy_script: str =
     if patched == source:
         return source
 
+    persistence_enabled = False
+    if persistence_script.strip() and _PERSISTENCE_RESET_MARKER in patched:
+        patched = patched.replace(_PERSISTENCE_RESET_MARKER, _PERSISTENCE_SAVE_HOOK, 1)
+        patched, engine_count = _PERSISTENCE_ENGINE_EXPORT.subn(
+            _PERSISTENCE_ENGINE_EXPORT_WITH_SAVE, patched, count=1
+        )
+        if engine_count == 1 and _PERSISTENCE_RESTORE_BLOCK not in patched:
+            patched = patched.replace(
+                _MAIN_SCRIPT_MARKER,
+                f"{_MAIN_SCRIPT_MARKER}{_PERSISTENCE_RESTORE_BLOCK}",
+                1,
+            )
+            patched = patched.replace(
+                "resizeCanvas();resetGame();",
+                "resizeCanvas();_eduniRestore();resetGame();",
+                1,
+            )
+        persistence_enabled = True
+
     scripts = [logic_script]
     if strategy_enabled:
         scripts.append(ai_strategy_script)
+    if persistence_enabled:
+        scripts.append(persistence_script)
     shared_script = "\n".join(f"<script>\n{script}\n</script>" for script in scripts) + "\n"
     return patched.replace(_MAIN_SCRIPT_MARKER, f"{shared_script}{_MAIN_SCRIPT_MARKER}", 1)

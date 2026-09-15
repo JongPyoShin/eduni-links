@@ -40,6 +40,12 @@ class BadukPersistenceIntegrationTests(unittest.TestCase):
         served = self._served_source()
         self.assertIn("_eduniRestore", served)
 
+    def test_ai_turn_restore_schedules_exactly_one_ai_response(self) -> None:
+        served = self._served_source()
+        guard = "s.mode==='ai'&&s.currentPlayer===2&&typeof scheduleAi==='function'"
+        self.assertEqual(served.count(guard), 1)
+        self.assertIn(f"if({guard})scheduleAi();", served)
+
     def test_baduk_route_loads_persistence_asset(self) -> None:
         source = BADUK_MODULE.read_text(encoding="utf-8")
         self.assertIn('_BADUK_PERSISTENCE_JS = "eduni_baduk_persistence.js"', source)

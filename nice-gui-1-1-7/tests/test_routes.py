@@ -17,7 +17,8 @@ class RouteFoundationTests(unittest.TestCase):
 
     def test_existing_game_routes_are_still_declared(self) -> None:
         app_source = (APP_ROOT / "app.py").read_text(encoding="utf-8")
-        self.assertIn("@ui.page('/')", app_source)
+        self.assertIn("@fastapi_app.get('/', include_in_schema=False)", app_source)
+        self.assertIn("@ui.page('/blockpuzzle')", app_source)
         self.assertIn("@ui.page('/bubble')", app_source)
         self.assertIn("@ui.page('/bubble-shooter')", app_source)
 

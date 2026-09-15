@@ -4,9 +4,11 @@ import re
 import base64
 from pathlib import Path
 
-from nicegui import ui
+from nicegui import app as fastapi_app, ui
+from fastapi.responses import RedirectResponse
 
 from portal_app.routes import register_pages
+from portal_app import hanja  # register the single-process Hanja routes/API
 
 
 GAME_HTML = r'''
@@ -2665,7 +2667,12 @@ def shooter_html() -> str:
     )
 
 
-@ui.page('/')
+@fastapi_app.get('/', include_in_schema=False)
+async def root_redirect() -> RedirectResponse:
+    return RedirectResponse('/portal', status_code=307)
+
+
+@ui.page('/blockpuzzle')
 def index() -> None:
     ui.add_head_html(
         '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">'

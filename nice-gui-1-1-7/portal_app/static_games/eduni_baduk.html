@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>EDUNI 바둑</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f1e8;
+      --panel: #ffffff;
+      --ink: #17202a;
+      --muted: #697386;
+      --accent: #7a4b1f;
+      --board: #d7a85d;
+      --board-line: #4b3218;
+      --danger: #b42318;
+      --ok: #137a4a;
+      font-family: "Segoe UI", "Malgun Gothic", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(160deg, #fff9eb 0%, var(--bg) 55%, #ece3d2 100%);
+      color: var(--ink);
+    }
+    button, select, a { font: inherit; }
+    .shell {
+      width: min(100%, 920px);
+      margin: 0 auto;
+      padding: 14px 12px 26px;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .title-wrap h1 { margin: 0; font-size: clamp(24px, 5vw, 36px); }
+    .title-wrap p { margin: 4px 0 0; color: var(--muted); font-weight: 700; }
+    .portal-link {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 14px;
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      border: 1px solid #d9dce2;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .game-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 14px;
+      align-items: start;
+    }
+    .board-card, .side-card {
+      background: rgba(255,255,255,.96);
+      border: 1px solid rgba(23,32,42,.08);
+      border-radius: 16px;
+      box-shadow: 0 14px 34px rgba(49,37,20,.09);
+    }
+    .board-card { padding: 12px; }
+    .board-wrap {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: #c98f43;
+      overflow: hidden;
+      touch-action: none;
+      user-select: none;
+    }
+    #board {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+      cursor: crosshair;
+    }
+    .status-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .stat {
+      min-height: 66px;
+      padding: 10px;
+      border-radius: 11px;
+      background: #f7f8fa;
+      border: 1px solid #e5e7eb;
+      display: grid;
+      align-content: center;
+      text-align: center;
+    }
+    .stat b { font-size: 18px; }
+    .stat span { color: var(--muted); font-size: 12px; font-weight: 800; }
+    .side-card { padding: 14px; display: grid; gap: 12px; }
+    .turn-box {
+      padding: 14px;
+      border-radius: 12px;
+      background: #1f2937;
+      color: white;
+      text-align: center;
+    }
+    .turn-box strong { display: block; font-size: 21px; }
+    .turn-box span { display: block; margin-top: 4px; color: #d1d5db; font-size: 13px; }
+    .control-block { display: grid; gap: 7px; }
+    .control-block label { color: var(--muted); font-size: 12px; font-weight: 900; }
+    select, .btn {
+      min-height: 46px;
+      border-radius: 11px;
+      border: 1px solid #d7dbe2;
+      background: white;
+      color: var(--ink);
+      font-weight: 800;
+      padding: 0 12px;
+    }
+    .btn { cursor: pointer; }
+    .btn.primary { background: #2f5f45; color: white; border-color: #2f5f45; }
+    .btn.warn { color: var(--danger); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .message {
+      min-height: 54px;
+      padding: 11px 12px;
+      border-radius: 10px;
+      background: #fff8e7;
+      border: 1px solid #f1ddb0;
+      color: #60431e;
+      font-size: 14px;
+      font-weight: 750;
+      line-height: 1.45;
+    }
+    .message.error { background: #fff0ee; border-color: #f3c8c3; color: var(--danger); }
+    .message.ok { background: #ebf8f1; border-color: #b9e0ca; color: var(--ok); }
+    .rules {
+      border-top: 1px solid #eceef2;
+      padding-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .result {
+      display: none;
+      padding: 14px;
+      border-radius: 12px;
+      background: #f3f7f5;
+      border: 1px solid #cfe0d7;
+      text-align: center;
+      font-weight: 900;
+    }
+    .result.active { display: block; }
+    @media (max-width: 760px) {
+      .shell { padding: 10px 8px 18px; }
+      .topbar { align-items: flex-start; }
+      .game-grid { grid-template-columns: 1fr; }
+      .side-card { grid-template-columns: 1fr 1fr; }
+      .turn-box, .message, .result, .rules { grid-column: 1 / -1; }
+    }
+    @media (max-width: 430px) {
+      .portal-link { min-height: 38px; padding: 0 10px; font-size: 13px; }
+      .board-card { padding: 8px; }
+      .side-card { grid-template-columns: 1fr; padding: 10px; }
+      .turn-box, .message, .result, .rules { grid-column: auto; }
+      .status-strip { gap: 5px; }
+      .stat { min-height: 58px; padding: 6px; }
+      .stat b { font-size: 15px; }
+      .button-grid { gap: 6px; }
+      .btn, select { min-height: 44px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="title-wrap">
+        <h1>EDUNI 바둑</h1>
+        <p>9×9 입문 바둑 · 흑이 먼저 둬요</p>
+      </div>
+      <a class="portal-link" href="/portal">← 포털</a>
+    </header>
+
+    <section class="game-grid">
+      <div class="board-card">
+        <div class="board-wrap"><canvas id="board" width="720" height="720" aria-label="9×9 바둑판"></canvas></div>
+        <div class="status-strip">
+          <div class="stat"><b id="blackCaptured">0</b><span>흑이 잡은 돌</span></div>
+          <div class="stat"><b id="moveCount">0</b><span>진행 수</span></div>
+          <div class="stat"><b id="whiteCaptured">0</b><span>백이 잡은 돌</span></div>
+        </div>
+      </div>
+
+      <aside class="side-card">
+        <div class="turn-box">
+          <strong id="turnText">흑 차례</strong>
+          <span id="modeText">AI와 두기 · 나는 흑</span>
+        </div>
+
+        <div class="control-block">
+          <label for="mode">게임 모드</label>
+          <select id="mode">
+            <option value="ai">AI와 두기</option>
+            <option value="local">둘이 두기</option>
+          </select>
+        </div>
+
+        <div class="button-grid">
+          <button class="btn primary" id="newGame" type="button">새 게임</button>
+          <button class="btn" id="pass" type="button">한 수 쉬기</button>
+          <button class="btn warn" id="resign" type="button">기권</button>
+          <button class="btn" id="hint" type="button">도움말</button>
+        </div>
+
+        <div id="message" class="message">빈 교차점을 눌러 흑돌을 놓아 보세요.</div>
+        <div id="result" class="result"></div>
+        <div class="rules">상대 돌의 활로를 모두 막으면 잡을 수 있어요. 자충수와 즉시 되따내기(패)는 둘 수 없고, 두 번 연속 패스하면 중국식 영역 점수로 판정합니다. 백은 덤 6.5집을 받아요.</div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const SIZE = 9;
+      const EMPTY = 0;
+      const BLACK = 1;
+      const WHITE = 2;
+      const KOMI = 6.5;
+      const STAR_POINTS = [[2,2],[2,6],[4,4],[6,2],[6,6]];
+      const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
+
+      const canvas = document.getElementById('board');
+      const ctx = canvas.getContext('2d');
+      const turnText = document.getElementById('turnText');
+      const modeText = document.getElementById('modeText');
+      const messageEl = document.getElementById('message');
+      const resultEl = document.getElementById('result');
+      const modeSelect = document.getElementById('mode');
+      const blackCapturedEl = document.getElementById('blackCaptured');
+      const whiteCapturedEl = document.getElementById('whiteCaptured');
+      const moveCountEl = document.getElementById('moveCount');
+      const passButton = document.getElementById('pass');
+      const resignButton = document.getElementById('resign');
+
+      function createBoard() {
+        return Array.from({length: SIZE}, () => Array(SIZE).fill(EMPTY));
+      }
+
+      function cloneBoard(source) {
+        return source.map(row => row.slice());
+      }
+
+      function boardKey(source) {
+        return source.map(row => row.join('')).join('/');
+      }
+
+      function inside(r, c) {
+        return r >= 0 && c >= 0 && r < SIZE && c < SIZE;
+      }
+
+      function groupAt(source, row, col) {
+        const color = source[row]?.[col] ?? EMPTY;
+        if (color === EMPTY) return {stones: [], liberties: []};
+        const queue = [[row, col]];
+        const seen = new Set([`${row},${col}`]);
+        const liberties = new Set();
+        const stones = [];
+        for (let i = 0; i < queue.length; i++) {
+          const [r, c] = queue[i];
+          stones.push([r, c]);
+          for (const [dr, dc] of DIRS) {
+            const nr = r + dr, nc = c + dc;
+            if (!inside(nr, nc)) continue;
+            if (source[nr][nc] === EMPTY) {
+              liberties.add(`${nr},${nc}`);
+            } else if (source[nr][nc] === color) {
+              const key = `${nr},${nc}`;
+              if (!seen.has(key)) {
+                seen.add(key);
+                queue.push([nr, nc]);
+              }
+            }
+          }
+        }
+        return {stones, liberties: [...liberties].map(v => v.split(',').map(Number))};
+      }
+
+      function removeGroup(source, stones) {
+        for (const [r, c] of stones) source[r][c] = EMPTY;
+      }
+
+      function tryMove(source, row, col, color, koState = null) {
+        if (!inside(row, col)) return {legal: false, reason: '바둑판 안에 놓아 주세요.'};
+        if (source[row][col] !== EMPTY) return {legal: false, reason: '이미 돌이 있는 자리예요.'};
+
+        const next = cloneBoard(source);
+        next[row][col] = color;
+        const opponent = color === BLACK ? WHITE : BLACK;
+        let captured = 0;
+        const checked = new Set();
+
+        for (const [dr, dc] of DIRS) {
+          const nr = row + dr, nc = col + dc;
+          if (!inside(nr, nc) || next[nr][nc] !== opponent) continue;
+          const marker = `${nr},${nc}`;
+          if (checked.has(marker)) continue;
+          const group = groupAt(next, nr, nc);
+          for (const [gr, gc] of group.stones) checked.add(`${gr},${gc}`);
+          if (group.liberties.length === 0) {
+            captured += group.stones.length;
+            removeGroup(next, group.stones);
+          }
+        }
+
+        const own = groupAt(next, row, col);
+        if (own.liberties.length === 0) {
+          return {legal: false, reason: '자충수는 둘 수 없어요.'};
+        }
+        const key = boardKey(next);
+        if (koState && key === koState) {
+          return {legal: false, reason: '패 때문에 바로 되따낼 수 없어요.'};
+        }
+        return {legal: true, board: next, captured, liberties: own.liberties.length, key};
+      }
+
+      function legalMoves(source, color, koState) {
+        const moves = [];
+        for (let r = 0; r < SIZE; r++) {
+          for (let c = 0; c < SIZE; c++) {
+            const result = tryMove(source, r, c, color, koState);
+            if (result.legal) moves.push({row: r, col: c, result});
+          }
+        }
+        return moves;
+      }
+
+      function scoreBoard(source) {
+        let blackStones = 0, whiteStones = 0, blackTerritory = 0, whiteTerritory = 0;
+        const seen = new Set();
+        for (let r = 0; r < SIZE; r++) {
+          for (let c = 0; c < SIZE; c++) {
+            if (source[r][c] === BLACK) blackStones++;
+            if (source[r][c] === WHITE) whiteStones++;
+            if (source[r][c] !== EMPTY || seen.has(`${r},${c}`)) continue;
+
+            const queue = [[r, c]];
+            const region = [];
+            const borders = new Set();
+            seen.add(`${r},${c}`);
+            for (let i = 0; i < queue.length; i++) {
+              const [rr, cc] = queue[i];
+              region.push([rr, cc]);
+              for (const [dr, dc] of DIRS) {
+                const nr = rr + dr, nc = cc + dc;
+                if (!inside(nr, nc)) continue;
+                const value = source[nr][nc];
+                if (value === EMPTY) {
+                  const key = `${nr},${nc}`;
+                  if (!seen.has(key)) {
+                    seen.add(key);
+                    queue.push([nr, nc]);
+                  }
+                } else {
+                  borders.add(value);
+                }
+              }
+            }
+            if (borders.size === 1 && borders.has(BLACK)) blackTerritory += region.length;
+            if (borders.size === 1 && borders.has(WHITE)) whiteTerritory += region.length;
+          }
+        }
+        const black = blackStones + blackTerritory;
+        const white = whiteStones + whiteTerritory + KOMI;
+        return {black, white, blackStones, whiteStones, blackTerritory, whiteTerritory};
+      }
+
+      function enemyAtariCount(source, color) {
+        const opponent = color === BLACK ? WHITE : BLACK;
+        const seen = new Set();
+        let count = 0;
+        for (let r = 0; r < SIZE; r++) {
+          for (let c = 0; c < SIZE; c++) {
+            if (source[r][c] !== opponent || seen.has(`${r},${c}`)) continue;
+            const group = groupAt(source, r, c);
+            group.stones.forEach(([gr,gc]) => seen.add(`${gr},${gc}`));
+            if (group.liberties.length === 1) count += group.stones.length;
+          }
+        }
+        return count;
+      }
+
+      function aiPickMove(source, koState) {
+        const moves = legalMoves(source, WHITE, koState);
+        if (!moves.length) return null;
+        let bestScore = -Infinity;
+        let best = [];
+        const beforeAtari = enemyAtariCount(source, WHITE);
+        for (const move of moves) {
+          const {row, col, result} = move;
+          const centerDistance = Math.abs(4 - row) + Math.abs(4 - col);
+          let neighbors = 0;
+          for (const [dr, dc] of DIRS) {
+            const nr = row + dr, nc = col + dc;
+            if (inside(nr, nc) && source[nr][nc] !== EMPTY) neighbors++;
+          }
+          const afterAtari = enemyAtariCount(result.board, WHITE);
+          let score = result.captured * 60;
+          score += Math.max(0, afterAtari - beforeAtari) * 8;
+          score += result.liberties * 1.6;
+          score += neighbors * 2.2;
+          score += (8 - centerDistance) * 0.7;
+          if (row === 0 || row === 8 || col === 0 || col === 8) score -= 2.5;
+          score += Math.random() * 2.2;
+          if (score > bestScore + 0.001) {
+            bestScore = score;
+            best = [move];
+          } else if (Math.abs(score - bestScore) <= 0.001) {
+            best.push(move);
+          }
+        }
+        return best[Math.floor(Math.random() * best.length)];
+      }
+
+      let board = createBoard();
+      let currentPlayer = BLACK;
+      let previousPosition = null;
+      let captures = {[BLACK]: 0, [WHITE]: 0};
+      let moveCount = 0;
+      let consecutivePasses = 0;
+      let lastMove = null;
+      let gameOver = false;
+      let aiThinking = false;
+      let mode = 'ai';
+      let messageTimer = null;
+
+      function playerName(color) { return color === BLACK ? '흑' : '백'; }
+
+      function setMessage(text, type = '') {
+        if (messageTimer) clearTimeout(messageTimer);
+        messageEl.textContent = text;
+        messageEl.className = `message ${type}`.trim();
+        if (type === 'error') {
+          messageTimer = setTimeout(() => {
+            if (!gameOver) setMessage('다른 빈 교차점에 놓아 보세요.');
+          }, 1600);
+        }
+      }
+
+      function updateHud() {
+        blackCapturedEl.textContent = captures[BLACK];
+        whiteCapturedEl.textContent = captures[WHITE];
+        moveCountEl.textContent = moveCount;
+        modeText.textContent = mode === 'ai' ? 'AI와 두기 · 나는 흑' : '둘이 두기';
+        if (gameOver) {
+          turnText.textContent = '대국 종료';
+        } else if (aiThinking) {
+          turnText.textContent = 'AI 생각 중';
+        } else {
+          turnText.textContent = `${playerName(currentPlayer)} 차례`;
+        }
+        const disable = gameOver || aiThinking;
+        passButton.disabled = disable;
+        resignButton.disabled = disable;
+      }
+
+      function resizeCanvas() {
+        const size = Math.max(260, Math.floor(canvas.getBoundingClientRect().width));
+        const ratio = Math.max(1, window.devicePixelRatio || 1);
+        canvas.width = Math.floor(size * ratio);
+        canvas.height = Math.floor(size * ratio);
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        canvas._cssSize = size;
+        render();
+      }
+
+      function boardMetrics() {
+        const size = canvas._cssSize || canvas.getBoundingClientRect().width;
+        const pad = Math.max(22, size * 0.075);
+        const step = (size - pad * 2) / (SIZE - 1);
+        return {size, pad, step};
+      }
+
+      function render() {
+        const {size, pad, step} = boardMetrics();
+        ctx.clearRect(0, 0, size, size);
+        ctx.fillStyle = '#d7a85d';
+        ctx.fillRect(0, 0, size, size);
+        const gradient = ctx.createLinearGradient(0, 0, size, size);
+        gradient.addColorStop(0, 'rgba(255,255,255,.12)');
+        gradient.addColorStop(1, 'rgba(86,48,12,.08)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size, size);
+
+        ctx.strokeStyle = '#4b3218';
+        ctx.lineWidth = Math.max(1, size / 520);
+        for (let i = 0; i < SIZE; i++) {
+          const p = pad + i * step;
+          ctx.beginPath(); ctx.moveTo(pad, p); ctx.lineTo(size - pad, p); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(p, pad); ctx.lineTo(p, size - pad); ctx.stroke();
+        }
+        ctx.fillStyle = '#3e2915';
+        for (const [r, c] of STAR_POINTS) {
+          ctx.beginPath();
+          ctx.arc(pad + c * step, pad + r * step, Math.max(2.5, step * .06), 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        const radius = step * .42;
+        for (let r = 0; r < SIZE; r++) {
+          for (let c = 0; c < SIZE; c++) {
+            const color = board[r][c];
+            if (!color) continue;
+            const x = pad + c * step, y = pad + r * step;
+            const stoneGradient = ctx.createRadialGradient(x - radius*.35, y - radius*.35, radius*.15, x, y, radius);
+            if (color === BLACK) {
+              stoneGradient.addColorStop(0, '#555'); stoneGradient.addColorStop(.45, '#1d1d1d'); stoneGradient.addColorStop(1, '#050505');
+            } else {
+              stoneGradient.addColorStop(0, '#fff'); stoneGradient.addColorStop(.65, '#f4f4f4'); stoneGradient.addColorStop(1, '#cfcfcf');
+            }
+            ctx.fillStyle = stoneGradient;
+            ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = color === BLACK ? '#000' : '#a6a6a6';
+            ctx.lineWidth = 1; ctx.stroke();
+          }
+        }
+
+        if (lastMove) {
+          const x = pad + lastMove.col * step, y = pad + lastMove.row * step;
+          ctx.strokeStyle = lastMove.color === BLACK ? '#f8e66b' : '#d23a2e';
+          ctx.lineWidth = Math.max(2, step * .05);
+          ctx.beginPath(); ctx.arc(x, y, radius * .34, 0, Math.PI * 2); ctx.stroke();
+        }
+      }
+
+      function pointFromEvent(event) {
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        const {pad, step} = boardMetrics();
+        const col = Math.round((x - pad) / step);
+        const row = Math.round((y - pad) / step);
+        if (!inside(row, col)) return null;
+        const px = pad + col * step, py = pad + row * step;
+        if (Math.hypot(x - px, y - py) > step * .52) return null;
+        return {row, col};
+      }
+
+      function playMove(row, col, color, source = 'human') {
+        if (gameOver || aiThinking && source === 'human') return false;
+        if (color !== currentPlayer) return false;
+        const before = boardKey(board);
+        const result = tryMove(board, row, col, color, previousPosition);
+        if (!result.legal) {
+          setMessage(result.reason, 'error');
+          return false;
+        }
+        board = result.board;
+        previousPosition = before;
+        captures[color] += result.captured;
+        moveCount++;
+        consecutivePasses = 0;
+        lastMove = {row, col, color};
+        currentPlayer = color === BLACK ? WHITE : BLACK;
+        setMessage(result.captured ? `${playerName(color)}이 ${result.captured}개를 잡았어요!` : `${playerName(color)} 착수`, result.captured ? 'ok' : '');
+        render();
+        updateHud();
+        return true;
+      }
+
+      function passTurn(source = 'human') {
+        if (gameOver || aiThinking && source === 'human') return;
+        previousPosition = boardKey(board);
+        consecutivePasses++;
+        moveCount++;
+        const passed = currentPlayer;
+        currentPlayer = currentPlayer === BLACK ? WHITE : BLACK;
+        lastMove = null;
+        setMessage(`${playerName(passed)}이 한 수 쉬었어요.`);
+        updateHud();
+        if (consecutivePasses >= 2) {
+          finishByScore();
+          return;
+        }
+        if (mode === 'ai' && currentPlayer === WHITE) scheduleAi();
+      }
+
+      function finishByScore() {
+        gameOver = true;
+        aiThinking = false;
+        const score = scoreBoard(board);
+        const winner = score.black > score.white ? '흑 승!' : '백 승!';
+        resultEl.textContent = `흑 ${score.black} : 백 ${score.white} — ${winner}`;
+        resultEl.classList.add('active');
+        setMessage(`두 번 연속 패스했어요. 영역 점수로 계산했어요.`, 'ok');
+        updateHud();
+      }
+
+      function resign() {
+        if (gameOver || aiThinking) return;
+        const loser = currentPlayer;
+        const winner = loser === BLACK ? WHITE : BLACK;
+        gameOver = true;
+        resultEl.textContent = `${playerName(loser)} 기권 — ${playerName(winner)} 승!`;
+        resultEl.classList.add('active');
+        setMessage(`${playerName(loser)}이 기권했어요.`);
+        updateHud();
+      }
+
+      function scheduleAi() {
+        if (mode !== 'ai' || gameOver || currentPlayer !== WHITE) return;
+        aiThinking = true;
+        updateHud();
+        setMessage('AI가 다음 수를 생각하고 있어요…');
+        setTimeout(() => {
+          if (gameOver || mode !== 'ai') { aiThinking = false; updateHud(); return; }
+          const move = aiPickMove(board, previousPosition);
+          aiThinking = false;
+          if (!move) {
+            passTurn('ai');
+            return;
+          }
+          playMove(move.row, move.col, WHITE, 'ai');
+        }, 320 + Math.floor(Math.random() * 180));
+      }
+
+      function resetGame() {
+        board = createBoard();
+        currentPlayer = BLACK;
+        previousPosition = null;
+        captures = {[BLACK]: 0, [WHITE]: 0};
+        moveCount = 0;
+        consecutivePasses = 0;
+        lastMove = null;
+        gameOver = false;
+        aiThinking = false;
+        resultEl.classList.remove('active');
+        resultEl.textContent = '';
+        setMessage(mode === 'ai' ? '빈 교차점을 눌러 흑돌을 놓아 보세요.' : '흑부터 번갈아 두면 돼요.');
+        updateHud();
+        render();
+      }
+
+      canvas.addEventListener('pointerup', event => {
+        if (gameOver || aiThinking) return;
+        if (mode === 'ai' && currentPlayer === WHITE) return;
+        const point = pointFromEvent(event);
+        if (!point) return;
+        if (playMove(point.row, point.col, currentPlayer) && mode === 'ai' && currentPlayer === WHITE) scheduleAi();
+      });
+
+      document.getElementById('newGame').addEventListener('click', resetGame);
+      passButton.addEventListener('click', () => passTurn());
+      resignButton.addEventListener('click', resign);
+      document.getElementById('hint').addEventListener('click', () => {
+        setMessage('팁: 상대 돌의 주변 빈칸(활로)을 모두 막으면 잡을 수 있어요. 가운데와 내 돌 주변부터 차분히 살펴보세요.');
+      });
+      modeSelect.addEventListener('change', () => {
+        mode = modeSelect.value;
+        resetGame();
+      });
+      window.addEventListener('resize', () => requestAnimationFrame(resizeCanvas));
+
+      window.EDUNIBadukEngine = {
+        SIZE, EMPTY, BLACK, WHITE, KOMI,
+        createBoard, cloneBoard, boardKey, groupAt, tryMove, legalMoves, scoreBoard, aiPickMove,
+      };
+
+      mode = modeSelect.value;
+      resizeCanvas();
+      resetGame();
+    })();
+  </script>
+</body>
+</html>

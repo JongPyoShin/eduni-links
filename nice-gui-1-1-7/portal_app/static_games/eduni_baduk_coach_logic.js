@@ -149,6 +149,8 @@
       const strategic = [
         ['capture', components.capture || 0],
         ['atari', components.atari || 0],
+        ['spread', components.spread || 0],
+        ['opening', components.opening || 0],
         ['neighbors', components.neighbors || 0],
         ['liberties', components.liberties || 0],
         ['center', components.center || 0],
@@ -156,6 +158,8 @@
       const key = strategic[0]?.[0] || 'center';
       if (key === 'capture' && move.result?.captured > 0) return `흑돌 ${move.result.captured}개를 잡을 수 있어서예요.`;
       if (key === 'atari' && (move.aiAnalysis.afterAtari - move.aiAnalysis.beforeAtari) > 0) return '흑돌의 활로를 줄여 단수를 만들 수 있어서예요.';
+      if (key === 'spread') return '이미 놓인 돌들과 너무 붙지 않고 넓은 빈 곳으로 벌리기 좋은 자리라서예요.';
+      if (key === 'opening') return '초반에 넓게 자리 잡기 좋은 전략 지점이라서예요.';
       if (key === 'neighbors') return '주변 돌과 가까워 연결하거나 압박하기 좋은 자리라서예요.';
       if (key === 'liberties') return `백돌의 활로를 ${move.result?.liberties || 0}개 확보할 수 있어서예요.`;
       return '여러 후보 중 가운데에 가까워 여러 방향으로 펼치기 쉬운 자리라서예요.';

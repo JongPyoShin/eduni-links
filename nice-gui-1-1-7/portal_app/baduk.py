@@ -4,6 +4,7 @@ from fastapi.responses import HTMLResponse
 from nicegui import app
 
 from . import routes
+from .baduk_v2_integration import integrate_v2_coach
 
 
 EDUNI_BADUK_URL = "/baduk"
@@ -32,9 +33,9 @@ _ENGINE_EXPORT_BLOCK_WITH_COACH = """      window.EDUNIBadukEngine = {\n        
 def _inject_beginner_coach(source: str, logic_script: str, coach_script: str) -> str:
     """Patch small integration hooks into the stable single-file Baduk game.
 
-    The current level-based v2 page already contains the coach directly. This
-    legacy patch path remains as a safe fallback for the Phase 1 page and simply
-    returns v2 unchanged when the old source markers are not present.
+    The current level-based v2 page is wired by ``integrate_v2_coach``. This
+    legacy path remains for the preserved Phase 1 page and fails safe when its
+    expected source markers drift.
     """
     replacements = (
         (_AI_SCORE_BLOCK, _AI_SCORE_BLOCK_WITH_COACH),
@@ -62,12 +63,16 @@ def _baduk_html_response() -> HTMLResponse:
     source = game_path.read_text(encoding="utf-8")
     logic_path = routes.GAME_STATIC_DIR / _BADUK_COACH_LOGIC_JS
     coach_path = routes.GAME_STATIC_DIR / _BADUK_COACH_JS
-    if logic_path.exists() and coach_path.exists():
-        source = _inject_beginner_coach(
-            source,
-            logic_path.read_text(encoding="utf-8"),
-            coach_path.read_text(encoding="utf-8"),
-        )
+    if logic_path.exists():
+        logic_script = logic_path.read_text(encoding="utf-8")
+        if _BADUK_HTML == "eduni_baduk_v2.html":
+            source = integrate_v2_coach(source, logic_script)
+        elif coach_path.exists():
+            source = _inject_beginner_coach(
+                source,
+                logic_script,
+                coach_path.read_text(encoding="utf-8"),
+            )
     return HTMLResponse(source)
 
 

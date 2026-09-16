@@ -40,7 +40,10 @@ class Baduk19x19AiTests(unittest.TestCase):
         source = BADUK_MODULE.read_text(encoding="utf-8")
         self.assertIn('_BADUK_AI_STRATEGY_JS = "eduni_baduk_ai_strategy.js"', source)
         self.assertIn("strategy_path", source)
-        self.assertIn("integrate_v2_coach(source, logic_script, strategy_script)", source)
+        self.assertIn(
+            "integrate_v2_coach(source, logic_script, strategy_script, persistence_script)",
+            source,
+        )
 
     def test_19x19_strategy_node_regressions(self) -> None:
         node = shutil.which("node")

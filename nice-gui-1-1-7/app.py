@@ -2246,6 +2246,7 @@ SHOOTER_HTML_TEMPLATE = r'''
     state.shot = null;
     state.waiting = false;
     state.gameOver = false;
+    state.generation = (state.generation || 0) + 1;
     overlay.classList.add('hidden');
     scoreEl.textContent = '0';
     resizeCanvas();
@@ -2515,11 +2516,11 @@ SHOOTER_HTML_TEMPLATE = r'''
   function missShot() {
     playTone(180, 0.1, 'sine');
     state.shot = null;
-    afterTurn();
+    afterTurn(true);
   }
 
-  function afterTurn() {
-    addBackRowBubble();
+  function afterTurn(addBubble) {
+    if (addBubble) addBackRowBubble();
     layoutBubbles();
     if (state.bubbles.some(b => b.y + b.r > state.baseY - state.radius * 2.2)) {
       finishGame(false);
@@ -2562,10 +2563,12 @@ SHOOTER_HTML_TEMPLATE = r'''
     praisePop.style.animation = 'none';
     void praisePop.offsetWidth;
     praisePop.style.animation = '';
+    const gen = state.generation;
     window.setTimeout(() => {
+      if (state.generation !== gen) return;
       praisePop.classList.add('hidden');
       state.waiting = false;
-      afterTurn();
+      afterTurn(false);
     }, 980);
   }
 
@@ -2605,7 +2608,7 @@ SHOOTER_HTML_TEMPLATE = r'''
       return;
     }
     state.waiting = false;
-    afterTurn();
+    afterTurn(true);
   }
 
   function playTone(freq, duration, type) {

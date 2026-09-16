@@ -1,7 +1,7 @@
 # BUBBLE SHOOTER PHASE 1 — AUDIT + STABILIZATION REPORT
 
 **Verified branch:** `feature/bubble-shooter-audit-fix`
-**Verified commit:** `e9064dcd9b6f44b83c0b4622208b02da04bd315e`
+**Verified commit:** `3ed4cc2439713013582040e0c3c0dd53f2cfd866`
 **Base branch:** `feature/eduni-space-mvp`
 **Overall:** MERGE READY
 
@@ -149,3 +149,89 @@ All Phase 1 acceptance criteria met:
 - Desktop + portrait + landscape browser QA pass ✅
 - No new console/runtime errors ✅
 - No unrelated broad refactor ✅
+
+---
+
+## Runtime/Test Alignment Closure
+
+**Tested commit:** `3ed4cc2` (merge of `feature/eduni-space-mvp` into `feature/bubble-shooter-audit-fix`)
+
+### Base sync result
+```
+base HEAD:       e13fd24
+feature HEAD:    3ed4cc2
+merge-base:      e13fd24
+ahead_by:        1 (merge commit)
+behind_by:       0
+mergeable:       clean
+```
+
+### How the shared JS is injected/loaded
+
+1. `shooter_html()` calls `_load_shooter_logic_js()` which reads `portal_app/static_games/eduni_bubble_shooter_logic.js` from disk at serve-time (cached in `_SHOOTER_LOGIC_JS`).
+2. The file contents are wrapped in `<script id="eduni-shooter-logic">...</script>`.
+3. The template placeholder `__SHOOTER_LOGIC_SCRIPT__` is replaced with this script tag, which appears **before** the inline game `<script>`.
+4. The inline script assigns `const L = window.EDUNIBubbleShooterLogic;` at IIFE entry, making the shared module available for decision delegation.
+5. If the shared file cannot be loaded, the placeholder is replaced with empty string, and all inline fallback paths activate (fail-safe).
+
+### Exact shared functions used by live runtime
+
+| Function | Inline call site | Purpose |
+|----------|-----------------|---------|
+| `resolveShot` | `handleHit()` | Correct/miss/clear outcome, score delta, pressure decision |
+| `isDanger` | `afterTurn()` | Danger line check after pressure add |
+| `selectTarget` | `chooseCurrent()` | Front-row target selection |
+| `pointerToCss` | `pointerPoint()` | Pointer event to CSS-pixel coordinates |
+| `cssToLogical` | (passthrough contract) | Future-proofing coordinate pipeline |
+| `isGenerationValid` | `showPraise()` timeout | Stale callback prevention after restart |
+
+### Automated test counts
+
+| Suite | Count | Result |
+|-------|-------|--------|
+| `bubble_shooter_logic.test.mjs` | 19 | 19/19 PASS |
+| `test_bubble_shooter_integration.py` | 15 | 15/15 PASS |
+| `test_routes.py` | 7 | 7/7 PASS |
+| `validate_content.py` | — | VALID |
+| `discover -s tests` (full) | 124 | 119/124 (5 pre-existing cp949) |
+| `git diff --check` | — | Clean |
+
+### Browser counts by viewport
+
+| Viewport | Checks | Result |
+|----------|--------|--------|
+| Desktop 1280x800 | 16 | 16/16 PASS |
+| Portrait 360x800 | 16 | 16/16 PASS |
+| Landscape 800x360 | 16 | 16/16 PASS |
+| **Total** | **48** | **48/48 PASS** |
+
+Key browser checks verified:
+- `window.EDUNIBubbleShooterLogic` global exists with all 6 functions
+- `const L = window.EDUNIBubbleShooterLogic` present in inline script
+- Runtime calls `L.resolveShot`, `L.isDanger`, `L.selectTarget`, `L.pointerToCss`
+- No console/runtime errors across all viewports
+- No horizontal overflow
+
+### Console error count
+Zero across all viewports.
+
+### PR mergeability state
+PR #63 is mergeable. Branch is up to date with base.
+
+### Remaining risks
+1. **Android uses separate implementation** — `NativeBubbleShooterActivity.java` is independent; question-data unification deferred to Phase 2.
+2. **`cssToLogical` is a passthrough** — exists as an explicit contract for future DPR handling changes; no behavioral difference.
+3. **Restart race test** — `isGenerationValid` is unit-tested and browser-verified to exist in the runtime; the specific timing race was not triggered by automated shots.
+
+### Recommendation
+**MERGE READY**
+
+- Node tests and `/bubble-shooter` execute the same decision implementation (`EDUNIBubbleShooterLogic` shared module)
+- Integration tests prove actual generated-page wiring (15 tests covering script injection, L delegation, and function presence)
+- Correct/miss progression matches Prompt 14
+- Stale restart callback remains blocked via `isGenerationValid`
+- Mobile aiming passes across all viewports
+- Latest base is integrated cleanly
+- Verified SHA is correct (`3ed4cc2`)
+- Full validation is acceptable
+- PR #63 is mergeable

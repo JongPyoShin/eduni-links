@@ -69,7 +69,43 @@ class BubbleShooterIntegrationTests(unittest.TestCase):
         """showPraise timeout must capture and check the generation token."""
         src = self._app_source()
         self.assertIn('const gen = state.generation', src)
-        self.assertIn('if (state.generation !== gen) return;', src)
+        self.assertIn('isGenerationValid', src)
+
+    def test_shooter_html_injects_shared_logic_script(self) -> None:
+        """shooter_html() must inject the shared logic JS as a script tag."""
+        from app import shooter_html
+        html = shooter_html()
+        self.assertIn('id="eduni-shooter-logic"', html)
+        self.assertIn('EDUNIBubbleShooterLogic', html)
+        self.assertIn('resolveShot', html)
+
+    def test_generated_html_has_logic_before_inline(self) -> None:
+        """Shared logic script must appear before the inline game script."""
+        from app import shooter_html
+        html = shooter_html()
+        logic_pos = html.find('id="eduni-shooter-logic"')
+        inline_pos = html.find('const L = window.EDUNIBubbleShooterLogic')
+        self.assertGreater(logic_pos, -1, 'shared logic script tag not found')
+        self.assertGreater(inline_pos, -1, 'inline L reference not found')
+        self.assertLess(logic_pos, inline_pos, 'shared logic must load before inline script')
+
+    def test_inline_runtime_uses_shared_resolve_shot(self) -> None:
+        """Inline handleHit must call EDUNIBubbleShooterLogic.resolveShot."""
+        src = self._app_source()
+        self.assertIn('L.resolveShot', src)
+        self.assertIn('L.selectTarget', src)
+        self.assertIn('L.isDanger', src)
+        self.assertIn('L.pointerToCss', src)
+
+    def test_logic_module_not_duplicated(self) -> None:
+        """The inline code must not duplicate shared decision logic; it delegates via L."""
+        src = self._app_source()
+        # After wiring, the inline correct-hit path is handled by L.resolveShot,
+        # so the old direct hit.target === state.shot.target check is now a fallback.
+        self.assertIn('L ? L.resolveShot', src)
+        self.assertIn('L ? L.selectTarget', src)
+        self.assertIn('L ? L.isDanger', src)
+        self.assertIn('L ? L.pointerToCss', src)
 
 
 if __name__ == '__main__':

@@ -260,6 +260,131 @@
       };
     }
 
+    function suggestHint(source, color, koState = null) {
+      const sourceKey = engine.boardKey(source);
+      const center = (engine.SIZE - 1) / 2;
+      const candidates = [];
+
+      for (let row = 0; row < engine.SIZE; row++) {
+        for (let col = 0; col < engine.SIZE; col++) {
+          if (source[row]?.[col] !== engine.EMPTY) continue;
+          const analysis = analyzeMove(source, row, col, color, koState);
+          if (!analysis.legal) continue;
+
+          let type = 'safe';
+          let tier = 2;
+          let score = analysis.ownLibertiesAfter * 4;
+          if (analysis.captured > 0) {
+            type = 'capture';
+            tier = 6;
+            score = analysis.captured * 100 + analysis.ownLibertiesAfter;
+          } else if (analysis.rescuedOwnGroups > 0) {
+            type = 'rescue';
+            tier = 5;
+            score = analysis.rescuedOwnGroups * 40 + analysis.ownLibertiesAfter;
+          } else if (analysis.opponentAtariGroups.length > 0) {
+            type = 'pressure';
+            tier = 4;
+            score = analysis.opponentAtariStones.length * 20 + analysis.ownLibertiesAfter;
+          } else if (analysis.connectedOwnGroups >= 2) {
+            type = 'connect';
+            tier = 3;
+            score = analysis.connectedOwnGroups * 10 + analysis.ownLibertiesAfter;
+          } else if (analysis.selfAtariRisk) {
+            type = 'risky';
+            tier = 0;
+            score = -10;
+          }
+
+          const centerDistance = Math.abs(row - center) + Math.abs(col - center);
+          candidates.push({row, col, type, tier, score, centerDistance, analysis});
+        }
+      }
+
+      if (!candidates.length) return null;
+      const safer = candidates.filter(candidate => candidate.tier > 0);
+      const pool = safer.length ? safer : candidates;
+      pool.sort((a, b) =>
+        b.tier - a.tier ||
+        b.score - a.score ||
+        a.centerDistance - b.centerDistance ||
+        a.row - b.row ||
+        a.col - b.col
+      );
+      const best = pool[0];
+
+      let title = '이 자리를 한번 살펴봐요';
+      let summary = `여기에 두면 내 돌의 숨 쉴 곳을 ${best.analysis.ownLibertiesAfter}개 만들 수 있어요.`;
+      let badge = '추천 자리';
+      if (best.type === 'capture') {
+        title = '상대 돌을 잡을 수 있어요!';
+        summary = `여기에 두면 상대 돌 ${best.analysis.captured}개를 바로 잡을 수 있어요.`;
+        badge = `잡기 ${best.analysis.captured}개`;
+      } else if (best.type === 'rescue') {
+        title = '위험한 내 돌을 살려 볼까요?';
+        summary = '이곳에 두면 위험한 내 돌의 숨 쉴 곳이 늘어나요.';
+        badge = '내 돌 살리기';
+      } else if (best.type === 'pressure') {
+        title = '상대 돌의 숨 쉴 곳을 줄여 볼까요?';
+        summary = '이곳에 두면 상대 돌의 숨 쉴 곳이 1개만 남아요.';
+        badge = '상대 돌 압박';
+      } else if (best.type === 'connect') {
+        title = '내 돌을 이어 볼까요?';
+        summary = '이곳에 두면 떨어져 있던 내 돌이 서로 이어져 더 안전해져요.';
+        badge = '내 돌 연결';
+      } else if (best.type === 'risky') {
+        title = '둘 곳이 많지 않아요';
+        summary = '이 자리는 둘 수 있지만 내 돌의 숨 쉴 곳이 1개뿐이에요. 조심해서 생각해 봐요.';
+        badge = '조심';
+      }
+
+      return {
+        row: best.row,
+        col: best.col,
+        type: best.type,
+        title,
+        summary,
+        badge,
+        analysis: best.analysis,
+        sourceUnchanged: engine.boardKey(source) === sourceKey,
+      };
+    }
+
+    function ruleGuide(komi = 6.5) {
+      return [
+        {
+          id: 'place',
+          title: '1. 돌은 어디에 놓아요?',
+          summary: '흑부터 시작해서 선이 만나는 교차점에 돌을 한 개씩 번갈아 놓아요.',
+        },
+        {
+          id: 'liberty',
+          title: '2. 숨 쉴 곳(활로)이 뭐예요?',
+          summary: '돌의 위·아래·왼쪽·오른쪽에 붙어 있는 빈 교차점이 숨 쉴 곳이에요. 이어진 같은 색 돌은 숨 쉴 곳을 함께 써요.',
+        },
+        {
+          id: 'capture',
+          title: '3. 돌은 언제 잡혀요?',
+          summary: '한 무리의 숨 쉴 곳을 상대가 모두 막으면 그 돌들은 바둑판에서 빠져요.',
+        },
+        {
+          id: 'suicide',
+          title: '4. 내 돌이 바로 잡히는 곳에도 둘 수 있나요?',
+          summary: '내 돌의 숨 쉴 곳이 바로 0개가 되는 곳에는 보통 둘 수 없어요. 하지만 그 수로 상대 돌을 잡아 숨 쉴 곳이 생기면 둘 수 있어요.',
+        },
+        {
+          id: 'ko',
+          title: '5. 패는 왜 바로 되잡을 수 없어요?',
+          summary: '똑같은 바둑판 모양이 바로 반복되는 것은 금지예요. 다른 곳에 한 수 둔 뒤에는 다시 살펴볼 수 있어요.',
+        },
+        {
+          id: 'finish',
+          title: '6. 게임은 언제 끝나요?',
+          summary: `둘 다 더 둘 필요가 없어서 연속으로 한 수 쉬기를 하면 끝나요. 돌과 둘러싼 빈 곳을 함께 세고, 백은 덤 ${komi}집을 받아요.`,
+        },
+      ];
+    }
+
     function strongestAiReason(move) {
       const components = move?.aiAnalysis?.components || {};
       const strategic = [
@@ -280,7 +405,7 @@
       return '여러 방향으로 움직이기 쉬운 자리였어요.';
     }
 
-    return {analyzeMove, analyzeAiDanger, strongestAiReason};
+    return {analyzeMove, analyzeAiDanger, suggestHint, ruleGuide, strongestAiReason};
   }
 
   root.EDUNIBadukCoachLogic = {create};

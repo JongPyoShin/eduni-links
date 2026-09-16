@@ -1,4 +1,4 @@
-# EDUNI Baduk — AI Danger + Undo + Input Freeze Final Verification (Prompt 20)
+# EDUNI Baduk — AI Danger + Undo + Hint/Rules + Input Freeze Final Verification (Prompt 20)
 
 Verify only. Do not refactor or add unrelated features.
 
@@ -7,8 +7,8 @@ Verify only. Do not refactor or add unrelated features.
 - repo: `JongPyoShin/eduni-links`
 - branch: `feature/baduk-ai-danger-coach`
 - base: `feature/eduni-space-mvp`
-- implementation code/test SHA: `aacb46f9e6b77371d55995ff7f804937f56d3dca`
-- phase1 report commit: `0627c44b3598fbed2396dd5fa86b120f39044adb`
+- latest feature code/test SHA before report update: `88062d7551c63917c2d809dd76544e5a5bcfd45a`
+- updated phase1 report commit: `2bc5b1bf86bfb046bac368945d92a29b676338d9`
 
 Read first:
 
@@ -28,15 +28,21 @@ Verify the actual served `/baduk` runtime contains and uses the same shared logi
 Required evidence:
 
 - `EDUNIBadukCoachLogic.create(...).analyzeAiDanger` exists in served source
+- `EDUNIBadukCoachLogic.create(...).suggestHint` exists in served source
+- `EDUNIBadukCoachLogic.create(...).ruleGuide` exists in served source
 - AI coordinate move path calls `analyzeAiDanger(beforeBoard, board, {row,col})` exactly once
 - local move path does not call AI danger analysis
 - AI pass path does not fabricate a danger analysis
 - `무르기` button exists in served page
+- `힌트` button exists in served page
+- `규칙 보기` button exists in served page
+- hint button delegates to the shared `suggestHint`, not a separate test-only implementation
+- rule guide delegates to shared `ruleGuide`
 - `undo:undoMove` is exposed by `EDUNIBadukEngine`
 - AI scheduling contains a generation token guard
 - persistence and 19x19 strategy scripts remain injected
 
-If the helper is only present as a test asset but not used by served runtime, verdict is FAIL.
+If a helper is only present as a test asset but not used by served runtime, verdict is FAIL.
 
 ## 2. Automated tests
 
@@ -110,7 +116,69 @@ Have an already one-liberty black group elsewhere and let AI play remotely witho
 
 Verify the remote AI move is not blamed for that old danger.
 
-## 4. Undo browser QA — high priority
+## 4. Contextual hint QA — required
+
+The `힌트` button must inspect the current legal board state. It must not be a static text tip.
+
+### Empty / quiet position
+
+- start a fresh 9x9 game
+- press `힌트`
+- exactly one legal recommended point is highlighted with the existing coach preview vocabulary
+- the coach card explains why the point is useful in simple Korean
+- no stone is placed automatically
+- `여기에 두기` can confirm the recommendation
+- choosing another point instead remains possible
+
+### Capture priority
+
+Create a position where the human can immediately capture an opponent group and also has ordinary safe alternatives.
+
+Required:
+
+- hint selects a capturing move
+- actual captured count in the explanation is correct
+- no illegal or occupied point is suggested
+
+### Rescue priority
+
+Create a position where the user's group has one breathing point and a legal move can rescue it, with no immediate capture available.
+
+Required:
+
+- hint recommends a rescue move
+- copy explains that the endangered own stones gain breathing room
+
+### Safety / determinism
+
+- repeated `힌트` on the same unchanged position recommends the same intersection
+- if safer legal moves exist, hint must not recommend a self-atari / one-liberty risky move
+- board state, counters, turn and ko state do not change merely from requesting a hint
+- while AI is thinking or it is AI's turn, hint gives a clear wait message and does not create a fake human preview
+- local two-player mode uses the color whose turn it actually is
+
+## 5. Beginner rule-guide QA — required
+
+Press `규칙 보기` and verify a non-modal readable guide appears without blocking the board.
+
+The guide must explain in easy Korean:
+
+1. stones are placed on intersections and players alternate
+2. `숨 쉴 곳(활로)` using up/down/left/right adjacent empty intersections
+3. capture when all breathing points are blocked
+4. suicide rule and the capture exception
+5. ko / immediate same-position repetition is forbidden
+6. two consecutive passes end the game and the current komi is shown
+
+Also verify:
+
+- button toggles between `규칙 보기` and `규칙 닫기`
+- opening/closing the rules does not change game state
+- the board remains playable while the guide is open
+- 360x800 has no horizontal overflow
+- guide remains readable at 9x9, 13x13 and 19x19
+
+## 6. Undo browser QA — high priority
 
 ### AI completed cycle
 
@@ -169,7 +237,7 @@ Verify at least one capture snapshot and one simple-ko state restore. Undo must 
 
 Phase 1 intentionally treats resignation as non-undoable. Verify resign clears/disables undo and does not corrupt the game.
 
-## 5. Persistence QA
+## 7. Persistence QA
 
 Important Phase 1 contract:
 
@@ -187,12 +255,16 @@ Test:
 
 Also restore a saved AI-turn state and verify exactly one AI response still occurs.
 
-## 6. Input-freeze stress test — blocker
+Hint/rule UI is informational only; requesting a hint or opening rules must not create a new persisted move or alter saved board state.
+
+## 8. Input-freeze stress test — blocker
 
 Run a longer AI game, ideally 20–30 human/AI cycles, and repeatedly exercise:
 
 - coach ON/OFF
 - AI explanation cards
+- hint request / cancel / accept
+- rules open/close
 - undo after completed cycle
 - undo during AI thinking
 - new game while AI is thinking
@@ -212,18 +284,18 @@ Specifically inspect state if input ever appears stuck:
 
 If `currentPlayer===WHITE` and `aiThinking===false`, tap the board and verify the self-heal path schedules the AI instead of silently remaining frozen.
 
-No invisible overlay may block pointer input.
+No invisible overlay or rule panel may block pointer input.
 
-## 7. Board sizes / mobile
+## 9. Board sizes / mobile
 
 Verify:
 
-- 9x9 AI + undo + danger card
-- 13x13 AI + undo + danger card
-- 19x19 AI + undo + danger card + existing global strategy
-- 360x800 mobile: no horizontal overflow, undo button tappable, danger text readable, board intersections remain accurately tappable
+- 9x9 AI + undo + danger card + hint + rules
+- 13x13 AI + undo + danger card + hint + rules
+- 19x19 AI + undo + danger card + hint + rules + existing global strategy
+- 360x800 mobile: no horizontal overflow, undo/hint/rules buttons tappable, danger text readable, board intersections remain accurately tappable
 
-## 8. Console / routes
+## 10. Console / routes
 
 Zero new Baduk JavaScript console errors.
 
@@ -251,8 +323,10 @@ Merge-ready requires all blocker scenarios to pass in the real browser, especial
 3. completed AI-cycle undo restores exact pre-human state
 4. legal human input does not freeze during long play
 5. danger status is based on actual before/after board state
-6. local mode remains AI-free
-7. existing persistence and 19x19 behavior remain intact
+6. contextual hint comes from the real shared legal-move analysis and never mutates state by itself
+7. beginner rule guide is readable/non-blocking and factually matches implemented rules
+8. local mode remains AI-free
+9. existing persistence and 19x19 behavior remain intact
 
 Create final report:
 

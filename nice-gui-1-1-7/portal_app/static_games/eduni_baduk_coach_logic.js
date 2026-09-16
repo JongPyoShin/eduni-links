@@ -26,6 +26,20 @@
       return groups;
     }
 
+    function allGroups(source, color) {
+      const groups = [];
+      const seen = new Set();
+      for (let r = 0; r < engine.SIZE; r++) {
+        for (let c = 0; c < engine.SIZE; c++) {
+          if (source[r]?.[c] !== color || seen.has(`${r},${c}`)) continue;
+          const group = engine.groupAt(source, r, c);
+          for (const [gr, gc] of group.stones) seen.add(`${gr},${gc}`);
+          groups.push(group);
+        }
+      }
+      return groups;
+    }
+
     function reasonCodeFrom(result, row, col) {
       if (row < 0 || col < 0 || row >= engine.SIZE || col >= engine.SIZE) return 'outside';
       const reason = result?.reason || '';
@@ -96,29 +110,29 @@
       const selfAtariRisk = result.captured === 0 && ownAfter.liberties.length === 1;
 
       let title = '여기는 둘 수 있어요';
-      let summary = `규칙상 둘 수 있어요. 놓은 뒤 내 돌의 활로는 ${ownAfter.liberties.length}개예요.`;
+      let summary = `규칙상 둘 수 있어요. 놓은 뒤 내 돌의 숨 쉴 곳(활로)은 ${ownAfter.liberties.length}개예요.`;
       const badges = [];
 
       if (result.captured > 0) {
         summary = `여기에 두면 상대 돌 ${result.captured}개를 잡아요.`;
         badges.push(`포획 ${result.captured}개`);
       } else if (rescuedOwnGroups > 0) {
-        summary = '위험했던 내 돌의 활로가 늘어나요.';
+        summary = '위험했던 내 돌의 숨 쉴 곳이 늘어나요.';
         badges.push('내 돌 구출');
       } else if (opponentAtariGroups.length > 0) {
-        summary = '상대 돌의 활로가 1개만 남아 단수가 돼요.';
-        badges.push('상대 단수');
+        summary = '상대 돌의 숨 쉴 곳이 1개만 남아 단수예요.';
+        badges.push('단수 · 숨 쉴 곳 1개');
       } else if (connectedOwnGroups >= 2) {
         summary = '떨어져 있던 내 돌이 이 자리에서 이어져요.';
         badges.push('내 돌 연결');
       } else if (selfAtariRisk) {
         title = '둘 수는 있지만 조심해요';
-        summary = '규칙상 둘 수 있지만 내 돌의 활로가 1개뿐이라 위험해요.';
-        badges.push('활로 1개');
+        summary = '내 돌의 숨 쉴 곳이 1개뿐이라 다음 수에 잡힐 수 있어요.';
+        badges.push('숨 쉴 곳 1개');
       }
 
       if (badges.length < 2 && ownAfter.liberties.length > 1) badges.push(`활로 ${ownAfter.liberties.length}개`);
-      if (badges.length < 2 && opponentAtariGroups.length > 0 && !badges.includes('상대 단수')) badges.push('상대 단수');
+      if (badges.length < 2 && opponentAtariGroups.length > 0 && !badges.some(b => b.includes('단수'))) badges.push('상대 단수');
 
       return {
         legal: true,
@@ -144,6 +158,108 @@
       };
     }
 
+    function analyzeAiDanger(beforeBoard, afterBoard, aiMove = null) {
+      const beforeKey = engine.boardKey(beforeBoard);
+      const afterKey = engine.boardKey(afterBoard);
+      const capturedStones = [];
+      for (let r = 0; r < engine.SIZE; r++) {
+        for (let c = 0; c < engine.SIZE; c++) {
+          if (beforeBoard[r]?.[c] === engine.BLACK && afterBoard[r]?.[c] !== engine.BLACK) {
+            capturedStones.push([r, c]);
+          }
+        }
+      }
+
+      if (capturedStones.length) {
+        return {
+          level: 'critical',
+          reasonCode: 'captured',
+          title: '🚨 내 돌이 잡혔어요',
+          summary: `AI가 이곳에 두면서 내 돌 ${capturedStones.length}개가 숨 쉴 곳이 없어져 잡혔어요.`,
+          affectedStones: capturedStones,
+          capturedStones,
+          libertyPoints: [],
+          capturedCount: capturedStones.length,
+          beforeLiberties: null,
+          afterLiberties: 0,
+          aiMove,
+          sourceUnchanged: beforeKey === engine.boardKey(beforeBoard) && afterKey === engine.boardKey(afterBoard),
+        };
+      }
+
+      const beforeGroups = allGroups(beforeBoard, engine.BLACK);
+      const afterGroups = allGroups(afterBoard, engine.BLACK);
+      const beforeByStone = new Map();
+      for (const group of beforeGroups) {
+        for (const [r, c] of group.stones) beforeByStone.set(`${r},${c}`, group);
+      }
+
+      let best = null;
+      for (const group of afterGroups) {
+        const matched = [];
+        const seen = new Set();
+        for (const [r, c] of group.stones) {
+          const prev = beforeByStone.get(`${r},${c}`);
+          if (!prev) continue;
+          const key = groupKey(prev);
+          if (!seen.has(key)) {
+            seen.add(key);
+            matched.push(prev);
+          }
+        }
+        if (!matched.length) continue;
+        const beforeLiberties = Math.max(...matched.map(g => g.liberties.length));
+        const afterLiberties = group.liberties.length;
+        if (afterLiberties >= beforeLiberties) continue;
+        const level = afterLiberties === 1 && beforeLiberties > 1
+          ? 'danger'
+          : afterLiberties === 2 && beforeLiberties > 2
+            ? 'caution'
+            : null;
+        if (!level) continue;
+        const candidate = {group, beforeLiberties, afterLiberties, level};
+        if (!best || candidate.afterLiberties < best.afterLiberties ||
+            (candidate.afterLiberties === best.afterLiberties && candidate.beforeLiberties > best.beforeLiberties)) {
+          best = candidate;
+        }
+      }
+
+      if (best) {
+        const danger = best.level === 'danger';
+        return {
+          level: best.level,
+          reasonCode: danger ? 'new_atari' : 'liberties_reduced',
+          title: danger ? '🚨 이 돌이 위험해요' : '⚠️ 이쪽을 조심해요',
+          summary: danger
+            ? '이 돌들은 숨 쉴 곳이 1개만 남았어요. AI가 그곳까지 막으면 잡힐 수 있어요.'
+            : 'AI가 가까이 와서 이 돌들의 숨 쉴 곳이 2개로 줄었어요.',
+          affectedStones: best.group.stones.map(([r, c]) => [r, c]),
+          capturedStones: [],
+          libertyPoints: best.group.liberties.map(([r, c]) => [r, c]),
+          capturedCount: 0,
+          beforeLiberties: best.beforeLiberties,
+          afterLiberties: best.afterLiberties,
+          aiMove,
+          sourceUnchanged: beforeKey === engine.boardKey(beforeBoard) && afterKey === engine.boardKey(afterBoard),
+        };
+      }
+
+      return {
+        level: 'safe',
+        reasonCode: 'safe',
+        title: '🙂 지금은 크게 위험하지 않아요',
+        summary: '이번 AI 수로 바로 잡힐 위험은 커지지 않았어요.',
+        affectedStones: [],
+        capturedStones: [],
+        libertyPoints: [],
+        capturedCount: 0,
+        beforeLiberties: null,
+        afterLiberties: null,
+        aiMove,
+        sourceUnchanged: beforeKey === engine.boardKey(beforeBoard) && afterKey === engine.boardKey(afterBoard),
+      };
+    }
+
     function strongestAiReason(move) {
       const components = move?.aiAnalysis?.components || {};
       const strategic = [
@@ -156,16 +272,15 @@
         ['center', components.center || 0],
       ].sort((a, b) => b[1] - a[1]);
       const key = strategic[0]?.[0] || 'center';
-      if (key === 'capture' && move.result?.captured > 0) return `흑돌 ${move.result.captured}개를 잡을 수 있어서예요.`;
-      if (key === 'atari' && (move.aiAnalysis.afterAtari - move.aiAnalysis.beforeAtari) > 0) return '흑돌의 활로를 줄여 단수를 만들 수 있어서예요.';
-      if (key === 'spread') return '이미 놓인 돌들과 너무 붙지 않고 넓은 빈 곳으로 벌리기 좋은 자리라서예요.';
-      if (key === 'opening') return '초반에 넓게 자리 잡기 좋은 전략 지점이라서예요.';
-      if (key === 'neighbors') return '주변 돌과 가까워 연결하거나 압박하기 좋은 자리라서예요.';
-      if (key === 'liberties') return `백돌의 활로를 ${move.result?.liberties || 0}개 확보할 수 있어서예요.`;
-      return '여러 후보 중 가운데에 가까워 여러 방향으로 펼치기 쉬운 자리라서예요.';
+      if (key === 'capture' && move.result?.captured > 0) return `내 돌 ${move.result.captured}개를 바로 잡을 수 있는 자리였어요.`;
+      if (key === 'atari' && (move.aiAnalysis.afterAtari - move.aiAnalysis.beforeAtari) > 0) return '내 돌의 숨 쉴 곳을 줄여서 잡기 쉽게 만드는 자리였어요.';
+      if (key === 'spread' || key === 'opening') return '초반이라 넓은 곳을 먼저 차지하려고 했어요.';
+      if (key === 'neighbors') return 'AI 돌과 이어지거나 내 돌을 압박하기 좋은 자리였어요.';
+      if (key === 'liberties') return 'AI 돌이 답답하지 않게 숨 쉴 곳을 만들 수 있는 자리였어요.';
+      return '여러 방향으로 움직이기 쉬운 자리였어요.';
     }
 
-    return {analyzeMove, strongestAiReason};
+    return {analyzeMove, analyzeAiDanger, strongestAiReason};
   }
 
   root.EDUNIBadukCoachLogic = {create};

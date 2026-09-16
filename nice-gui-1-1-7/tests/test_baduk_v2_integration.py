@@ -33,6 +33,8 @@ class BadukV2IntegrationTests(unittest.TestCase):
         self.assertIn("root.EDUNIBadukCoachLogic = {create};", served)
         self.assertIn("sharedCoachLogic().analyzeMove", served)
         self.assertIn("sharedCoachLogic().analyzeAiDanger", served)
+        self.assertIn("sharedCoachLogic().suggestHint", served)
+        self.assertIn("sharedCoachLogic().ruleGuide", served)
         self.assertIn("sharedCoachLogic().strongestAiReason", served)
         self.assertNotIn(
             "function analyzeMove(source,row,col,color,koState=null){const result=tryMove",
@@ -74,6 +76,26 @@ class BadukV2IntegrationTests(unittest.TestCase):
         self.assertIn("recordUndoSnapshot(mode==='ai'?'decision':'action')", served)
         self.assertIn("undoHistory.length>240", served)
         self.assertIn("한 수 전으로 돌아왔어요. 다시 생각해 볼까요?", served)
+
+    def test_contextual_hint_button_uses_shared_hint_logic(self) -> None:
+        served = self._served_source()
+
+        self.assertIn('id="hint" type="button">힌트</button>', served)
+        self.assertIn("function showHint()", served)
+        self.assertIn("const hint=suggestHint(board,currentPlayer,previousPosition)", served)
+        self.assertIn("sharedCoachLogic().suggestHint", served)
+        self.assertIn("노란 표시가 힌트 자리예요", served)
+        self.assertIn("document.getElementById('hint').addEventListener('click',showHint)", served)
+
+    def test_rule_guide_button_and_beginner_explanations_are_wired(self) -> None:
+        served = self._served_source()
+
+        self.assertIn('id="rulesHelp" type="button">규칙 보기</button>', served)
+        self.assertIn("sharedCoachLogic().ruleGuide", served)
+        self.assertIn("function toggleRulesHelp()", served)
+        self.assertIn("📘 바둑 기본 규칙", served)
+        self.assertIn("처음에는 숨 쉴 곳과 잡기 규칙만 기억해도 충분해요.", served)
+        self.assertIn("document.getElementById('rulesHelp')?.addEventListener('click',toggleRulesHelp)", served)
 
     def test_ai_schedule_uses_generation_guard_and_pointer_self_heal(self) -> None:
         served = self._served_source()

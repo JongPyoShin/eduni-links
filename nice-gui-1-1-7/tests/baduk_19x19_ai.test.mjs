@@ -81,7 +81,8 @@ test('coach explains actual spread component and ignores jitter', () => {
       components: {capture: 0, atari: 0, spread: 12, opening: 7, neighbors: 0, liberties: 8, center: 3, jitter: 999},
     },
   };
-  assert.match(coach.strongestAiReason(spreadMove), /넓은 빈 곳/);
+  assert.match(coach.strongestAiReason(spreadMove), /초반이라 넓은 곳/);
+  assert.doesNotMatch(coach.strongestAiReason(spreadMove), /999/);
 
   const captureMove = {
     result: {captured: 1, liberties: 2},
@@ -91,5 +92,6 @@ test('coach explains actual spread component and ignores jitter', () => {
       components: {capture: 86, atari: 0, spread: 12, opening: 7, neighbors: 0, liberties: 4, center: 0, jitter: 999},
     },
   };
-  assert.match(coach.strongestAiReason(captureMove), /흑돌 1개를 잡/);
+  assert.match(coach.strongestAiReason(captureMove), /내 돌 1개를 바로 잡/);
+  assert.doesNotMatch(coach.strongestAiReason(captureMove), /999/);
 });

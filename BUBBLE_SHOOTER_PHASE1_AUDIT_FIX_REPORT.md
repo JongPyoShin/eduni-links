@@ -1,9 +1,9 @@
 # BUBBLE SHOOTER PHASE 1 — AUDIT + STABILIZATION REPORT
 
 **Verified branch:** `feature/bubble-shooter-audit-fix`
-**Verified commit:** `3ed4cc2439713013582040e0c3c0dd53f2cfd866`
+**Verified commit:** `3b97dee1216f2667eea56fb8b1f6dcfc1b485378` (Prompt 21 final verification)
 **Base branch:** `feature/eduni-space-mvp`
-**Overall:** MERGE READY
+**Overall:** PASS — MERGE READY
 
 ---
 
@@ -154,13 +154,13 @@ All Phase 1 acceptance criteria met:
 
 ## Runtime/Test Alignment Closure
 
-**Tested commit:** `3ed4cc2` (merge of `feature/eduni-space-mvp` into `feature/bubble-shooter-audit-fix`)
+**Tested commit:** `3b97dee` (Prompt 21 final verification, after base sync)
 
 ### Base sync result
 ```
-base HEAD:       e13fd24
-feature HEAD:    3ed4cc2
-merge-base:      e13fd24
+base HEAD:       4a37891
+feature HEAD:    3b97dee
+merge-base:      4a37891
 ahead_by:        1 (merge commit)
 behind_by:       0
 mergeable:       clean
@@ -184,6 +184,17 @@ mergeable:       clean
 | `pointerToCss` | `pointerPoint()` | Pointer event to CSS-pixel coordinates |
 | `cssToLogical` | (passthrough contract) | Future-proofing coordinate pipeline |
 | `isGenerationValid` | `showPraise()` timeout | Stale callback prevention after restart |
+
+### Deterministic restart-race result (Prompt 21)
+
+**Test method:** Playwright `page.mouse` API fires real pointer events to achieve correct hit (score +100), then immediately clicks restart via JS. Waits 1.5 seconds (exceeding 980ms praise delay). Verifies score remains 0 and new target is valid.
+
+| Round | Correct hit | Score after restart | New target valid | Score stable | Console errors |
+|-------|-------------|--------------------|-----------------|--------------|----------------|
+| 1 | Yes (+100) | 0 | Yes | 0 | 0 |
+| 2 | Yes (+100) | 0 | Yes | 0 | 0 |
+
+**Verdict:** Stale praise callback does NOT corrupt restarted game. Generation guard (`isGenerationValid`) works as designed.
 
 ### Automated test counts
 
@@ -216,22 +227,21 @@ Key browser checks verified:
 Zero across all viewports.
 
 ### PR mergeability state
-PR #63 is mergeable. Branch is up to date with base.
+PR #63 is mergeable. Branch is up to date with base (behind_by = 0).
 
 ### Remaining risks
 1. **Android uses separate implementation** — `NativeBubbleShooterActivity.java` is independent; question-data unification deferred to Phase 2.
 2. **`cssToLogical` is a passthrough** — exists as an explicit contract for future DPR handling changes; no behavioral difference.
-3. **Restart race test** — `isGenerationValid` is unit-tested and browser-verified to exist in the runtime; the specific timing race was not triggered by automated shots.
 
 ### Recommendation
-**MERGE READY**
+**PASS — MERGE READY**
 
 - Node tests and `/bubble-shooter` execute the same decision implementation (`EDUNIBubbleShooterLogic` shared module)
 - Integration tests prove actual generated-page wiring (15 tests covering script injection, L delegation, and function presence)
 - Correct/miss progression matches Prompt 14
-- Stale restart callback remains blocked via `isGenerationValid`
+- **Deterministic restart-race browser test PASSES** (2 rounds, correct hit -> immediate restart -> 1.5s wait -> score stable at 0)
 - Mobile aiming passes across all viewports
-- Latest base is integrated cleanly
-- Verified SHA is correct (`3ed4cc2`)
+- Latest base is integrated cleanly (behind_by = 0)
+- Verified SHA is correct (`3b97dee`)
 - Full validation is acceptable
 - PR #63 is mergeable

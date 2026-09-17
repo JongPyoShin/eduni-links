@@ -5,15 +5,15 @@ import re
 
 _MAIN_SCRIPT_MARKER = "<script>\n(()=>{'use strict';"
 _STRONGEST_AI_PATTERN = re.compile(
-    r"function strongestAiReason\(move\)\{.*?\}\nfunction uniqueGroupKeys",
+    r"function strongestAiReason\(move\)\{.*?\}\s*function uniqueGroupKeys",
     re.DOTALL,
 )
 _ANALYZE_PATTERN = re.compile(
-    r"function analyzeMove\(source,row,col,color,koState=null\)\{.*?\}\nlet board=",
+    r"function analyzeMove\(source,row,col,color,koState=null\)\{.*?\}\s*let board=",
     re.DOTALL,
 )
 _AI_CANDIDATE_PATTERN = re.compile(
-    r"function aiCandidateMoves\(source,koState\)\{.*?\}\nfunction aiPickMove",
+    r"function aiCandidateMoves\(source,koState\)\{.*?\}\s*function aiPickMove",
     re.DOTALL,
 )
 _AI_COMPONENTS_PATTERN = re.compile(
@@ -25,15 +25,15 @@ _PLAY_MOVE_PATTERN = re.compile(
     re.DOTALL,
 )
 _PASS_TURN_PATTERN = re.compile(
-    r"function passTurn\(source='human'\)\{.*?\}\nfunction finishByScore",
+    r"function passTurn\(source='human'\)\{.*?\}\s*function finishByScore",
     re.DOTALL,
 )
 _RESIGN_PATTERN = re.compile(
-    r"function resign\(\)\{.*?\}\nfunction scheduleAi",
+    r"function resign\(\)\{.*?\}\s*function scheduleAi",
     re.DOTALL,
 )
 _SCHEDULE_AI_PATTERN = re.compile(
-    r"function scheduleAi\(\)\{.*?\}\nfunction resetGame",
+    r"function scheduleAi\(\)\{.*?\}\s*function resetGame",
     re.DOTALL,
 )
 

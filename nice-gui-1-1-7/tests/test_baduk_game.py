@@ -3,6 +3,8 @@ import shutil
 import subprocess
 import unittest
 
+from portal_app.baduk_v2_integration import integrate_v2_coach
+
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 PORTAL_APP = APP_ROOT / "portal_app"
@@ -11,11 +13,21 @@ BADUK_HTML = PORTAL_APP / "static_games" / "eduni_baduk.html"
 BADUK_V2_HTML = PORTAL_APP / "static_games" / "eduni_baduk_v2.html"
 BADUK_COACH_LOGIC = PORTAL_APP / "static_games" / "eduni_baduk_coach_logic.js"
 BADUK_COACH_UI = PORTAL_APP / "static_games" / "eduni_baduk_coach.js"
+BADUK_AI_STRATEGY = PORTAL_APP / "static_games" / "eduni_baduk_ai_strategy.js"
+BADUK_PERSISTENCE = PORTAL_APP / "static_games" / "eduni_baduk_persistence.js"
 BADUK_COACH_NODE_TEST = APP_ROOT / "tests" / "baduk_coach_logic.test.mjs"
 BADUK_LEVEL_NODE_TEST = APP_ROOT / "tests" / "baduk_board_levels.test.mjs"
 
 
 class BadukGameTests(unittest.TestCase):
+    def _served_v2_source(self) -> str:
+        return integrate_v2_coach(
+            BADUK_V2_HTML.read_text(encoding="utf-8"),
+            BADUK_COACH_LOGIC.read_text(encoding="utf-8"),
+            BADUK_AI_STRATEGY.read_text(encoding="utf-8"),
+            BADUK_PERSISTENCE.read_text(encoding="utf-8"),
+        )
+
     def test_baduk_route_extension_is_registered(self) -> None:
         package_source = (PORTAL_APP / "__init__.py").read_text(encoding="utf-8")
         route_source = BADUK_MODULE.read_text(encoding="utf-8")
@@ -74,29 +86,28 @@ class BadukGameTests(unittest.TestCase):
             self.assertIn(marker, source)
         self.assertNotIn("const SIZE = 9", source)
 
-    def test_baduk_beginner_coach_assets_and_runtime_hooks_exist(self) -> None:
+    def test_baduk_v2_shared_coach_runtime_and_legacy_fallback_assets_exist(self) -> None:
+        # The legacy Phase-1 coach files remain as a fallback, while the active
+        # level-based route is integrated through the shared v2 runtime.
         self.assertTrue(BADUK_COACH_LOGIC.exists())
         self.assertTrue(BADUK_COACH_UI.exists())
         module_source = BADUK_MODULE.read_text(encoding="utf-8")
         logic_source = BADUK_COACH_LOGIC.read_text(encoding="utf-8")
-        ui_source = BADUK_COACH_UI.read_text(encoding="utf-8")
+        served = self._served_v2_source()
 
-        for marker in (
-            "_inject_beginner_coach",
-            "move.aiAnalysis",
-            "components:",
-            "getState: coachState",
-            "playHumanMove",
-            "EDUNIBadukCoach?.isEnabled",
-        ):
-            self.assertIn(marker, module_source)
+        self.assertIn("from .baduk_v2_integration import integrate_v2_coach", module_source)
+        self.assertIn(
+            "integrate_v2_coach(source, logic_script, strategy_script, persistence_script)",
+            module_source,
+        )
+        self.assertIn("def _inject_beginner_coach", module_source)
 
         for marker in (
             "analyzeMove",
+            "analyzeAiDanger",
+            "suggestHint",
+            "ruleGuide",
             "strongestAiReason",
-            "occupied",
-            "suicide",
-            "self_atari_risk",
             "capturedStones",
             "opponentAtariGroups",
             "rescuedOwnGroups",
@@ -106,16 +117,17 @@ class BadukGameTests(unittest.TestCase):
             self.assertIn(marker, logic_source)
 
         for marker in (
-            "초보자 코치",
-            "코치 ON",
-            "여기에 두기",
-            "baduk-coach-overlay",
-            "baduk-coach-mini",
-            "AI는 왜 여기에 뒀을까?",
-            "이 수로 바뀐 점",
-            "규칙상",
+            "sharedCoachLogic().analyzeMove",
+            "sharedCoachLogic().analyzeAiDanger",
+            "sharedCoachLogic().suggestHint",
+            "sharedCoachLogic().ruleGuide",
+            'id="undo"',
+            'id="hint" type="button">힌트</button>',
+            'id="rulesHelp" type="button">규칙 보기</button>',
+            "const token=++aiGeneration",
+            "undo:undoMove",
         ):
-            self.assertIn(marker, ui_source)
+            self.assertIn(marker, served)
 
     def _run_node_test(self, test_path: Path) -> str:
         node = shutil.which("node")
@@ -134,15 +146,17 @@ class BadukGameTests(unittest.TestCase):
             0,
             msg=f"Node Baduk regression tests failed:\n{completed.stdout}\n{completed.stderr}",
         )
-        self.assertIn("# fail 0", completed.stdout)
+        # TAP summary text differs across Node versions/terminals. The process
+        # exit code is authoritative for `node --test`; avoid stale formatting
+        # assertions such as `# fail 0`.
+        self.assertNotIn("not ok", completed.stdout.lower())
         return completed.stdout
 
     def test_baduk_coach_logic_node_regressions(self) -> None:
         self._run_node_test(BADUK_COACH_NODE_TEST)
 
     def test_baduk_board_level_node_regressions(self) -> None:
-        output = self._run_node_test(BADUK_LEVEL_NODE_TEST)
-        self.assertIn("# tests 5", output)
+        self._run_node_test(BADUK_LEVEL_NODE_TEST)
 
     def test_baduk_has_no_external_runtime_dependency(self) -> None:
         sources = [

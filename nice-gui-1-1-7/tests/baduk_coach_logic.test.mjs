@@ -69,7 +69,7 @@ vm.createContext(context);
 const logicPath = new URL('../portal_app/static_games/eduni_baduk_coach_logic.js', import.meta.url);
 vm.runInContext(fs.readFileSync(logicPath, 'utf8'), context, {filename: logicPath.pathname});
 const engine = {SIZE, EMPTY, BLACK, WHITE, createBoard, cloneBoard, boardKey, groupAt, tryMove};
-const {analyzeMove, strongestAiReason} = context.EDUNIBadukCoachLogic.create(engine);
+const {analyzeMove, analyzeAiDanger, suggestHint, ruleGuide, strongestAiReason} = context.EDUNIBadukCoachLogic.create(engine);
 
 test('TC01/TC12 empty-board analysis is legal and pure', () => {
   const board = createBoard();
@@ -118,7 +118,7 @@ test('TC05 simple ko reason is exposed', () => {
   assert.equal(result.reasonCode, 'ko');
 });
 
-test('TC07 opponent atari is detected', () => {
+test('TC07 opponent atari is detected with child-friendly wording', () => {
   const board = createBoard();
   board[4][4] = WHITE;
   board[3][4] = BLACK;
@@ -126,7 +126,7 @@ test('TC07 opponent atari is detected', () => {
   const result = analyzeMove(board, 4, 3, BLACK, null);
   assert.equal(result.legal, true);
   assert.ok(result.opponentAtariGroups.length >= 1);
-  assert.match(result.summary, /단수/);
+  assert.match(result.summary, /숨 쉴 곳/);
 });
 
 test('TC08 own atari group rescue is detected', () => {
@@ -158,14 +158,150 @@ test('TC10 legal self-atari is warned, not rejected', () => {
   assert.match(result.title, /조심/);
 });
 
-test('TC11 AI explanation uses actual capture score component', () => {
+test('TC11 AI explanation uses actual capture count and simple wording', () => {
   const move = {
-    result: {captured: 1, liberties: 2},
+    result: {captured: 2, liberties: 2},
     aiAnalysis: {
       beforeAtari: 0,
       afterAtari: 0,
-      components: {capture: 60, atari: 0, liberties: 3.2, neighbors: 2.2, center: 2.8, edge: 0, jitter: 1.1},
+      components: {capture: 120, atari: 0, liberties: 3.2, neighbors: 2.2, center: 2.8, edge: 0, jitter: 999},
     },
   };
-  assert.match(strongestAiReason(move), /잡을 수 있어서/);
+  assert.match(strongestAiReason(move), /내 돌 2개/);
+  assert.doesNotMatch(strongestAiReason(move), /999/);
+});
+
+test('AI danger: capture is critical and counts exact stones', () => {
+  const before = createBoard();
+  before[4][4] = BLACK;
+  [[3,4],[5,4],[4,3]].forEach(([r,c]) => { before[r][c] = WHITE; });
+  const after = cloneBoard(before);
+  after[4][5] = WHITE;
+  after[4][4] = EMPTY;
+  const result = analyzeAiDanger(before, after, {row:4,col:5});
+  assert.equal(result.level, 'critical');
+  assert.equal(result.capturedCount, 1);
+  assert.equal(JSON.stringify(result.affectedStones), JSON.stringify([[4,4]]));
+  assert.match(result.summary, /1개/);
+});
+
+test('AI danger: newly reduced to one liberty is danger', () => {
+  const before = createBoard();
+  before[4][4] = BLACK;
+  before[3][4] = WHITE;
+  before[4][3] = WHITE;
+  const after = cloneBoard(before);
+  after[5][4] = WHITE;
+  const result = analyzeAiDanger(before, after, {row:5,col:4});
+  assert.equal(result.level, 'danger');
+  assert.equal(result.beforeLiberties, 2);
+  assert.equal(result.afterLiberties, 1);
+  assert.equal(result.libertyPoints.length, 1);
+  assert.match(result.summary, /숨 쉴 곳이 1개/);
+});
+
+test('AI danger: newly reduced to two liberties is caution', () => {
+  const before = createBoard();
+  before[4][4] = BLACK;
+  before[3][4] = WHITE;
+  const after = cloneBoard(before);
+  after[5][4] = WHITE;
+  const result = analyzeAiDanger(before, after, {row:5,col:4});
+  assert.equal(result.level, 'caution');
+  assert.equal(result.beforeLiberties, 3);
+  assert.equal(result.afterLiberties, 2);
+});
+
+test('AI danger: unrelated already-dangerous group is not blamed on remote move', () => {
+  const before = createBoard();
+  before[4][4] = BLACK;
+  [[3,4],[5,4],[4,3]].forEach(([r,c]) => { before[r][c] = WHITE; });
+  const after = cloneBoard(before);
+  after[0][0] = WHITE;
+  const result = analyzeAiDanger(before, after, {row:0,col:0});
+  assert.equal(result.level, 'safe');
+  assert.equal(result.reasonCode, 'safe');
+});
+
+test('AI danger analysis does not mutate either board', () => {
+  const before = createBoard();
+  before[4][4] = BLACK;
+  before[3][4] = WHITE;
+  const after = cloneBoard(before);
+  after[5][4] = WHITE;
+  const beforeKey = boardKey(before);
+  const afterKey = boardKey(after);
+  const result = analyzeAiDanger(before, after, {row:5,col:4});
+  assert.equal(boardKey(before), beforeKey);
+  assert.equal(boardKey(after), afterKey);
+  assert.equal(result.sourceUnchanged, true);
+});
+
+test('AI atari reason explains breathing spaces and ignores jitter', () => {
+  const move = {
+    result: {captured: 0, liberties: 3},
+    aiAnalysis: {
+      beforeAtari: 0,
+      afterAtari: 1,
+      components: {capture: 0, atari: 12, liberties: 2, neighbors: 1, center: 1, edge: 0, jitter: 9999},
+    },
+  };
+  const reason = strongestAiReason(move);
+  assert.match(reason, /숨 쉴 곳/);
+  assert.doesNotMatch(reason, /9999/);
+});
+
+test('hint: capture is recommended before generic safe moves', () => {
+  const board = createBoard();
+  board[4][4] = WHITE;
+  [[3,4],[5,4],[4,3]].forEach(([r,c]) => { board[r][c] = BLACK; });
+  const before = boardKey(board);
+  const hint = suggestHint(board, BLACK, null);
+  assert.equal(hint.type, 'capture');
+  assert.equal(hint.row, 4);
+  assert.equal(hint.col, 5);
+  assert.equal(hint.analysis.captured, 1);
+  assert.match(hint.summary, /1개/);
+  assert.equal(boardKey(board), before);
+  assert.equal(hint.sourceUnchanged, true);
+});
+
+test('hint: endangered own group rescue is preferred', () => {
+  const board = createBoard();
+  board[4][4] = BLACK;
+  [[3,4],[5,4],[4,3]].forEach(([r,c]) => { board[r][c] = WHITE; });
+  const hint = suggestHint(board, BLACK, null);
+  assert.equal(hint.type, 'rescue');
+  assert.equal(hint.row, 4);
+  assert.equal(hint.col, 5);
+  assert.match(hint.summary, /숨 쉴 곳/);
+});
+
+test('hint: empty board is deterministic and prefers the center', () => {
+  const board = createBoard();
+  const first = suggestHint(board, BLACK, null);
+  const second = suggestHint(board, BLACK, null);
+  assert.equal(first.type, 'safe');
+  assert.equal(first.row, 4);
+  assert.equal(first.col, 4);
+  assert.equal(second.row, first.row);
+  assert.equal(second.col, first.col);
+});
+
+test('hint: safer legal move is preferred over self-atari', () => {
+  const board = createBoard();
+  [[3,4],[4,3],[4,5]].forEach(([r,c]) => { board[r][c] = WHITE; });
+  const hint = suggestHint(board, BLACK, null);
+  assert.notEqual(hint.type, 'risky');
+  assert.equal(hint.analysis.selfAtariRisk, false);
+});
+
+test('rule guide explains liberties, capture, ko and komi in simple Korean', () => {
+  const rules = ruleGuide(6.5);
+  assert.equal(rules.length, 6);
+  const text = rules.map(rule => `${rule.title} ${rule.summary}`).join(' ');
+  assert.match(text, /숨 쉴 곳\(활로\)/);
+  assert.match(text, /모두 막으면/);
+  assert.match(text, /패/);
+  assert.match(text, /덤 6\.5집/);
 });

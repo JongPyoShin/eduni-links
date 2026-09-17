@@ -41,6 +41,15 @@ class BadukV2IntegrationTests(unittest.TestCase):
             served,
         )
 
+    def test_compact_pass_turn_boundary_is_integrated(self) -> None:
+        source = BADUK_V2_HTML.read_text(encoding="utf-8")
+        self.assertIn("scheduleAi()}function finishByScore", source)
+
+        served = self._served_source()
+        self.assertNotEqual(served, source)
+        self.assertIn("saveCurrentGame();updateUndoButton();if(consecutivePasses>=2)", served)
+        self.assertIn("function finishByScore", served)
+
     def test_ai_post_move_uses_shared_danger_analysis_exactly_once(self) -> None:
         served = self._served_source()
 

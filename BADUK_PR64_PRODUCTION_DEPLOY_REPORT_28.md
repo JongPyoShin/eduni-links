@@ -11,7 +11,8 @@ runtime and passed headed-Chrome smoke verification.
 ## Source
 
 - branch: `feature/eduni-space-mvp`
-- checkout HEAD: `81a07d4d56230f699be76202bdc618c6381f682c` (report-only commit on top of the merged feature branch)
+- deployment build checkout: `81a07d4d56230f699be76202bdc618c6381f682c` (the later remote Bubble Shooter/report commits were not part of this Baduk-only rebuild)
+- current branch tip after safe rebase/push: `46870fc12a3151db8ce0d62a6f91388dab2fe8d2`
 - deployed feature merge: `e5a034ae348b14638f88b94d840d36c19c6ef7ea`
 - Prompt 28 commit: `3668602a0a272643bc1f2d020c90af5e5bd44302`
 - preserved pre-existing logs: `D:\Codex\deployment-preserved\baduk-8081-20260919\`

@@ -2116,8 +2116,10 @@ SHOOTER_HTML_TEMPLATE = r'''
   }
 </style>
 
+__SHOOTER_LOGIC_SCRIPT__
 <script>
 (() => {
+  const L = window.EDUNIBubbleShooterLogic;
   const sourceQuestions = __QUESTIONS_JSON__.filter(q => q.target && q.answerLabel);
   const praiseCharacterImages = __PRAISE_CHARACTERS_JSON__;
   const canvas = document.getElementById('shooterCanvas');
@@ -2231,9 +2233,11 @@ SHOOTER_HTML_TEMPLATE = r'''
       finishGame(true);
       return;
     }
-    const frontY = Math.max(...live.map(b => b.y));
-    const front = live.filter(b => Math.abs(b.y - frontY) < state.radius * 0.8);
-    state.current = front[Math.floor(Math.random() * front.length)];
+    state.current = L ? L.selectTarget(state.bubbles, state.radius) : (() => {
+      const frontY = Math.max(...live.map(b => b.y));
+      const front = live.filter(b => Math.abs(b.y - frontY) < state.radius * 0.8);
+      return front[Math.floor(Math.random() * front.length)];
+    })();
     statusEl.textContent = `'${state.current.meaningSound || state.current.answerLabel}' 버블을 맞는 한자에 쏘자`;
   }
 
@@ -2246,6 +2250,7 @@ SHOOTER_HTML_TEMPLATE = r'''
     state.shot = null;
     state.waiting = false;
     state.gameOver = false;
+    state.generation = (state.generation || 0) + 1;
     overlay.classList.add('hidden');
     scoreEl.textContent = '0';
     resizeCanvas();
@@ -2435,7 +2440,7 @@ SHOOTER_HTML_TEMPLATE = r'''
 
   function pointerPoint(event) {
     const rect = canvas.getBoundingClientRect();
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    return L ? L.pointerToCss(event, rect) : { x: event.clientX - rect.left, y: event.clientY - rect.top };
   }
 
   function startAim(event) {
@@ -2496,7 +2501,28 @@ SHOOTER_HTML_TEMPLATE = r'''
 
   function handleHit(hit) {
     if (!state.shot) return;
-    if (hit.target === state.shot.target) {
+    const shotResult = L ? L.resolveShot({ shot: state.shot, hitBubble: hit, bubbles: state.bubbles, shotTarget: state.shot.target }) : null;
+    if (shotResult && shotResult.type === 'correct') {
+      state.waiting = true;
+      state.score += shotResult.scoreDelta;
+      scoreEl.textContent = String(state.score);
+      state.bubbles = shotResult.bubbles;
+      const say = praise[Math.floor(Math.random() * praise.length)];
+      statusEl.textContent = `${say} 정답 버블을 터뜨렸어`;
+      playTone(780, 0.11, 'triangle');
+      setTimeout(() => playTone(980, 0.12, 'triangle'), 80);
+      setTimeout(() => showPraise(hit, say), 220);
+    } else if (shotResult && shotResult.type === 'clear') {
+      state.waiting = true;
+      state.score += shotResult.scoreDelta;
+      scoreEl.textContent = String(state.score);
+      state.bubbles = shotResult.bubbles;
+      const say = praise[Math.floor(Math.random() * praise.length)];
+      statusEl.textContent = `${say} 정답 버블을 터뜨렸어`;
+      playTone(780, 0.11, 'triangle');
+      setTimeout(() => playTone(980, 0.12, 'triangle'), 80);
+      setTimeout(() => finishGame(true), 220);
+    } else if (hit.target === state.shot.target) {
       state.waiting = true;
       state.score += 100;
       scoreEl.textContent = String(state.score);
@@ -2515,13 +2541,14 @@ SHOOTER_HTML_TEMPLATE = r'''
   function missShot() {
     playTone(180, 0.1, 'sine');
     state.shot = null;
-    afterTurn();
+    afterTurn(true);
   }
 
-  function afterTurn() {
-    addBackRowBubble();
+  function afterTurn(addBubble) {
+    if (addBubble) addBackRowBubble();
     layoutBubbles();
-    if (state.bubbles.some(b => b.y + b.r > state.baseY - state.radius * 2.2)) {
+    const dangerY = state.baseY - state.radius * 2.2;
+    if (L ? L.isDanger(state.bubbles, dangerY) : state.bubbles.some(b => b.y + b.r > dangerY)) {
       finishGame(false);
       return;
     }
@@ -2562,10 +2589,12 @@ SHOOTER_HTML_TEMPLATE = r'''
     praisePop.style.animation = 'none';
     void praisePop.offsetWidth;
     praisePop.style.animation = '';
+    const gen = state.generation;
     window.setTimeout(() => {
+      if (L ? !L.isGenerationValid(gen, state.generation) : state.generation !== gen) return;
       praisePop.classList.add('hidden');
       state.waiting = false;
-      afterTurn();
+      afterTurn(false);
     }, 980);
   }
 
@@ -2605,7 +2634,7 @@ SHOOTER_HTML_TEMPLATE = r'''
       return;
     }
     state.waiting = false;
-    afterTurn();
+    afterTurn(true);
   }
 
   function playTone(freq, duration, type) {
@@ -2649,6 +2678,25 @@ SHOOTER_HTML_TEMPLATE = r'''
 '''
 
 
+_SHOOTER_LOGIC_JS: str | None = None
+
+
+def _load_shooter_logic_js() -> str:
+    global _SHOOTER_LOGIC_JS
+    if _SHOOTER_LOGIC_JS is not None:
+        return _SHOOTER_LOGIC_JS
+    logic_path = os.path.join(
+        os.path.dirname(__file__),
+        'portal_app', 'static_games', 'eduni_bubble_shooter_logic.js',
+    )
+    try:
+        with open(logic_path, encoding='utf-8') as f:
+            _SHOOTER_LOGIC_JS = f.read()
+    except Exception:
+        _SHOOTER_LOGIC_JS = ''
+    return _SHOOTER_LOGIC_JS
+
+
 def shooter_html() -> str:
     questions = load_bubble_questions()
     if not questions:
@@ -2660,10 +2708,13 @@ def shooter_html() -> str:
                 'explanation': '정답은 冬입니다. 冬은 겨울 동입니다. 예시 단어는 冬至(동지), 冬眠(동면)입니다.',
             }
         ]
+    logic_js = _load_shooter_logic_js()
+    logic_script = f'<script id="eduni-shooter-logic">\n{logic_js}\n</script>' if logic_js else ''
     return (
         SHOOTER_HTML_TEMPLATE
         .replace('__QUESTIONS_JSON__', json.dumps(questions, ensure_ascii=False))
         .replace('__PRAISE_CHARACTERS_JSON__', json.dumps(load_praise_character_data_urls()))
+        .replace('__SHOOTER_LOGIC_SCRIPT__', logic_script)
     )
 
 

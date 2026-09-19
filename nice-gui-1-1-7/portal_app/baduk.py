@@ -4,6 +4,7 @@ from fastapi.responses import HTMLResponse
 from nicegui import app
 
 from . import routes
+from .baduk_endgame_safety import integrate_endgame_safety
 from .baduk_v2_integration import integrate_v2_coach
 
 
@@ -73,6 +74,7 @@ def _baduk_html_response() -> HTMLResponse:
             strategy_script = strategy_path.read_text(encoding="utf-8") if strategy_path.exists() else ""
             persistence_script = persistence_path.read_text(encoding="utf-8") if persistence_path.exists() else ""
             source = integrate_v2_coach(source, logic_script, strategy_script, persistence_script)
+            source = integrate_endgame_safety(source)
         elif coach_path.exists():
             source = _inject_beginner_coach(
                 source,

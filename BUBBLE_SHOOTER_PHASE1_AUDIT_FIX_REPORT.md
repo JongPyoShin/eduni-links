@@ -1,8 +1,10 @@
 # BUBBLE SHOOTER PHASE 1 — AUDIT + STABILIZATION REPORT
 
 **Verified branch:** `feature/bubble-shooter-audit-fix`
-**Verified commit:** `3b97dee1216f2667eea56fb8b1f6dcfc1b485378` (Prompt 21 final verification)
 **Base branch:** `feature/eduni-space-mvp`
+**Base SHA:** `94a251c` (current at Prompt 30)
+**Prompt 21 commit:** `3b97dee` (previous verification)
+**Prompt 30 commit:** *(merge-only, no code changes)*
 **Overall:** PASS — MERGE READY
 
 ---
@@ -245,3 +247,61 @@ PR #63 is mergeable. Branch is up to date with base (behind_by = 0).
 - Verified SHA is correct (`3b97dee`)
 - Full validation is acceptable
 - PR #63 is mergeable
+
+---
+
+## Prompt 30 — Final Merge-Readiness Verification
+
+**Date:** 2026-09-19
+**Base merged:** `94a251c` (behind_by=0, ahead_by=12)
+**PR diff scope:** Clean (Bubble Shooter files only, no Baduk leakage)
+
+### Static alignment
+| Marker | Status |
+|--------|--------|
+| `EDUNIBubbleShooterLogic` global | PRESENT |
+| `const L = window.EDUNIBubbleShooterLogic` | PRESENT |
+| `L.resolveShot` | PRESENT |
+| `L.isDanger` | PRESENT |
+| `L.selectTarget` | PRESENT |
+| `L.pointerToCss` | PRESENT |
+| `L.isGenerationValid` | PRESENT |
+| `eduni-shooter-logic` script tag | PRESENT |
+
+### Automated tests
+| Suite | Result |
+|-------|--------|
+| JS unit (node --test) | 19/19 PASS |
+| Python integration | 15/15 PASS |
+| Route smoke | 7/7 PASS |
+| Content validation | VALID |
+
+### Browser QA (Playwright, 3 viewports)
+| Viewport | Result |
+|----------|--------|
+| Desktop 1280x800 | 14/14 PASS |
+| Portrait 360x800 | 14/14 PASS |
+| Landscape 800x360 | 14/14 PASS |
+| **Overall** | **42/42 PASS** |
+
+Verified checks:
+- Shared global `EDUNIBubbleShooterLogic` exists
+- L wiring in inline script
+- No horizontal overflow
+- Canvas visible and renders
+- Score readable
+- Target text in `#shooterStatus`
+- Restart button exists
+- Correct hit scores (+100)
+- Miss does not score
+- Multi-turn playable
+- Restart-race x2 (restart -> hit -> restart -> verify clean state)
+- Pointer/touch aiming
+- Zero console errors
+
+### Verdict
+**PASS — MERGE READY**
+- All base changes merged cleanly (no conflicts)
+- PR diff scope is clean (no unrelated files)
+- All automated and browser tests pass
+- No regressions detected

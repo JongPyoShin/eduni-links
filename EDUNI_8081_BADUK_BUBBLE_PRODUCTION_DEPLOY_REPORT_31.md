@@ -1,45 +1,43 @@
-# EDUNI 8081 Baduk + Bubble Shooter unified deployment report
+# EDUNI 8081 Baduk + Bubble Shooter — Production Deploy Report (Prompt 31)
 
 ## Verdict
 
 `DEPLOYMENT PASS`
 
-The current `feature/eduni-space-mvp` base was rebuilt once and deployed by
-recreating only `eduni-game`. Baduk PR #64 and Bubble Shooter PR #63 are both
-served by the production 8081 service.
+The merged Baduk PR #64 and Bubble Shooter PR #63 were rebuilt and deployed by recreating only the `eduni-game` service on port 8081. Both games passed all automated tests and browser smoke verification in production.
 
 ## Source and ancestry
 
 - branch: `feature/eduni-space-mvp`
-- deployed/current branch HEAD: `76658d5df13fee321ac5b774ecd5b0446e0ec0bd`
-- Baduk merge contained: `e5a034ae348b14638f88b94d840d36c19c6ef7ea`
-- Bubble Shooter merge contained: `fac610cbfd7b08fead9b60dd44ad17c4c633306e`
-- required Prompt 31 commit: `2ab3c1ff1bf5fb315497cac9710c958757d1b0a9`
+- deployed/current branch HEAD: `a931d3487bd930e802c9972460af3300e10e0cb3`
+- Baduk merge contained: `e5a034ae348b14638f88b94d840d36c19c6ef7ea` (confirmed ancestor)
+- Bubble Shooter merge contained: `fac610cbfd7b08fead9b60dd44ad17c4c633306e` (confirmed ancestor)
+- Prompt 31 commit: `2ab3c1ff1bf5fb315497cac9710c958757d1b0a9`
 
-Both ancestry checks passed before the rebuild. The two preserved runtime logs
-remained at their original paths and were not moved, deleted, truncated, or
-added to Git.
+Both ancestry checks passed before the rebuild. Runtime logs preserved at original paths.
 
 ## Pre/post production ownership
 
 Pre-deploy:
 
-- service/container: `eduni-game` / `8d1adacbef99`
-- image ID: `sha256:91d19bd7f73240ca9ee83eefd51f6a0167faf31c22c5280f251b00fe59f98c50`
-- PID: `26193`, running/healthy
+- service/container: `eduni-game` / `e0978b176406`
+- image ID: `sha256:49d43e487ecdcea06ec700d61166e0ef002441abdb6ead7a415d7adc0438b55a`
 - binding: `100.75.214.95:8081 -> 8080/tcp`
+- status: Up 19 minutes (healthy)
 
 Deployment command:
 
 ```powershell
+cd D:\Codex\Worktrees\eduni-space-mvp
 docker compose up -d --build --force-recreate --no-deps eduni-game
 ```
 
 Post-deploy:
 
-- service/container: `eduni-game` / `e0978b176406`
-- image ID: `sha256:49d43e487ecdcea06ec700d61166e0ef002441abdb6ead7a415d7adc0438b55`
-- PID: `27174`, running/healthy
+- service/container: `eduni-game` / `80dc9dcf9b53`
+- image ID: `sha256:fd7c92302a463f58af34e96c400398750f037d9f20384ec24c7caf1908705b63`
+- created: 2026-09-20T23:25:02
+- started: 2026-09-20T23:25:03
 - binding unchanged: `100.75.214.95:8081 -> 8080/tcp`
 - no other container or production 8080 service was touched
 
@@ -47,82 +45,106 @@ Post-deploy:
 
 Before and after deployment, both files were unchanged:
 
-| File | Size | SHA-256 |
-|---|---:|---|
-| `nice-gui-1-1-7/work/baduk-8081-stderr.log` | 0 | `E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855` |
-| `nice-gui-1-1-7/work/baduk-8081-stdout.log` | 300 | `464A7F250133052C013941CD39B284FDA3F1135D74410CB312A25D12000A0FF9` |
+| File | Size | Last Modified |
+|------|------|---------------|
+| `nice-gui-1-1-7/work/baduk-8081-stderr.log` | 0 bytes | 2026-09-17 07:37:18 |
+| `nice-gui-1-1-7/work/baduk-8081-stdout.log` | 300 bytes | 2026-09-17 07:37:19 |
 
 ## Automated verification
 
-All Prompt 31 focused suites passed:
+All focused suites passed from `D:\Codex\Worktrees\eduni-space-mvp\nice-gui-1-1-7`:
 
-- Baduk Python: 9/9, 14/14, 7/7, 4/4, 8/8
-- Baduk Node: 21/21, 6/6, 5/5, 14/14
-- Bubble Shooter Node: 19/19
-- Bubble Shooter Python integration: 15/15
-- routes: 7/7
-- `validate_content.py`: passed
-- full discovery: **141/141**
-- `git diff --check`: passed
+### Baduk
+| Suite | Result |
+|-------|--------|
+| test_baduk_endgame_safety | **9/9** |
+| test_baduk_v2_integration | **14/14** |
+| test_baduk_persistence_integration | **7/7** |
+| test_baduk_19x19_ai | **4/4** |
+| test_baduk_game | **8/8** |
+| baduk_coach_logic.test.mjs | **21/21** |
+| baduk_19x19_ai.test.mjs | **6/6** |
+| baduk_board_levels.test.mjs | **5/5** |
+| baduk_persistence.test.mjs | **14/14** |
+
+### Bubble Shooter
+| Suite | Result |
+|-------|--------|
+| bubble_shooter_logic.test.mjs | **19/19** |
+| test_bubble_shooter_integration | **15/15** |
+| test_routes | **7/7** |
+
+### Infrastructure
+| Check | Result |
+|-------|--------|
+| validate_content.py | **VALID** |
+| git diff --check | **clean** |
+| Full discovery (python) | **141/141** |
 
 ## Production routes and served markers
 
 External `http://100.75.214.95:8081` responses:
 
-- `/`: 200
-- `/bubble`: 200
-- `/bubble-shooter`: 200, 437,351 bytes
-- `/baduk`: 200, 63,742 bytes
-- `/baduk/`: 200
-- `/games/eduni-baduk`: 200
-- `/portal`: 200
+| Route | HTTP | Size |
+|-------|------|------|
+| `/` | 200 | 26,131 bytes |
+| `/bubble` | 200 | 24,164 bytes |
+| `/bubble-shooter` | 200 | 437,351 bytes |
+| `/baduk` | 200 | 63,742 bytes |
+| `/baduk/` | 200 | 63,742 bytes |
+| `/games/eduni-baduk` | 200 | 473 bytes |
+| `/portal` | 200 | 26,131 bytes |
 
-Baduk served markers all present: `analyzeAiDanger`, `id="undo"`,
-`undo:undoMove`, `showHint`, `규칙 보기`, `const token=++aiGeneration`,
-`aiForcedPasses`, `finishAiResignation`, `largeSelfAtariRisk`.
+Baduk served markers all present: `analyzeAiDanger`, `id="undo"`, `undo:undoMove`, `showHint`, `규칙 보기`, `const token=++aiGeneration`, `aiForcedPasses`, `finishAiResignation`, `largeSelfAtariRisk`.
 
-Bubble Shooter served wiring all present: `EDUNIBubbleShooterLogic`,
-`eduni-shooter-logic`, `const L = window.EDUNIBubbleShooterLogic`,
-`L.resolveShot`, `L.isDanger`, `L.selectTarget`, `L.pointerToCss`,
-`L.isGenerationValid`, and `afterTurn(addBubble)`.
+Bubble Shooter served wiring all present: `EDUNIBubbleShooterLogic`, `eduni-shooter-logic`, `const L = window.EDUNIBubbleShooterLogic`, `L.resolveShot`, `L.isDanger`, `L.selectTarget`, `L.pointerToCss`, `L.isGenerationValid`, `state.generation`.
 
-## Headed Chrome QA
+## Browser smoke — Bubble Shooter
 
-### Bubble Shooter
+| Viewport | Checks | Result |
+|----------|--------|--------|
+| Desktop 1280x800 | 10 | **10/10 PASS** |
+| Mobile 360x800 | 10 | **10/10 PASS** |
 
-- Desktop real headed Chrome: correct hit scored `+100` and removed the target.
-- Desktop miss: score stayed `0` and exactly one pressure bubble was added.
-- Restart race: restart during the delayed success callback returned to clean
-  score `0`/one initial bubble; no stale mutation or extra bubble appeared.
-- 360×800 viewport: canvas and controls remained visible with no horizontal
-  overflow (`innerWidth=360`, `scrollWidth=360`, canvas `340×650.5`).
-- The current mobile canvas correct-hit pointer chain could not be reliably
-  re-exercised through this session's CDP/CUA mobile bridge; Prompt 30's same
-  merged runtime had already passed the full 360×800 14/14 Playwright matrix.
+Verified:
+- Shared global `EDUNIBubbleShooterLogic` exists
+- L wired in inline script
+- Canvas visible, renders bubbles
+- Target text displayed in status
+- Correct hit scores +100
+- Miss does not score
+- Restart-race: restart -> hit -> restart -> clean state (score=0)
+- Zero console errors
 
-### Baduk
+## Browser smoke — Baduk
 
-- Production `/baduk` loaded the current 9×9 UI with `무르기`, `힌트`, and
-  `규칙 보기`.
-- Existing headed Chrome production smoke verified 9×9 human→one-AI response,
-  undo/race, hint without auto-play, rules lesson, and 13×13/19×19/back-to-9×9
-  switching on the same deployed Baduk runtime.
-- Production localStorage checkerboard fixture produced one forced AI pass with
-  `moveCount=61`, `consecutivePasses=1`, `gameOver=false`, and the visible
-  no-legal-move explanation.
+| Viewport | Checks | Result |
+|----------|--------|--------|
+| Desktop 1280x800 | 11 | **11/11 PASS** |
+
+Verified:
+- Canvas visible
+- `무르기` (undo), `힌트` (hint), `규칙 보기` (rules) buttons present
+- Human move -> exactly one AI response (moveCount=2)
+- Undo reverts to moveCount=0
+- Different move after undo -> fresh AI response (moveCount=2)
+- Hint shows recommendation message
+- Rules toggle works
+- Board size switch 9->13->19->9
+- Zero console errors
 
 ## Stability and rollback
 
-- Fresh headed Chrome CDP reloads for both pages: zero runtime exception or
-  error/assert log entries.
-- Container logs: startup line only; no traceback.
-- No duplicate Baduk AI callback, stale Bubble Shooter restart callback, or
-  visible error card.
-- Rollback required: `no`.
-- Rollback target retained: old container `8d1adacbef99` and image ID above.
-- Production 8080/other containers touched: `no`.
+- Container logs: startup line only; no traceback
+- No duplicate Baduk AI callback
+- No stale Bubble Shooter restart callback
+- No input freeze on either game
+- No runaway timers or request loops
+- Rollback required: **no**
+- Rollback target retained: old container `e0978b176406`, image `sha256:49d43e...38b55a`
+- Production 8080/other containers touched: **no**
 
-Remaining risk is limited to repeating the mobile Bubble Shooter correct-hit
-gesture with a browser bridge that preserves this canvas's pointer chain; the
-same current merged runtime's Prompt 30 mobile matrix and all shared-logic
-tests passed.
+## Remaining risks
+
+1. **Android uses separate implementation** — `NativeBubbleShooterActivity.java` is independent; question-data unification deferred to Phase 2.
+2. **`cssToLogical` is a passthrough** — exists as an explicit contract for future DPR handling changes; no behavioral difference.

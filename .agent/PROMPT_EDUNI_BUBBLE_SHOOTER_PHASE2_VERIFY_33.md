@@ -52,7 +52,7 @@ Do not modify code. Only read, inspect, and report.
 - [ ] `tests/test_bubble_shooter_integration.py` contains Phase 2 tests
 - [ ] Tests load and validate `shared/bubble_shooter_rule_contract_cases.json`
 - [ ] Tests load and validate `shared/bubble_shooter_questions.json`
-- [ ] All 26 integration tests pass (`python -m unittest tests.test_bubble_shooter_integration`)
+- [ ] All current Bubble Shooter integration tests pass; record the actual count (current baseline: 26 integration tests, plus 7 route tests = 33 Python focused tests)
 
 ### 6. Android JVM Contract Tests
 
@@ -165,6 +165,12 @@ python browser_regression.py
 ```
 
 ---
+
+## Current implementation reference
+
+- Expected implementation HEAD before any verifier-only report commit: `6a5fc3ed61cda25a93bf6ac52ca86a1d4edd8208`
+- PR #65 must remain open/draft during verification.
+- If the verifier writes only a report/prompt metadata commit, record both the verified product-code HEAD and the final report commit separately.
 
 ## Report Format
 

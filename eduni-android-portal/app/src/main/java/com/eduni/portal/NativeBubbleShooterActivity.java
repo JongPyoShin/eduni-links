@@ -24,9 +24,13 @@ import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 
+import android.content.res.AssetManager;
+
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
 
 public class NativeBubbleShooterActivity extends Activity {
@@ -125,22 +129,6 @@ public class NativeBubbleShooterActivity extends Activity {
         final ArrayList<Bubble> bubbles = new ArrayList<>();
         final ArrayList<String[]> deck = new ArrayList<>();
 
-        final String[][] pairs = {
-                {"家", "가"}, {"工", "공"}, {"歌", "가"}, {"青", "청"}, {"不", "불"},
-                {"子", "자"}, {"電", "전"}, {"平", "평"}, {"夏", "하"}, {"川", "천"},
-                {"先", "선"}, {"林", "림"}, {"韓", "한"}, {"國", "국"}, {"江", "강"},
-                {"前", "전"}, {"字", "자"}, {"文", "문"}, {"春", "춘"}, {"時", "시"},
-                {"學", "학"}, {"力", "력"}, {"生", "생"}, {"室", "실"}, {"內", "내"},
-                {"立", "립"}, {"民", "민"}, {"村", "촌"}, {"正", "정"}, {"自", "자"},
-                {"王", "왕"}, {"間", "간"}, {"寸", "촌"}, {"然", "연"}, {"兄", "형"},
-                {"出", "출"}, {"車", "차"}, {"足", "족"}, {"有", "유"}, {"休", "휴"},
-                {"旗", "기"}, {"長", "장"}, {"海", "해"}, {"口", "구"}, {"面", "면"},
-                {"同", "동"}, {"地", "지"}, {"住", "주"}, {"年", "년"}, {"物", "물"},
-                {"育", "육"}, {"里", "리"}, {"午", "오"}, {"月", "월"}, {"火", "화"},
-                {"水", "수"}, {"金", "금"}, {"木", "목"}, {"土", "토"}, {"天", "천"},
-                {"空", "공"}, {"雨", "우"}, {"雪", "설"}, {"白", "백"}, {"赤", "적"}
-        };
-
         final int[] palette = {
                 Color.rgb(56, 189, 248),
                 Color.rgb(45, 212, 191),
@@ -160,6 +148,7 @@ public class NativeBubbleShooterActivity extends Activity {
         int turn;
         int nextIndex;
         int exitChoice;
+        int generation;
         long messageUntil;
         long lastMoveAt;
 
@@ -229,10 +218,12 @@ public class NativeBubbleShooterActivity extends Activity {
             waiting = false;
             shooting = false;
             aiming = false;
+            generation += 1;
             bubbles.clear();
             deck.clear();
 
-            for (String[] pair : pairs) deck.add(pair);
+            String[][] loaded = loadCanonicalDeck();
+            for (String[] pair : loaded) deck.add(pair);
             Collections.shuffle(deck, rnd);
 
             BoardLayout l = layout(Math.max(480, getWidth()), Math.max(320, getHeight()));
@@ -248,6 +239,18 @@ public class NativeBubbleShooterActivity extends Activity {
             chooseCurrent();
             showMessage("웹 포탈 방식: 앞줄 문제 버블을 조준해 맞혀봐!");
             invalidate();
+        }
+
+        String[][] loadCanonicalDeck() {
+            try {
+                AssetManager am = getContext().getAssets();
+                InputStream is = am.open("bubble_shooter_questions.json");
+                String[][] canonical = BubbleShooterRules.loadCanonicalQuestions(is);
+                is.close();
+                return canonical;
+            } catch (Exception e) {
+                return new String[][]{{"家", "가"}, {"工", "공"}, {"歌", "가"}};
+            }
         }
 
         Bubble makeBubble(String[] pair, int slotIndex) {
@@ -291,9 +294,9 @@ public class NativeBubbleShooterActivity extends Activity {
 
             float frontY = live.get(0).y;
             for (Bubble b : live) frontY = Math.max(frontY, b.y);
+            float radius = live.get(0).r <= 0f ? 24f : live.get(0).r;
 
             ArrayList<Bubble> front = new ArrayList<>();
-            float radius = live.get(0).r <= 0f ? 24f : live.get(0).r;
             for (Bubble b : live) {
                 if (Math.abs(b.y - frontY) < radius * .8f) front.add(b);
             }
@@ -303,6 +306,21 @@ public class NativeBubbleShooterActivity extends Activity {
             shotLabel = current.hangul;
             message = "'" + shotLabel + "' 소리 버블을 맞는 한자에 쏘자";
             messageUntil = System.currentTimeMillis() + 2500;
+        }
+
+        Bubble selectTargetFromHelper() {
+            ArrayList<Bubble> live = liveBubbles();
+            if (live.isEmpty()) return null;
+            float radius = live.get(0).r <= 0f ? 24f : live.get(0).r;
+
+            float frontY = live.get(0).y;
+            for (Bubble b : live) frontY = Math.max(frontY, b.y);
+
+            ArrayList<Bubble> front = new ArrayList<>();
+            for (Bubble b : live) {
+                if (Math.abs(b.y - frontY) < radius * .8f) front.add(b);
+            }
+            return front.get(rnd.nextInt(front.size()));
         }
 
         ArrayList<Bubble> liveBubbles() {
@@ -367,10 +385,12 @@ public class NativeBubbleShooterActivity extends Activity {
         }
 
         boolean isDanger(BoardLayout l) {
+            List<BubbleShooterRules.Bubble> helperBubbles = new ArrayList<>();
             for (Bubble b : liveBubbles()) {
-                if (b.y + b.r > l.baseY - l.radius * 2.2f) return true;
+                helperBubbles.add(new BubbleShooterRules.Bubble(
+                        b.hanja, b.hangul, b.x, b.y, b.r, b.popped));
             }
-            return false;
+            return BubbleShooterRules.isDanger(helperBubbles, l.baseY - l.radius * 2.2f);
         }
 
         void finishGame(boolean clear) {
@@ -777,14 +797,28 @@ public class NativeBubbleShooterActivity extends Activity {
 
         void handleHit(Bubble hit) {
             shooting = false;
-            if (hit.hanja.equals(shotTarget)) {
+
+            List<BubbleShooterRules.Bubble> helperBubbles = new ArrayList<>();
+            for (Bubble b : liveBubbles()) {
+                helperBubbles.add(new BubbleShooterRules.Bubble(
+                        b.hanja, b.hangul, b.x, b.y, b.r, b.popped));
+            }
+            BubbleShooterRules.Bubble helperHit = new BubbleShooterRules.Bubble(
+                    hit.hanja, hit.hangul, hit.x, hit.y, hit.r, hit.popped);
+
+            BubbleShooterRules.ShotResult result = BubbleShooterRules.resolveShot(
+                    helperBubbles, shotTarget, helperHit);
+
+            if ("correct".equals(result.type) || "clear".equals(result.type)) {
                 hit.popped = true;
-                score += 100;
+                score += result.scoreDelta;
                 waiting = true;
                 showMessage("정답! " + hit.hanja + " = " + hit.hangul);
+                final int gen = generation;
                 main.postDelayed(new Runnable() {
                     @Override
                     public void run() {
+                        if (!BubbleShooterRules.isGenerationValid(gen, generation)) return;
                         afterTurn(false);
                     }
                 }, 520);

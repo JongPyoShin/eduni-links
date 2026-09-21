@@ -161,6 +161,44 @@ No Android emulator/device available in this environment. JVM/build validation o
 
 ---
 
+## 9B. Android Runtime Wiring (Prompt 32B)
+
+### What changed
+
+`NativeBubbleShooterActivity.java` was refactored to delegate game logic to `BubbleShooterRules.java`:
+
+- **Removed** hardcoded `String[][] pairs` array (64 entries)
+- **Added** `generation` field (int, starts 0) for stale-callback guard
+- **Added** `loadCanonicalDeck()` — reads `bubble_shooter_questions.json` from assets via `BubbleShooterRules.loadCanonicalQuestions()`, with 3-entry hardcoded fallback
+- **`reset()`** now calls `loadCanonicalDeck()` and increments `generation += 1`
+- **`isDanger()`** now delegates to `BubbleShooterRules.isDanger()`
+- **`handleHit()`** now delegates to `BubbleShooterRules.resolveShot()` — builds helper `Bubble` list, calls `resolveShot()`, uses `result.type` for branching
+- **Generation token guard** added: `handleHit()` captures `final int gen = generation` before `postDelayed`; 520ms callback checks `BubbleShooterRules.isGenerationValid(gen, generation)` before calling `afterTurn(false)`
+
+### New test file
+
+`NativeBubbleShooterWiringTest.java` — 10 JVM tests:
+- Activity imports and rules delegation
+- `resolveShot`/`isDanger`/`isGenerationValid` usage
+- `loadCanonicalDeck` existence
+- Generation increment
+- Delayed callback capture
+- Hardcoded pairs removal
+- 122-entry canonical dataset
+- Stale callback rejection
+
+### Validation results
+
+| Suite | Result |
+|-------|--------|
+| Android JVM (rules + wiring) | 30/30 |
+| JS unit tests | 19/19 |
+| Python integration + routes | 33/33 |
+| Browser regression | 34/34 |
+| `git diff --check` | clean |
+
+---
+
 ## 10. Diff Scope
 
 | Area | In Scope | Out of Scope |
@@ -175,21 +213,22 @@ No Android emulator/device available in this environment. JVM/build validation o
 
 ## 11. Remaining Risks
 
-1. **Android 520ms handleHit delay**: No generation guard yet — stale callback can mutate restarted game
-2. **Android runtime not wired**: `BubbleShooterRules.java` is tested but not yet called from `NativeBubbleShooterActivity.java`
-3. **No emulator smoke**: Android runtime behavior unverified
+1. ~~**Android 520ms handleHit delay**: No generation guard yet — stale callback can mutate restarted game~~ ✅ FIXED
+2. ~~**Android runtime not wired**: `BubbleShooterRules.java` is tested but not yet called from `NativeBubbleShooterActivity.java`~~ ✅ WIRED
+3. **No emulator smoke**: Android runtime behavior unverified (JVM tests only)
 4. **Gradle path workaround**: `android.overridePathCheck=true` added — may need removal on CI with ASCII paths
 
 ---
 
 ## 12. Verdict
 
-**IMPLEMENTATION COMPLETE — READY FOR INDEPENDENT VERIFY**
+**IMPLEMENTATION COMPLETE + RUNTIME WIRED — READY FOR INDEPENDENT VERIFY**
 
 - Canonical dataset: 122 entries, Web+Android unified
 - Rule contract: 11 cases, 4 categories
-- Web: all 152 tests pass
-- Android JVM: 20/20 tests pass
-- Browser: 30/30 PASS
+- Android runtime: wired to `BubbleShooterRules` + generation guard added
+- Web: all 33 tests pass
+- Android JVM: 30/30 tests pass (20 rules + 10 wiring)
+- Browser: 34/34 PASS
 - No regressions
 - No unrelated diff

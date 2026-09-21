@@ -1,11 +1,15 @@
-"""Bubble Shooter — Phase 1 integration tests."""
+"""Bubble Shooter — Phase 1 + Phase 2 integration tests."""
 from __future__ import annotations
 
 import importlib
+import json
 import unittest
 from pathlib import Path
 
 APP_MODULE = Path(__file__).resolve().parent.parent / 'app.py'
+SHARED_DIR = Path(__file__).resolve().parent.parent.parent / 'shared'
+CANONICAL_DATA = SHARED_DIR / 'bubble_shooter_questions.json'
+RULE_CONTRACT = SHARED_DIR / 'bubble_shooter_rule_contract_cases.json'
 
 
 class BubbleShooterIntegrationTests(unittest.TestCase):
@@ -100,12 +104,72 @@ class BubbleShooterIntegrationTests(unittest.TestCase):
     def test_logic_module_not_duplicated(self) -> None:
         """The inline code must not duplicate shared decision logic; it delegates via L."""
         src = self._app_source()
-        # After wiring, the inline correct-hit path is handled by L.resolveShot,
-        # so the old direct hit.target === state.shot.target check is now a fallback.
         self.assertIn('L ? L.resolveShot', src)
         self.assertIn('L ? L.selectTarget', src)
         self.assertIn('L ? L.isDanger', src)
         self.assertIn('L ? L.pointerToCss', src)
+
+
+class CanonicalDatasetTests(unittest.TestCase):
+    """Phase 2: Verify canonical question dataset exists and is valid."""
+
+    @classmethod
+    def _app_source(cls) -> str:
+        return APP_MODULE.read_text(encoding='utf-8')
+
+    def test_canonical_file_exists(self) -> None:
+        self.assertTrue(CANONICAL_DATA.exists(), f'Canonical data not found: {CANONICAL_DATA}')
+
+    def test_canonical_schema_version(self) -> None:
+        data = json.loads(CANONICAL_DATA.read_text(encoding='utf-8'))
+        self.assertEqual(data.get('schemaVersion'), 1)
+
+    def test_canonical_questions_non_empty(self) -> None:
+        data = json.loads(CANONICAL_DATA.read_text(encoding='utf-8'))
+        questions = data.get('questions', [])
+        self.assertGreater(len(questions), 0, 'Canonical dataset has no questions')
+
+    def test_canonical_entries_have_required_fields(self) -> None:
+        data = json.loads(CANONICAL_DATA.read_text(encoding='utf-8'))
+        for q in data['questions']:
+            self.assertTrue(q.get('hanja'), f'Missing hanja in entry: {q}')
+            self.assertTrue(q.get('reading'), f'Missing reading in entry: {q}')
+
+    def test_canonical_no_duplicate_hanja(self) -> None:
+        data = json.loads(CANONICAL_DATA.read_text(encoding='utf-8'))
+        hanjas = [q['hanja'] for q in data['questions']]
+        self.assertEqual(len(hanjas), len(set(hanjas)), 'Duplicate hanja found in canonical dataset')
+
+    def test_rule_contract_file_exists(self) -> None:
+        self.assertTrue(RULE_CONTRACT.exists(), f'Rule contract not found: {RULE_CONTRACT}')
+
+    def test_rule_contract_has_cases(self) -> None:
+        data = json.loads(RULE_CONTRACT.read_text(encoding='utf-8'))
+        cases = data.get('cases', [])
+        self.assertGreaterEqual(len(cases), 10, 'Rule contract needs at least 10 cases')
+
+    def test_rule_contract_categories_covered(self) -> None:
+        data = json.loads(RULE_CONTRACT.read_text(encoding='utf-8'))
+        categories = {c['category'] for c in data['cases']}
+        required = {'shot_resolution', 'danger', 'generation', 'target_selection'}
+        self.assertTrue(required.issubset(categories), f'Missing categories: {required - categories}')
+
+    def test_load_canonical_questions_function_exists(self) -> None:
+        src = self._app_source()
+        self.assertIn('def _load_canonical_questions()', src)
+
+    def test_load_bubble_questions_uses_canonical(self) -> None:
+        src = self._app_source()
+        self.assertIn('canonical = _load_canonical_questions()', src)
+
+    def test_served_html_contains_canonical_data(self) -> None:
+        """The served Bubble Shooter page must contain data from the canonical source."""
+        from app import shooter_html
+        html = shooter_html()
+        data = json.loads(CANONICAL_DATA.read_text(encoding='utf-8'))
+        first_q = data['questions'][0]
+        self.assertIn(first_q['hanja'], html, 'First canonical hanja not found in served HTML')
+        self.assertIn(first_q['reading'], html, 'First canonical reading not found in served HTML')
 
 
 if __name__ == '__main__':

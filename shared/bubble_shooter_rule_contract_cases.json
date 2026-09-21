@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "description": "Cross-platform Bubble Shooter rule contract. Both Web (JS) and Android (Java) must produce identical outcomes for these cases.",
+  "cases": [
+    {
+      "id": "shot_correct_with_remaining",
+      "category": "shot_resolution",
+      "description": "Correct hit with remaining bubbles on the board",
+      "input": {
+        "bubbles": [
+          {"hanja": "家", "reading": "가", "x": 100, "y": 50, "popped": false},
+          {"hanja": "工", "reading": "공", "x": 150, "y": 50, "popped": false}
+        ],
+        "target": {"hanja": "家", "reading": "가"},
+        "shotHit": {"hanja": "家", "reading": "가"},
+        "score": 0
+      },
+      "expected": {
+        "type": "correct",
+        "scoreDelta": 100,
+        "pressure": false,
+        "hitBubbleRemoved": true,
+        "gameOver": false
+      }
+    },
+    {
+      "id": "shot_correct_final_bubble",
+      "category": "shot_resolution",
+      "description": "Correct hit on the last remaining bubble (clear)",
+      "input": {
+        "bubbles": [
+          {"hanja": "家", "reading": "가", "x": 100, "y": 50, "popped": false}
+        ],
+        "target": {"hanja": "家", "reading": "가"},
+        "shotHit": {"hanja": "家", "reading": "가"},
+        "score": 0
+      },
+      "expected": {
+        "type": "clear",
+        "scoreDelta": 100,
+        "pressure": false,
+        "hitBubbleRemoved": true,
+        "gameOver": true
+      }
+    },
+    {
+      "id": "shot_wrong_bubble",
+      "category": "shot_resolution",
+      "description": "Wrong bubble hit (not matching target)",
+      "input": {
+        "bubbles": [
+          {"hanja": "家", "reading": "가", "x": 100, "y": 50, "popped": false},
+          {"hanja": "工", "reading": "공", "x": 150, "y": 50, "popped": false}
+        ],
+        "target": {"hanja": "家", "reading": "가"},
+        "shotHit": {"hanja": "工", "reading": "공"},
+        "score": 0
+      },
+      "expected": {
+        "type": "miss",
+        "scoreDelta": 0,
+        "pressure": true,
+        "hitBubbleRemoved": false,
+        "gameOver": false
+      }
+    },
+    {
+      "id": "shot_empty_miss",
+      "category": "shot_resolution",
+      "description": "Shot misses all bubbles (goes off top)",
+      "input": {
+        "bubbles": [
+          {"hanja": "家", "reading": "가", "x": 100, "y": 50, "popped": false}
+        ],
+        "target": {"hanja": "家", "reading": "가"},
+        "shotHit": null,
+        "score": 0
+      },
+      "expected": {
+        "type": "miss",
+        "scoreDelta": 0,
+        "pressure": true,
+        "hitBubbleRemoved": false,
+        "gameOver": false
+      }
+    },
+    {
+      "id": "danger_false_all_above",
+      "category": "danger",
+      "description": "All live bubbles are above the safe threshold",
+      "input": {
+        "bubbles": [
+          {"hanja": "家", "reading": "가", "x": 100, "y": 50, "popped": false, "r": 20},
+          {"hanja": "工", "reading": "공", "x": 150, "y": 50, "popped": false, "r": 20}
+        ],
+        "dangerLineY": 500,
+        "radius": 20
+      },
+      "expected": {
+        "danger": false
+      }
+    },
+    {
+      "id": "danger_true_one_crossing",
+      "category": "danger",
+      "description": "One live bubble crosses the danger threshold",
+      "input": {
+        "bubbles": [
+          {"hanja": "家", "reading": "가", "x": 100, "y": 50, "popped": false, "r": 20},
+          {"hanja": "工", "reading": "공", "x": 150, "y": 485, "popped": false, "r": 20}
+        ],
+        "dangerLineY": 500,
+        "radius": 20
+      },
+      "expected": {
+        "danger": true
+      }
+    },
+    {
+      "id": "danger_popped_ignored",
+      "category": "danger",
+      "description": "Popped bubble near danger line is ignored",
+      "input": {
+        "bubbles": [
+          {"hanja": "家", "reading": "가", "x": 100, "y": 50, "popped": false, "r": 20},
+          {"hanja": "工", "reading": "공", "x": 150, "y": 490, "popped": true, "r": 20}
+        ],
+        "dangerLineY": 500,
+        "radius": 20
+      },
+      "expected": {
+        "danger": false
+      }
+    },
+    {
+      "id": "generation_valid_match",
+      "category": "generation",
+      "description": "Generation token matches — callback is valid",
+      "input": {
+        "expectedGeneration": 5,
+        "actualGeneration": 5
+      },
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "id": "generation_invalid_mismatch",
+      "category": "generation",
+      "description": "Generation token mismatches — callback is stale",
+      "input": {
+        "expectedGeneration": 5,
+        "actualGeneration": 3
+      },
+      "expected": {
+        "valid": false
+      }
+    },
+    {
+      "id": "target_eligible_live_only",
+      "category": "target_selection",
+      "description": "Only non-popped bubbles are eligible as targets",
+      "input": {
+        "bubbles": [
+          {"hanja": "家", "reading": "가", "x": 100, "y": 50, "popped": false},
+          {"hanja": "工", "reading": "공", "x": 150, "y": 50, "popped": true},
+          {"hanja": "歌", "reading": "가", "x": 200, "y": 50, "popped": false}
+        ]
+      },
+      "expected": {
+        "eligibleCount": 2,
+        "eligibleHanja": ["家", "歌"]
+      }
+    },
+    {
+      "id": "target_front_row_preference",
+      "category": "target_selection",
+      "description": "Front-row bubbles are preferred for target selection",
+      "input": {
+        "bubbles": [
+          {"hanja": "家", "reading": "가", "x": 100, "y": 100, "popped": false},
+          {"hanja": "工", "reading": "공", "x": 150, "y": 50, "popped": false},
+          {"hanja": "歌", "reading": "가", "x": 200, "y": 50, "popped": false}
+        ],
+        "frontRowThreshold": 10
+      },
+      "expected": {
+        "frontRowCount": 2,
+        "frontRowHanja": ["工", "歌"]
+      }
+    }
+  ]
+}

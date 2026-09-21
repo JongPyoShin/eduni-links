@@ -13,8 +13,13 @@ android {
         versionCode 1
         versionName "1.0.0"
     }
+
+    sourceSets {
+        test.resources.srcDirs += "../../shared"
+    }
 }
 
 dependencies {
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20231013'
 }

@@ -1230,7 +1230,40 @@ def load_praise_character_data_urls() -> list[str]:
     return data_urls
 
 
+CANONICAL_QUESTIONS_PATH = Path(__file__).parent.parent / 'shared' / 'bubble_shooter_questions.json'
+
+
+def _load_canonical_questions() -> list[dict[str, object]]:
+    """Load questions from the canonical shared dataset."""
+    if not CANONICAL_QUESTIONS_PATH.exists():
+        return []
+    try:
+        data = json.loads(CANONICAL_QUESTIONS_PATH.read_text(encoding='utf-8'))
+    except (json.JSONDecodeError, OSError):
+        return []
+    if not isinstance(data, dict) or data.get('schemaVersion') != 1:
+        return []
+    questions: list[dict[str, object]] = []
+    for entry in data.get('questions', []):
+        hanja = entry.get('hanja', '')
+        reading = entry.get('reading', '')
+        if not hanja or not reading:
+            continue
+        questions.append({
+            'target': hanja,
+            'answerLabel': reading,
+            'meaningSound': reading,
+            'explanation': f"정답은 {hanja}입니다. {hanja}은(는) {reading}입니다.",
+        })
+    return questions
+
+
 def load_bubble_questions() -> list[dict[str, object]]:
+    # Prefer canonical shared dataset
+    canonical = _load_canonical_questions()
+    if canonical:
+        return canonical
+    # Fallback to legacy quiz files
     questions: list[dict[str, object]] = []
     for set_no in [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 1, 2, 3, 4]:
         path = HANJA_OUTPUT_DIR / f'hanja_quiz_set_{set_no:02d}.json'

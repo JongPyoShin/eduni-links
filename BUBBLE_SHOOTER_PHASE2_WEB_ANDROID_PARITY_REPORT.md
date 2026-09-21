@@ -248,9 +248,9 @@ No Android emulator/device available in this environment. JVM/build validation o
 | Content validation | VALID |
 | `git diff --check` | clean |
 
-### Final HEAD
+### Final implementation HEAD
 
-`e41165c` → (local commits pending)
+`6a5fc3ed61cda25a93bf6ac52ca86a1d4edd8208`
 
 ---
 

@@ -172,5 +172,46 @@ class CanonicalDatasetTests(unittest.TestCase):
         self.assertIn(first_q['reading'], html, 'First canonical reading not found in served HTML')
 
 
+class DockerPackagingTests(unittest.TestCase):
+    """Verify the Docker image packages canonical data at the expected container path."""
+
+    def test_canonical_path_matches_container_layout(self) -> None:
+        """app.py canonical path must resolve to /shared/... under Docker WORKDIR=/app."""
+        src = APP_MODULE.read_text(encoding='utf-8')
+        self.assertIn("Path(__file__).parent.parent / 'shared' / 'bubble_shooter_questions.json'",
+                       src, 'Canonical path must resolve to /shared/ from /app/app.py')
+
+    def test_dockerfile_packages_shared(self) -> None:
+        """Dockerfile must COPY shared/ to /shared so the runtime path is valid."""
+        dockerfile = Path(__file__).resolve().parent.parent / 'Dockerfile'
+        content = dockerfile.read_text(encoding='utf-8')
+        self.assertIn('COPY shared /shared', content,
+                       'Dockerfile must contain COPY shared /shared')
+
+    def test_canonical_json_exists_in_repo(self) -> None:
+        """Canonical JSON must exist in the repository shared/ directory."""
+        self.assertTrue(CANONICAL_DATA.exists(),
+                        f'Canonical data not found: {CANONICAL_DATA}')
+
+    def test_canonical_json_schema_version(self) -> None:
+        """Canonical JSON must have schemaVersion = 1."""
+        data = json.loads(CANONICAL_DATA.read_text(encoding='utf-8'))
+        self.assertEqual(data.get('schemaVersion'), 1, 'schemaVersion must be 1')
+
+    def test_canonical_question_count(self) -> None:
+        """Canonical JSON must contain exactly 122 questions."""
+        data = json.loads(CANONICAL_DATA.read_text(encoding='utf-8'))
+        self.assertEqual(len(data.get('questions', [])), 122,
+                         'Canonical dataset must have 122 questions')
+
+    def test_no_duplicate_canonical_source(self) -> None:
+        """No second manually maintained canonical source should exist in nice-gui-1-1-7."""
+        nice_dir = Path(__file__).resolve().parent.parent
+        # Check there's no bubble_shooter_questions.json inside nice-gui-1-1-7 itself
+        local_copy = nice_dir / 'bubble_shooter_questions.json'
+        self.assertFalse(local_copy.exists(),
+                         'Local copy of canonical data must not exist in nice-gui-1-1-7')
+
+
 if __name__ == '__main__':
     unittest.main()

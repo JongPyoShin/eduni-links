@@ -292,35 +292,40 @@ public class NativeBubbleShooterActivity extends Activity {
                 return;
             }
 
-            float frontY = live.get(0).y;
-            for (Bubble b : live) frontY = Math.max(frontY, b.y);
             float radius = live.get(0).r <= 0f ? 24f : live.get(0).r;
 
-            ArrayList<Bubble> front = new ArrayList<>();
-            for (Bubble b : live) {
-                if (Math.abs(b.y - frontY) < radius * .8f) front.add(b);
+            List<BubbleShooterRules.Bubble> helperAll = toHelperBubbles(live);
+            List<BubbleShooterRules.Bubble> eligible = BubbleShooterRules.getEligibleTargets(helperAll);
+            if (eligible.isEmpty()) {
+                finishGame(true);
+                return;
             }
+            List<BubbleShooterRules.Bubble> frontRow = BubbleShooterRules.getFrontRow(eligible, radius * 0.8f);
+            if (frontRow.isEmpty()) frontRow = eligible;
 
-            current = front.get(rnd.nextInt(front.size()));
+            BubbleShooterRules.Bubble chosen = frontRow.get(rnd.nextInt(frontRow.size()));
+            current = findNativeByHelper(live, chosen);
             shotTarget = current.hanja;
             shotLabel = current.hangul;
             message = "'" + shotLabel + "' 소리 버블을 맞는 한자에 쏘자";
             messageUntil = System.currentTimeMillis() + 2500;
         }
 
-        Bubble selectTargetFromHelper() {
-            ArrayList<Bubble> live = liveBubbles();
-            if (live.isEmpty()) return null;
-            float radius = live.get(0).r <= 0f ? 24f : live.get(0).r;
-
-            float frontY = live.get(0).y;
-            for (Bubble b : live) frontY = Math.max(frontY, b.y);
-
-            ArrayList<Bubble> front = new ArrayList<>();
-            for (Bubble b : live) {
-                if (Math.abs(b.y - frontY) < radius * .8f) front.add(b);
+        private List<BubbleShooterRules.Bubble> toHelperBubbles(List<Bubble> nativeBubbles) {
+            List<BubbleShooterRules.Bubble> out = new ArrayList<>();
+            for (Bubble b : nativeBubbles) {
+                out.add(new BubbleShooterRules.Bubble(b.hanja, b.hangul, b.x, b.y, b.r, b.popped));
             }
-            return front.get(rnd.nextInt(front.size()));
+            return out;
+        }
+
+        private Bubble findNativeByHelper(List<Bubble> nativeBubbles, BubbleShooterRules.Bubble helper) {
+            for (Bubble b : nativeBubbles) {
+                if (b.x == helper.x && b.y == helper.y && b.r == helper.r && b.hanja.equals(helper.hanja)) {
+                    return b;
+                }
+            }
+            return nativeBubbles.get(0);
         }
 
         ArrayList<Bubble> liveBubbles() {

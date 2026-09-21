@@ -103,4 +103,83 @@ public class NativeBubbleShooterWiringTest {
         assertTrue("Generation 6 should be valid when current is 6",
             BubbleShooterRules.isGenerationValid(6, 6));
     }
+
+    @Test
+    public void testActivityDelegatesTargetSelection() throws Exception {
+        String src = readActivitySource();
+        assertTrue("chooseCurrent must call BubbleShooterRules.getEligibleTargets",
+            src.contains("BubbleShooterRules.getEligibleTargets"));
+        assertTrue("chooseCurrent must call BubbleShooterRules.getFrontRow",
+            src.contains("BubbleShooterRules.getFrontRow"));
+    }
+
+    @Test
+    public void testActivityRemovesDuplicateFrontRowLogic() throws Exception {
+        String src = readActivitySource();
+        assertFalse("Duplicate selectTargetFromHelper method must be removed",
+            src.contains("selectTargetFromHelper"));
+    }
+
+    @Test
+    public void testActivityHasAdapterMethods() throws Exception {
+        String src = readActivitySource();
+        assertTrue("Activity must have toHelperBubbles adapter",
+            src.contains("toHelperBubbles"));
+        assertTrue("Activity must have findNativeByHelper mapper",
+            src.contains("findNativeByHelper"));
+    }
+
+    @Test
+    public void testTargetSelectionPoppedExcluded() {
+        java.util.List<BubbleShooterRules.Bubble> all = new java.util.ArrayList<>();
+        all.add(new BubbleShooterRules.Bubble("水", "물", 100, 300, 20, false));
+        all.add(new BubbleShooterRules.Bubble("火", "불", 200, 300, 20, true));
+
+        java.util.List<BubbleShooterRules.Bubble> eligible = BubbleShooterRules.getEligibleTargets(all);
+        assertEquals("Popped bubble excluded from eligible", 1, eligible.size());
+        assertEquals("Remaining is the non-popped bubble", "水", eligible.get(0).hanja);
+    }
+
+    @Test
+    public void testTargetSelectionFrontRowExcludesRear() {
+        java.util.List<BubbleShooterRules.Bubble> all = new java.util.ArrayList<>();
+        all.add(new BubbleShooterRules.Bubble("水", "물", 100, 300, 20, false));
+        all.add(new BubbleShooterRules.Bubble("火", "불", 200, 100, 20, false));
+
+        java.util.List<BubbleShooterRules.Bubble> frontRow = BubbleShooterRules.getFrontRow(all, 20 * 0.8f);
+        assertEquals("Rear bubble excluded from front row", 1, frontRow.size());
+        assertEquals("Front row is the high-Y bubble", "水", frontRow.get(0).hanja);
+    }
+
+    @Test
+    public void testTargetSelectionFrontRowCandidatesRetained() {
+        java.util.List<BubbleShooterRules.Bubble> all = new java.util.ArrayList<>();
+        all.add(new BubbleShooterRules.Bubble("水", "물", 100, 300, 20, false));
+        all.add(new BubbleShooterRules.Bubble("火", "불", 200, 295, 20, false));
+        all.add(new BubbleShooterRules.Bubble("木", "나무", 300, 100, 20, false));
+
+        java.util.List<BubbleShooterRules.Bubble> frontRow = BubbleShooterRules.getFrontRow(all, 20 * 0.8f);
+        assertEquals("Two bubbles in front row", 2, frontRow.size());
+    }
+
+    @Test
+    public void testTargetSelectionEligibleAndFrontRowPipeline() {
+        java.util.List<BubbleShooterRules.Bubble> all = new java.util.ArrayList<>();
+        all.add(new BubbleShooterRules.Bubble("水", "물", 100, 300, 20, false));
+        all.add(new BubbleShooterRules.Bubble("火", "불", 200, 300, 20, false));
+        all.add(new BubbleShooterRules.Bubble("金", "금", 300, 295, 20, false));
+        all.add(new BubbleShooterRules.Bubble("木", "나무", 400, 100, 20, false));
+        all.add(new BubbleShooterRules.Bubble("土", "흙", 500, 300, 20, true));
+
+        java.util.List<BubbleShooterRules.Bubble> eligible = BubbleShooterRules.getEligibleTargets(all);
+        assertEquals("4 eligible (1 popped)", 4, eligible.size());
+
+        java.util.List<BubbleShooterRules.Bubble> frontRow = BubbleShooterRules.getFrontRow(eligible, 20 * 0.8f);
+        assertEquals("3 in front row (within threshold of max Y=300)", 3, frontRow.size());
+
+        for (BubbleShooterRules.Bubble b : frontRow) {
+            assertTrue("All front-row candidates must be eligible",
+                b.hanja.equals("水") || b.hanja.equals("火") || b.hanja.equals("金"));
+        }
+    }
 }

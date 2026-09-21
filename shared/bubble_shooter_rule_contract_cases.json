@@ -179,14 +179,14 @@
       "input": {
         "bubbles": [
           {"hanja": "家", "reading": "가", "x": 100, "y": 100, "popped": false},
-          {"hanja": "工", "reading": "공", "x": 150, "y": 50, "popped": false},
+          {"hanja": "工", "reading": "공", "x": 150, "y": 95, "popped": false},
           {"hanja": "歌", "reading": "가", "x": 200, "y": 50, "popped": false}
         ],
         "frontRowThreshold": 10
       },
       "expected": {
         "frontRowCount": 2,
-        "frontRowHanja": ["工", "歌"]
+        "frontRowHanja": ["家", "工"]
       }
     }
   ]

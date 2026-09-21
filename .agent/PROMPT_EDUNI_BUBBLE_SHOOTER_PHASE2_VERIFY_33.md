@@ -69,6 +69,15 @@ Do not modify code. Only read, inspect, and report.
 - [ ] `NativeBubbleShooterActivity.java` uses `BubbleShooterRules.loadCanonicalQuestions()` via `loadCanonicalDeck()`
 - [ ] No hardcoded `String[][] pairs` array remains in `NativeBubbleShooterActivity.java`
 
+### 7B. Target Selection Delegation (Prompt 32C)
+
+- [ ] `NativeBubbleShooterActivity.chooseCurrent()` calls `BubbleShooterRules.getEligibleTargets()`
+- [ ] `NativeBubbleShooterActivity.chooseCurrent()` calls `BubbleShooterRules.getFrontRow()`
+- [ ] `toHelperBubbles()` adapter converts native Bubble → helper Bubble
+- [ ] `findNativeByHelper()` mapper converts helper result back to native Bubble
+- [ ] Dead `selectTargetFromHelper()` method is removed
+- [ ] No duplicate local front-row/max-Y computation remains in active code
+
 ### 8. Generation Guard (Prompt 32B)
 
 - [ ] `NativeBubbleShooterActivity.java` has a `generation` field (int, starts 0)
@@ -76,15 +85,32 @@ Do not modify code. Only read, inspect, and report.
 - [ ] `handleHit()` captures `final int gen = generation` before `postDelayed`
 - [ ] 520ms callback checks `BubbleShooterRules.isGenerationValid(gen, generation)` before proceeding
 
-### 9. Wiring Tests (Prompt 32B)
+### 9. Wiring Tests (Prompt 32B + 32C)
 
 - [ ] `NativeBubbleShooterWiringTest.java` exists
-- [ ] Tests verify Activity delegates to BubbleShooterRules
+- [ ] Tests verify Activity delegates to BubbleShooterRules (resolveShot, isDanger, isGenerationValid)
+- [ ] Tests verify Activity delegates target selection (getEligibleTargets, getFrontRow)
 - [ ] Tests verify generation guard (stale callback rejection)
 - [ ] Tests verify hardcoded pairs removal
 - [ ] Tests verify canonical dataset loading
-- [ ] All 10 wiring tests pass
-- [ ] Combined Android JVM total: 30/30 (20 rules + 10 wiring)
+- [ ] Tests verify dead `selectTargetFromHelper()` removed
+- [ ] Tests verify adapter methods exist (toHelperBubbles, findNativeByHelper)
+- [ ] Pure JVM behavior tests: popped excluded, rear excluded, front-row retained, pipeline correct
+- [ ] Combined Android JVM total: 51/51 (20 rules + 17 wiring + 14 contract fixture)
+
+### 9B. Shared Contract Fixture (Prompt 32C)
+
+- [ ] `shared/bubble_shooter_rule_contract_cases.json` is the single source of truth
+- [ ] Android Gradle `sourceSets.test.resources.srcDirs` includes `../../shared`
+- [ ] `ContractFixtureTest.java` reads the exact shared fixture (not a copy)
+- [ ] `ContractFixtureTest.java` executes all 11 cases by category:
+  - shot_resolution: 4 cases via `resolveShot()`
+  - danger: 3 cases via `isDanger()`
+  - generation: 2 cases via `isGenerationValid()`
+  - target_selection: 2 cases via `getEligibleTargets()` / `getFrontRow()`
+- [ ] `contract_fixture_runner.test.mjs` reads the same fixture for Web/Node
+- [ ] No duplicate independently maintained contract fixture exists
+- [ ] Fixture `target_front_row_preference` expected values match actual `getFrontRow()` semantics
 
 ### 10. Data Parity
 
@@ -95,6 +121,7 @@ Do not modify code. Only read, inspect, and report.
 ### 11. Phase 1 Regression
 
 - [ ] All 19 JS unit tests pass
+- [ ] All 13 JS contract fixture runner tests pass (11 cases + structural)
 - [ ] All 33 Python tests pass (integration + routes)
 - [ ] Content validation is VALID
 - [ ] Shared logic markers present: `EDUNIBubbleShooterLogic`, `L.resolveShot`, `L.isDanger`, `L.selectTarget`, `L.pointerToCss`, `L.isGenerationValid`
@@ -111,7 +138,7 @@ Do not modify code. Only read, inspect, and report.
 - [ ] No Baduk changes
 - [ ] No portal changes
 - [ ] No deployment changes
-- [ ] Diff scope limited to Bubble Shooter data/rules parity + runtime wiring
+- [ ] Diff scope limited to Bubble Shooter data/rules parity + runtime wiring + contract fixture
 
 ---
 
@@ -120,10 +147,11 @@ Do not modify code. Only read, inspect, and report.
 ```powershell
 # Web
 cd nice-gui-1-1-7
-node --test tests/bubble_shooter_logic.test.mjs
+node --test tests/bubble_shooter_logic.test.mjs tests/contract_fixture_runner.test.mjs
 python -m pytest tests/test_bubble_shooter_integration.py tests/test_routes.py -q
+python scripts/validate_content.py
 
-# Android (rules + wiring)
+# Android (rules + wiring + contract fixture)
 cd ../eduni-android-portal
 $env:ANDROID_HOME="C:\Users\GMK\AppData\Local\Android\Sdk"
 .\gradlew.bat testDebugUnitTest

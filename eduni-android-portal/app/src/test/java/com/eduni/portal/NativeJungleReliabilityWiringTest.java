@@ -132,4 +132,31 @@ public class NativeJungleReliabilityWiringTest {
         assertTrue(block.contains("mode = QUIZ"));
         assertTrue(block.contains("방향키로 정답 선택, A 확인"));
     }
+
+    @Test public void asyncProgressPayloadSnapshotsMutableStateBeforeThread() throws Exception {
+        String src = readActivitySource();
+        String block = between(src, "void postProgress(String eventType,String detail)", "Quiz fetchQuiz()");
+        int thread = block.indexOf("new Thread(() ->");
+        assertTrue(thread > 0);
+        assertTrue(block.indexOf("final int screenSnapshot = mode;") < thread);
+        assertTrue(block.indexOf("final int starsSnapshot = foundStars;") < thread);
+        assertTrue(block.indexOf("final float playerXSnapshot = px;") < thread);
+        assertFalse(block.substring(thread).contains("payload.put(\"screen\", mode)"));
+        assertFalse(block.substring(thread).contains("payload.put(\"stars\", foundStars)"));
+        assertFalse(block.substring(thread).contains("payload.put(\"player_x\", px)"));
+    }
+
+    @Test public void quizAttemptPayloadSnapshotsQuizSelectionAndStageBeforeThread() throws Exception {
+        String src = readActivitySource();
+        String block = between(src, "void postQuizAttemptDetailed(boolean correct)", "static class Dot");
+        int thread = block.indexOf("new Thread(() ->");
+        assertTrue(thread > 0);
+        assertTrue(block.indexOf("final Object quizSnapshot = quiz;") < thread);
+        assertTrue(block.indexOf("final int selectedIndexSnapshot = select;") < thread);
+        assertTrue(block.indexOf("final int stageSnapshot = stageIndex + 1;") < thread);
+        assertTrue(block.indexOf("final String selectedSnapshot = eduniSelectedOptionText(quizSnapshot, selectedIndexSnapshot);") < thread);
+        assertFalse(block.substring(thread).contains("Object qz = quiz"));
+        assertFalse(block.substring(thread).contains("payload.put(\"selected_index\", select)"));
+        assertFalse(block.substring(thread).contains("payload.put(\"stage\", stageIndex + 1)"));
+    }
 }

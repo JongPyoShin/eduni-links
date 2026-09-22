@@ -37,7 +37,8 @@ Read:
 
 Confirm:
 
-- only `nice-gui-1-1-7/app.py` changed (no other source files)
+- only `nice-gui-1-1-7/app.py` changed among product/test source files
+- the Phase 3 implementation report and Prompt 38 documentation files are allowed
 - shared logic file `eduni_bubble_shooter_logic.js` is unchanged
 - canonical dataset `shared/bubble_shooter_questions.json` is unchanged
 - Android source files are unchanged
@@ -239,11 +240,16 @@ Verify:
 
 # 8. No unrelated diff
 
-Verify diff contains ONLY:
+Verify the **product/test source diff** contains ONLY:
 
 - `nice-gui-1-1-7/app.py`
 
-No changes to Baduk, portal, canonical dataset, shared logic, Android, deployment config.
+The following documentation files are expected and allowed:
+
+- `BUBBLE_SHOOTER_PHASE3_VISIBLE_UX_REPORT.md`
+- `.agent/PROMPT_EDUNI_BUBBLE_SHOOTER_PHASE3_VERIFY_38.md`
+
+No product/test changes to Baduk, portal, canonical dataset, shared logic, Android, or deployment config.
 
 ---
 

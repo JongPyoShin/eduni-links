@@ -1,3 +1,13 @@
+# SUPERSEDED — DO NOT EXECUTE
+
+This prompt was replaced by the Jungle-only Astra task:
+
+`.agent/PROMPT_EDUNI_JUNGLE_RUNTIME_RELIABILITY_ASTRA_39B.md`
+
+Reason: the 30-minute / ~60% Codex budget is better spent deeply on the Native Jungle runtime than spread across four games.
+
+---
+
 # EDUNI Runtime Reliability Core — Astra Deep Task (Prompt 39)
 
 ## Mission

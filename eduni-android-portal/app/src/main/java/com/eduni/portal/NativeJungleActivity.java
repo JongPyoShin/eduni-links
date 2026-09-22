@@ -707,19 +707,26 @@ public class NativeJungleActivity extends Activity {
 
 
         void postProgress(String eventType,String detail) {
+            final long clientTsSnapshot = System.currentTimeMillis();
+            final int screenSnapshot = mode;
+            final int starsSnapshot = foundStars;
+            final int birdsSnapshot = caughtBirds;
+            final int heartsSnapshot = hearts;
+            final float playerXSnapshot = px;
+            final float playerYSnapshot = py;
             new Thread(() -> {
                 java.net.HttpURLConnection conn = null;
                 try {
                     org.json.JSONObject payload = new org.json.JSONObject();
                     payload.put("event_type", eventType);
                     payload.put("detail", detail);
-                    payload.put("client_ts", System.currentTimeMillis());
-                    payload.put("screen", mode);
-                    payload.put("stars", foundStars);
-                    payload.put("birds", caughtBirds);
-                    payload.put("hearts", hearts);
-                    payload.put("player_x", px);
-                    payload.put("player_y", py);
+                    payload.put("client_ts", clientTsSnapshot);
+                    payload.put("screen", screenSnapshot);
+                    payload.put("stars", starsSnapshot);
+                    payload.put("birds", birdsSnapshot);
+                    payload.put("hearts", heartsSnapshot);
+                    payload.put("player_x", playerXSnapshot);
+                    payload.put("player_y", playerYSnapshot);
                     payload.put("app", "eduni-native-jungle");
                     payload.put("patch", "v7-progress");
 
@@ -1926,38 +1933,51 @@ public class NativeJungleActivity extends Activity {
         }
 
         String eduniSelectedOptionText() {
+            return eduniSelectedOptionText(quiz, select);
+        }
+
+        String eduniSelectedOptionText(Object qz, int selectedIndex) {
             try {
-                Object qz = quiz;
                 java.lang.reflect.Field f = qz.getClass().getDeclaredField("options");
                 f.setAccessible(true);
                 Object arr = f.get(qz);
                 int len = java.lang.reflect.Array.getLength(arr);
-                if(select >= 0 && select < len) {
-                    Object v = java.lang.reflect.Array.get(arr, select);
+                if(selectedIndex >= 0 && selectedIndex < len) {
+                    Object v = java.lang.reflect.Array.get(arr, selectedIndex);
                     return String.valueOf(v);
                 }
             } catch(Exception ignored) {}
-            return String.valueOf(select);
+            return String.valueOf(selectedIndex);
         }
 
         void postQuizAttemptDetailed(boolean correct) {
+            final Object quizSnapshot = quiz;
+            final int selectedIndexSnapshot = select;
+            final String questionSnapshot = eduniReflectString(quizSnapshot,"question","q","text","title");
+            final String answerSnapshot = eduniReflectString(quizSnapshot,"answer","correct","correctAnswer","a");
+            final String selectedSnapshot = eduniSelectedOptionText(quizSnapshot, selectedIndexSnapshot);
+            final int stageSnapshot = stageIndex + 1;
+            final String stageNameSnapshot = currentStageName();
+            final int starsSnapshot = foundStars;
+            final int birdsSnapshot = caughtBirds;
+            final int heartsSnapshot = hearts;
+            final long clientTsSnapshot = System.currentTimeMillis();
             new Thread(() -> {
                 java.net.HttpURLConnection conn = null;
                 try {
-                    Object qz = quiz;
                     org.json.JSONObject payload = new org.json.JSONObject();
                     payload.put("event_type","quiz_attempt");
                     payload.put("correct", correct);
-                    payload.put("question", eduniReflectString(qz,"question","q","text","title"));
-                    payload.put("answer", eduniReflectString(qz,"answer","correct","correctAnswer","a"));
-                    payload.put("selected", eduniSelectedOptionText());
-                    payload.put("selected_index", select);
-                    payload.put("stage", stageIndex + 1);
-                    payload.put("stage_name", currentStageName());
-                    payload.put("stars", foundStars);
-                    payload.put("birds", caughtBirds);
-                    payload.put("hearts", hearts);
-                    payload.put("client_ts", System.currentTimeMillis());
+                    payload.put("question", questionSnapshot);
+                    payload.put("answer", answerSnapshot);
+                    payload.put("selected", selectedSnapshot);
+                    payload.put("selected_index", selectedIndexSnapshot);
+                    payload.put("stage", stageSnapshot);
+                    payload.put("stage_name", stageNameSnapshot);
+                    payload.put("stars", starsSnapshot);
+                    payload.put("birds", birdsSnapshot);
+                    payload.put("hearts", heartsSnapshot);
+                    payload.put("client_ts", clientTsSnapshot);
 
                     org.json.JSONObject event = new org.json.JSONObject();
                     event.put("event_type","quiz_attempt");

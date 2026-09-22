@@ -109,6 +109,6 @@ public class JungleQuizRequestGuardTest {
         }
 
         assertEquals(375, acceptedResponses);
-        assertEquals(375, staleResponses);
+        assertEquals(500, staleResponses);
     }
 }

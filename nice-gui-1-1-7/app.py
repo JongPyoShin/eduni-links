@@ -1866,7 +1866,6 @@ SHOOTER_HTML_TEMPLATE = r'''
     <header class="shooter-top">
       <div>
         <h1>으듀니 한자 슈터</h1>
-        <p id="shooterStatus">뜻음 버블을 맞는 한자에 쏴 보자</p>
       </div>
       <div class="shooter-score">
         <span>점수</span>
@@ -1874,8 +1873,23 @@ SHOOTER_HTML_TEMPLATE = r'''
       </div>
     </header>
 
+    <div id="shooterMission" class="shooter-mission">
+      <span id="shooterMissionLabel" class="mission-label">이번 문제</span>
+      <strong id="shooterMissionText" class="mission-text">-</strong>
+      <p class="mission-hint">맞는 한자 버블을 찾아 쏴!</p>
+    </div>
+
+    <div class="shooter-hud">
+      <div class="hud-progress">
+        <span id="shooterProgressText" class="progress-text">0 / 10</span>
+        <div class="progress-bar"><div id="shooterProgressFill" class="progress-fill"></div></div>
+      </div>
+      <div id="shooterStreak" class="hud-streak"></div>
+    </div>
+
     <main class="shooter-stage">
       <canvas id="shooterCanvas" aria-label="hanja bubble shooter"></canvas>
+      <div id="shooterFeedback" class="shooter-feedback hidden" aria-live="polite"></div>
       <div id="shooterPraisePop" class="praise-pop hidden" aria-live="polite">
         <img id="praiseCharacterImage" class="praise-character" alt="">
         <strong id="praisePopText">좋아!</strong>
@@ -1891,6 +1905,7 @@ SHOOTER_HTML_TEMPLATE = r'''
       <div class="shooter-dialog">
         <span id="shooterPraise">좋아!</span>
         <h2 id="shooterAnswerTitle">정답</h2>
+        <div id="shooterResultStats" class="result-stats hidden"></div>
         <div id="shooterExplanation"></div>
         <button id="shooterNextButton" type="button">확인</button>
       </div>
@@ -1978,6 +1993,151 @@ SHOOTER_HTML_TEMPLATE = r'''
     color: #0f172a;
     font-size: 28px;
     line-height: 1;
+  }
+
+  .shooter-mission {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 2px solid #cfe0e8;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.92);
+  }
+
+  .mission-label {
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .mission-text {
+    color: #0f172a;
+    font-size: clamp(18px, 4vw, 24px);
+    line-height: 1.2;
+  }
+
+  .mission-hint {
+    margin: 0 0 0 auto;
+    color: #527081;
+    font-size: 13px;
+    font-weight: 850;
+    white-space: nowrap;
+  }
+
+  .shooter-hud {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .hud-progress {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .progress-text {
+    color: #123047;
+    font-size: 14px;
+    font-weight: 900;
+    white-space: nowrap;
+    min-width: 48px;
+  }
+
+  .progress-bar {
+    flex: 1;
+    height: 10px;
+    border-radius: 5px;
+    background: #e2e8f0;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    width: 0%;
+    height: 100%;
+    border-radius: 5px;
+    background: linear-gradient(90deg, #38bdf8, #22c55e);
+    transition: width 0.3s ease;
+  }
+
+  .hud-streak {
+    color: #f97316;
+    font-size: 15px;
+    font-weight: 950;
+    white-space: nowrap;
+    min-width: 60px;
+    text-align: right;
+  }
+
+  .shooter-feedback {
+    position: absolute;
+    left: 50%;
+    top: 18%;
+    transform: translate(-50%, -50%);
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 20px;
+    font-weight: 950;
+    pointer-events: none;
+    z-index: 5;
+    animation: feedback-pop 1.2s ease-out forwards;
+  }
+
+  .shooter-feedback.hidden {
+    display: none;
+  }
+
+  .shooter-feedback.correct {
+    background: rgba(34, 197, 94, 0.92);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
+  }
+
+  .shooter-feedback.wrong {
+    background: rgba(249, 115, 22, 0.92);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(249, 115, 22, 0.4);
+  }
+
+  @keyframes feedback-pop {
+    0% { opacity: 0; transform: translate(-50%, -40%) scale(0.8); }
+    15% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+    70% { opacity: 1; transform: translate(-50%, -55%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -70%) scale(0.9); }
+  }
+
+  .result-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 8px;
+    background: #f0fdf4;
+  }
+
+  .result-stats.hidden {
+    display: none;
+  }
+
+  .result-stats .stat {
+    text-align: center;
+  }
+
+  .result-stats .stat-label {
+    display: block;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .result-stats .stat-value {
+    display: block;
+    color: #123047;
+    font-size: 20px;
+    font-weight: 950;
   }
 
   .shooter-stage {
@@ -2143,9 +2303,16 @@ SHOOTER_HTML_TEMPLATE = r'''
 
   @media (max-width: 560px) {
     #hanja-shooter-root { padding: 8px; }
-    .shooter-shell { height: calc(100dvh - 16px); gap: 8px; }
+    .shooter-shell { height: calc(100dvh - 16px); gap: 6px; }
     .shooter-actions button { flex: 1; padding: 0 10px; font-size: 14px; }
     .shooter-score { min-width: 74px; }
+    .shooter-mission { padding: 8px 10px; gap: 8px; }
+    .mission-hint { display: none; }
+    .shooter-hud { gap: 8px; }
+    .progress-text { font-size: 13px; min-width: 42px; }
+    .hud-streak { font-size: 13px; min-width: 50px; }
+    .shooter-feedback { font-size: 17px; padding: 8px 14px; }
+    .result-stats .stat-value { font-size: 17px; }
   }
 </style>
 
@@ -2169,6 +2336,13 @@ __SHOOTER_LOGIC_SCRIPT__
   const praisePop = document.getElementById('shooterPraisePop');
   const praisePopText = document.getElementById('praisePopText');
   const praiseCharacterImage = document.getElementById('praiseCharacterImage');
+  const missionEl = document.getElementById('shooterMission');
+  const missionTextEl = document.getElementById('shooterMissionText');
+  const progressTextEl = document.getElementById('shooterProgressText');
+  const progressFillEl = document.getElementById('shooterProgressFill');
+  const streakEl = document.getElementById('shooterStreak');
+  const feedbackEl = document.getElementById('shooterFeedback');
+  const resultStatsEl = document.getElementById('shooterResultStats');
 
   const praise = ['좋아!', '그뤠잇!', '엑설런트!', '잘했어!'];
   const colors = ['#f87171', '#facc15', '#38bdf8', '#4ade80', '#a78bfa', '#fb7185'];
@@ -2192,6 +2366,12 @@ __SHOOTER_LOGIC_SCRIPT__
     soundEnabled: true,
     deck: [],
     nextIndex: 0,
+    correctCount: 0,
+    attemptCount: 0,
+    streak: 0,
+    bestStreak: 0,
+    roundGoal: 10,
+    feedbackTimer: null,
   };
 
   function currentCols() {
@@ -2271,7 +2451,45 @@ __SHOOTER_LOGIC_SCRIPT__
       const front = live.filter(b => Math.abs(b.y - frontY) < state.radius * 0.8);
       return front[Math.floor(Math.random() * front.length)];
     })();
-    statusEl.textContent = `'${state.current.meaningSound || state.current.answerLabel}' 버블을 맞는 한자에 쏘자`;
+    missionTextEl.textContent = `${state.current.meaningSound || state.current.answerLabel}`;
+  }
+
+  function updateHUD() {
+    progressTextEl.textContent = `${Math.min(state.correctCount, state.roundGoal)} / ${state.roundGoal}`;
+    const pct = Math.min(100, (state.correctCount / state.roundGoal) * 100);
+    progressFillEl.style.width = `${pct}%`;
+    if (state.streak >= 2) {
+      streakEl.textContent = state.streak >= 3 ? `연속 ${state.streak} 🔥` : `연속 ${state.streak}`;
+    } else {
+      streakEl.textContent = '';
+    }
+  }
+
+  function showFeedback(type, text) {
+    if (state.feedbackTimer) clearTimeout(state.feedbackTimer);
+    feedbackEl.className = `shooter-feedback ${type}`;
+    feedbackEl.textContent = text;
+    state.feedbackTimer = setTimeout(() => {
+      feedbackEl.classList.add('hidden');
+      state.feedbackTimer = null;
+    }, 1200);
+  }
+
+  function showResult(isSuccess) {
+    const accuracy = state.attemptCount > 0 ? Math.round((state.correctCount / state.attemptCount) * 100) : 0;
+    praiseEl.textContent = isSuccess ? '스테이지 완료!' : '게임 끝';
+    titleEl.textContent = isSuccess ? '훌륭해!' : '다시 도전해보자';
+    resultStatsEl.innerHTML = [
+      `<div class="stat"><span class="stat-label">정답</span><span class="stat-value">${state.correctCount}개</span></div>`,
+      `<div class="stat"><span class="stat-label">정확도</span><span class="stat-value">${accuracy}%</span></div>`,
+      `<div class="stat"><span class="stat-label">최고 연속</span><span class="stat-value">${state.bestStreak}</span></div>`,
+      `<div class="stat"><span class="stat-label">점수</span><span class="stat-value">${state.score}</span></div>`,
+    ].join('');
+    resultStatsEl.classList.remove('hidden');
+    explanationEl.innerHTML = '';
+    nextButton.style.display = '';
+    nextButton.textContent = '한 번 더!';
+    overlay.classList.remove('hidden');
   }
 
   function startGame() {
@@ -2283,9 +2501,16 @@ __SHOOTER_LOGIC_SCRIPT__
     state.shot = null;
     state.waiting = false;
     state.gameOver = false;
+    state.correctCount = 0;
+    state.attemptCount = 0;
+    state.streak = 0;
+    state.bestStreak = 0;
     state.generation = (state.generation || 0) + 1;
     overlay.classList.add('hidden');
+    resultStatsEl.classList.add('hidden');
+    feedbackEl.classList.add('hidden');
     scoreEl.textContent = '0';
+    updateHUD();
     resizeCanvas();
     seedInitialBubbles();
     chooseCurrent();
@@ -2538,40 +2763,73 @@ __SHOOTER_LOGIC_SCRIPT__
     if (shotResult && shotResult.type === 'correct') {
       state.waiting = true;
       state.score += shotResult.scoreDelta;
+      state.correctCount += 1;
+      state.attemptCount += 1;
+      state.streak += 1;
+      if (state.streak > state.bestStreak) state.bestStreak = state.streak;
       scoreEl.textContent = String(state.score);
       state.bubbles = shotResult.bubbles;
       const say = praise[Math.floor(Math.random() * praise.length)];
-      statusEl.textContent = `${say} 정답 버블을 터뜨렸어`;
+      updateHUD();
+      if (state.streak >= 3) {
+        showFeedback('correct', `${state.streak}연속! 잘했어! 🔥`);
+      } else {
+        showFeedback('correct', `정답! +${shotResult.scoreDelta}`);
+      }
       playTone(780, 0.11, 'triangle');
       setTimeout(() => playTone(980, 0.12, 'triangle'), 80);
+      if (state.correctCount >= state.roundGoal) {
+        setTimeout(() => showResult(true), 600);
+        return;
+      }
       setTimeout(() => showPraise(hit, say), 220);
     } else if (shotResult && shotResult.type === 'clear') {
       state.waiting = true;
       state.score += shotResult.scoreDelta;
+      state.correctCount += 1;
+      state.attemptCount += 1;
+      state.streak += 1;
+      if (state.streak > state.bestStreak) state.bestStreak = state.streak;
       scoreEl.textContent = String(state.score);
       state.bubbles = shotResult.bubbles;
-      const say = praise[Math.floor(Math.random() * praise.length)];
-      statusEl.textContent = `${say} 정답 버블을 터뜨렸어`;
+      updateHUD();
+      showFeedback('correct', `정답! +${shotResult.scoreDelta}`);
       playTone(780, 0.11, 'triangle');
       setTimeout(() => playTone(980, 0.12, 'triangle'), 80);
       setTimeout(() => finishGame(true), 220);
     } else if (hit.target === state.shot.target) {
       state.waiting = true;
       state.score += 100;
+      state.correctCount += 1;
+      state.attemptCount += 1;
+      state.streak += 1;
+      if (state.streak > state.bestStreak) state.bestStreak = state.streak;
       scoreEl.textContent = String(state.score);
       state.bubbles = state.bubbles.filter(b => b !== hit);
       const say = praise[Math.floor(Math.random() * praise.length)];
-      statusEl.textContent = `${say} 정답 버블을 터뜨렸어`;
+      updateHUD();
+      if (state.streak >= 3) {
+        showFeedback('correct', `${state.streak}연속! 잘했어! 🔥`);
+      } else {
+        showFeedback('correct', '정답! +100');
+      }
       playTone(780, 0.11, 'triangle');
       setTimeout(() => playTone(980, 0.12, 'triangle'), 80);
+      if (state.correctCount >= state.roundGoal) {
+        setTimeout(() => showResult(true), 600);
+        return;
+      }
       setTimeout(() => showPraise(hit, say), 220);
     } else {
-      statusEl.textContent = '아까워. 맞는 한자 버블을 다시 찾아보자';
       missShot();
     }
   }
 
   function missShot() {
+    state.attemptCount += 1;
+    state.streak = 0;
+    updateHUD();
+    showFeedback('wrong', '아까워! 다시 찾아보자');
     playTone(180, 0.1, 'sine');
     state.shot = null;
     afterTurn(true);
@@ -2651,18 +2909,13 @@ __SHOOTER_LOGIC_SCRIPT__
   function finishGame(clear) {
     state.gameOver = true;
     state.waiting = true;
-    praiseEl.textContent = clear ? '성공!' : '게임 끝';
-    titleEl.textContent = clear ? '모든 버블을 터뜨렸어' : '다시 도전해보자';
-    renderExplanation(clear ? '오늘 한자 슈터 실력이 아주 좋아.' : '버블이 아래까지 내려왔어. 다시 시작을 눌러 한 번 더 해보자.');
-    nextButton.style.display = '';
-    overlay.classList.remove('hidden');
-    nextButton.textContent = '다시 시작';
+    showResult(clear);
   }
 
   function continueGame() {
     overlay.classList.add('hidden');
+    resultStatsEl.classList.add('hidden');
     if (state.gameOver) {
-      nextButton.textContent = '확인';
       startGame();
       return;
     }

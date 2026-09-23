@@ -725,13 +725,19 @@
 
       async function loadRecords({ reset = true } = {}) {
         if (!reset && loadingRecords) return;
+        const requestGeneration = ++searchRequestGeneration;
+
         if (dateFromFilter.value && dateToFilter.value && dateFromFilter.value > dateToFilter.value) {
+          loadingRecords = false;
+          records = [];
+          totalMatches = 0;
+          recordsEl.innerHTML = '<div class="empty">시작 날짜는 끝 날짜보다 늦을 수 없어요.</div>';
+          updateSearchUi();
           searchSummary.textContent = '시작 날짜는 끝 날짜보다 늦을 수 없어요.';
           searchSummaryCompact.textContent = searchSummary.textContent;
           return;
         }
 
-        const requestGeneration = ++searchRequestGeneration;
         const offset = reset ? 0 : records.length;
         loadingRecords = true;
         if (reset && !records.length) {
@@ -760,7 +766,10 @@
           renderRecords();
         } catch (error) {
           if (requestGeneration !== searchRequestGeneration) return;
-          if (reset) records = [];
+          if (reset) {
+            records = [];
+            totalMatches = 0;
+          }
           recordsEl.innerHTML = '<div class="empty">' +
             escapeHtml(error.message || '독서기록을 불러오지 못했어요. 잠시 후 다시 시도해주세요.') +
             '</div>';
@@ -779,7 +788,10 @@
 
       searchInput.addEventListener('input', scheduleSearch);
       [dateFromFilter, dateToFilter, readingModeFilter, ratingFilter].forEach((element) => {
-        element.addEventListener('change', () => loadRecords({ reset: true }));
+        element.addEventListener('change', () => {
+          window.clearTimeout(searchDebounceTimer);
+          loadRecords({ reset: true });
+        });
       });
       filterToggle.addEventListener('click', () => {
         const expanded = filterToggle.getAttribute('aria-expanded') === 'true';
@@ -788,6 +800,7 @@
         updateSearchUi();
       });
       clearFilters.addEventListener('click', () => {
+        window.clearTimeout(searchDebounceTimer);
         searchInput.value = '';
         dateFromFilter.value = '';
         dateToFilter.value = '';

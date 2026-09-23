@@ -17,7 +17,7 @@ from portal_app.reading_journal import (
     save_cover_data_url,
     update_reading_record,
 )
-from portal_app.reading_storage import reading_uses_postgres
+from portal_app.reading_storage import check_reading_storage, reading_uses_postgres
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 HTML_PATH = APP_ROOT / "portal_app" / "static_games" / "eduni_reading_journal.html"
@@ -228,6 +228,11 @@ class ReadingJournalTests(unittest.TestCase):
                     db_path,
                     media_dir=media_dir,
                 )
+
+    def test_reading_storage_health_uses_isolated_sqlite_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "portal.sqlite3"
+            self.assertEqual("sqlite", check_reading_storage(db_path))
 
     def test_explicit_test_path_stays_on_sqlite_when_postgres_env_exists(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

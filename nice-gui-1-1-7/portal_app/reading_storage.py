@@ -133,3 +133,16 @@ def ensure_reading_journal_schema(path: Path | None = None) -> None:
     with reading_database_connection(path) as conn:
         for statement in POSTGRES_READING_SCHEMA_STATEMENTS:
             conn.execute(statement)
+
+
+def reading_storage_backend(path: Path | None = None) -> str:
+    return "postgresql" if reading_uses_postgres(path) else "sqlite"
+
+
+def check_reading_storage(path: Path | None = None) -> str:
+    ensure_reading_journal_schema(path)
+    with reading_database_connection(path) as conn:
+        row = conn.execute("SELECT 1").fetchone()
+    if row is None or int(row[0]) != 1:
+        raise RuntimeError("reading storage health check failed")
+    return reading_storage_backend(path)

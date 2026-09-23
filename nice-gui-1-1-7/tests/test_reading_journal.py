@@ -14,7 +14,9 @@ from portal_app.reading_journal import (
     ensure_reading_journal_schema,
     list_reading_records,
     reading_journal_page,
+    reading_record_summary,
     save_cover_data_url,
+    search_reading_records,
     update_reading_record,
 )
 from portal_app.reading_storage import check_reading_storage, reading_uses_postgres
@@ -104,6 +106,126 @@ class ReadingJournalTests(unittest.TestCase):
             second = list_reading_records(path=db_path, child_profile_id=second_profile)
             self.assertEqual(["첫 번째 아이 책"], [item["title"] for item in first])
             self.assertEqual(["두 번째 아이 책"], [item["title"] for item in second])
+
+    def test_server_search_covers_text_filters_and_pagination(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            db_path = root / "portal.sqlite3"
+            media_dir = root / "covers"
+
+            fixtures = [
+                {
+                    "title": "용기를 내, 비닐장갑!",
+                    "author": "책읽는곰",
+                    "read_date": "2026-09-24",
+                    "reading_mode": "together",
+                    "rating": 5,
+                    "child_comment": "나도 용기 내볼래",
+                    "favorite_part": "주인공이 도전하는 장면",
+                    "parent_note": "자전거 이야기와 연결함",
+                },
+                {
+                    "title": "해바라기",
+                    "author": "꽃출판사",
+                    "read_date": "2026-09-20",
+                    "reading_mode": "alone",
+                    "rating": 4,
+                    "child_comment": "노란 꽃이 좋아",
+                    "favorite_part": "큰 해바라기 그림",
+                    "parent_note": "미술놀이 연결",
+                },
+                {
+                    "title": "숲속 친구들",
+                    "author": "공존출판",
+                    "read_date": "2026-08-31",
+                    "reading_mode": "read_aloud",
+                    "rating": 3,
+                    "child_comment": "또롱이가 좋아",
+                    "favorite_part": "동물들이 열매를 남기는 장면",
+                    "parent_note": "공존 이야기",
+                },
+                {
+                    "title": "숫자 탐험",
+                    "author": "배움책방",
+                    "read_date": "2026-09-10",
+                    "reading_mode": "alone",
+                    "rating": 5,
+                    "child_comment": "숫자를 찾았어",
+                    "favorite_part": "미로 장면",
+                    "parent_note": "수 탐색 연결",
+                },
+                {
+                    "title": "달빛 고양이",
+                    "author": "밤출판",
+                    "read_date": "2026-09-01",
+                    "reading_mode": "together",
+                    "rating": 4,
+                    "child_comment": "고양이가 귀여워",
+                    "favorite_part": "달을 보는 장면",
+                    "parent_note": "완두와 블루 이야기를 함",
+                },
+            ]
+            for payload in fixtures:
+                create_reading_record(payload, db_path, media_dir=media_dir)
+
+            records, total = search_reading_records(
+                path=db_path,
+                query="자전거",
+            )
+            self.assertEqual(1, total)
+            self.assertEqual("용기를 내, 비닐장갑!", records[0]["title"])
+
+            records, total = search_reading_records(
+                path=db_path,
+                query="꽃출판사",
+            )
+            self.assertEqual(1, total)
+            self.assertEqual("해바라기", records[0]["title"])
+
+            records, total = search_reading_records(
+                path=db_path,
+                date_from="2026-09-01",
+                date_to="2026-09-20",
+                reading_mode="alone",
+                rating=5,
+            )
+            self.assertEqual(1, total)
+            self.assertEqual("숫자 탐험", records[0]["title"])
+
+            first_page, total = search_reading_records(limit=2, offset=0, path=db_path)
+            second_page, second_total = search_reading_records(limit=2, offset=2, path=db_path)
+            self.assertEqual(5, total)
+            self.assertEqual(5, second_total)
+            self.assertEqual(
+                ["용기를 내, 비닐장갑!", "해바라기"],
+                [item["title"] for item in first_page],
+            )
+            self.assertEqual(
+                ["숫자 탐험", "달빛 고양이"],
+                [item["title"] for item in second_page],
+            )
+
+            with self.assertRaisesRegex(ValueError, "date_from"):
+                search_reading_records(
+                    path=db_path,
+                    date_from="2026-09-25",
+                    date_to="2026-09-01",
+                )
+
+    def test_reading_summary_is_global_not_search_limited(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            db_path = root / "portal.sqlite3"
+            media_dir = root / "covers"
+            for payload in (
+                {"title": "A", "read_date": "2026-09-24", "rating": 5},
+                {"title": "B", "read_date": "2026-09-10", "rating": 4},
+                {"title": "C", "read_date": "2026-08-10", "rating": 5},
+            ):
+                create_reading_record(payload, db_path, media_dir=media_dir)
+
+            summary = reading_record_summary(path=db_path, month="2026-09")
+            self.assertEqual({"total": 3, "month": 2, "favorite": 2}, summary)
 
     def test_update_record_keeps_replaces_and_removes_cover_safely(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -311,6 +433,17 @@ class ReadingJournalTests(unittest.TestCase):
         self.assertIn("if (jobGeneration !== imageJobGeneration) return;", html)
         self.assertIn("if (imageProcessing)", html)
         self.assertIn("사진 준비가 끝날 때까지 잠시 기다려주세요.", html)
+        self.assertIn('id="filterToggle"', html)
+        self.assertIn('id="dateFromFilter"', html)
+        self.assertIn('id="dateToFilter"', html)
+        self.assertIn('id="readingModeFilter"', html)
+        self.assertIn('id="ratingFilter"', html)
+        self.assertIn('id="loadMoreButton"', html)
+        self.assertIn("PAGE_SIZE = 24", html)
+        self.assertIn("searchRequestGeneration", html)
+        self.assertIn("requestGeneration !== searchRequestGeneration", html)
+        self.assertIn("URLSearchParams", html)
+        self.assertIn("setTimeout(() => loadRecords({ reset: true }), 250)", html)
 
     def test_photo_remove_control_is_outside_overflow_hidden_picker(self) -> None:
         html = HTML_PATH.read_text(encoding="utf-8")

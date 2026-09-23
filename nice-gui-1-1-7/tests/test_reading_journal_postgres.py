@@ -10,6 +10,7 @@ from portal_app.reading_journal import (
     create_reading_record,
     delete_reading_record,
     list_reading_records,
+    search_reading_records,
     update_reading_record,
 )
 from portal_app.reading_storage import reading_uses_postgres
@@ -105,6 +106,19 @@ class ReadingJournalPostgresIntegrationTests(unittest.TestCase):
                 )
                 self.assertIsNone(removed["cover_filename"])
                 self.assertFalse((media_dir / str(second_cover)).exists())
+
+                found, total = search_reading_records(
+                    child_profile_id=child_profile_id,
+                    query="사진 제거",
+                    date_from="2026-09-21",
+                    date_to="2026-09-21",
+                    reading_mode="together",
+                    rating=5,
+                    limit=1,
+                    offset=0,
+                )
+                self.assertEqual(1, total)
+                self.assertEqual([record_id], [row["id"] for row in found])
 
                 self.assertTrue(
                     delete_reading_record(

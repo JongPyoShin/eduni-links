@@ -26,6 +26,7 @@ EDUNI_LINK_URL = "/link"
 EDUNI_OMOK_URL = "/omok"
 EDUNI_JUNGLE_URL = "/jungle"
 EDUNI_SPACE_URL = "/space"
+EDUNI_READING_URL = "/reading"
 GAME_STATIC_DIR = Path(__file__).resolve().parent / "static_games"
 JUNGLE_STATIC_DIR = Path(__file__).resolve().parent / "jungle_static"
 app.add_static_files("/jungle-static", JUNGLE_STATIC_DIR)
@@ -274,6 +275,7 @@ def register_pages() -> None:
                         ui.link("의준 링크", EDUNI_LINK_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-positive text-white q-px-md")
                         ui.link("AI 오목", EDUNI_OMOK_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-deep-purple text-white q-px-md")
                         ui.link("정글 새탐험", EDUNI_JUNGLE_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-teal text-white q-px-md")
+                        ui.link("독서기록", EDUNI_READING_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-orange text-white q-px-md")
                         ui.link("부모 화면", "/portal/parent").classes("portal-action q-btn q-btn-item q-btn--outline q-px-md")
                 with ui.element("div").classes("portal-console"):
                     with ui.element("div").classes("portal-tiles"):
@@ -294,6 +296,7 @@ def register_pages() -> None:
                 _portal_card("/bubble-shooter", "한자 슈터", "목표 한자를 맞히는 버블 슈터 게임", "게임", "portal-game-blue")
                 _portal_card("/bubble", "버블 게임", "짧게 집중해서 푸는 한자 게임", "게임", "portal-game-amber")
                 _portal_card("/blockpuzzle", "블록 퍼즐", "가볍게 머리를 깨우는 퍼즐", "게임", "portal-game-green")
+                _portal_card(EDUNI_READING_URL, "독서기록", "책 사진과 아이의 한마디를 차곡차곡 남기는 독서 앨범", "기록", "portal-game-amber")
 
             _section_title("학습 세계", "동적 포털의 실제 학습 경로와 맞췄습니다.")
             with ui.element("section").classes("portal-worlds"):

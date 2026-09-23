@@ -284,6 +284,17 @@ class ReadingJournalTests(unittest.TestCase):
         self.assertIn('id="removePhotoButton"', html)
         self.assertIn('id="mobileViewToggle"', html)
         self.assertIn("force-mobile", html)
+        self.assertIn("imageJobGeneration", html)
+        self.assertIn("if (jobGeneration !== imageJobGeneration) return;", html)
+        self.assertIn("if (imageProcessing)", html)
+        self.assertIn("사진 준비가 끝날 때까지 잠시 기다려주세요.", html)
+
+    def test_photo_remove_control_is_outside_overflow_hidden_picker(self) -> None:
+        html = HTML_PATH.read_text(encoding="utf-8")
+        picker_start = html.index('<div id="coverPicker" class="cover-picker">')
+        picker_end = html.index('</div>', html.index('</label>', picker_start))
+        remove_button = html.index('id="removePhotoButton"')
+        self.assertGreater(remove_button, picker_end)
 
     def test_page_is_pressure_free_and_does_not_add_leaderboards_or_streaks(self) -> None:
         html = HTML_PATH.read_text(encoding="utf-8")

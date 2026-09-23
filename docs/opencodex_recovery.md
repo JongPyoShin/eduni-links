@@ -70,6 +70,6 @@ OpenCodex를 거치지 않고 기존 Codex 설정으로 실행해야 할 때는 
 ocx stop
 ```
 
-`ocx stop`은 프록시를 중지하고 Codex 설정을 원래의 네이티브 라우팅으로 복원합니다. 실행 중인 요청이 있으면 먼저 끝낸 뒤 롤백합니다. 롤백 후에는 `ocx status --json`에서 `proxy.running=false`, `startup.routingKind=native`, `startup.localRoutingDependency=false`, `startup.protection=none`인지 확인합니다.
+`ocx stop`은 프록시와 자동 재시작 서비스를 멈추고 Codex 설정을 원래의 네이티브 라우팅으로 복원합니다. 진행 중인 요청이 있다면 먼저 완료될 때까지 기다린 뒤 롤백합니다. 중지 과정에서 요청이 끊길 수 있습니다. 바로가기는 롤백 뒤 `ocx status --json`을 확인하며, `proxy.running=false`, `startup.routingKind=native`, `startup.localRoutingDependency=false`, `startup.protection=none`이 아닐 경우 성공으로 처리하지 않습니다.
 
 OpenCodex를 다시 사용하려면 기존 `OpenCodex 복구` 바로가기를 실행합니다. `ocx restore`만 실행하면 설정만 바뀌고 프록시가 계속 실행될 수 있으므로, 완전히 경유지를 끄려면 `ocx stop`을 사용합니다.

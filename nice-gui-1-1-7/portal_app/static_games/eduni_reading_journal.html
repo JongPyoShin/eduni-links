@@ -35,6 +35,11 @@
     button { cursor:pointer; }
     .shell { width:min(1050px,calc(100vw - 24px)); margin:0 auto; padding:18px 0 56px; }
     .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .top-actions { display:flex; align-items:center; gap:8px; }
+    .view-btn,.secondary-btn,.photo-remove-btn {
+      border:1px solid var(--line); border-radius:13px; background:var(--card); color:var(--ink);
+      min-height:42px; padding:0 13px; font-weight:850;
+    }
     .back {
       color:var(--muted); text-decoration:none; font-size:14px; font-weight:800;
       min-height:42px; display:inline-flex; align-items:center;
@@ -109,7 +114,9 @@
     }
     .chip.active { border-color:var(--leaf); background:var(--leaf-soft); color:#365342; box-shadow:inset 0 0 0 1px var(--leaf); }
     .mood-chip.active { border-color:#d49c31; background:#fff4d7; color:#7f5814; box-shadow:inset 0 0 0 1px #d49c31; }
-    .form-actions { display:flex; justify-content:flex-end; align-items:center; gap:10px; padding-top:3px; }
+    .form-actions { display:flex; justify-content:flex-end; align-items:center; gap:10px; padding-top:3px; flex-wrap:wrap; }
+    .photo-tools { display:flex; justify-content:flex-end; margin-top:8px; }
+    .photo-remove-btn { min-height:38px; color:#8d4d3b; }
     .save-status { color:var(--muted); font-size:13px; font-weight:800; min-height:20px; }
     .save-status.error { color:#b42318; }
     .save-status.success { color:#3d6d4d; }
@@ -144,14 +151,31 @@
     }
     .quote { background:#edf4ee; color:#3c5845; }
     .quote:before { content:"“"; font-size:20px; margin-right:2px; }
-    .delete-btn {
-      margin-top:12px; padding:0; border:0; background:transparent; color:#9b8272; font-size:12px; font-weight:800;
+    .book-actions { display:flex; gap:14px; margin-top:12px; }
+    .edit-btn,.delete-btn {
+      padding:0; border:0; background:transparent; font-size:12px; font-weight:850;
     }
+    .edit-btn { color:var(--leaf); }
+    .delete-btn { color:#9b8272; }
     .empty {
       grid-column:1/-1; padding:34px 20px; border:1px dashed #d7c8b8; border-radius:20px;
       text-align:center; color:var(--muted); background:rgba(255,253,248,.6);
     }
     .hidden { display:none !important; }
+    body.force-mobile { background:#e9e5df; }
+    body.force-mobile .shell { width:390px; max-width:calc(100vw - 12px); background:var(--paper); padding:8px 8px 56px; box-shadow:0 0 0 1px rgba(0,0,0,.05),0 16px 60px rgba(0,0,0,.16); }
+    body.force-mobile .hero { grid-template-columns:1fr; padding:20px; border-radius:20px; }
+    body.force-mobile .hero-mark { display:none; }
+    body.force-mobile .form-card { grid-template-columns:1fr; padding:14px; }
+    body.force-mobile .cover-picker, body.force-mobile .cover-label { min-height:260px; }
+    body.force-mobile .cover-preview { height:300px; }
+    body.force-mobile .two { grid-template-columns:1fr; }
+    body.force-mobile .records { grid-template-columns:1fr; }
+    body.force-mobile .section-title { align-items:start; flex-direction:column; }
+    body.force-mobile .toolbar { width:100%; }
+    body.force-mobile .stats { grid-template-columns:repeat(3,1fr); }
+    body.force-mobile .stat { padding:11px 9px; }
+    body.force-mobile .stat b { font-size:21px; }
     @media (max-width:780px) {
       .hero { grid-template-columns:1fr; padding:20px; }
       .hero-mark { display:none; }
@@ -179,7 +203,10 @@
   <main class="shell">
     <div class="topbar">
       <a class="back" href="/portal">← EDUNI 포털</a>
-      <button id="scrollToForm" class="new-btn" type="button">＋ 새 독서기록</button>
+      <div class="top-actions">
+        <button id="mobileViewToggle" class="view-btn" type="button" aria-pressed="false">📱 모바일 보기</button>
+        <button id="scrollToForm" class="new-btn" type="button">＋ 새 독서기록</button>
+      </div>
     </div>
 
     <section class="hero">
@@ -199,7 +226,7 @@
 
     <div class="section-title" id="writeSection">
       <div>
-        <h2>오늘 읽은 책</h2>
+        <h2 id="writeTitle">오늘 읽은 책</h2>
         <p>사진을 찍고 짧게만 남겨도 충분해요.</p>
       </div>
     </div>
@@ -213,6 +240,9 @@
           <strong id="coverLabelText">책 사진 찍기 / 고르기</strong>
           <small>표지나 책을 읽는 모습을 찍어도 좋아요. 저장 전에 자동으로 크기를 줄입니다.</small>
         </label>
+        <div class="photo-tools">
+          <button id="removePhotoButton" class="photo-remove-btn hidden" type="button">사진 제거</button>
+        </div>
       </div>
 
       <div class="form-fields">
@@ -267,6 +297,7 @@
 
         <div class="form-actions">
           <span id="saveStatus" class="save-status" role="status" aria-live="polite"></span>
+          <button id="cancelEditButton" class="secondary-btn hidden" type="button">수정 취소</button>
           <button id="saveButton" class="primary-btn" type="submit">기록 저장</button>
         </div>
       </div>
@@ -299,8 +330,14 @@
       const recordsEl = document.getElementById('records');
       const searchInput = document.getElementById('searchInput');
       const readDate = document.getElementById('readDate');
+      const writeTitle = document.getElementById('writeTitle');
+      const cancelEditButton = document.getElementById('cancelEditButton');
+      const removePhotoButton = document.getElementById('removePhotoButton');
+      const mobileViewToggle = document.getElementById('mobileViewToggle');
 
       let coverDataUrl = null;
+      let coverAction = 'keep';
+      let editingId = null;
       let readingMode = 'together';
       let rating = 5;
       let records = [];
@@ -311,6 +348,12 @@
       }
 
       readDate.value = localDateString();
+
+      mobileViewToggle.addEventListener('click', () => {
+        const active = document.body.classList.toggle('force-mobile');
+        mobileViewToggle.setAttribute('aria-pressed', active ? 'true' : 'false');
+        mobileViewToggle.textContent = active ? '↔ 자동 보기' : '📱 모바일 보기';
+      });
 
       function setChoice(containerId, button, attr, setter) {
         document.querySelectorAll('#' + containerId + ' .chip').forEach((node) => node.classList.remove('active'));
@@ -377,9 +420,11 @@
         try {
           setStatus('사진 준비 중…');
           coverDataUrl = await imageToDataUrl(file);
+          if (editingId !== null) coverAction = 'replace';
           coverPreview.src = coverDataUrl;
           coverPicker.classList.add('has-image');
           coverLabelText.textContent = '사진 바꾸기';
+          removePhotoButton.classList.remove('hidden');
           setStatus('');
         } catch (error) {
           coverInput.value = '';
@@ -450,11 +495,90 @@
                 '<span class="mini-pill">' + escapeHtml(moodLabel(record.rating)) + '</span>' +
               '</div>' +
               child + memory + note +
-              '<button class="delete-btn" type="button" data-delete="' + record.id + '">기록 삭제</button>' +
+              '<div class="book-actions">' +
+                '<button class="edit-btn" type="button" data-edit="' + record.id + '">수정</button>' +
+                '<button class="delete-btn" type="button" data-delete="' + record.id + '">삭제</button>' +
+              '</div>' +
             '</div>' +
           '</article>';
         }).join('');
       }
+
+      function applyChoices() {
+        document.querySelectorAll('#readingModes .chip').forEach((el) => {
+          el.classList.toggle('active', el.dataset.value === readingMode);
+        });
+        document.querySelectorAll('#moods .chip').forEach((el) => {
+          el.classList.toggle('active', Number(el.dataset.rating) === rating);
+        });
+      }
+
+      function resetFormState() {
+        form.reset();
+        editingId = null;
+        coverDataUrl = null;
+        coverAction = 'keep';
+        coverPreview.removeAttribute('src');
+        coverPicker.classList.remove('has-image');
+        coverLabelText.textContent = '책 사진 찍기 / 고르기';
+        removePhotoButton.classList.add('hidden');
+        readingMode = 'together';
+        rating = 5;
+        applyChoices();
+        readDate.value = localDateString();
+        writeTitle.textContent = '오늘 읽은 책';
+        saveButton.textContent = '기록 저장';
+        cancelEditButton.classList.add('hidden');
+      }
+
+      function startEdit(record) {
+        editingId = record.id;
+        coverDataUrl = null;
+        coverAction = 'keep';
+        document.getElementById('title').value = record.title || '';
+        document.getElementById('author').value = record.author || '';
+        readDate.value = record.read_date || localDateString();
+        readingMode = record.reading_mode || 'together';
+        rating = Number(record.rating || 4);
+        document.getElementById('childComment').value = record.child_comment || '';
+        document.getElementById('favoritePart').value = record.favorite_part || '';
+        document.getElementById('parentNote').value = record.parent_note || '';
+        applyChoices();
+
+        if (record.cover_url) {
+          coverPreview.src = record.cover_url;
+          coverPicker.classList.add('has-image');
+          coverLabelText.textContent = '사진 바꾸기';
+          removePhotoButton.classList.remove('hidden');
+        } else {
+          coverPreview.removeAttribute('src');
+          coverPicker.classList.remove('has-image');
+          coverLabelText.textContent = '책 사진 찍기 / 고르기';
+          removePhotoButton.classList.add('hidden');
+        }
+
+        writeTitle.textContent = '독서기록 수정';
+        saveButton.textContent = '수정 저장';
+        cancelEditButton.classList.remove('hidden');
+        setStatus('');
+        document.getElementById('writeSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setTimeout(() => document.getElementById('title').focus(), 350);
+      }
+
+      removePhotoButton.addEventListener('click', () => {
+        coverDataUrl = null;
+        coverInput.value = '';
+        coverPreview.removeAttribute('src');
+        coverPicker.classList.remove('has-image');
+        coverLabelText.textContent = '책 사진 찍기 / 고르기';
+        removePhotoButton.classList.add('hidden');
+        if (editingId !== null) coverAction = 'remove';
+      });
+
+      cancelEditButton.addEventListener('click', () => {
+        resetFormState();
+        setStatus('수정을 취소했어요.');
+      });
 
       async function loadRecords() {
         try {
@@ -472,19 +596,28 @@
       searchInput.addEventListener('input', renderRecords);
 
       recordsEl.addEventListener('click', async (event) => {
-        const button = event.target.closest('[data-delete]');
-        if (!button) return;
-        const id = Number(button.getAttribute('data-delete'));
+        const editButton = event.target.closest('[data-edit]');
+        if (editButton) {
+          const id = Number(editButton.getAttribute('data-edit'));
+          const record = records.find((item) => item.id === id);
+          if (record) startEdit(record);
+          return;
+        }
+
+        const deleteButton = event.target.closest('[data-delete]');
+        if (!deleteButton) return;
+        const id = Number(deleteButton.getAttribute('data-delete'));
         if (!window.confirm('이 독서기록을 삭제할까요?')) return;
-        button.disabled = true;
+        deleteButton.disabled = true;
         try {
           const response = await fetch('/reading/api/records/' + id, { method: 'DELETE' });
           if (!response.ok) throw new Error();
           records = records.filter((record) => record.id !== id);
+          if (editingId === id) resetFormState();
           renderStats();
           renderRecords();
         } catch (_) {
-          button.disabled = false;
+          deleteButton.disabled = false;
           window.alert('삭제하지 못했어요. 다시 시도해주세요.');
         }
       });
@@ -507,36 +640,39 @@
           child_comment: document.getElementById('childComment').value.trim(),
           favorite_part: document.getElementById('favoritePart').value.trim(),
           parent_note: document.getElementById('parentNote').value.trim(),
-          cover_data_url: coverDataUrl,
         };
+        if (editingId === null && coverDataUrl) payload.cover_data_url = coverDataUrl;
+        if (editingId !== null) {
+          payload.cover_action = coverAction;
+          if (coverAction === 'replace') payload.cover_data_url = coverDataUrl;
+        }
 
         saveButton.disabled = true;
-        setStatus('저장 중…');
+        setStatus(editingId === null ? '저장 중…' : '수정 저장 중…');
         try {
-          const response = await fetch('/reading/api/records', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
+          const editTarget = editingId;
+          const response = await fetch(
+            editTarget === null ? '/reading/api/records' : '/reading/api/records/' + editTarget,
+            {
+              method: editTarget === null ? 'POST' : 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            }
+          );
           const data = await response.json().catch(() => ({}));
           if (!response.ok || !data.ok) throw new Error(data.error || '저장하지 못했어요.');
 
-          records.unshift(data.record);
+          if (editTarget === null) {
+            records.unshift(data.record);
+          } else {
+            records = records.map((record) => record.id === editTarget ? data.record : record);
+          }
           records.sort((a, b) => b.read_date.localeCompare(a.read_date) || b.id - a.id);
           renderStats();
           renderRecords();
 
-          form.reset();
-          coverDataUrl = null;
-          coverPreview.removeAttribute('src');
-          coverPicker.classList.remove('has-image');
-          coverLabelText.textContent = '책 사진 찍기 / 고르기';
-          readingMode = 'together';
-          rating = 5;
-          document.querySelectorAll('#readingModes .chip').forEach((el) => el.classList.toggle('active', el.dataset.value === 'together'));
-          document.querySelectorAll('#moods .chip').forEach((el) => el.classList.toggle('active', el.dataset.rating === '5'));
-          readDate.value = localDateString();
-          setStatus('독서기록을 저장했어요 ✓', 'success');
+          resetFormState();
+          setStatus(editTarget === null ? '독서기록을 저장했어요 ✓' : '수정 내용을 저장했어요 ✓', 'success');
           setTimeout(() => setStatus(''), 2600);
         } catch (error) {
           setStatus(error.message || '저장하지 못했어요.', 'error');

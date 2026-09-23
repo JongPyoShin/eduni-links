@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f7f1e7">
+  <title>EDUNI 독서기록</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper:#fbf7ef;
+      --paper-2:#f5eddf;
+      --card:#fffdf8;
+      --ink:#2f2a26;
+      --muted:#776f68;
+      --line:#e9dfd1;
+      --accent:#cf6b4f;
+      --accent-dark:#a94c35;
+      --leaf:#5f826d;
+      --leaf-soft:#e7f0e9;
+      --yellow:#f0c96b;
+      --shadow:0 12px 34px rgba(90,69,50,.10);
+    }
+    * { box-sizing:border-box; }
+    html, body { margin:0; min-height:100%; }
+    body {
+      background:
+        radial-gradient(circle at 10% 0%, rgba(240,201,107,.17), transparent 24rem),
+        radial-gradient(circle at 92% 9%, rgba(95,130,109,.13), transparent 22rem),
+        var(--paper);
+      color:var(--ink);
+      font-family:"Pretendard","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;
+    }
+    button,input,textarea,select { font:inherit; }
+    button { cursor:pointer; }
+    .shell { width:min(1050px,calc(100vw - 24px)); margin:0 auto; padding:18px 0 56px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .back {
+      color:var(--muted); text-decoration:none; font-size:14px; font-weight:800;
+      min-height:42px; display:inline-flex; align-items:center;
+    }
+    .new-btn,.primary-btn {
+      border:0; border-radius:14px; background:var(--accent); color:white;
+      min-height:46px; padding:0 18px; font-weight:900; box-shadow:0 8px 20px rgba(207,107,79,.20);
+    }
+    .hero {
+      display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:end; gap:18px;
+      padding:26px; border:1px solid var(--line); border-radius:24px;
+      background:rgba(255,253,248,.90); box-shadow:var(--shadow);
+    }
+    .eyebrow { margin:0 0 7px; color:var(--leaf); font-size:13px; font-weight:950; letter-spacing:.08em; }
+    h1 { margin:0; font-size:clamp(31px,6vw,54px); line-height:1.06; letter-spacing:-.035em; }
+    .hero-copy { margin:12px 0 0; max-width:650px; color:var(--muted); font-size:16px; font-weight:700; line-height:1.55; }
+    .hero-mark {
+      width:104px; height:104px; display:grid; place-items:center; border-radius:28px;
+      background:linear-gradient(145deg,#fbe6d7,#eef4e7); font-size:52px; transform:rotate(2deg);
+    }
+    .stats {
+      display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:12px;
+    }
+    .stat {
+      padding:14px 16px; border:1px solid var(--line); border-radius:18px; background:rgba(255,253,248,.82);
+    }
+    .stat b { display:block; font-size:24px; }
+    .stat span { color:var(--muted); font-size:12px; font-weight:800; }
+    .section-title {
+      display:flex; align-items:end; justify-content:space-between; gap:12px; margin:28px 2px 12px;
+    }
+    .section-title h2 { margin:0; font-size:24px; }
+    .section-title p { margin:0; color:var(--muted); font-size:13px; font-weight:700; }
+    .form-card {
+      display:grid; grid-template-columns:270px minmax(0,1fr); gap:24px;
+      padding:22px; border:1px solid var(--line); border-radius:24px; background:var(--card); box-shadow:var(--shadow);
+    }
+    .cover-picker {
+      position:relative; min-height:350px; border:2px dashed #d7c8b8; border-radius:20px;
+      overflow:hidden; background:linear-gradient(145deg,#f7efe4,#edf3e9);
+    }
+    .cover-picker input { position:absolute; opacity:0; pointer-events:none; }
+    .cover-label {
+      width:100%; min-height:350px; padding:22px; display:grid; place-items:center; align-content:center;
+      gap:10px; color:#6d6258; text-align:center; cursor:pointer;
+    }
+    .cover-label strong { font-size:17px; }
+    .cover-label small { max-width:190px; line-height:1.45; }
+    .camera-icon { font-size:44px; }
+    .cover-preview {
+      display:none; width:100%; height:350px; object-fit:cover; background:#eee;
+    }
+    .cover-picker.has-image .cover-preview { display:block; }
+    .cover-picker.has-image .cover-label { position:absolute; inset:auto 10px 10px 10px; min-height:48px; width:auto; z-index:2; padding:8px 12px; border-radius:12px; background:rgba(47,42,38,.82); color:white; }
+    .cover-picker.has-image .cover-label .camera-icon,
+    .cover-picker.has-image .cover-label small { display:none; }
+    .form-fields { display:grid; gap:15px; align-content:start; }
+    .field { display:grid; gap:7px; }
+    .field label,.field legend { color:#534b45; font-size:13px; font-weight:900; }
+    .field input,.field textarea {
+      width:100%; border:1px solid #dcd1c5; border-radius:13px; background:#fff;
+      color:var(--ink); padding:12px 13px; outline:none;
+    }
+    .field input:focus,.field textarea:focus { border-color:var(--leaf); box-shadow:0 0 0 3px rgba(95,130,109,.12); }
+    .field textarea { min-height:88px; resize:vertical; line-height:1.55; }
+    .two { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    fieldset { margin:0; padding:0; border:0; }
+    .chips { display:flex; flex-wrap:wrap; gap:8px; }
+    .chip {
+      min-height:42px; padding:0 13px; border:1px solid #ddcfbf; border-radius:999px;
+      background:#fff; color:#5f554d; font-weight:850;
+    }
+    .chip.active { border-color:var(--leaf); background:var(--leaf-soft); color:#365342; box-shadow:inset 0 0 0 1px var(--leaf); }
+    .mood-chip.active { border-color:#d49c31; background:#fff4d7; color:#7f5814; box-shadow:inset 0 0 0 1px #d49c31; }
+    .form-actions { display:flex; justify-content:flex-end; align-items:center; gap:10px; padding-top:3px; }
+    .save-status { color:var(--muted); font-size:13px; font-weight:800; min-height:20px; }
+    .save-status.error { color:#b42318; }
+    .save-status.success { color:#3d6d4d; }
+    .toolbar { display:flex; gap:10px; align-items:center; }
+    .search {
+      flex:1; min-height:44px; border:1px solid var(--line); border-radius:14px;
+      background:var(--card); padding:0 14px; outline:none;
+    }
+    .records {
+      display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px;
+    }
+    .book-card {
+      min-width:0; overflow:hidden; border:1px solid var(--line); border-radius:20px;
+      background:var(--card); box-shadow:0 8px 22px rgba(80,60,44,.07);
+    }
+    .book-cover {
+      width:100%; aspect-ratio:4/3; object-fit:cover; display:block; background:linear-gradient(145deg,#f0e3d3,#e4eee7);
+    }
+    .book-cover-placeholder {
+      width:100%; aspect-ratio:4/3; display:grid; place-items:center; background:linear-gradient(145deg,#f3e7d7,#e6efe8);
+      font-size:42px;
+    }
+    .book-body { padding:15px; }
+    .book-date { color:var(--leaf); font-size:12px; font-weight:900; }
+    .book-title { margin:4px 0 2px; font-size:19px; line-height:1.32; word-break:keep-all; }
+    .book-author { color:var(--muted); font-size:13px; min-height:19px; }
+    .book-meta { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; }
+    .mini-pill { padding:5px 8px; border-radius:999px; background:#f4eee6; color:#695f57; font-size:11px; font-weight:850; }
+    .quote,.memory,.parent-note {
+      margin:9px 0 0; padding:10px 11px; border-radius:12px; color:#514a44; font-size:13px; line-height:1.5;
+      background:#faf6f0;
+    }
+    .quote { background:#edf4ee; color:#3c5845; }
+    .quote:before { content:"“"; font-size:20px; margin-right:2px; }
+    .delete-btn {
+      margin-top:12px; padding:0; border:0; background:transparent; color:#9b8272; font-size:12px; font-weight:800;
+    }
+    .empty {
+      grid-column:1/-1; padding:34px 20px; border:1px dashed #d7c8b8; border-radius:20px;
+      text-align:center; color:var(--muted); background:rgba(255,253,248,.6);
+    }
+    .hidden { display:none !important; }
+    @media (max-width:780px) {
+      .hero { grid-template-columns:1fr; padding:20px; }
+      .hero-mark { display:none; }
+      .form-card { grid-template-columns:1fr; padding:14px; }
+      .cover-picker,.cover-label { min-height:260px; }
+      .cover-preview { height:300px; }
+      .records { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media (max-width:520px) {
+      .shell { width:min(100vw - 16px,1050px); padding-top:8px; }
+      .topbar { margin-bottom:10px; }
+      .hero { border-radius:20px; }
+      .stats { grid-template-columns:repeat(3,1fr); }
+      .stat { padding:11px 9px; }
+      .stat b { font-size:21px; }
+      .two { grid-template-columns:1fr; }
+      .records { grid-template-columns:1fr; }
+      .section-title { align-items:start; flex-direction:column; }
+      .toolbar { width:100%; }
+      .new-btn { padding:0 13px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="topbar">
+      <a class="back" href="/portal">← EDUNI 포털</a>
+      <button id="scrollToForm" class="new-btn" type="button">＋ 새 독서기록</button>
+    </div>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow">READING MEMORIES</p>
+        <h1>우리 아이 독서기록</h1>
+        <p class="hero-copy">책 한 권과 그날의 한마디를 함께 남겨요. 많이 읽었는지보다 무엇을 느꼈는지를 오래 보관하는 독서 앨범입니다.</p>
+      </div>
+      <div class="hero-mark" aria-hidden="true">📚</div>
+    </section>
+
+    <section class="stats" aria-label="독서기록 요약">
+      <div class="stat"><b id="totalCount">0</b><span>전체 기록</span></div>
+      <div class="stat"><b id="monthCount">0</b><span>이번 달</span></div>
+      <div class="stat"><b id="favoriteCount">0</b><span>또 읽고 싶은 책</span></div>
+    </section>
+
+    <div class="section-title" id="writeSection">
+      <div>
+        <h2>오늘 읽은 책</h2>
+        <p>사진을 찍고 짧게만 남겨도 충분해요.</p>
+      </div>
+    </div>
+
+    <form id="recordForm" class="form-card">
+      <div id="coverPicker" class="cover-picker">
+        <input id="coverInput" type="file" accept="image/jpeg,image/png,image/webp" capture="environment">
+        <img id="coverPreview" class="cover-preview" alt="선택한 책 사진 미리보기">
+        <label class="cover-label" for="coverInput">
+          <span class="camera-icon">📷</span>
+          <strong id="coverLabelText">책 사진 찍기 / 고르기</strong>
+          <small>표지나 책을 읽는 모습을 찍어도 좋아요. 저장 전에 자동으로 크기를 줄입니다.</small>
+        </label>
+      </div>
+
+      <div class="form-fields">
+        <div class="two">
+          <div class="field">
+            <label for="title">책 제목 *</label>
+            <input id="title" maxlength="160" placeholder="예: 용기를 내, 비닐장갑!" required>
+          </div>
+          <div class="field">
+            <label for="author">글쓴이 / 출판사</label>
+            <input id="author" maxlength="120" placeholder="몰라도 괜찮아요">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="readDate">읽은 날짜</label>
+          <input id="readDate" type="date">
+        </div>
+
+        <fieldset class="field">
+          <legend>어떻게 읽었나요?</legend>
+          <div id="readingModes" class="chips">
+            <button class="chip" type="button" data-value="alone">📖 혼자 읽기</button>
+            <button class="chip active" type="button" data-value="together">👨‍👩‍👦 같이 읽기</button>
+            <button class="chip" type="button" data-value="read_aloud">🗣️ 읽어주기</button>
+          </div>
+        </fieldset>
+
+        <fieldset class="field">
+          <legend>이 책 어땠어?</legend>
+          <div id="moods" class="chips">
+            <button class="chip mood-chip active" type="button" data-rating="5">😍 또 읽고 싶어</button>
+            <button class="chip mood-chip" type="button" data-rating="4">😊 재미있었어</button>
+            <button class="chip mood-chip" type="button" data-rating="3">🙂 괜찮았어</button>
+          </div>
+        </fieldset>
+
+        <div class="field">
+          <label for="childComment">아이가 한 말</label>
+          <textarea id="childComment" maxlength="1500" placeholder="아이의 말을 가능한 그대로 적어주세요. 예: ‘나도 비닐장갑처럼 용기 내볼래.’"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="favoritePart">가장 기억에 남는 장면 / 이야기</label>
+          <textarea id="favoritePart" maxlength="1500" placeholder="좋아했던 장면, 질문했던 내용, 독후활동 아이디어 등을 남겨요."></textarea>
+        </div>
+
+        <div class="field">
+          <label for="parentNote">부모 메모</label>
+          <textarea id="parentNote" maxlength="2500" placeholder="읽는 모습, 반응, 다음에 함께 이야기하고 싶은 점"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <span id="saveStatus" class="save-status" role="status" aria-live="polite"></span>
+          <button id="saveButton" class="primary-btn" type="submit">기록 저장</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="section-title">
+      <div>
+        <h2>우리 책장</h2>
+        <p>최근 기록부터 차곡차곡 보여요.</p>
+      </div>
+      <div class="toolbar">
+        <input id="searchInput" class="search" type="search" placeholder="책 제목·글쓴이 찾기" aria-label="독서기록 검색">
+      </div>
+    </div>
+
+    <section id="records" class="records" aria-live="polite">
+      <div class="empty">독서기록을 불러오는 중이에요…</div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const form = document.getElementById('recordForm');
+      const coverInput = document.getElementById('coverInput');
+      const coverPicker = document.getElementById('coverPicker');
+      const coverPreview = document.getElementById('coverPreview');
+      const coverLabelText = document.getElementById('coverLabelText');
+      const saveButton = document.getElementById('saveButton');
+      const saveStatus = document.getElementById('saveStatus');
+      const recordsEl = document.getElementById('records');
+      const searchInput = document.getElementById('searchInput');
+      const readDate = document.getElementById('readDate');
+
+      let coverDataUrl = null;
+      let readingMode = 'together';
+      let rating = 5;
+      let records = [];
+
+      function localDateString(d = new Date()) {
+        const offset = d.getTimezoneOffset();
+        return new Date(d.getTime() - offset * 60000).toISOString().slice(0, 10);
+      }
+
+      readDate.value = localDateString();
+
+      function setChoice(containerId, button, attr, setter) {
+        document.querySelectorAll('#' + containerId + ' .chip').forEach((node) => node.classList.remove('active'));
+        button.classList.add('active');
+        setter(button.getAttribute(attr));
+      }
+
+      document.getElementById('readingModes').addEventListener('click', (event) => {
+        const button = event.target.closest('[data-value]');
+        if (!button) return;
+        setChoice('readingModes', button, 'data-value', (value) => { readingMode = value; });
+      });
+
+      document.getElementById('moods').addEventListener('click', (event) => {
+        const button = event.target.closest('[data-rating]');
+        if (!button) return;
+        setChoice('moods', button, 'data-rating', (value) => { rating = Number(value); });
+      });
+
+      document.getElementById('scrollToForm').addEventListener('click', () => {
+        document.getElementById('writeSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setTimeout(() => document.getElementById('title').focus(), 350);
+      });
+
+      function setStatus(message, kind = '') {
+        saveStatus.textContent = message;
+        saveStatus.className = 'save-status' + (kind ? ' ' + kind : '');
+      }
+
+      async function imageToDataUrl(file) {
+        if (!file) return null;
+        if (!/^image\/(jpeg|png|webp)$/.test(file.type)) throw new Error('JPG, PNG, WEBP 사진만 사용할 수 있어요.');
+        if (file.size > 15 * 1024 * 1024) throw new Error('사진이 너무 커요. 15MB 이하 사진을 골라주세요.');
+
+        const image = new Image();
+        const objectUrl = URL.createObjectURL(file);
+        try {
+          await new Promise((resolve, reject) => {
+            image.onload = resolve;
+            image.onerror = () => reject(new Error('사진을 읽을 수 없어요.'));
+            image.src = objectUrl;
+          });
+
+          const maxSide = 1600;
+          const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+          const width = Math.max(1, Math.round(image.naturalWidth * scale));
+          const height = Math.max(1, Math.round(image.naturalHeight * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d', { alpha: false });
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(image, 0, 0, width, height);
+          return canvas.toDataURL('image/jpeg', 0.82);
+        } finally {
+          URL.revokeObjectURL(objectUrl);
+        }
+      }
+
+      coverInput.addEventListener('change', async () => {
+        const file = coverInput.files && coverInput.files[0];
+        if (!file) return;
+        try {
+          setStatus('사진 준비 중…');
+          coverDataUrl = await imageToDataUrl(file);
+          coverPreview.src = coverDataUrl;
+          coverPicker.classList.add('has-image');
+          coverLabelText.textContent = '사진 바꾸기';
+          setStatus('');
+        } catch (error) {
+          coverInput.value = '';
+          coverDataUrl = null;
+          coverPicker.classList.remove('has-image');
+          setStatus(error.message || '사진을 준비하지 못했어요.', 'error');
+        }
+      });
+
+      function modeLabel(mode) {
+        return { alone: '📖 혼자 읽기', together: '👨‍👩‍👦 같이 읽기', read_aloud: '🗣️ 읽어주기' }[mode] || '독서';
+      }
+
+      function moodLabel(value) {
+        if (value >= 5) return '😍 또 읽고 싶어';
+        if (value === 4) return '😊 재미있었어';
+        return '🙂 괜찮았어';
+      }
+
+      function escapeHtml(value) {
+        return String(value || '').replace(/[&<>"']/g, (ch) => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+        }[ch]));
+      }
+
+      function renderStats() {
+        const month = localDateString().slice(0, 7);
+        document.getElementById('totalCount').textContent = records.length;
+        document.getElementById('monthCount').textContent = records.filter((r) => r.read_date.startsWith(month)).length;
+        document.getElementById('favoriteCount').textContent = records.filter((r) => r.rating >= 5).length;
+      }
+
+      function renderRecords() {
+        const query = searchInput.value.trim().toLocaleLowerCase('ko-KR');
+        const filtered = records.filter((r) => {
+          if (!query) return true;
+          return (r.title + ' ' + r.author + ' ' + r.child_comment + ' ' + r.favorite_part)
+            .toLocaleLowerCase('ko-KR').includes(query);
+        });
+
+        if (!filtered.length) {
+          recordsEl.innerHTML = '<div class="empty">' +
+            (records.length ? '찾는 책이 없어요.' : '첫 독서기록을 남겨보세요. 책 사진 한 장이면 시작할 수 있어요.') +
+            '</div>';
+          return;
+        }
+
+        recordsEl.innerHTML = filtered.map((record) => {
+          const cover = record.cover_url
+            ? '<img class="book-cover" loading="lazy" src="' + escapeHtml(record.cover_url) + '" alt="">'
+            : '<div class="book-cover-placeholder" aria-hidden="true">📖</div>';
+          const author = record.author ? escapeHtml(record.author) : '&nbsp;';
+          const child = record.child_comment
+            ? '<p class="quote">' + escapeHtml(record.child_comment) + '</p>' : '';
+          const memory = record.favorite_part
+            ? '<p class="memory"><b>기억에 남은 이야기</b><br>' + escapeHtml(record.favorite_part) + '</p>' : '';
+          const note = record.parent_note
+            ? '<p class="parent-note"><b>부모 메모</b><br>' + escapeHtml(record.parent_note) + '</p>' : '';
+
+          return '<article class="book-card" data-id="' + record.id + '">' +
+            cover +
+            '<div class="book-body">' +
+              '<div class="book-date">' + escapeHtml(record.read_date) + '</div>' +
+              '<h3 class="book-title">' + escapeHtml(record.title) + '</h3>' +
+              '<div class="book-author">' + author + '</div>' +
+              '<div class="book-meta">' +
+                '<span class="mini-pill">' + escapeHtml(modeLabel(record.reading_mode)) + '</span>' +
+                '<span class="mini-pill">' + escapeHtml(moodLabel(record.rating)) + '</span>' +
+              '</div>' +
+              child + memory + note +
+              '<button class="delete-btn" type="button" data-delete="' + record.id + '">기록 삭제</button>' +
+            '</div>' +
+          '</article>';
+        }).join('');
+      }
+
+      async function loadRecords() {
+        try {
+          const response = await fetch('/reading/api/records?limit=200', { cache: 'no-store' });
+          if (!response.ok) throw new Error('독서기록을 불러오지 못했어요.');
+          const data = await response.json();
+          records = Array.isArray(data.records) ? data.records : [];
+          renderStats();
+          renderRecords();
+        } catch (error) {
+          recordsEl.innerHTML = '<div class="empty">독서기록을 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
+        }
+      }
+
+      searchInput.addEventListener('input', renderRecords);
+
+      recordsEl.addEventListener('click', async (event) => {
+        const button = event.target.closest('[data-delete]');
+        if (!button) return;
+        const id = Number(button.getAttribute('data-delete'));
+        if (!window.confirm('이 독서기록을 삭제할까요?')) return;
+        button.disabled = true;
+        try {
+          const response = await fetch('/reading/api/records/' + id, { method: 'DELETE' });
+          if (!response.ok) throw new Error();
+          records = records.filter((record) => record.id !== id);
+          renderStats();
+          renderRecords();
+        } catch (_) {
+          button.disabled = false;
+          window.alert('삭제하지 못했어요. 다시 시도해주세요.');
+        }
+      });
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const title = document.getElementById('title').value.trim();
+        if (!title) {
+          setStatus('책 제목을 적어주세요.', 'error');
+          document.getElementById('title').focus();
+          return;
+        }
+
+        const payload = {
+          title,
+          author: document.getElementById('author').value.trim(),
+          read_date: readDate.value || localDateString(),
+          reading_mode: readingMode,
+          rating,
+          child_comment: document.getElementById('childComment').value.trim(),
+          favorite_part: document.getElementById('favoritePart').value.trim(),
+          parent_note: document.getElementById('parentNote').value.trim(),
+          cover_data_url: coverDataUrl,
+        };
+
+        saveButton.disabled = true;
+        setStatus('저장 중…');
+        try {
+          const response = await fetch('/reading/api/records', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || !data.ok) throw new Error(data.error || '저장하지 못했어요.');
+
+          records.unshift(data.record);
+          renderStats();
+          renderRecords();
+
+          form.reset();
+          coverDataUrl = null;
+          coverPreview.removeAttribute('src');
+          coverPicker.classList.remove('has-image');
+          coverLabelText.textContent = '책 사진 찍기 / 고르기';
+          readingMode = 'together';
+          rating = 5;
+          document.querySelectorAll('#readingModes .chip').forEach((el) => el.classList.toggle('active', el.dataset.value === 'together'));
+          document.querySelectorAll('#moods .chip').forEach((el) => el.classList.toggle('active', el.dataset.rating === '5'));
+          readDate.value = localDateString();
+          setStatus('독서기록을 저장했어요 ✓', 'success');
+          setTimeout(() => setStatus(''), 2600);
+        } catch (error) {
+          setStatus(error.message || '저장하지 못했어요.', 'error');
+        } finally {
+          saveButton.disabled = false;
+        }
+      });
+
+      loadRecords();
+    })();
+  </script>
+</body>
+</html>

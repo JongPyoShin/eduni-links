@@ -270,6 +270,90 @@ def list_reading_records(
     return [reading_record_from_row(row) for row in rows]
 
 
+
+def update_reading_record(
+    record_id: int,
+    payload: dict[str, Any],
+    path: Path | None = None,
+    *,
+    child_profile_id: int | None = None,
+    media_dir: Path = READING_MEDIA_DIR,
+) -> dict[str, Any]:
+    ensure_reading_journal_schema(path)
+    profile_id = child_profile_id if child_profile_id is not None else default_child_profile_id(path)
+
+    title = _clean_text(payload.get("title"), "title")
+    if not title:
+        raise ValueError("title is required")
+
+    author = _clean_text(payload.get("author"), "author")
+    read_date = _validate_read_date(payload.get("read_date"))
+    reading_mode = _validate_reading_mode(payload.get("reading_mode"))
+    rating = _validate_rating(payload.get("rating", 4))
+    child_comment = _clean_text(payload.get("child_comment"), "child_comment")
+    favorite_part = _clean_text(payload.get("favorite_part"), "favorite_part")
+    parent_note = _clean_text(payload.get("parent_note"), "parent_note")
+
+    cover_action = str(payload.get("cover_action") or "keep").strip()
+    if cover_action not in {"keep", "replace", "remove"}:
+        raise ValueError("invalid cover_action")
+    if cover_action == "replace" and not payload.get("cover_data_url"):
+        raise ValueError("cover_data_url is required when replacing cover")
+
+    with database_connection(path) as conn:
+        row = conn.execute(
+            "SELECT cover_filename FROM reading_record WHERE id = ? AND child_profile_id = ?",
+            (record_id, profile_id),
+        ).fetchone()
+    if row is None:
+        raise KeyError(record_id)
+
+    old_cover = str(row[0]) if row[0] else None
+    new_cover: str | None = None
+    next_cover = old_cover
+
+    if cover_action == "replace":
+        new_cover = save_cover_data_url(payload.get("cover_data_url"), media_dir)
+        next_cover = new_cover
+    elif cover_action == "remove":
+        next_cover = None
+
+    try:
+        with database_connection(path) as conn:
+            cursor = conn.execute(
+                """
+                UPDATE reading_record
+                   SET title = ?, author = ?, read_date = ?, reading_mode = ?, rating = ?,
+                       child_comment = ?, favorite_part = ?, parent_note = ?, cover_filename = ?
+                 WHERE id = ? AND child_profile_id = ?
+                """,
+                (
+                    title,
+                    author,
+                    read_date,
+                    reading_mode,
+                    rating,
+                    child_comment,
+                    favorite_part,
+                    parent_note,
+                    next_cover,
+                    record_id,
+                    profile_id,
+                ),
+            )
+            if cursor.rowcount != 1:
+                raise KeyError(record_id)
+    except Exception:
+        if new_cover:
+            (media_dir / new_cover).unlink(missing_ok=True)
+        raise
+
+    if old_cover and old_cover != next_cover:
+        (media_dir / old_cover).unlink(missing_ok=True)
+
+    return get_reading_record(record_id, path, child_profile_id=profile_id)
+
+
 def delete_reading_record(
     record_id: int,
     path: Path | None = None,
@@ -316,6 +400,20 @@ def create_reading_record_api(payload: dict[str, Any] | None = Body(default=None
     except ValueError as exc:
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
     return JSONResponse({"ok": True, "record": record}, status_code=201)
+
+
+@app.put("/reading/api/records/{record_id}")
+def update_reading_record_api(
+    record_id: int,
+    payload: dict[str, Any] | None = Body(default=None),
+) -> JSONResponse:
+    try:
+        record = update_reading_record(record_id, payload or {})
+    except ValueError as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+    except KeyError:
+        return JSONResponse({"ok": False, "error": "record not found"}, status_code=404)
+    return JSONResponse({"ok": True, "record": record})
 
 
 @app.delete("/reading/api/records/{record_id}")

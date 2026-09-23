@@ -14,7 +14,12 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from nicegui import app
 
 from .database import DATA_DIR, default_child_profile_id, utc_now
-from .reading_storage import ensure_reading_journal_schema, reading_database_connection, reading_uses_postgres
+from .reading_storage import (
+    check_reading_storage,
+    ensure_reading_journal_schema,
+    reading_database_connection,
+    reading_uses_postgres,
+)
 
 
 READING_STATIC_DIR = Path(__file__).resolve().parent / "static_games"
@@ -367,6 +372,15 @@ def reading_journal_page() -> HTMLResponse:
     if not READING_HTML.exists():
         return HTMLResponse("<h1>독서기록 페이지를 찾을 수 없습니다.</h1>", status_code=404)
     return HTMLResponse(READING_HTML.read_text(encoding="utf-8"))
+
+
+@app.get("/reading/api/health")
+def reading_storage_health_api() -> JSONResponse:
+    try:
+        backend = check_reading_storage()
+    except Exception:
+        return JSONResponse({"ok": False, "storage": "unavailable"}, status_code=503)
+    return JSONResponse({"ok": True, "storage": backend})
 
 
 @app.get("/reading/api/records")

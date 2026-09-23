@@ -444,6 +444,13 @@ class ReadingJournalTests(unittest.TestCase):
         self.assertIn("requestGeneration !== searchRequestGeneration", html)
         self.assertIn("URLSearchParams", html)
         self.assertIn("setTimeout(() => loadRecords({ reset: true }), 250)", html)
+        self.assertIn("LOWER(parent_note)", (APP_ROOT / "portal_app" / "reading_journal.py").read_text(encoding="utf-8"))
+        self.assertIn("PAGE_SIZE = 24", html)
+        self.assertIn("totalMatches = 0", html)
+        load_start = html.index("async function loadRecords")
+        generation = html.index("const requestGeneration = ++searchRequestGeneration", load_start)
+        invalid_range = html.index("dateFromFilter.value > dateToFilter.value", load_start)
+        self.assertLess(generation, invalid_range)
 
     def test_photo_remove_control_is_outside_overflow_hidden_picker(self) -> None:
         html = HTML_PATH.read_text(encoding="utf-8")

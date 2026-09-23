@@ -375,6 +375,7 @@
       });
 
       document.getElementById('scrollToForm').addEventListener('click', () => {
+        if (editingId !== null) resetFormState();
         document.getElementById('writeSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
         setTimeout(() => document.getElementById('title').focus(), 350);
       });

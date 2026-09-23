@@ -5,6 +5,7 @@ import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from portal_app.database import connect_database, default_child_profile_id
 from portal_app.reading_journal import (
@@ -16,6 +17,7 @@ from portal_app.reading_journal import (
     save_cover_data_url,
     update_reading_record,
 )
+from portal_app.reading_storage import reading_uses_postgres
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 HTML_PATH = APP_ROOT / "portal_app" / "static_games" / "eduni_reading_journal.html"
@@ -227,6 +229,22 @@ class ReadingJournalTests(unittest.TestCase):
                     media_dir=media_dir,
                 )
 
+    def test_explicit_test_path_stays_on_sqlite_when_postgres_env_exists(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "portal.sqlite3"
+            with patch.dict(
+                "os.environ",
+                {"EDUNI_READING_DB_HOST": "postgres-host-that-must-not-be-used"},
+                clear=False,
+            ):
+                self.assertFalse(reading_uses_postgres(db_path))
+                record = create_reading_record(
+                    {"title": "SQLite 격리", "read_date": "2026-09-24", "rating": 5},
+                    db_path,
+                    media_dir=Path(tmp) / "covers",
+                )
+                self.assertEqual("SQLite 격리", record["title"])
+
     def test_validation_rejects_bad_fields(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -317,9 +335,18 @@ class ReadingJournalTests(unittest.TestCase):
 
     def test_docker_volume_persists_database_and_reading_media(self) -> None:
         compose = (APP_ROOT.parent / "docker-compose.yml").read_text(encoding="utf-8")
+        requirements = (APP_ROOT / "requirements.txt").read_text(encoding="utf-8")
         self.assertIn("EDUNI_PORTAL_DB: /data/eduni_portal.sqlite3", compose)
         self.assertIn("EDUNI_READING_DATA_DIR: /data/reading-journal", compose)
+        self.assertIn("EDUNI_READING_DB_HOST: eduni-postgres", compose)
+        self.assertIn("EDUNI_READING_DB_PASSWORD:", compose)
+        self.assertIn("eduni-postgres:", compose)
+        self.assertIn("image: postgres:16", compose)
+        self.assertIn("condition: service_healthy", compose)
+        self.assertIn("eduni_postgres_data:/var/lib/postgresql/data", compose)
         self.assertIn("eduni_data:/data", compose)
+        self.assertNotIn('"5432:5432"', compose)
+        self.assertIn("psycopg[binary]==3.3.6", requirements)
 
 
 if __name__ == "__main__":

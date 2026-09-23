@@ -121,11 +121,37 @@
     .save-status { color:var(--muted); font-size:13px; font-weight:800; min-height:20px; }
     .save-status.error { color:#b42318; }
     .save-status.success { color:#3d6d4d; }
-    .toolbar { display:flex; gap:10px; align-items:center; }
+    .toolbar { display:flex; gap:8px; align-items:center; min-width:min(100%,520px); }
     .search {
-      flex:1; min-height:44px; border:1px solid var(--line); border-radius:14px;
+      flex:1; min-width:0; min-height:44px; border:1px solid var(--line); border-radius:14px;
       background:var(--card); padding:0 14px; outline:none;
     }
+    .search:focus,.filter-select:focus,.filter-date:focus {
+      border-color:var(--leaf); box-shadow:0 0 0 3px rgba(95,130,109,.12); outline:none;
+    }
+    .filter-toggle,.clear-filter-btn,.load-more-btn {
+      border:1px solid var(--line); border-radius:13px; background:var(--card); color:var(--ink);
+      min-height:44px; padding:0 13px; font-weight:850;
+    }
+    .filter-toggle[aria-expanded="true"] { border-color:var(--leaf); background:var(--leaf-soft); color:#365342; }
+    .filter-panel {
+      margin:0 2px 14px; padding:14px; border:1px solid var(--line); border-radius:18px;
+      background:rgba(255,253,248,.9);
+    }
+    .filter-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+    .filter-field { display:grid; gap:5px; min-width:0; }
+    .filter-field label { color:#625950; font-size:12px; font-weight:850; }
+    .filter-select,.filter-date {
+      width:100%; min-height:42px; border:1px solid #dcd1c5; border-radius:12px;
+      background:white; color:var(--ink); padding:0 10px;
+    }
+    .filter-footer {
+      display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; flex-wrap:wrap;
+    }
+    .search-summary { min-height:20px; color:var(--muted); font-size:13px; font-weight:800; }
+    .load-more-wrap { display:flex; justify-content:center; margin-top:16px; }
+    .load-more-btn { min-width:150px; }
+    .load-more-btn:disabled { opacity:.6; cursor:default; }
     .records {
       display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px;
     }
@@ -173,7 +199,8 @@
     body.force-mobile .two { grid-template-columns:1fr; }
     body.force-mobile .records { grid-template-columns:1fr; }
     body.force-mobile .section-title { align-items:start; flex-direction:column; }
-    body.force-mobile .toolbar { width:100%; }
+    body.force-mobile .toolbar { width:100%; min-width:0; }
+    body.force-mobile .filter-grid { grid-template-columns:1fr; }
     body.force-mobile .stats { grid-template-columns:repeat(3,1fr); }
     body.force-mobile .stat { padding:11px 9px; }
     body.force-mobile .stat b { font-size:21px; }
@@ -195,7 +222,9 @@
       .two { grid-template-columns:1fr; }
       .records { grid-template-columns:1fr; }
       .section-title { align-items:start; flex-direction:column; }
-      .toolbar { width:100%; }
+      .toolbar { width:100%; min-width:0; }
+      .filter-grid { grid-template-columns:1fr; }
+      .filter-panel { width:100%; margin-left:0; margin-right:0; }
       .new-btn { padding:0 13px; }
       .view-btn { display:none; }
     }
@@ -310,16 +339,58 @@
     <div class="section-title">
       <div>
         <h2>우리 책장</h2>
-        <p>최근 기록부터 차곡차곡 보여요.</p>
+        <p>제목부터 아이의 한마디까지 찾아볼 수 있어요.</p>
       </div>
       <div class="toolbar">
-        <input id="searchInput" class="search" type="search" placeholder="책 제목·글쓴이 찾기" aria-label="독서기록 검색">
+        <input id="searchInput" class="search" type="search" maxlength="200"
+          placeholder="책 제목·글쓴이·아이의 말 검색" aria-label="독서기록 검색">
+        <button id="filterToggle" class="filter-toggle" type="button" aria-expanded="false"
+          aria-controls="filterPanel">필터</button>
       </div>
     </div>
+
+    <div id="filterPanel" class="filter-panel hidden">
+      <div class="filter-grid">
+        <div class="filter-field">
+          <label for="dateFromFilter">시작 날짜</label>
+          <input id="dateFromFilter" class="filter-date" type="date">
+        </div>
+        <div class="filter-field">
+          <label for="dateToFilter">끝 날짜</label>
+          <input id="dateToFilter" class="filter-date" type="date">
+        </div>
+        <div class="filter-field">
+          <label for="readingModeFilter">읽기 방식</label>
+          <select id="readingModeFilter" class="filter-select">
+            <option value="">전체</option>
+            <option value="alone">📖 혼자 읽기</option>
+            <option value="together">👨‍👩‍👦 같이 읽기</option>
+            <option value="read_aloud">🗣️ 읽어주기</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label for="ratingFilter">느낌</label>
+          <select id="ratingFilter" class="filter-select">
+            <option value="">전체</option>
+            <option value="5">😍 또 읽고 싶어</option>
+            <option value="4">😊 재미있었어</option>
+            <option value="3">🙂 괜찮았어</option>
+          </select>
+        </div>
+      </div>
+      <div class="filter-footer">
+        <span id="searchSummary" class="search-summary" aria-live="polite"></span>
+        <button id="clearFilters" class="clear-filter-btn" type="button">검색·필터 초기화</button>
+      </div>
+    </div>
+    <div id="searchSummaryCompact" class="search-summary" aria-live="polite"></div>
 
     <section id="records" class="records" aria-live="polite">
       <div class="empty">독서기록을 불러오는 중이에요…</div>
     </section>
+    <div id="loadMoreWrap" class="load-more-wrap hidden">
+      <button id="loadMoreButton" class="load-more-btn" type="button">더 보기</button>
+    </div>
   </main>
 
   <script>
@@ -333,6 +404,17 @@
       const saveStatus = document.getElementById('saveStatus');
       const recordsEl = document.getElementById('records');
       const searchInput = document.getElementById('searchInput');
+      const filterToggle = document.getElementById('filterToggle');
+      const filterPanel = document.getElementById('filterPanel');
+      const dateFromFilter = document.getElementById('dateFromFilter');
+      const dateToFilter = document.getElementById('dateToFilter');
+      const readingModeFilter = document.getElementById('readingModeFilter');
+      const ratingFilter = document.getElementById('ratingFilter');
+      const clearFilters = document.getElementById('clearFilters');
+      const searchSummary = document.getElementById('searchSummary');
+      const searchSummaryCompact = document.getElementById('searchSummaryCompact');
+      const loadMoreWrap = document.getElementById('loadMoreWrap');
+      const loadMoreButton = document.getElementById('loadMoreButton');
       const readDate = document.getElementById('readDate');
       const writeTitle = document.getElementById('writeTitle');
       const cancelEditButton = document.getElementById('cancelEditButton');
@@ -347,6 +429,11 @@
       let readingMode = 'together';
       let rating = 5;
       let records = [];
+      const PAGE_SIZE = 24;
+      let totalMatches = 0;
+      let searchRequestGeneration = 0;
+      let searchDebounceTimer = null;
+      let loadingRecords = false;
 
       function localDateString(d = new Date()) {
         const offset = d.getTimezoneOffset();
@@ -468,29 +555,43 @@
         }[ch]));
       }
 
-      function renderStats() {
-        const month = localDateString().slice(0, 7);
-        document.getElementById('totalCount').textContent = records.length;
-        document.getElementById('monthCount').textContent = records.filter((r) => r.read_date.startsWith(month)).length;
-        document.getElementById('favoriteCount').textContent = records.filter((r) => r.rating >= 5).length;
+      function renderStats(summary) {
+        const safeSummary = summary || {};
+        document.getElementById('totalCount').textContent = Number(safeSummary.total || 0);
+        document.getElementById('monthCount').textContent = Number(safeSummary.month || 0);
+        document.getElementById('favoriteCount').textContent = Number(safeSummary.favorite || 0);
+      }
+
+      function hasActiveSearch() {
+        return Boolean(
+          searchInput.value.trim() ||
+          dateFromFilter.value ||
+          dateToFilter.value ||
+          readingModeFilter.value ||
+          ratingFilter.value
+        );
+      }
+
+      function updateSearchUi() {
+        const message = hasActiveSearch()
+          ? totalMatches + '건 찾았어요'
+          : '전체 ' + totalMatches + '건';
+        searchSummary.textContent = message;
+        searchSummaryCompact.textContent = filterPanel.classList.contains('hidden') ? message : '';
+        loadMoreWrap.classList.toggle('hidden', records.length >= totalMatches || totalMatches === 0);
+        loadMoreButton.disabled = loadingRecords;
+        loadMoreButton.textContent = loadingRecords ? '불러오는 중…' : '더 보기';
       }
 
       function renderRecords() {
-        const query = searchInput.value.trim().toLocaleLowerCase('ko-KR');
-        const filtered = records.filter((r) => {
-          if (!query) return true;
-          return (r.title + ' ' + r.author + ' ' + r.child_comment + ' ' + r.favorite_part)
-            .toLocaleLowerCase('ko-KR').includes(query);
-        });
-
-        if (!filtered.length) {
+        if (!records.length) {
           recordsEl.innerHTML = '<div class="empty">' +
-            (records.length ? '찾는 책이 없어요.' : '첫 독서기록을 남겨보세요. 책 사진 한 장이면 시작할 수 있어요.') +
+            (hasActiveSearch() ? '조건에 맞는 독서기록이 없어요.' : '첫 독서기록을 남겨보세요. 책 사진 한 장이면 시작할 수 있어요.') +
             '</div>';
           return;
         }
 
-        recordsEl.innerHTML = filtered.map((record) => {
+        recordsEl.innerHTML = records.map((record) => {
           const cover = record.cover_url
             ? '<img class="book-cover" loading="lazy" src="' + escapeHtml(record.cover_url) + '" alt="">'
             : '<div class="book-cover-placeholder" aria-hidden="true">📖</div>';
@@ -607,20 +708,94 @@
         setStatus('수정을 취소했어요.');
       });
 
-      async function loadRecords() {
+      function buildSearchParams(offset) {
+        const params = new URLSearchParams({
+          limit: String(PAGE_SIZE),
+          offset: String(offset),
+          month: localDateString().slice(0, 7),
+        });
+        const query = searchInput.value.trim();
+        if (query) params.set('q', query);
+        if (dateFromFilter.value) params.set('date_from', dateFromFilter.value);
+        if (dateToFilter.value) params.set('date_to', dateToFilter.value);
+        if (readingModeFilter.value) params.set('reading_mode', readingModeFilter.value);
+        if (ratingFilter.value) params.set('rating', ratingFilter.value);
+        return params;
+      }
+
+      async function loadRecords({ reset = true } = {}) {
+        if (!reset && loadingRecords) return;
+        if (dateFromFilter.value && dateToFilter.value && dateFromFilter.value > dateToFilter.value) {
+          searchSummary.textContent = '시작 날짜는 끝 날짜보다 늦을 수 없어요.';
+          searchSummaryCompact.textContent = searchSummary.textContent;
+          return;
+        }
+
+        const requestGeneration = ++searchRequestGeneration;
+        const offset = reset ? 0 : records.length;
+        loadingRecords = true;
+        if (reset && !records.length) {
+          recordsEl.innerHTML = '<div class="empty">독서기록을 찾는 중이에요…</div>';
+        }
+        updateSearchUi();
+
         try {
-          const response = await fetch('/reading/api/records?limit=200', { cache: 'no-store' });
-          if (!response.ok) throw new Error('독서기록을 불러오지 못했어요.');
-          const data = await response.json();
-          records = Array.isArray(data.records) ? data.records : [];
-          renderStats();
+          const response = await fetch(
+            '/reading/api/records?' + buildSearchParams(offset).toString(),
+            { cache: 'no-store' }
+          );
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || '독서기록을 불러오지 못했어요.');
+          if (requestGeneration !== searchRequestGeneration) return;
+
+          const incoming = Array.isArray(data.records) ? data.records : [];
+          if (reset) {
+            records = incoming;
+          } else {
+            const seen = new Set(records.map((record) => record.id));
+            records = records.concat(incoming.filter((record) => !seen.has(record.id)));
+          }
+          totalMatches = Number(data.total || 0);
+          renderStats(data.summary);
           renderRecords();
         } catch (error) {
-          recordsEl.innerHTML = '<div class="empty">독서기록을 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
+          if (requestGeneration !== searchRequestGeneration) return;
+          if (reset) records = [];
+          recordsEl.innerHTML = '<div class="empty">' +
+            escapeHtml(error.message || '독서기록을 불러오지 못했어요. 잠시 후 다시 시도해주세요.') +
+            '</div>';
+        } finally {
+          if (requestGeneration === searchRequestGeneration) {
+            loadingRecords = false;
+            updateSearchUi();
+          }
         }
       }
 
-      searchInput.addEventListener('input', renderRecords);
+      function scheduleSearch() {
+        window.clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = window.setTimeout(() => loadRecords({ reset: true }), 250);
+      }
+
+      searchInput.addEventListener('input', scheduleSearch);
+      [dateFromFilter, dateToFilter, readingModeFilter, ratingFilter].forEach((element) => {
+        element.addEventListener('change', () => loadRecords({ reset: true }));
+      });
+      filterToggle.addEventListener('click', () => {
+        const expanded = filterToggle.getAttribute('aria-expanded') === 'true';
+        filterToggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+        filterPanel.classList.toggle('hidden', expanded);
+        updateSearchUi();
+      });
+      clearFilters.addEventListener('click', () => {
+        searchInput.value = '';
+        dateFromFilter.value = '';
+        dateToFilter.value = '';
+        readingModeFilter.value = '';
+        ratingFilter.value = '';
+        loadRecords({ reset: true });
+      });
+      loadMoreButton.addEventListener('click', () => loadRecords({ reset: false }));
 
       recordsEl.addEventListener('click', async (event) => {
         const editButton = event.target.closest('[data-edit]');
@@ -639,10 +814,8 @@
         try {
           const response = await fetch('/reading/api/records/' + id, { method: 'DELETE' });
           if (!response.ok) throw new Error();
-          records = records.filter((record) => record.id !== id);
           if (editingId === id) resetFormState();
-          renderStats();
-          renderRecords();
+          await loadRecords({ reset: true });
         } catch (_) {
           deleteButton.disabled = false;
           window.alert('삭제하지 못했어요. 다시 시도해주세요.');
@@ -693,16 +866,8 @@
           const data = await response.json().catch(() => ({}));
           if (!response.ok || !data.ok) throw new Error(data.error || '저장하지 못했어요.');
 
-          if (editTarget === null) {
-            records.unshift(data.record);
-          } else {
-            records = records.map((record) => record.id === editTarget ? data.record : record);
-          }
-          records.sort((a, b) => b.read_date.localeCompare(a.read_date) || b.id - a.id);
-          renderStats();
-          renderRecords();
-
           resetFormState();
+          await loadRecords({ reset: true });
           setStatus(editTarget === null ? '독서기록을 저장했어요 ✓' : '수정 내용을 저장했어요 ✓', 'success');
           setTimeout(() => setStatus(''), 2600);
         } catch (error) {

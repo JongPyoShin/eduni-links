@@ -1,3 +1,15 @@
+# SUPERSEDED FOR CURRENT HEAD — HISTORICAL VERIFY ONLY
+
+This report verified product/test HEAD `3a10437e220f136cd91a326510cddff2a493e6ce`.
+
+The branch later added record editing, photo keep/replace/remove, and desktop mobile-preview controls. The current merge gate is:
+
+`.agent/PROMPT_EDUNI_READING_JOURNAL_EDIT_VERIFY_42.md`
+
+Do not use Verify 41 alone as merge authorization for the newer product HEAD.
+
+---
+
 # EDUNI Reading Journal Verify Report 41
 
 ## Verdict

@@ -241,9 +241,9 @@
           <strong id="coverLabelText">책 사진 찍기 / 고르기</strong>
           <small>표지나 책을 읽는 모습을 찍어도 좋아요. 저장 전에 자동으로 크기를 줄입니다.</small>
         </label>
-        <div class="photo-tools">
-          <button id="removePhotoButton" class="photo-remove-btn hidden" type="button">사진 제거</button>
-        </div>
+      </div>
+      <div class="photo-tools">
+        <button id="removePhotoButton" class="photo-remove-btn hidden" type="button">사진 제거</button>
       </div>
 
       <div class="form-fields">
@@ -339,6 +339,8 @@
       let coverDataUrl = null;
       let coverAction = 'keep';
       let editingId = null;
+      let imageJobGeneration = 0;
+      let imageProcessing = false;
       let readingMode = 'together';
       let rating = 5;
       let records = [];
@@ -419,9 +421,14 @@
       coverInput.addEventListener('change', async () => {
         const file = coverInput.files && coverInput.files[0];
         if (!file) return;
+        const jobGeneration = ++imageJobGeneration;
+        imageProcessing = true;
+        saveButton.disabled = true;
         try {
           setStatus('사진 준비 중…');
-          coverDataUrl = await imageToDataUrl(file);
+          const preparedDataUrl = await imageToDataUrl(file);
+          if (jobGeneration !== imageJobGeneration) return;
+          coverDataUrl = preparedDataUrl;
           if (editingId !== null) coverAction = 'replace';
           coverPreview.src = coverDataUrl;
           coverPicker.classList.add('has-image');
@@ -429,10 +436,16 @@
           removePhotoButton.classList.remove('hidden');
           setStatus('');
         } catch (error) {
+          if (jobGeneration !== imageJobGeneration) return;
           coverInput.value = '';
           coverDataUrl = null;
           coverPicker.classList.remove('has-image');
           setStatus(error.message || '사진을 준비하지 못했어요.', 'error');
+        } finally {
+          if (jobGeneration === imageJobGeneration) {
+            imageProcessing = false;
+            saveButton.disabled = false;
+          }
         }
       });
 
@@ -516,6 +529,9 @@
       }
 
       function resetFormState() {
+        imageJobGeneration++;
+        imageProcessing = false;
+        saveButton.disabled = false;
         form.reset();
         editingId = null;
         coverDataUrl = null;
@@ -534,6 +550,9 @@
       }
 
       function startEdit(record) {
+        imageJobGeneration++;
+        imageProcessing = false;
+        saveButton.disabled = false;
         editingId = record.id;
         coverDataUrl = null;
         coverAction = 'keep';
@@ -568,6 +587,9 @@
       }
 
       removePhotoButton.addEventListener('click', () => {
+        imageJobGeneration++;
+        imageProcessing = false;
+        saveButton.disabled = false;
         coverDataUrl = null;
         coverInput.value = '';
         coverPreview.removeAttribute('src');
@@ -626,6 +648,10 @@
 
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
+        if (imageProcessing) {
+          setStatus('사진 준비가 끝날 때까지 잠시 기다려주세요.', 'error');
+          return;
+        }
         const title = document.getElementById('title').value.trim();
         if (!title) {
           setStatus('책 제목을 적어주세요.', 'error');

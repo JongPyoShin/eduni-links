@@ -4,6 +4,7 @@ import base64
 import binascii
 from datetime import date
 from pathlib import Path
+import os
 import re
 import uuid
 from typing import Any
@@ -17,7 +18,7 @@ from .database import DATA_DIR, database_connection, default_child_profile_id, i
 
 READING_STATIC_DIR = Path(__file__).resolve().parent / "static_games"
 READING_HTML = READING_STATIC_DIR / "eduni_reading_journal.html"
-READING_DATA_DIR = DATA_DIR / "reading_journal"
+READING_DATA_DIR = Path(os.environ.get("EDUNI_READING_DATA_DIR") or (DATA_DIR / "reading_journal"))
 READING_MEDIA_DIR = READING_DATA_DIR / "covers"
 READING_MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 

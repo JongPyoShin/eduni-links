@@ -1,3 +1,16 @@
+# SUPERSEDED FOR CURRENT HEAD — USE VERIFY 43
+
+This prompt covered the edit/mobile-preview layer before the reading journal
+metadata store moved to PostgreSQL.
+
+For the current branch, use:
+
+`.agent/PROMPT_EDUNI_READING_POSTGRES_VERIFY_43.md`
+
+Do not treat Verify 42 alone as merge authorization.
+
+---
+
 # EDUNI Child Reading Journal — Edit & Mobile Preview Verify 42
 
 ## Scope

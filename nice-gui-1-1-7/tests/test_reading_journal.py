@@ -12,6 +12,7 @@ from portal_app.reading_journal import (
     delete_reading_record,
     ensure_reading_journal_schema,
     list_reading_records,
+    reading_journal_page,
     save_cover_data_url,
 )
 
@@ -159,10 +160,24 @@ class ReadingJournalTests(unittest.TestCase):
         self.assertNotIn("streak", html.lower())
         self.assertIn("많이 읽었는지보다 무엇을 느꼈는지", html)
 
+    def test_reading_page_returns_mobile_html(self) -> None:
+        response = reading_journal_page()
+        self.assertEqual(200, response.status_code)
+        body = response.body.decode("utf-8")
+        self.assertIn("우리 아이 독서기록", body)
+        self.assertIn('capture="environment"', body)
+        self.assertIn("/reading/api/records", body)
+
     def test_portal_links_to_reading_journal(self) -> None:
         source = (APP_ROOT / "portal_app" / "routes.py").read_text(encoding="utf-8")
         self.assertIn('EDUNI_READING_URL = "/reading"', source)
         self.assertIn('"독서기록", EDUNI_READING_URL', source)
+
+    def test_docker_volume_persists_database_and_reading_media(self) -> None:
+        compose = (APP_ROOT.parent / "docker-compose.yml").read_text(encoding="utf-8")
+        self.assertIn("EDUNI_PORTAL_DB: /data/eduni_portal.sqlite3", compose)
+        self.assertIn("EDUNI_READING_DATA_DIR: /data/reading-journal", compose)
+        self.assertIn("eduni_data:/data", compose)
 
 
 if __name__ == "__main__":

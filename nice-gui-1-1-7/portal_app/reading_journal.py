@@ -13,7 +13,8 @@ from fastapi import Body, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 from nicegui import app
 
-from .database import DATA_DIR, database_connection, default_child_profile_id, initialize_database, utc_now
+from .database import DATA_DIR, default_child_profile_id, utc_now
+from .reading_storage import ensure_reading_journal_schema, reading_database_connection, reading_uses_postgres
 
 
 READING_STATIC_DIR = Path(__file__).resolve().parent / "static_games"
@@ -35,34 +36,6 @@ TEXT_LIMITS = {
     "favorite_part": 1500,
     "parent_note": 2500,
 }
-
-READING_SCHEMA_SQL = """
-CREATE TABLE IF NOT EXISTS reading_record (
-  id INTEGER PRIMARY KEY,
-  child_profile_id INTEGER NOT NULL,
-  title TEXT NOT NULL,
-  author TEXT NOT NULL DEFAULT '',
-  read_date TEXT NOT NULL,
-  reading_mode TEXT NOT NULL DEFAULT 'together',
-  rating INTEGER NOT NULL DEFAULT 4,
-  child_comment TEXT NOT NULL DEFAULT '',
-  favorite_part TEXT NOT NULL DEFAULT '',
-  parent_note TEXT NOT NULL DEFAULT '',
-  cover_filename TEXT,
-  created_at TEXT NOT NULL,
-  FOREIGN KEY(child_profile_id) REFERENCES child_profile(id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_reading_record_child_date
-ON reading_record(child_profile_id, read_date DESC, id DESC);
-"""
-
-
-def ensure_reading_journal_schema(path: Path | None = None) -> None:
-    initialize_database(path)
-    with database_connection(path) as conn:
-        conn.executescript(READING_SCHEMA_SQL)
-
 
 def _clean_text(value: object, field: str) -> str:
     text = str(value or "").strip()
@@ -172,14 +145,17 @@ def create_reading_record(
     created_at = utc_now()
 
     try:
-        with database_connection(path) as conn:
-            cursor = conn.execute(
-                """
+        with reading_database_connection(path) as conn:
+            insert_sql = """
                 INSERT INTO reading_record (
                     child_profile_id, title, author, read_date, reading_mode, rating,
                     child_comment, favorite_part, parent_note, cover_filename, created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
+            """
+            if reading_uses_postgres(path):
+                insert_sql += " RETURNING id"
+            cursor = conn.execute(
+                insert_sql,
                 (
                     profile_id,
                     title,
@@ -194,7 +170,13 @@ def create_reading_record(
                     created_at,
                 ),
             )
-            record_id = int(cursor.lastrowid)
+            if reading_uses_postgres(path):
+                row = cursor.fetchone()
+                if row is None:
+                    raise RuntimeError("PostgreSQL did not return reading_record id")
+                record_id = int(row[0])
+            else:
+                record_id = int(cursor.lastrowid)
     except Exception:
         if cover_filename:
             (media_dir / cover_filename).unlink(missing_ok=True)
@@ -230,7 +212,7 @@ def get_reading_record(
 ) -> dict[str, Any]:
     ensure_reading_journal_schema(path)
     profile_id = child_profile_id if child_profile_id is not None else default_child_profile_id(path)
-    with database_connection(path) as conn:
+    with reading_database_connection(path) as conn:
         row = conn.execute(
             """
             SELECT id, child_profile_id, title, author, read_date, reading_mode, rating,
@@ -255,7 +237,7 @@ def list_reading_records(
         raise ValueError("limit must be between 1 and 500")
     ensure_reading_journal_schema(path)
     profile_id = child_profile_id if child_profile_id is not None else default_child_profile_id(path)
-    with database_connection(path) as conn:
+    with reading_database_connection(path) as conn:
         rows = conn.execute(
             """
             SELECT id, child_profile_id, title, author, read_date, reading_mode, rating,
@@ -300,7 +282,7 @@ def update_reading_record(
     if cover_action == "replace" and not payload.get("cover_data_url"):
         raise ValueError("cover_data_url is required when replacing cover")
 
-    with database_connection(path) as conn:
+    with reading_database_connection(path) as conn:
         row = conn.execute(
             "SELECT cover_filename FROM reading_record WHERE id = ? AND child_profile_id = ?",
             (record_id, profile_id),
@@ -319,7 +301,7 @@ def update_reading_record(
         next_cover = None
 
     try:
-        with database_connection(path) as conn:
+        with reading_database_connection(path) as conn:
             cursor = conn.execute(
                 """
                 UPDATE reading_record
@@ -363,7 +345,7 @@ def delete_reading_record(
 ) -> bool:
     ensure_reading_journal_schema(path)
     profile_id = child_profile_id if child_profile_id is not None else default_child_profile_id(path)
-    with database_connection(path) as conn:
+    with reading_database_connection(path) as conn:
         row = conn.execute(
             "SELECT cover_filename FROM reading_record WHERE id = ? AND child_profile_id = ?",
             (record_id, profile_id),

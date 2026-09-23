@@ -232,29 +232,168 @@ def get_reading_record(
     return reading_record_from_row(row)
 
 
+def _validate_optional_read_date(value: object | None, field: str) -> str | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        return date.fromisoformat(text).isoformat()
+    except ValueError as exc:
+        raise ValueError(f"{field} must be YYYY-MM-DD") from exc
+
+
+def _validate_summary_month(value: object | None) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return date.today().strftime("%Y-%m")
+    if not re.fullmatch(r"\d{4}-\d{2}", text):
+        raise ValueError("month must be YYYY-MM")
+    try:
+        date.fromisoformat(text + "-01")
+    except ValueError as exc:
+        raise ValueError("month must be YYYY-MM") from exc
+    return text
+
+
+def _reading_search_where(
+    *,
+    profile_id: int,
+    query: str = "",
+    date_from: str | None = None,
+    date_to: str | None = None,
+    reading_mode: str | None = None,
+    rating: int | None = None,
+) -> tuple[str, list[Any]]:
+    clauses = ["child_profile_id = ?"]
+    parameters: list[Any] = [profile_id]
+
+    normalized_query = query.strip()
+    if normalized_query:
+        if len(normalized_query) > 200:
+            raise ValueError("q is too long")
+        like_value = f"%{normalized_query.lower()}%"
+        clauses.append(
+            """(
+                LOWER(title) LIKE ? OR
+                LOWER(author) LIKE ? OR
+                LOWER(child_comment) LIKE ? OR
+                LOWER(favorite_part) LIKE ? OR
+                LOWER(parent_note) LIKE ?
+            )"""
+        )
+        parameters.extend([like_value] * 5)
+
+    normalized_from = _validate_optional_read_date(date_from, "date_from")
+    normalized_to = _validate_optional_read_date(date_to, "date_to")
+    if normalized_from and normalized_to and normalized_from > normalized_to:
+        raise ValueError("date_from must be on or before date_to")
+    if normalized_from:
+        clauses.append("read_date >= ?")
+        parameters.append(normalized_from)
+    if normalized_to:
+        clauses.append("read_date <= ?")
+        parameters.append(normalized_to)
+
+    if reading_mode:
+        mode = _validate_reading_mode(reading_mode)
+        clauses.append("reading_mode = ?")
+        parameters.append(mode)
+
+    if rating is not None:
+        normalized_rating = _validate_rating(rating)
+        clauses.append("rating = ?")
+        parameters.append(normalized_rating)
+
+    return " AND ".join(clauses), parameters
+
+
+def search_reading_records(
+    limit: int = 24,
+    offset: int = 0,
+    path: Path | None = None,
+    *,
+    child_profile_id: int | None = None,
+    query: str = "",
+    date_from: str | None = None,
+    date_to: str | None = None,
+    reading_mode: str | None = None,
+    rating: int | None = None,
+) -> tuple[list[dict[str, Any]], int]:
+    if limit < 1 or limit > 500:
+        raise ValueError("limit must be between 1 and 500")
+    if offset < 0:
+        raise ValueError("offset must be non-negative")
+    ensure_reading_journal_schema(path)
+    profile_id = child_profile_id if child_profile_id is not None else default_child_profile_id(path)
+    where_sql, parameters = _reading_search_where(
+        profile_id=profile_id,
+        query=query,
+        date_from=date_from,
+        date_to=date_to,
+        reading_mode=reading_mode,
+        rating=rating,
+    )
+    with reading_database_connection(path) as conn:
+        total_row = conn.execute(
+            f"SELECT COUNT(*) FROM reading_record WHERE {where_sql}",
+            parameters,
+        ).fetchone()
+        rows = conn.execute(
+            f"""
+            SELECT id, child_profile_id, title, author, read_date, reading_mode, rating,
+                   child_comment, favorite_part, parent_note, cover_filename, created_at
+              FROM reading_record
+             WHERE {where_sql}
+             ORDER BY read_date DESC, id DESC
+             LIMIT ? OFFSET ?
+            """,
+            [*parameters, limit, offset],
+        ).fetchall()
+    total = int(total_row[0]) if total_row is not None else 0
+    return [reading_record_from_row(row) for row in rows], total
+
+
+def reading_record_summary(
+    path: Path | None = None,
+    *,
+    child_profile_id: int | None = None,
+    month: str | None = None,
+) -> dict[str, int]:
+    ensure_reading_journal_schema(path)
+    profile_id = child_profile_id if child_profile_id is not None else default_child_profile_id(path)
+    summary_month = _validate_summary_month(month)
+    with reading_database_connection(path) as conn:
+        row = conn.execute(
+            """
+            SELECT COUNT(*),
+                   SUM(CASE WHEN SUBSTR(read_date, 1, 7) = ? THEN 1 ELSE 0 END),
+                   SUM(CASE WHEN rating >= 5 THEN 1 ELSE 0 END)
+              FROM reading_record
+             WHERE child_profile_id = ?
+            """,
+            (summary_month, profile_id),
+        ).fetchone()
+    if row is None:
+        return {"total": 0, "month": 0, "favorite": 0}
+    return {
+        "total": int(row[0] or 0),
+        "month": int(row[1] or 0),
+        "favorite": int(row[2] or 0),
+    }
+
+
 def list_reading_records(
     limit: int = 100,
     path: Path | None = None,
     *,
     child_profile_id: int | None = None,
 ) -> list[dict[str, Any]]:
-    if limit < 1 or limit > 500:
-        raise ValueError("limit must be between 1 and 500")
-    ensure_reading_journal_schema(path)
-    profile_id = child_profile_id if child_profile_id is not None else default_child_profile_id(path)
-    with reading_database_connection(path) as conn:
-        rows = conn.execute(
-            """
-            SELECT id, child_profile_id, title, author, read_date, reading_mode, rating,
-                   child_comment, favorite_part, parent_note, cover_filename, created_at
-              FROM reading_record
-             WHERE child_profile_id = ?
-             ORDER BY read_date DESC, id DESC
-             LIMIT ?
-            """,
-            (profile_id, limit),
-        ).fetchall()
-    return [reading_record_from_row(row) for row in rows]
+    records, _ = search_reading_records(
+        limit=limit,
+        path=path,
+        child_profile_id=child_profile_id,
+    )
+    return records
 
 
 
@@ -384,9 +523,38 @@ def reading_storage_health_api() -> JSONResponse:
 
 
 @app.get("/reading/api/records")
-def reading_records_api(limit: int = Query(default=100, ge=1, le=500)) -> JSONResponse:
-    records = list_reading_records(limit)
-    return JSONResponse({"records": records})
+def reading_records_api(
+    limit: int = Query(default=24, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    q: str = Query(default="", max_length=200),
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
+    reading_mode: str | None = Query(default=None),
+    rating: int | None = Query(default=None, ge=1, le=5),
+    month: str | None = Query(default=None),
+) -> JSONResponse:
+    try:
+        records, total = search_reading_records(
+            limit=limit,
+            offset=offset,
+            query=q,
+            date_from=date_from,
+            date_to=date_to,
+            reading_mode=reading_mode,
+            rating=rating,
+        )
+        summary = reading_record_summary(month=month)
+    except ValueError as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+    return JSONResponse(
+        {
+            "records": records,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "summary": summary,
+        }
+    )
 
 
 @app.post("/reading/api/records")

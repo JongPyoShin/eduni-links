@@ -14,6 +14,7 @@ from portal_app.reading_journal import (
     list_reading_records,
     reading_journal_page,
     save_cover_data_url,
+    update_reading_record,
 )
 
 APP_ROOT = Path(__file__).resolve().parents[1]
@@ -102,6 +103,130 @@ class ReadingJournalTests(unittest.TestCase):
             self.assertEqual(["첫 번째 아이 책"], [item["title"] for item in first])
             self.assertEqual(["두 번째 아이 책"], [item["title"] for item in second])
 
+    def test_update_record_keeps_replaces_and_removes_cover_safely(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            db_path = root / "portal.sqlite3"
+            media_dir = root / "covers"
+
+            original = create_reading_record(
+                {
+                    "title": "처음 제목",
+                    "read_date": "2026-09-24",
+                    "reading_mode": "together",
+                    "rating": 5,
+                    "child_comment": "처음 한 말",
+                    "cover_data_url": PNG_DATA_URL,
+                },
+                db_path,
+                media_dir=media_dir,
+            )
+            first_cover = str(original["cover_filename"])
+            self.assertTrue((media_dir / first_cover).exists())
+
+            kept = update_reading_record(
+                original["id"],
+                {
+                    "title": "수정한 제목",
+                    "read_date": "2026-09-23",
+                    "reading_mode": "alone",
+                    "rating": 4,
+                    "child_comment": "수정한 한 말",
+                    "favorite_part": "새 장면",
+                    "parent_note": "새 메모",
+                    "cover_action": "keep",
+                },
+                db_path,
+                media_dir=media_dir,
+            )
+            self.assertEqual("수정한 제목", kept["title"])
+            self.assertEqual("alone", kept["reading_mode"])
+            self.assertEqual(first_cover, kept["cover_filename"])
+            self.assertTrue((media_dir / first_cover).exists())
+
+            replaced = update_reading_record(
+                original["id"],
+                {
+                    "title": "사진 교체",
+                    "read_date": "2026-09-22",
+                    "reading_mode": "read_aloud",
+                    "rating": 3,
+                    "cover_action": "replace",
+                    "cover_data_url": PNG_DATA_URL,
+                },
+                db_path,
+                media_dir=media_dir,
+            )
+            second_cover = str(replaced["cover_filename"])
+            self.assertNotEqual(first_cover, second_cover)
+            self.assertFalse((media_dir / first_cover).exists())
+            self.assertTrue((media_dir / second_cover).exists())
+
+            removed = update_reading_record(
+                original["id"],
+                {
+                    "title": "사진 제거",
+                    "read_date": "2026-09-21",
+                    "reading_mode": "together",
+                    "rating": 5,
+                    "cover_action": "remove",
+                },
+                db_path,
+                media_dir=media_dir,
+            )
+            self.assertIsNone(removed["cover_filename"])
+            self.assertFalse((media_dir / second_cover).exists())
+
+    def test_update_rejects_invalid_cover_action_and_missing_record(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            db_path = root / "portal.sqlite3"
+            media_dir = root / "covers"
+            record = create_reading_record(
+                {"title": "책", "read_date": "2026-09-24", "rating": 5},
+                db_path,
+                media_dir=media_dir,
+            )
+
+            with self.assertRaisesRegex(ValueError, "cover_action"):
+                update_reading_record(
+                    record["id"],
+                    {
+                        "title": "책",
+                        "read_date": "2026-09-24",
+                        "rating": 5,
+                        "cover_action": "bad",
+                    },
+                    db_path,
+                    media_dir=media_dir,
+                )
+
+            with self.assertRaisesRegex(ValueError, "cover_data_url"):
+                update_reading_record(
+                    record["id"],
+                    {
+                        "title": "책",
+                        "read_date": "2026-09-24",
+                        "rating": 5,
+                        "cover_action": "replace",
+                    },
+                    db_path,
+                    media_dir=media_dir,
+                )
+
+            with self.assertRaises(KeyError):
+                update_reading_record(
+                    999999,
+                    {
+                        "title": "없는 책",
+                        "read_date": "2026-09-24",
+                        "rating": 5,
+                        "cover_action": "keep",
+                    },
+                    db_path,
+                    media_dir=media_dir,
+                )
+
     def test_validation_rejects_bad_fields(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -153,6 +278,12 @@ class ReadingJournalTests(unittest.TestCase):
         self.assertIn("imageToDataUrl", html)
         self.assertIn("maxSide = 1600", html)
         self.assertIn("/reading/api/records", html)
+        self.assertIn('data-edit=', html)
+        self.assertIn("method: editTarget === null ? 'POST' : 'PUT'", html)
+        self.assertIn('id="cancelEditButton"', html)
+        self.assertIn('id="removePhotoButton"', html)
+        self.assertIn('id="mobileViewToggle"', html)
+        self.assertIn("force-mobile", html)
 
     def test_page_is_pressure_free_and_does_not_add_leaderboards_or_streaks(self) -> None:
         html = HTML_PATH.read_text(encoding="utf-8")

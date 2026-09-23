@@ -162,6 +162,45 @@ Verify:
 - actual-phone layout hides the desktop-only `모바일 보기` button
 - zero console/page errors
 
+## 5B. Adversarial photo-state races
+
+Explicitly exercise these races in headed browser:
+
+### Rapid replacement
+
+1. choose image A
+2. before A processing settles, choose image B
+3. ensure A cannot later overwrite B preview/data
+4. final saved image must be B only
+
+### Cancel while image is processing
+
+1. enter edit mode
+2. choose a large replacement image
+3. immediately press `수정 취소` or `＋ 새 독서기록`
+4. after old image processing completes, it must NOT repopulate the new/blank form
+5. no stale preview / coverDataUrl may survive
+
+### Submit during image processing
+
+While a selected image is still being resized:
+
+- save must be disabled or rejected
+- record must not save without the intended pending image
+- after processing finishes, save becomes available again
+
+### Remove-photo layout
+
+Verify on desktop and mobile:
+
+- `사진 제거` is outside the overflow-hidden preview box
+- it remains visible/tappable
+- the left photo area and right form remain the intended 2-column desktop layout
+- no overlap with `사진 바꾸기`
+- mobile remains one column
+
+Any stale image callback or layout break = FAIL.
+
 ## 6. Desktop mobile-preview toggle
 
 At desktop viewport:

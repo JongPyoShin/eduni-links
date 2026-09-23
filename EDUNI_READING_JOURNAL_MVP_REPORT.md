@@ -117,3 +117,32 @@ Run Prompt 41:
 `.agent/PROMPT_EDUNI_READING_JOURNAL_VERIFY_41.md`
 
 No production deployment is included in this MVP implementation PR.
+
+## PostgreSQL storage update
+
+The production reading-journal metadata store is now PostgreSQL when the
+`EDUNI_READING_DB_*` environment is configured.
+
+Storage boundary:
+
+- existing Portal child profiles / game learning history remain in
+  `/data/eduni_portal.sqlite3`
+- `reading_record` metadata is stored in the dedicated `eduni-postgres`
+  PostgreSQL service
+- cover image files remain in `/data/reading-journal/covers`
+- PostgreSQL is not published to a host port; `eduni-game` reaches it only
+  through the Compose network
+- the PostgreSQL data directory is persisted in `eduni_postgres_data`
+
+The PostgreSQL `reading_record.child_profile_id` intentionally stores the
+existing SQLite child-profile identifier without a cross-database foreign key.
+This keeps the migration bounded to the reading journal and avoids moving
+unrelated Portal/game data.
+
+The runtime exposes `/reading/api/health` so PostgreSQL availability can be
+checked independently from the main game health endpoint.
+
+No production migration/deployment is part of this branch verification. Before
+first deployment, create a local `.env` from `.env.example` and set a strong
+`EDUNI_POSTGRES_PASSWORD`.
+

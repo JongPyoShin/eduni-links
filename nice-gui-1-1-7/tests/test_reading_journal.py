@@ -175,6 +175,14 @@ class ReadingJournalTests(unittest.TestCase):
             self.assertEqual(1, total)
             self.assertEqual("용기를 내, 비닐장갑!", records[0]["title"])
 
+            child_safe_records, child_safe_total = search_reading_records(
+                path=db_path,
+                query="자전거",
+                search_parent_note=False,
+            )
+            self.assertEqual(0, child_safe_total)
+            self.assertEqual([], child_safe_records)
+
             records, total = search_reading_records(
                 path=db_path,
                 query="꽃출판사",

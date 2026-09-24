@@ -16,6 +16,10 @@ from .base import (
 )
 
 
+MAX_PROVIDER_RESPONSE_BYTES = 2_000_000
+MAX_GENERATION_TOKENS = 800
+
+
 class LocalOpenAIProvider:
     name = "local"
 
@@ -36,6 +40,7 @@ class LocalOpenAIProvider:
         payload: dict[str, Any] = {
             "model": self._config.model,
             "messages": messages,
+            "max_tokens": MAX_GENERATION_TOKENS,
         }
         if tools:
             payload["tools"] = tools
@@ -50,7 +55,9 @@ class LocalOpenAIProvider:
 
         try:
             with self._opener(request, timeout=self._config.timeout_seconds) as response:
-                raw = response.read()
+                raw = response.read(MAX_PROVIDER_RESPONSE_BYTES + 1)
+                if len(raw) > MAX_PROVIDER_RESPONSE_BYTES:
+                    raise ProviderProtocolError("AI provider response is too large")
         except (TimeoutError, socket.timeout) as exc:
             raise ProviderTimeoutError("AI provider timed out") from exc
         except HTTPError as exc:

@@ -1,1 +1,2 @@
 nicegui==3.16.0
+psycopg[binary]==3.3.6

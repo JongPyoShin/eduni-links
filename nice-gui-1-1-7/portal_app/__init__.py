@@ -20,3 +20,5 @@ install_pet_growth()
 
 # Route extensions that should be installed as part of the family-server app.
 from . import baduk as _baduk  # noqa: E402,F401
+
+from . import reading_journal as _reading_journal  # noqa: E402,F401

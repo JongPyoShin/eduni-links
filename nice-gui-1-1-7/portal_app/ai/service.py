@@ -10,7 +10,6 @@ from .providers import build_provider
 from .providers.base import (
     ChatProvider,
     ProviderError,
-    ProviderProtocolError,
     ProviderTimeoutError,
     ProviderUnavailableError,
 )
@@ -23,6 +22,7 @@ from .tools import (
 
 MAX_PROVIDER_ROUNDS = 3
 MAX_TOTAL_TOOL_CALLS = 5
+MAX_ANSWER_CHARS = 8_000
 
 
 class AIServiceError(RuntimeError):
@@ -133,6 +133,8 @@ class AIService:
             answer = (response.content or "").strip()
             if not answer:
                 raise AIProcessingError("AI provider returned an empty response")
+            if len(answer) > MAX_ANSWER_CHARS:
+                answer = answer[:MAX_ANSWER_CHARS].rstrip()
             return AIChatResult(
                 answer=answer,
                 provider=self._provider.name,

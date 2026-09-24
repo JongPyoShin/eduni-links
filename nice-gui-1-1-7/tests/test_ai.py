@@ -299,6 +299,7 @@ class LocalProviderTests(unittest.TestCase):
         )
         self.assertEqual(7, captured["timeout"])
         self.assertEqual("local-model", captured["body"]["model"])
+        self.assertEqual(800, captured["body"]["max_tokens"])
         self.assertEqual("auto", captured["body"]["tool_choice"])
 
     def test_parses_null_content_tool_call(self) -> None:
@@ -432,6 +433,16 @@ class AIServiceLoopTests(unittest.TestCase):
                 )
                 with self.assertRaises(AIProcessingError):
                     service.chat("테스트")
+
+    def test_final_answer_is_bounded(self) -> None:
+        provider = SequenceProvider([ProviderResponse(content="가" * 9000)])
+        service = AIService(
+            AIConfig("local", "http://unused/v1", "fake", 30),
+            provider=provider,
+            registry=self._registry([]),
+        )
+        result = service.chat("테스트")
+        self.assertEqual(8000, len(result.answer))
 
     def test_tool_call_bound_is_enforced(self) -> None:
         calls = tuple(

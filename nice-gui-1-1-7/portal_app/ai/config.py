@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 import ipaddress
 import os
+import re
 from urllib.parse import urlparse
 
 
@@ -28,8 +29,9 @@ def _is_local_or_private_host(hostname: str) -> bool:
     if host in {"localhost", "host.docker.internal"}:
         return True
     if "." not in host and ":" not in host:
-        # Docker/Compose service names such as "eduni-llm".
-        return True
+        # Docker/Compose service names such as "eduni-llm". Requiring an
+        # alphabetic first character also rejects integer-encoded IP hosts.
+        return bool(re.fullmatch(r"[a-z][a-z0-9-]{0,62}", host))
     if host.endswith(".local"):
         return True
     try:

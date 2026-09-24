@@ -2784,6 +2784,6 @@ register_pages()
 
 
 if __name__ in {'__main__', '__mp_main__'}:
-    port = int(os.environ.get('PORT', '8080'))
+    port = int(os.environ.get('PORT', '18081'))
     host = os.environ.get('EDUNI_HOST', '127.0.0.1')
     ui.run(title='EDUNI', host=host, port=port, reload=False)

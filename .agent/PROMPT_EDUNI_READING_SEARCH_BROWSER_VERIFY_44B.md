@@ -6,8 +6,12 @@ Supplement only the browser QA that was BLOCKED in Verify 44.
 
 Repository: JongPyoShin/eduni-links
 Branch: feature/child-reading-journal
-Expected product HEAD before this verification:
+Verified product-code baseline:
 `5ea90089bf7d17816843b72b000f4cb4478c5164`
+
+The branch may have later documentation-only commits for this supplemental
+verification prompt/report. Those are allowed only if they do not modify product
+or test code.
 
 This is NOT a product implementation run.
 
@@ -45,13 +49,16 @@ browser target.
 Confirm:
 
 - branch = feature/child-reading-journal
-- product HEAD = `5ea90089bf7d17816843b72b000f4cb4478c5164`
 - PR #69 remains Draft
-- no product commits were added after that HEAD
+- `5ea90089bf7d17816843b72b000f4cb4478c5164` is still the latest commit that
+  changes product/test code
+- commits after that baseline, if any, are documentation-only
+- no product/test files changed after that baseline
 - original Verify 44 report exists only in the prior worktree unless separately
   supplied; do not invent its contents
 
-If product HEAD differs, stop and report BLOCKED.
+If any product/test code changed after the baseline, stop and report BLOCKED.
+A later docs-only prompt/report commit is expected and is not a blocker.
 
 ## 2. Isolated application target
 

@@ -82,8 +82,10 @@ class LocalOpenAIProvider:
         if content is not None and not isinstance(content, str):
             raise ProviderProtocolError("AI provider content must be text or null")
 
-        raw_calls = message.get("tool_calls") or []
-        if not isinstance(raw_calls, list):
+        raw_calls = message.get("tool_calls")
+        if raw_calls is None:
+            raw_calls = []
+        elif not isinstance(raw_calls, list):
             raise ProviderProtocolError("AI provider tool_calls must be a list")
 
         parsed_calls: list[ProviderToolCall] = []

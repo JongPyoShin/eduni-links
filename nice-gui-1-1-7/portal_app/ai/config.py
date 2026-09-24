@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+import ipaddress
 import os
 from urllib.parse import urlparse
 
@@ -20,6 +21,22 @@ class AIConfig:
     @property
     def configured(self) -> bool:
         return self.provider == "local"
+
+
+def _is_local_or_private_host(hostname: str) -> bool:
+    host = hostname.strip().lower()
+    if host in {"localhost", "host.docker.internal"}:
+        return True
+    if "." not in host and ":" not in host:
+        # Docker/Compose service names such as "eduni-llm".
+        return True
+    if host.endswith(".local"):
+        return True
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    return bool(address.is_private or address.is_loopback or address.is_link_local)
 
 
 def load_ai_config(environ: Mapping[str, str] | None = None) -> AIConfig:
@@ -46,6 +63,10 @@ def load_ai_config(environ: Mapping[str, str] | None = None) -> AIConfig:
         parsed = urlparse(base_url)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             raise AIConfigError("EDUNI_AI_BASE_URL must be an http or https URL")
+        if parsed.username or parsed.password:
+            raise AIConfigError("EDUNI_AI_BASE_URL must not contain credentials")
+        if not parsed.hostname or not _is_local_or_private_host(parsed.hostname):
+            raise AIConfigError("EDUNI_AI_BASE_URL must target a local or private host")
         if not model:
             raise AIConfigError("EDUNI_AI_MODEL is required for local provider")
 

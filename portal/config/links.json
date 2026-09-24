@@ -1,8 +1,8 @@
 {
   "generatedAt": "static-tailscale-portal",
   "links": {
-    "db": "http://100.75.214.95:8080/",
-    "hanja": "http://100.75.214.95:8080/hanja",
+    "db": "http://100.75.214.95:18080/",
+    "hanja": "http://100.75.214.95:18080/hanja",
     "tetris": "http://100.75.214.95:8081/",
     "bubble": "http://100.75.214.95:8081/bubble",
     "bubbleShooter": "http://100.75.214.95:8081/bubble-shooter",

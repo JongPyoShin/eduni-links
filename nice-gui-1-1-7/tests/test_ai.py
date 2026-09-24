@@ -92,6 +92,20 @@ class AIConfigTests(unittest.TestCase):
                 }
             )
 
+    def test_local_provider_rejects_public_or_credentialed_endpoint(self) -> None:
+        for url in (
+            "https://api.example.com/v1",
+            "http://user:pass@eduni-llm:8080/v1",
+        ):
+            with self.subTest(url=url), self.assertRaises(AIConfigError):
+                load_ai_config(
+                    {
+                        "EDUNI_AI_PROVIDER": "local",
+                        "EDUNI_AI_BASE_URL": url,
+                        "EDUNI_AI_MODEL": "model",
+                    }
+                )
+
     def test_timeout_bounds_are_validated(self) -> None:
         for value in ("0", "121", "not-a-number"):
             with self.subTest(value=value), self.assertRaises(AIConfigError):
@@ -314,6 +328,16 @@ class LocalProviderTests(unittest.TestCase):
         result = provider.complete([], [])
         self.assertIsNone(result.content)
         self.assertEqual("reading_search", result.tool_calls[0].name)
+
+    def test_non_list_tool_calls_are_rejected(self) -> None:
+        provider = LocalOpenAIProvider(
+            self.config,
+            opener=lambda request, timeout: FakeHttpResponse(
+                {"choices": [{"message": {"content": None, "tool_calls": {}}}]}
+            ),
+        )
+        with self.assertRaises(ProviderProtocolError):
+            provider.complete([], [])
 
     def test_malformed_provider_response_is_controlled(self) -> None:
         for raw, payload in (

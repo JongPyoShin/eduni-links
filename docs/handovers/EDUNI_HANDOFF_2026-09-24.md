@@ -56,11 +56,9 @@ Reading Journal merge/product baseline:
 
 `40c3955473f7fa693c79e6a71792cd9b21df01f8`
 
-Current `feature/eduni-space-mvp` HEAD after adding this handoff document:
-
-`c3e192ad43d211780e5e9858cd6b58a8eb485477`
-
-The difference is documentation-only: this handoff file.
+The branch HEAD is newer than this baseline because this handoff document itself
+was committed afterward. Treat the merge/product baseline above as the code
+baseline and always query GitHub for the latest branch HEAD before acting.
 
 PR #69:
 
@@ -655,8 +653,8 @@ fc70a6c223869de9e6e6f5df91348acebdb2ea30
 PR #69 merge/product baseline:
 40c3955473f7fa693c79e6a71792cd9b21df01f8
 
-feature/eduni-space-mvp HEAD after handoff doc:
-c3e192ad43d211780e5e9858cd6b58a8eb485477
+feature/eduni-space-mvp HEAD:
+query GitHub first; handoff-only documentation commits follow the product baseline
 
 AI product/test verified baseline:
 1f2f05c8e8ef0ce9eafdabe52babf552cd9de3fa

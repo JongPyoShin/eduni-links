@@ -98,6 +98,7 @@ class AIConfigTests(unittest.TestCase):
         for url in (
             "https://api.example.com/v1",
             "http://user:pass@eduni-llm:8080/v1",
+            "http://134744072:8080/v1",
         ):
             with self.subTest(url=url), self.assertRaises(AIConfigError):
                 load_ai_config(

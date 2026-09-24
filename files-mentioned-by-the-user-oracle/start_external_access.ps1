@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $outputs = Join-Path $root 'outputs'
 $work = Join-Path $root 'work'
-$appUrl = 'http://127.0.0.1:8080'
+$appUrl = 'http://127.0.0.1:18080'
 $statusFile = Join-Path $outputs 'external_access.txt'
 $stdoutLog = Join-Path $work 'cloudflared_stdout.log'
 $stderrLog = Join-Path $work 'cloudflared_stderr.log'
@@ -48,7 +48,7 @@ Clear-Content -LiteralPath $stderrLog -ErrorAction SilentlyContinue
 
 Start-Process `
     -FilePath $cloudflaredPath `
-    -ArgumentList 'tunnel --url http://127.0.0.1:8080 --protocol http2' `
+    -ArgumentList 'tunnel --url http://127.0.0.1:18080 --protocol http2' `
     -WorkingDirectory $root `
     -WindowStyle Hidden `
     -RedirectStandardOutput $stdoutLog `

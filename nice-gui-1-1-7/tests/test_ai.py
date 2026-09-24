@@ -44,8 +44,10 @@ class FakeHttpResponse:
     def __exit__(self, exc_type, exc, tb) -> bool:
         return False
 
-    def read(self) -> bytes:
-        return self._raw
+    def read(self, size: int = -1) -> bytes:
+        if size is None or size < 0:
+            return self._raw
+        return self._raw[:size]
 
 
 class SequenceProvider:
@@ -329,6 +331,19 @@ class LocalProviderTests(unittest.TestCase):
         result = provider.complete([], [])
         self.assertIsNone(result.content)
         self.assertEqual("reading_search", result.tool_calls[0].name)
+
+    def test_oversized_provider_response_is_rejected(self) -> None:
+        from portal_app.ai.providers.local_openai import MAX_PROVIDER_RESPONSE_BYTES
+
+        provider = LocalOpenAIProvider(
+            self.config,
+            opener=lambda request, timeout: FakeHttpResponse(
+                {},
+                raw=b"x" * (MAX_PROVIDER_RESPONSE_BYTES + 1),
+            ),
+        )
+        with self.assertRaises(ProviderProtocolError):
+            provider.complete([], [])
 
     def test_non_list_tool_calls_are_rejected(self) -> None:
         provider = LocalOpenAIProvider(

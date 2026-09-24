@@ -9,6 +9,7 @@ from ..reading_journal import search_reading_records
 
 MAX_AI_READING_RESULTS = 10
 DEFAULT_AI_READING_RESULTS = 5
+MAX_TOOL_TEXT_CHARS = 600
 
 
 class AIToolError(ValueError):
@@ -50,6 +51,13 @@ def _optional_date(value: Any, field: str) -> str | None:
         return date.fromisoformat(value).isoformat()
     except ValueError as exc:
         raise AIToolInputError(f"{field} must be YYYY-MM-DD") from exc
+
+
+def _clip_text(value: Any, max_chars: int = MAX_TOOL_TEXT_CHARS) -> str:
+    text = str(value or "")
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars].rstrip() + "…"
 
 
 def _reading_search_handler(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -107,13 +115,13 @@ def _reading_search_handler(arguments: dict[str, Any]) -> dict[str, Any]:
     safe_records = [
         {
             "id": record["id"],
-            "title": record["title"],
-            "author": record["author"],
+            "title": _clip_text(record["title"], 300),
+            "author": _clip_text(record["author"], 300),
             "read_date": record["read_date"],
             "reading_mode": record["reading_mode"],
             "rating": record["rating"],
-            "child_comment": record["child_comment"],
-            "favorite_part": record["favorite_part"],
+            "child_comment": _clip_text(record["child_comment"]),
+            "favorite_part": _clip_text(record["favorite_part"]),
         }
         for record in records
     ]

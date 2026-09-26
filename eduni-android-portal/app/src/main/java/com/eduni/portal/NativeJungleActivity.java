@@ -43,6 +43,7 @@ public class NativeJungleActivity extends Activity {
 
     @Override protected void onResume() { super.onResume(); hideSystemUi(); game.resume(); }
     @Override protected void onPause() { game.pause(); super.onPause(); }
+    @Override protected void onDestroy() { if (game != null) game.destroy(); super.onDestroy(); }
     @Override public void onWindowFocusChanged(boolean hasFocus) { super.onWindowFocusChanged(hasFocus); if (hasFocus) hideSystemUi(); }
 
     private void hideSystemUi() {
@@ -78,6 +79,7 @@ public class NativeJungleActivity extends Activity {
 
         android.media.ToneGenerator tone; // EDUNI_NATIVE_JUNGLE_SOUND_PATCH_V5
         final Handler main = new Handler(Looper.getMainLooper());
+        final JungleQuizRequestGuard quizRequests = new JungleQuizRequestGuard();
         final ArrayList<Dot> stars = new ArrayList<>();
         final ArrayList<Bird> birds = new ArrayList<>();
         final ArrayList<Spark> sparks = new ArrayList<>(); // EDUNI_NATIVE_JUNGLE_PARTICLES_PATCH_V6
@@ -134,9 +136,21 @@ public class NativeJungleActivity extends Activity {
 
         Game(Context c) { super(c); setFocusable(true); setFocusableInTouchMode(true); reset(); }
         void resume() { running = true; requestFocus(); main.removeCallbacks(tick); main.post(tick); }
-        void pause() { running = false; main.removeCallbacks(tick); }
+        void pause() { running = false; quizRequests.invalidate(); main.removeCallbacks(tick); }
+        void destroy() {
+            running = false;
+            quizRequests.invalidate();
+            main.removeCallbacksAndMessages(null);
+            inputActions.reset();
+            locomotion.stop();
+            if (tone != null) {
+                try { tone.release(); } catch (Exception ignored) {}
+                tone = null;
+            }
+        }
 
         void reset() {
+            quizRequests.invalidate(); quiz = null;
             eduniApplyStageSpawnV26_3(); foundStars = 0; caughtBirds = 0; hearts = 3; mode = FIELD; select = 0;
             stars.clear(); birds.clear(); sparks.clear(); starClearBonus=false; birdClearBonus=false;
             campEncounter.reset(); locomotion.stop(); inputActions.reset(); campTouchStickHeld = false; eduniTouchTargetActiveV26_4 = false; lastMovementUpdateMs = 0L;
@@ -151,6 +165,7 @@ public class NativeJungleActivity extends Activity {
         }
 
         void eduniOpenWorldMapV20_10() {
+            quizRequests.invalidate(); quiz = null;
             eduniStagePlayingV20_10 = false;
             showStageSelect = true;
             mode = FIELD;
@@ -357,7 +372,7 @@ public class NativeJungleActivity extends Activity {
         }
         float axis(MotionEvent e, int... axes) { for (int a: axes) { float v = e.getAxisValue(a); if (Math.abs(v) > .18f) return v; } return 0; }
 
-        void nav(int dx, int dy) { if(showStageSelect){ eduniMoveWorldMapStageV20_8((dy != 0 ? dy : dx)); return; }  if(showStageSelect){ eduniMoveStageSelect((dy != 0 ? dy : dx)); return; }  if(showStageSelect){ stageSelect += (dy != 0 ? dy : dx); if(stageSelect < 0) stageSelect = stageNames.length-1; if(stageSelect >= stageNames.length) stageSelect = 0; invalidate(); return; }  if(stageCompleteShown && mode == FIELD) return;
+        void nav(int dx, int dy) { if(showStageSelect){ eduniMoveWorldMapStageV20_8((dy != 0 ? dy : dx)); return; } if(stageCompleteShown && mode == FIELD) return;
             if (mode == FIELD || mode == PAUSE) return;
             int n = count(); if (n == 0) return;
             int next = select + (Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : -1) : (dy > 0 ? 2 : -2));
@@ -366,48 +381,7 @@ public class NativeJungleActivity extends Activity {
         int count() { if (mode == QUIZ && quiz != null) return quiz.options.length; if (mode == MISSION) return 2; if (mode == CLOSET) return 4; return 0; }
 
 
-        // EDUNI_NATIVE_JUNGLE_WORLDMAP_INPUT_FIX_V20_1
-        boolean stageSelectMoveFromKey(int code, boolean dn) { if(eduniWorldMapConsumeKey(code, dn)) return true;  if(stageSelectMoveFromKey(code, dn)) return true;
-            if(!showStageSelect) return false;
-            if(!dn) return true;
-
-            if(code == KeyEvent.KEYCODE_DPAD_UP || code == KeyEvent.KEYCODE_DPAD_LEFT) {
-                stageSelect--;
-                if(stageSelect < 0) stageSelect = stageNames.length - 1;
-                mode = FIELD;
-                select = stageSelect;
-                invalidate();
-                return true;
-            }
-
-            if(code == KeyEvent.KEYCODE_DPAD_DOWN || code == KeyEvent.KEYCODE_DPAD_RIGHT) {
-                stageSelect++;
-                if(stageSelect >= stageNames.length) stageSelect = 0;
-                mode = FIELD;
-                select = stageSelect;
-                invalidate();
-                return true;
-            }
-
-            if(code == KeyEvent.KEYCODE_BUTTON_A || code == KeyEvent.KEYCODE_ENTER || code == KeyEvent.KEYCODE_DPAD_CENTER) {
-                eduniStartSelectedStageFromWorldMapV21_3();
-                return true;
-            }
-
-            if(code == KeyEvent.KEYCODE_BUTTON_B || code == KeyEvent.KEYCODE_BACK || code == KeyEvent.KEYCODE_ESCAPE) {
-                ((android.app.Activity)getContext()).finish();
-                return true;
-            }
-
-            if(code == KeyEvent.KEYCODE_BUTTON_X || code == KeyEvent.KEYCODE_BUTTON_Y || code == KeyEvent.KEYCODE_BUTTON_START) {
-                mode = FIELD;
-                select = stageSelect;
-                invalidate();
-                return true;
-            }
-
-            return false;
-        }
+        // World-map key routing is owned by eduniWorldMapConsumeKey/handleKey.
 
 
         // EDUNI_NATIVE_JUNGLE_WORLDMAP_WEBVIEW_HARD_FIX_V20_3
@@ -684,8 +658,24 @@ public class NativeJungleActivity extends Activity {
                 return;
             }
             if (b == null) { log = "새에게 더 가까이 가서 A!"; return; }
+            final JungleQuizRequestGuard.Token requestToken = quizRequests.tryBegin();
+            if (requestToken == null) { log = "문제 불러오는 중..."; return; }
+            final int requestStage = stageIndex;
             log = "문제 불러오는 중...";
-            new Thread(() -> { Quiz q = fetchQuiz(); if (q == null) q = localQuiz(); Quiz qq = q; main.post(() -> { quiz = qq; quiz.bird = b; select = 0; mode = QUIZ; log = "방향키로 정답 선택, A 확인"; }); }).start();
+            new Thread(() -> {
+                Quiz q = fetchQuiz();
+                if (q == null) q = localQuiz();
+                final Quiz loadedQuiz = q;
+                main.post(() -> {
+                    if (!quizRequests.completeIfCurrent(requestToken)) return;
+                    if (!running || requestStage != stageIndex || b.caught || showStageSelect || stageCompleteShown) return;
+                    quiz = loadedQuiz;
+                    quiz.bird = b;
+                    select = 0;
+                    mode = QUIZ;
+                    log = "방향키로 정답 선택, A 확인";
+                });
+            }).start();
         }
         Bird nearest() { Bird best = null; double bd = 99; for (Bird b: birds) if (!b.caught) { double d = Math.hypot(px-b.x, py-b.y); if (d < .09 && d < bd) { best = b; bd = d; } } return best; }
         Bird campBird() { return birds.isEmpty() || birds.get(0).caught ? null : (Math.hypot(px-campWorld.birdX, py-campWorld.birdY) < .095 ? birds.get(0) : null); }
@@ -717,19 +707,26 @@ public class NativeJungleActivity extends Activity {
 
 
         void postProgress(String eventType,String detail) {
+            final long clientTsSnapshot = System.currentTimeMillis();
+            final int screenSnapshot = mode;
+            final int starsSnapshot = foundStars;
+            final int birdsSnapshot = caughtBirds;
+            final int heartsSnapshot = hearts;
+            final float playerXSnapshot = px;
+            final float playerYSnapshot = py;
             new Thread(() -> {
                 java.net.HttpURLConnection conn = null;
                 try {
                     org.json.JSONObject payload = new org.json.JSONObject();
                     payload.put("event_type", eventType);
                     payload.put("detail", detail);
-                    payload.put("client_ts", System.currentTimeMillis());
-                    payload.put("screen", mode);
-                    payload.put("stars", foundStars);
-                    payload.put("birds", caughtBirds);
-                    payload.put("hearts", hearts);
-                    payload.put("player_x", px);
-                    payload.put("player_y", py);
+                    payload.put("client_ts", clientTsSnapshot);
+                    payload.put("screen", screenSnapshot);
+                    payload.put("stars", starsSnapshot);
+                    payload.put("birds", birdsSnapshot);
+                    payload.put("hearts", heartsSnapshot);
+                    payload.put("player_x", playerXSnapshot);
+                    payload.put("player_y", playerYSnapshot);
                     payload.put("app", "eduni-native-jungle");
                     payload.put("patch", "v7-progress");
 
@@ -1936,38 +1933,51 @@ public class NativeJungleActivity extends Activity {
         }
 
         String eduniSelectedOptionText() {
+            return eduniSelectedOptionText(quiz, select);
+        }
+
+        String eduniSelectedOptionText(Object qz, int selectedIndex) {
             try {
-                Object qz = quiz;
                 java.lang.reflect.Field f = qz.getClass().getDeclaredField("options");
                 f.setAccessible(true);
                 Object arr = f.get(qz);
                 int len = java.lang.reflect.Array.getLength(arr);
-                if(select >= 0 && select < len) {
-                    Object v = java.lang.reflect.Array.get(arr, select);
+                if(selectedIndex >= 0 && selectedIndex < len) {
+                    Object v = java.lang.reflect.Array.get(arr, selectedIndex);
                     return String.valueOf(v);
                 }
             } catch(Exception ignored) {}
-            return String.valueOf(select);
+            return String.valueOf(selectedIndex);
         }
 
         void postQuizAttemptDetailed(boolean correct) {
+            final Object quizSnapshot = quiz;
+            final int selectedIndexSnapshot = select;
+            final String questionSnapshot = eduniReflectString(quizSnapshot,"question","q","text","title");
+            final String answerSnapshot = eduniReflectString(quizSnapshot,"answer","correct","correctAnswer","a");
+            final String selectedSnapshot = eduniSelectedOptionText(quizSnapshot, selectedIndexSnapshot);
+            final int stageSnapshot = stageIndex + 1;
+            final String stageNameSnapshot = currentStageName();
+            final int starsSnapshot = foundStars;
+            final int birdsSnapshot = caughtBirds;
+            final int heartsSnapshot = hearts;
+            final long clientTsSnapshot = System.currentTimeMillis();
             new Thread(() -> {
                 java.net.HttpURLConnection conn = null;
                 try {
-                    Object qz = quiz;
                     org.json.JSONObject payload = new org.json.JSONObject();
                     payload.put("event_type","quiz_attempt");
                     payload.put("correct", correct);
-                    payload.put("question", eduniReflectString(qz,"question","q","text","title"));
-                    payload.put("answer", eduniReflectString(qz,"answer","correct","correctAnswer","a"));
-                    payload.put("selected", eduniSelectedOptionText());
-                    payload.put("selected_index", select);
-                    payload.put("stage", stageIndex + 1);
-                    payload.put("stage_name", currentStageName());
-                    payload.put("stars", foundStars);
-                    payload.put("birds", caughtBirds);
-                    payload.put("hearts", hearts);
-                    payload.put("client_ts", System.currentTimeMillis());
+                    payload.put("question", questionSnapshot);
+                    payload.put("answer", answerSnapshot);
+                    payload.put("selected", selectedSnapshot);
+                    payload.put("selected_index", selectedIndexSnapshot);
+                    payload.put("stage", stageSnapshot);
+                    payload.put("stage_name", stageNameSnapshot);
+                    payload.put("stars", starsSnapshot);
+                    payload.put("birds", birdsSnapshot);
+                    payload.put("hearts", heartsSnapshot);
+                    payload.put("client_ts", clientTsSnapshot);
 
                     org.json.JSONObject event = new org.json.JSONObject();
                     event.put("event_type","quiz_attempt");
@@ -2012,6 +2022,7 @@ public class NativeJungleActivity extends Activity {
             if(stageCompleteLife > 0) stageCompleteLife--;
 
             if(!stageCompleteShown && foundStars >= targetStars() && caughtBirds >= targetBirds()) {
+                quizRequests.invalidate(); quiz = null;
                 stageCompleteShown = true;
                 stageCompleteLife = 9999;
                 log = currentStageName() + " 완료!";
@@ -2034,6 +2045,7 @@ public class NativeJungleActivity extends Activity {
         }
 
         void resetWorldForNextStage() {
+            quizRequests.invalidate(); quiz = null;
             foundStars = 0;
             caughtBirds = 0;
             hearts = 3; eduniApplyStageSpawnV26_3(); ax = 0; ay = 0;
@@ -2059,6 +2071,7 @@ public class NativeJungleActivity extends Activity {
         }
 
         void finishFinalStageAndReturn() {
+            quizRequests.invalidate(); quiz = null;
             stageCompleteShown = false;
             stageCompleteLife = 0;
             markStageCompleted(stageIndex); log = "모든 정글 탐험 완료! 최고야!";
@@ -2068,6 +2081,7 @@ public class NativeJungleActivity extends Activity {
 
 
         void advanceStage() {
+            quizRequests.invalidate(); quiz = null;
             markStageCompleted(stageIndex);
             if(stageIndex + 1 < stageNames.length) {
                 maxUnlockedStage = Math.max(maxUnlockedStage, stageIndex + 1);

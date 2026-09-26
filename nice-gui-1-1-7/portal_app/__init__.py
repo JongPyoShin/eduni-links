@@ -22,3 +22,4 @@ install_pet_growth()
 from . import baduk as _baduk  # noqa: E402,F401
 
 from . import reading_journal as _reading_journal  # noqa: E402,F401
+from . import ai as _ai  # noqa: E402,F401

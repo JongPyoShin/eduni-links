@@ -263,6 +263,7 @@ def _reading_search_where(
     date_to: str | None = None,
     reading_mode: str | None = None,
     rating: int | None = None,
+    search_parent_note: bool = True,
 ) -> tuple[str, list[Any]]:
     clauses = ["child_profile_id = ?"]
     parameters: list[Any] = [profile_id]
@@ -272,16 +273,16 @@ def _reading_search_where(
         if len(normalized_query) > 200:
             raise ValueError("q is too long")
         like_value = f"%{normalized_query.lower()}%"
-        clauses.append(
-            """(
-                LOWER(title) LIKE ? OR
-                LOWER(author) LIKE ? OR
-                LOWER(child_comment) LIKE ? OR
-                LOWER(favorite_part) LIKE ? OR
-                LOWER(parent_note) LIKE ?
-            )"""
-        )
-        parameters.extend([like_value] * 5)
+        searchable_columns = [
+            "LOWER(title) LIKE ?",
+            "LOWER(author) LIKE ?",
+            "LOWER(child_comment) LIKE ?",
+            "LOWER(favorite_part) LIKE ?",
+        ]
+        if search_parent_note:
+            searchable_columns.append("LOWER(parent_note) LIKE ?")
+        clauses.append("(" + " OR ".join(searchable_columns) + ")")
+        parameters.extend([like_value] * len(searchable_columns))
 
     normalized_from = _validate_optional_read_date(date_from, "date_from")
     normalized_to = _validate_optional_read_date(date_to, "date_to")
@@ -318,6 +319,7 @@ def search_reading_records(
     date_to: str | None = None,
     reading_mode: str | None = None,
     rating: int | None = None,
+    search_parent_note: bool = True,
 ) -> tuple[list[dict[str, Any]], int]:
     if limit < 1 or limit > 500:
         raise ValueError("limit must be between 1 and 500")
@@ -332,6 +334,7 @@ def search_reading_records(
         date_to=date_to,
         reading_mode=reading_mode,
         rating=rating,
+        search_parent_note=search_parent_note,
     )
     with reading_database_connection(path) as conn:
         total_row = conn.execute(

@@ -317,7 +317,7 @@ def render_quiz_html() -> str:
           <select id="quiz-select"></select>
         </label>
         <h1 id="quiz-title"></h1>
-        <p>Phone URL: http://192.168.75.174:8080</p>
+        <p>Phone URL: http://192.168.75.174:18080</p>
       </section>
 
       <nav id="number-grid" class="number-grid" aria-label="Question numbers"></nav>
@@ -1617,6 +1617,6 @@ def hanja_page() -> None:
 
 
 if __name__ == "__main__":
-    ui.run(title="Oracle DB Quiz", host="0.0.0.0", port=8080, reload=False, show=False)
+    ui.run(title="Oracle DB Quiz", host="0.0.0.0", port=18080, reload=False, show=False)
 
 

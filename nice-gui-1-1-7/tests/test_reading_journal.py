@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import re
 import sqlite3
 import tempfile
 import unittest
@@ -422,8 +423,36 @@ class ReadingJournalTests(unittest.TestCase):
 
     def test_page_has_mobile_camera_and_reflection_fields(self) -> None:
         html = HTML_PATH.read_text(encoding="utf-8")
-        self.assertIn('capture="environment"', html)
+        camera_input = re.search(r'<input\b(?=[^>]*\bid="cameraInput")([^>]*)>', html)
+        gallery_input = re.search(r'<input\b(?=[^>]*\bid="galleryInput")([^>]*)>', html)
+        self.assertIsNotNone(camera_input)
+        self.assertIsNotNone(gallery_input)
+        camera_attributes = camera_input.group(1)
+        gallery_attributes = gallery_input.group(1)
+        self.assertIn('accept="image/*"', camera_attributes)
+        self.assertIn('capture="environment"', camera_attributes)
+        self.assertNotRegex(camera_attributes, r"\bmultiple(?:\s|=|/|$)")
         self.assertIn('accept="image/jpeg,image/png,image/webp"', html)
+        self.assertNotRegex(gallery_attributes, r"\bcapture(?:\s|=|/|$)")
+        self.assertIn('id="cameraPickerButton"', html)
+        self.assertIn("📷 카메라로 촬영", html)
+        self.assertIn('aria-controls="cameraInput"', html)
+        self.assertIn('id="galleryPickerButton"', html)
+        self.assertIn("🖼️ 갤러리에서 선택", html)
+        self.assertIn('aria-controls="galleryInput"', html)
+        self.assertIn("cameraPickerButton.addEventListener('click', () => cameraInput.click());", html)
+        self.assertIn("galleryPickerButton.addEventListener('click', () => galleryInput.click());", html)
+        self.assertIn("async function handleCoverChange(event)", html)
+        self.assertIn("cameraInput.addEventListener('change', handleCoverChange);", html)
+        self.assertIn("galleryInput.addEventListener('change', handleCoverChange);", html)
+        self.assertIn("input.value = '';", html)
+        self.assertIn("function clearCoverInputs()", html)
+        self.assertIn("cameraInput.value = '';", html)
+        self.assertIn("galleryInput.value = '';", html)
+        self.assertIn("if (editingId !== null) coverAction = 'replace';", html)
+        self.assertIn("if (editingId !== null) coverAction = 'remove';", html)
+        self.assertIn("if (editingId === null && coverDataUrl) payload.cover_data_url = coverDataUrl;", html)
+        self.assertIn("if (coverAction === 'replace') payload.cover_data_url = coverDataUrl;", html)
         self.assertIn('id="childComment"', html)
         self.assertIn('id="favoritePart"', html)
         self.assertIn('id="parentNote"', html)
@@ -463,9 +492,8 @@ class ReadingJournalTests(unittest.TestCase):
     def test_photo_remove_control_is_outside_overflow_hidden_picker(self) -> None:
         html = HTML_PATH.read_text(encoding="utf-8")
         picker_start = html.index('<div id="coverPicker" class="cover-picker">')
-        picker_end = html.index('</div>', html.index('</label>', picker_start))
-        remove_button = html.index('id="removePhotoButton"')
-        self.assertGreater(remove_button, picker_end)
+        picker_end = html.index('<div class="photo-tools">', picker_start)
+        self.assertNotIn('id="removePhotoButton"', html[picker_start:picker_end])
 
     def test_page_is_pressure_free_and_does_not_add_leaderboards_or_streaks(self) -> None:
         html = HTML_PATH.read_text(encoding="utf-8")

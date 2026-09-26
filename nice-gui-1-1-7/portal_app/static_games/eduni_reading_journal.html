@@ -79,24 +79,27 @@
     }
     .cover-column { min-width:0; }
     .cover-picker {
-      position:relative; min-height:350px; border:2px dashed #d7c8b8; border-radius:20px;
+      position:relative; display:grid; place-items:center; min-height:350px; padding:18px;
+      border:2px dashed #d7c8b8; border-radius:20px;
       overflow:hidden; background:linear-gradient(145deg,#f7efe4,#edf3e9);
     }
-    .cover-picker input { position:absolute; opacity:0; pointer-events:none; }
-    .cover-label {
-      width:100%; min-height:350px; padding:22px; display:grid; place-items:center; align-content:center;
-      gap:10px; color:#6d6258; text-align:center; cursor:pointer;
+    .cover-picker .cover-file-input { display:none; }
+    .cover-actions { display:grid; gap:8px; width:100%; align-content:center; }
+    .photo-pick-btn {
+      width:100%; min-height:48px; padding:8px 12px; border:1px solid var(--line); border-radius:13px;
+      background:var(--card); color:var(--ink); font-weight:900;
     }
-    .cover-label strong { font-size:17px; }
-    .cover-label small { max-width:190px; line-height:1.45; }
-    .camera-icon { font-size:44px; }
+    .photo-pick-btn.primary { border-color:var(--accent); background:var(--accent); color:white; }
+    .cover-action-note { margin:2px 0 0; color:#6d6258; font-size:12px; line-height:1.45; text-align:center; }
     .cover-preview {
       display:none; width:100%; height:350px; object-fit:cover; background:#eee;
     }
     .cover-picker.has-image .cover-preview { display:block; }
-    .cover-picker.has-image .cover-label { position:absolute; inset:auto 10px 10px 10px; min-height:48px; width:auto; z-index:2; padding:8px 12px; border-radius:12px; background:rgba(47,42,38,.82); color:white; }
-    .cover-picker.has-image .cover-label .camera-icon,
-    .cover-picker.has-image .cover-label small { display:none; }
+    .cover-picker.has-image { display:flex; flex-direction:column; align-items:stretch; padding:0; }
+    .cover-picker.has-image .cover-actions {
+      position:static; width:auto; padding:10px;
+    }
+    .cover-picker.has-image .cover-action-note { display:none; }
     .form-fields { display:grid; gap:15px; align-content:start; }
     .field { display:grid; gap:7px; }
     .field label,.field legend { color:#534b45; font-size:13px; font-weight:900; }
@@ -194,7 +197,7 @@
     body.force-mobile .hero { grid-template-columns:1fr; padding:20px; border-radius:20px; }
     body.force-mobile .hero-mark { display:none; }
     body.force-mobile .form-card { grid-template-columns:1fr; padding:14px; }
-    body.force-mobile .cover-picker, body.force-mobile .cover-label { min-height:260px; }
+    body.force-mobile .cover-picker { min-height:260px; }
     body.force-mobile .cover-preview { height:300px; }
     body.force-mobile .two { grid-template-columns:1fr; }
     body.force-mobile .records { grid-template-columns:1fr; }
@@ -208,12 +211,12 @@
       .hero { grid-template-columns:1fr; padding:20px; }
       .hero-mark { display:none; }
       .form-card { grid-template-columns:1fr; padding:14px; }
-      .cover-picker,.cover-label { min-height:260px; }
+      .cover-picker { min-height:260px; }
       .cover-preview { height:300px; }
       .records { grid-template-columns:repeat(2,minmax(0,1fr)); }
     }
     @media (max-width:520px) {
-      .shell { width:min(100vw - 16px,1050px); padding-top:8px; }
+      .shell { width:min(100%,1050px); padding-top:8px; }
       .topbar { margin-bottom:10px; }
       .hero { border-radius:20px; }
       .stats { grid-template-columns:repeat(3,1fr); }
@@ -265,13 +268,14 @@
     <form id="recordForm" class="form-card">
       <div class="cover-column">
         <div id="coverPicker" class="cover-picker">
-        <input id="coverInput" type="file" accept="image/jpeg,image/png,image/webp" capture="environment">
-        <img id="coverPreview" class="cover-preview" alt="선택한 책 사진 미리보기">
-        <label class="cover-label" for="coverInput">
-          <span class="camera-icon">📷</span>
-          <strong id="coverLabelText">책 사진 찍기 / 고르기</strong>
-          <small>표지나 책을 읽는 모습을 찍어도 좋아요. 저장 전에 자동으로 크기를 줄입니다.</small>
-        </label>
+          <input id="cameraInput" class="cover-file-input" type="file" accept="image/*" capture="environment" aria-label="카메라로 촬영할 책 사진 선택">
+          <input id="galleryInput" class="cover-file-input" type="file" accept="image/jpeg,image/png,image/webp" aria-label="갤러리에서 선택할 책 사진">
+          <img id="coverPreview" class="cover-preview" alt="선택한 책 사진 미리보기">
+          <div class="cover-actions">
+            <button id="cameraPickerButton" class="photo-pick-btn primary" type="button" aria-controls="cameraInput">📷 카메라로 촬영</button>
+            <button id="galleryPickerButton" class="photo-pick-btn" type="button" aria-controls="galleryInput">🖼️ 갤러리에서 선택</button>
+            <p class="cover-action-note">표지나 책을 읽는 모습을 찍어보세요. 저장 전에 크기를 줄여요. 카메라 바로 열기는 기기·브라우저에 따라 지원되지 않을 수 있어요.</p>
+          </div>
         </div>
         <div class="photo-tools">
           <button id="removePhotoButton" class="photo-remove-btn hidden" type="button">사진 제거</button>
@@ -396,10 +400,12 @@
   <script>
     (() => {
       const form = document.getElementById('recordForm');
-      const coverInput = document.getElementById('coverInput');
+      const cameraInput = document.getElementById('cameraInput');
+      const galleryInput = document.getElementById('galleryInput');
+      const cameraPickerButton = document.getElementById('cameraPickerButton');
+      const galleryPickerButton = document.getElementById('galleryPickerButton');
       const coverPicker = document.getElementById('coverPicker');
       const coverPreview = document.getElementById('coverPreview');
-      const coverLabelText = document.getElementById('coverLabelText');
       const saveButton = document.getElementById('saveButton');
       const saveStatus = document.getElementById('saveStatus');
       const recordsEl = document.getElementById('records');
@@ -508,8 +514,9 @@
         }
       }
 
-      coverInput.addEventListener('change', async () => {
-        const file = coverInput.files && coverInput.files[0];
+      async function handleCoverChange(event) {
+        const input = event.currentTarget;
+        const file = input.files && input.files[0];
         if (!file) return;
         const jobGeneration = ++imageJobGeneration;
         imageProcessing = true;
@@ -522,22 +529,31 @@
           if (editingId !== null) coverAction = 'replace';
           coverPreview.src = coverDataUrl;
           coverPicker.classList.add('has-image');
-          coverLabelText.textContent = '사진 바꾸기';
           removePhotoButton.classList.remove('hidden');
           setStatus('');
         } catch (error) {
           if (jobGeneration !== imageJobGeneration) return;
-          coverInput.value = '';
           coverDataUrl = null;
           coverPicker.classList.remove('has-image');
           setStatus(error.message || '사진을 준비하지 못했어요.', 'error');
         } finally {
+          input.value = '';
           if (jobGeneration === imageJobGeneration) {
             imageProcessing = false;
             saveButton.disabled = false;
           }
         }
-      });
+      }
+
+      cameraPickerButton.addEventListener('click', () => cameraInput.click());
+      galleryPickerButton.addEventListener('click', () => galleryInput.click());
+      cameraInput.addEventListener('change', handleCoverChange);
+      galleryInput.addEventListener('change', handleCoverChange);
+
+      function clearCoverInputs() {
+        cameraInput.value = '';
+        galleryInput.value = '';
+      }
 
       function modeLabel(mode) {
         return { alone: '📖 혼자 읽기', together: '👨‍👩‍👦 같이 읽기', read_aloud: '🗣️ 읽어주기' }[mode] || '독서';
@@ -637,12 +653,12 @@
         imageProcessing = false;
         saveButton.disabled = false;
         form.reset();
+        clearCoverInputs();
         editingId = null;
         coverDataUrl = null;
         coverAction = 'keep';
         coverPreview.removeAttribute('src');
         coverPicker.classList.remove('has-image');
-        coverLabelText.textContent = '책 사진 찍기 / 고르기';
         removePhotoButton.classList.add('hidden');
         readingMode = 'together';
         rating = 5;
@@ -657,6 +673,7 @@
         imageJobGeneration++;
         imageProcessing = false;
         saveButton.disabled = false;
+        clearCoverInputs();
         editingId = record.id;
         coverDataUrl = null;
         coverAction = 'keep';
@@ -673,12 +690,10 @@
         if (record.cover_url) {
           coverPreview.src = record.cover_url;
           coverPicker.classList.add('has-image');
-          coverLabelText.textContent = '사진 바꾸기';
           removePhotoButton.classList.remove('hidden');
         } else {
           coverPreview.removeAttribute('src');
           coverPicker.classList.remove('has-image');
-          coverLabelText.textContent = '책 사진 찍기 / 고르기';
           removePhotoButton.classList.add('hidden');
         }
 
@@ -695,10 +710,9 @@
         imageProcessing = false;
         saveButton.disabled = false;
         coverDataUrl = null;
-        coverInput.value = '';
+        clearCoverInputs();
         coverPreview.removeAttribute('src');
         coverPicker.classList.remove('has-image');
-        coverLabelText.textContent = '책 사진 찍기 / 고르기';
         removePhotoButton.classList.add('hidden');
         if (editingId !== null) coverAction = 'remove';
       });

@@ -67,7 +67,7 @@ function Test-AllServices {
     $quizUrl = Read-TunnelUrl $quizStatus
     $gameUrl = Read-TunnelUrl $gameStatus
 
-    $localQuizOk = Test-Url 'http://127.0.0.1:8080/hanja'
+    $localQuizOk = Test-Url 'http://127.0.0.1:18080/hanja'
     $localGameOk = Test-Url 'http://127.0.0.1:8081'
     $quizOk = Test-Url "$quizUrl/hanja"
     $gameOk = Test-Url $gameUrl

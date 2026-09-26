@@ -184,18 +184,18 @@ function Start-Tunnel($name, $localUrl, $stdoutLog, $stderrLog) {
 try {
     Write-Log '===== Eduni startup automation started ====='
 
-    Stop-PortOwner 8080
+    Stop-PortOwner 18080
     Stop-PortOwner 8081
     Stop-EduniCommandWindows
     Get-Process cloudflared -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
 
     Start-HiddenPythonServer 'Eduni DB Hanja Server' $quizRoot
-    Wait-Http 'http://127.0.0.1:8080/hanja' 'DB/Hanja server'
+    Wait-Http 'http://127.0.0.1:18080/hanja' 'DB/Hanja server'
 
 	$quizUrl = Start-Tunnel `
 		'DB/Hanja' `
-		'http://127.0.0.1:8080' `
+		'http://127.0.0.1:18080' `
 		(Join-Path $quizWork 'cloudflared_stdout.log') `
 		(Join-Path $quizWork 'cloudflared_stderr.log')
     Wait-ExternalHttp "$quizUrl/hanja" 'DB/Hanja tunnel'
@@ -209,7 +209,7 @@ try {
     @"
 External URL: $quizUrl
 Access code: $accessCode
-Local URL: http://127.0.0.1:8080
+Local URL: http://127.0.0.1:18080
 Created at: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
 "@ | Set-Content -LiteralPath (Join-Path $quizOutputs 'external_access.txt') -Encoding UTF8
 

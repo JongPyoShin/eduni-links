@@ -2,6 +2,7 @@ import os
 import json
 import re
 import base64
+import random
 from pathlib import Path
 
 from nicegui import app as fastapi_app, ui
@@ -1343,10 +1344,11 @@ BUBBLE_HTML_TEMPLATE = r'''
 </div>
 
 <style>
-  html, body, #app, .nicegui-content {
+  html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
+    overscroll-behavior: none;
   }
 
   body {
@@ -1356,10 +1358,16 @@ BUBBLE_HTML_TEMPLATE = r'''
   }
 
   #bubble-root {
-    min-height: 100dvh;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    width: 100vw;
+    height: 100dvh;
+    min-height: 0;
     display: grid;
     place-items: center;
-    padding: 16px;
+    padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    box-sizing: border-box;
     background:
       radial-gradient(circle at 18% 18%, rgba(125, 211, 252, 0.35), transparent 24%),
       linear-gradient(135deg, #f8fbff 0%, #eef8f6 52%, #fff8ed 100%);
@@ -1368,10 +1376,11 @@ BUBBLE_HTML_TEMPLATE = r'''
 
   .bubble-shell {
     width: min(980px, 100%);
-    height: min(720px, calc(100dvh - 32px));
+    height: min(860px, 100%);
+    min-height: 0;
     display: grid;
-    grid-template-rows: auto 1fr auto;
-    gap: 12px;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 10px;
   }
 
   .bubble-top,
@@ -1422,14 +1431,14 @@ BUBBLE_HTML_TEMPLATE = r'''
     position: relative;
     min-height: 0;
     display: grid;
-    grid-template-rows: auto 1fr auto;
-    gap: 12px;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 10px;
     overflow: hidden;
   }
 
   .prompt-panel {
-    min-height: 118px;
-    padding: 18px;
+    min-height: 0;
+    padding: 14px 16px;
     border: 2px solid #d6e7ee;
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.9);
@@ -1450,15 +1459,18 @@ BUBBLE_HTML_TEMPLATE = r'''
   }
 
   #questionText {
+    min-width: 0;
     font-size: clamp(22px, 5vw, 36px);
     line-height: 1.22;
     color: #13293a;
     letter-spacing: 0;
+    overflow-wrap: anywhere;
   }
 
   .bubble-field {
     position: relative;
-    min-height: 260px;
+    min-height: 0;
+    box-sizing: border-box;
     border: 2px solid #cfe6ef;
     border-radius: 8px;
     overflow: hidden;
@@ -1469,13 +1481,14 @@ BUBBLE_HTML_TEMPLATE = r'''
 
   .answer-bubble {
     position: absolute;
-    width: clamp(104px, 21vw, 152px);
-    aspect-ratio: 1;
+    width: var(--bubble-size, 112px);
+    height: var(--bubble-size, 112px);
+    box-sizing: border-box;
     border: 0;
     border-radius: 999px;
     display: grid;
     place-items: center;
-    padding: 14px;
+    padding: 10px;
     color: #123047;
     font-size: clamp(17px, 4vw, 24px);
     font-weight: 950;
@@ -1501,8 +1514,8 @@ BUBBLE_HTML_TEMPLATE = r'''
   }
 
   .feedback-panel {
-    min-height: 56px;
-    padding: 12px 14px;
+    min-height: 44px;
+    padding: 9px 12px;
     border-radius: 8px;
     background: rgba(255,255,255,0.82);
     color: #3d5565;
@@ -1542,6 +1555,9 @@ BUBBLE_HTML_TEMPLATE = r'''
 
   .result-box {
     width: min(420px, 100%);
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    overflow-y: auto;
+    box-sizing: border-box;
     padding: 24px;
     border-radius: 8px;
     background: #fff;
@@ -1620,13 +1636,39 @@ BUBBLE_HTML_TEMPLATE = r'''
   }
 
   @media (max-width: 640px) {
-    #bubble-root { padding: 10px; }
-    .bubble-shell { height: calc(100dvh - 20px); gap: 8px; }
+    #bubble-root { padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
+    .bubble-shell { height: 100%; gap: 7px; }
     .bubble-top { align-items: start; }
-    .prompt-panel { min-height: 104px; padding: 14px; }
-    .bubble-field { min-height: 0; }
-    .feedback-panel { min-height: 48px; font-size: 14px; }
-    .bubble-actions button { flex: 1; padding: 0 10px; }
+    .bubble-top h1 { font-size: clamp(20px, 6vw, 28px); }
+    .bubble-top p { font-size: 13px; }
+    .bubble-score { min-width: 82px; }
+    #roundText { font-size: 15px; }
+    #starText { font-size: 20px; }
+    .prompt-panel { padding: 10px 12px; }
+    #questionText { font-size: clamp(19px, 5vw, 26px); }
+    .feedback-panel { min-height: 40px; padding: 7px 10px; font-size: 13px; }
+    .bubble-actions { gap: 8px; }
+    .bubble-actions button { flex: 1; min-width: 0; padding: 0 10px; }
+    .answer-bubble { font-size: clamp(16px, 4vw, 22px); }
+  }
+
+  @media (max-height: 480px) {
+    #bubble-root { padding: max(4px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
+    .bubble-shell { height: 100%; gap: 5px; }
+    .bubble-top { align-items: center; }
+    .bubble-top h1 { font-size: 20px; }
+    .bubble-top p { margin-top: 2px; font-size: 12px; }
+    .bubble-score { gap: 1px; }
+    #roundText { font-size: 13px; }
+    #starText { font-size: 17px; }
+    .bubble-stage { grid-template-rows: auto minmax(0, 1fr) auto; gap: 5px; }
+    .prompt-panel { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px; padding: 6px 10px; }
+    #topicText { padding: 4px 8px; font-size: 12px; }
+    #questionText { font-size: clamp(16px, 2.7vw, 21px); }
+    .feedback-panel { min-height: 30px; padding: 5px 9px; font-size: 12px; }
+    .bubble-actions button { min-height: 38px; font-size: 14px; }
+    .answer-bubble { padding: 6px; }
+    @keyframes floaty { from { translate: 0 0; } to { translate: 0 -5px; } }
   }
 </style>
 
@@ -1709,17 +1751,28 @@ BUBBLE_HTML_TEMPLATE = r'''
   }
 
   function bubblePositions(count) {
-    const rect = field.getBoundingClientRect();
-    const width = Math.max(320, rect.width);
-    const height = Math.max(260, rect.height);
-    const size = Math.min(152, Math.max(104, width * 0.21));
-    const slots = [
-      [0.08, 0.08], [0.55, 0.11], [0.28, 0.43],
-      [0.68, 0.48], [0.08, 0.63], [0.47, 0.68],
-    ];
-    return slots.slice(0, count).map(([x, y]) => ({
-      x: Math.round(Math.min(width - size - 12, Math.max(8, width * x))),
-      y: Math.round(Math.min(height - size - 12, Math.max(8, height * y))),
+    const width = field.clientWidth;
+    const height = field.clientHeight;
+    const compact = height < 170;
+    const columns = compact ? Math.min(count, 4) : Math.min(count, 2);
+    const rows = Math.ceil(count / columns);
+    const padX = compact ? 10 : 16;
+    const padY = compact ? 12 : 20;
+    const gapX = compact ? 8 : 14;
+    const gapY = compact ? 4 : 12;
+    const size = Math.max(1, Math.floor(Math.min(
+      140,
+      (width - padX * 2 - gapX * (columns - 1)) / columns,
+      (height - padY - 8 - gapY * (rows - 1)) / rows,
+    )));
+    const totalWidth = columns * size + gapX * (columns - 1);
+    const totalHeight = rows * size + gapY * (rows - 1);
+    const startX = Math.max(padX, Math.floor((width - totalWidth) / 2));
+    const startY = Math.max(padY, Math.floor((height - totalHeight - 8) / 2));
+    return Array.from({ length: count }, (_, index) => ({
+      x: startX + (index % columns) * (size + gapX),
+      y: startY + Math.floor(index / columns) * (size + gapY),
+      size,
     }));
   }
 
@@ -1743,6 +1796,7 @@ BUBBLE_HTML_TEMPLATE = r'''
       button.textContent = choice;
       button.style.setProperty('--x', `${pos.x}px`);
       button.style.setProperty('--y', `${pos.y}px`);
+      button.style.setProperty('--bubble-size', `${pos.size}px`);
       button.style.setProperty('--speed', `${3.6 + choiceIndex * 0.32}s`);
       button.style.setProperty('--bubble-color', colors[choiceIndex % colors.length]);
       button.addEventListener('click', () => chooseAnswer(button, choiceIndex));
@@ -1857,22 +1911,57 @@ def bubble_html() -> str:
                 'explanation': "정답은 冬입니다. 冬은 겨울 동입니다.",
             }
         ]
-    return BUBBLE_HTML_TEMPLATE.replace('__QUESTIONS_JSON__', json.dumps(questions, ensure_ascii=False))
+    answer_labels = list(dict.fromkeys(
+        str(question.get('answerLabel', '')).strip()
+        for question in questions
+        if str(question.get('answerLabel', '')).strip()
+    ))
+    quiz_questions: list[dict[str, object]] = []
+    for question in questions:
+        target = str(question.get('target', '')).strip()
+        correct = str(question.get('answerLabel', '')).strip()
+        choices = question.get('choices')
+        answer_index = question.get('answerIndex')
+        if not isinstance(choices, list) or not choices or not isinstance(answer_index, int) or not 0 <= answer_index < len(choices):
+            distractors = [answer for answer in answer_labels if answer != correct]
+            if not target or not correct or not distractors:
+                continue
+            choices = [correct, *random.sample(distractors, min(3, len(distractors)))]
+            random.shuffle(choices)
+            answer_index = choices.index(correct)
+        quiz_questions.append({
+            'target': target,
+            'prompt': str(question.get('prompt') or f"한자 '{target}'의 뜻과 음으로 알맞은 것은?"),
+            'choices': choices,
+            'answerIndex': answer_index,
+            'answerLabel': correct or str(choices[answer_index]),
+            'explanation': str(question.get('explanation') or f"정답은 {target}입니다. {target}은(는) {correct}입니다."),
+        })
+    return BUBBLE_HTML_TEMPLATE.replace('__QUESTIONS_JSON__', json.dumps(quiz_questions, ensure_ascii=False))
 
 
 SHOOTER_HTML_TEMPLATE = r'''
 <div id="hanja-shooter-root">
   <section class="shooter-shell">
     <header class="shooter-top">
-      <div>
-        <h1>으듀니 한자 슈터</h1>
-        <p id="shooterStatus">뜻음 버블을 맞는 한자에 쏴 보자</p>
+      <div class="shooter-brand">
+        <span class="shooter-kicker">EDUNI ARCADE</span>
+        <h1>한자 슈터</h1>
       </div>
-      <div class="shooter-score">
-        <span>점수</span>
-        <strong id="shooterScore">0</strong>
+      <div class="shooter-hud" aria-label="게임 현황">
+        <div class="shooter-hud-chip"><span>점수</span><strong id="shooterScore">0</strong></div>
+        <div class="shooter-hud-chip"><span>남은 버블</span><strong id="shooterProgress">0</strong></div>
       </div>
     </header>
+
+    <section class="shooter-target-card" aria-live="polite" aria-label="현재 목표">
+      <div class="shooter-target-symbol"><span>목표 한자</span><strong id="shooterTarget">漢</strong></div>
+      <div class="shooter-target-copy">
+        <span>뜻과 음 버블을 찾아 발사해요</span>
+        <p id="shooterStatus">맞는 한자 버블을 찾아 쏴 보자</p>
+      </div>
+      <span class="shooter-target-arrow" aria-hidden="true">↗</span>
+    </section>
 
     <main class="shooter-stage">
       <canvas id="shooterCanvas" aria-label="hanja bubble shooter"></canvas>
@@ -1899,7 +1988,7 @@ SHOOTER_HTML_TEMPLATE = r'''
 </div>
 
 <style>
-  html, body, #app, .nicegui-content {
+  html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
@@ -2143,9 +2232,95 @@ SHOOTER_HTML_TEMPLATE = r'''
 
   @media (max-width: 560px) {
     #hanja-shooter-root { padding: 8px; }
-    .shooter-shell { height: calc(100dvh - 16px); gap: 8px; }
+    .shooter-shell { height: 100%; gap: 7px; }
     .shooter-actions button { flex: 1; padding: 0 10px; font-size: 14px; }
     .shooter-score { min-width: 74px; }
+  }
+
+  /* EDUNI mobile-first arcade presentation; the drawing/gameplay contract remains on the canvas. */
+  html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; }
+  body { background: #080d1c; color: #f5f7ff; }
+  #hanja-shooter-root {
+    position: fixed; inset: 0; z-index: 1000;
+    width: 100vw; height: 100dvh; min-height: 0; box-sizing: border-box;
+    padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+    background: radial-gradient(ellipse at 50% 12%, rgba(53, 76, 162, .38), transparent 44%), linear-gradient(155deg, #101936 0%, #171b3e 52%, #0d2434 100%);
+    color: #f8fbff;
+  }
+  .shooter-shell {
+    width: min(900px, 100%); height: min(920px, 100%); min-height: 0;
+    grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 10px;
+  }
+  .shooter-top { align-items: center; gap: 12px; }
+  .shooter-brand { display: grid; gap: 3px; min-width: 0; }
+  .shooter-kicker { color: #78e7f3; font-size: 10px; font-weight: 1000; letter-spacing: .16em; }
+  .shooter-top h1 { color: #fff; font-size: clamp(20px, 4vw, 30px); line-height: 1.05; letter-spacing: -.04em; }
+  .shooter-hud { display: flex; gap: 7px; }
+  .shooter-hud-chip { min-width: 70px; padding: 7px 11px; border: 1px solid rgba(173, 207, 255, .2); border-radius: 15px; background: rgba(255,255,255,.09); box-shadow: inset 0 1px rgba(255,255,255,.08); text-align: center; }
+  .shooter-hud-chip span { display: block; color: #aebde0; font-size: 10px; font-weight: 850; }
+  .shooter-hud-chip strong { display: block; color: #fff; font-size: 18px; line-height: 1.1; }
+  .shooter-target-card {
+    display: grid; grid-template-columns: 58px minmax(0, 1fr) 34px; align-items: center; gap: 11px;
+    min-height: 68px; padding: 8px 11px; border: 1px solid rgba(116, 235, 242, .34); border-radius: 20px;
+    background: linear-gradient(110deg, rgba(50, 79, 132, .78), rgba(41, 54, 101, .74));
+    box-shadow: inset 0 1px rgba(255,255,255,.12), 0 10px 25px rgba(1,5,20,.2);
+  }
+  .shooter-target-symbol { width: 56px; height: 56px; display: grid; place-items: center; align-content: center; border-radius: 16px; background: linear-gradient(145deg, #8bf2ea, #a5b9ff); color: #142446; box-shadow: 0 7px 16px rgba(70,205,226,.18); }
+  .shooter-target-symbol span { font-size: 8px; line-height: 1.1; font-weight: 950; opacity: .75; }
+  .shooter-target-symbol strong { font-size: 29px; line-height: 1; font-weight: 1000; }
+  .shooter-target-copy { min-width: 0; display: grid; gap: 3px; }
+  .shooter-target-copy > span { color: #b6c8ec; font-size: 10px; font-weight: 850; }
+  #shooterStatus { min-height: 0; margin: 0; color: #fff; font-size: clamp(13px, 3vw, 17px); line-height: 1.25; font-weight: 950; overflow-wrap: anywhere; }
+  .shooter-target-arrow { color: #ffdf70; font-size: 26px; font-weight: 950; text-align: center; }
+  .shooter-stage {
+    min-height: 0; border: 1px solid rgba(112, 230, 241, .42); border-radius: 24px;
+    background: radial-gradient(ellipse at 50% 100%, rgba(40, 211, 194, .22), transparent 43%), radial-gradient(circle at 85% 15%, rgba(131, 112, 255, .2), transparent 28%), linear-gradient(180deg, #141d3e, #101b32 72%, #122b3a);
+    box-shadow: inset 0 1px rgba(255,255,255,.1), 0 14px 36px rgba(0,0,0,.28);
+  }
+  #shooterCanvas { width: 100%; height: 100%; display: block; touch-action: none; }
+  .shooter-actions { gap: 8px; }
+  .shooter-actions button { min-height: 44px; border: 1px solid rgba(255,255,255,.15); border-radius: 15px; background: linear-gradient(135deg,#1e9b92,#1a6d83); box-shadow: 0 7px 18px rgba(0,0,0,.22); color: #fff; font-weight: 950; }
+  .shooter-actions button:first-child { background: rgba(255,255,255,.1); color: #d8e6ff; }
+  .shooter-actions button:active { transform: translateY(1px) scale(.99); }
+  .praise-pop { border: 1px solid rgba(255,255,255,.35); border-radius: 22px; background: rgba(255,255,255,.95); }
+  .praise-character { width: clamp(66px, 18vmin, 120px); height: clamp(66px, 18vmin, 120px); }
+  .shooter-overlay { z-index: 1100; padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+  .shooter-dialog { max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); box-sizing: border-box; overflow-y: auto; border: 1px solid #dbe7fb; border-radius: 24px; }
+  .shooter-dialog button { min-height: 46px; border-radius: 14px; background: linear-gradient(135deg,#168b88,#3158a1); }
+  @media (max-width: 560px) {
+    #hanja-shooter-root { padding: max(6px, env(safe-area-inset-top)) max(7px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(7px, env(safe-area-inset-left)); }
+    .shooter-shell { height: 100%; gap: 7px; }
+    .shooter-top { gap: 7px; }
+    .shooter-kicker { font-size: 9px; }
+    .shooter-top h1 { font-size: 21px; }
+    .shooter-hud { gap: 5px; }
+    .shooter-hud-chip { min-width: 58px; padding: 6px 8px; border-radius: 13px; }
+    .shooter-hud-chip strong { font-size: 16px; }
+    .shooter-target-card { grid-template-columns: 54px minmax(0, 1fr) 24px; gap: 8px; min-height: 62px; padding: 6px 8px; border-radius: 17px; }
+    .shooter-target-symbol { width: 52px; height: 52px; border-radius: 14px; }
+    .shooter-target-symbol strong { font-size: 27px; }
+    .shooter-target-copy > span { font-size: 9px; }
+    #shooterStatus { font-size: 13px; }
+    .shooter-target-arrow { font-size: 20px; }
+    .shooter-stage { border-radius: 20px; }
+    .shooter-actions button { min-height: 42px; font-size: 13px; }
+  }
+  @media (max-height: 480px) {
+    #hanja-shooter-root { padding-top: max(4px, env(safe-area-inset-top)); padding-bottom: max(4px, env(safe-area-inset-bottom)); }
+    .shooter-shell { gap: 5px; }
+    .shooter-kicker { display: none; }
+    .shooter-top h1 { font-size: 19px; }
+    .shooter-hud-chip { min-width: 54px; padding: 4px 7px; }
+    .shooter-hud-chip span { font-size: 9px; }
+    .shooter-hud-chip strong { font-size: 15px; }
+    .shooter-target-card { min-height: 52px; grid-template-columns: 46px minmax(0, 1fr) 20px; padding: 4px 7px; gap: 7px; border-radius: 14px; }
+    .shooter-target-symbol { width: 44px; height: 44px; border-radius: 12px; }
+    .shooter-target-symbol span { font-size: 7px; }
+    .shooter-target-symbol strong { font-size: 23px; }
+    .shooter-target-copy > span { font-size: 8px; }
+    #shooterStatus { font-size: 12px; }
+    .shooter-actions button { min-height: 36px; }
+    .praise-character { width: 66px; height: 66px; }
   }
 </style>
 
@@ -2159,6 +2334,8 @@ __SHOOTER_LOGIC_SCRIPT__
   const ctx = canvas.getContext('2d');
   const statusEl = document.getElementById('shooterStatus');
   const scoreEl = document.getElementById('shooterScore');
+  const targetEl = document.getElementById('shooterTarget');
+  const progressEl = document.getElementById('shooterProgress');
   const restartButton = document.getElementById('shooterRestartButton');
   const soundButton = document.getElementById('shooterSoundButton');
   const overlay = document.getElementById('shooterAnswerOverlay');
@@ -2216,18 +2393,31 @@ __SHOOTER_LOGIC_SCRIPT__
 
   function resizeCanvas() {
     const rect = canvas.getBoundingClientRect();
+    const previousWidth = state.width;
+    const previousHeight = state.height;
     state.dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-    state.width = Math.max(320, rect.width);
-    state.height = Math.max(480, rect.height);
+    state.width = Math.max(1, rect.width);
+    state.height = Math.max(1, rect.height);
+    if (!rect.width || !rect.height) return;
     canvas.width = Math.round(state.width * state.dpr);
     canvas.height = Math.round(state.height * state.dpr);
     ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
-    const sizeBasis = Math.min(state.width, state.height * 0.78);
-    state.radius = Math.max(18, Math.min(29, sizeBasis / 18));
+    const sizeBasis = Math.min(state.width, state.height * 0.76);
+    state.radius = Math.max(13, Math.min(29, sizeBasis / 18));
     state.baseX = state.width / 2;
-    state.baseY = state.height - state.radius - 38;
+    state.baseY = Math.max(state.radius * 2 + 4, state.height - state.radius - Math.max(24, state.height * 0.08));
     state.aimX = state.baseX;
-    state.aimY = state.baseY - 120;
+    state.aimY = Math.max(state.radius + 10, state.baseY - Math.min(120, state.height * 0.36));
+    state.aiming = false;
+    if (state.shot && previousWidth > 0 && previousHeight > 0) {
+      const scaleX = state.width / previousWidth;
+      const scaleY = state.height / previousHeight;
+      state.shot.x = Math.max(state.shot.r, Math.min(state.width - state.shot.r, state.shot.x * scaleX));
+      state.shot.y = Math.max(state.shot.r, Math.min(state.height - state.shot.r, state.shot.y * scaleY));
+      state.shot.vx *= scaleX;
+      state.shot.vy *= scaleY;
+      state.shot.r = state.radius * 1.04;
+    }
     layoutBubbles();
   }
 
@@ -2271,7 +2461,9 @@ __SHOOTER_LOGIC_SCRIPT__
       const front = live.filter(b => Math.abs(b.y - frontY) < state.radius * 0.8);
       return front[Math.floor(Math.random() * front.length)];
     })();
-    statusEl.textContent = `'${state.current.meaningSound || state.current.answerLabel}' 버블을 맞는 한자에 쏘자`;
+    targetEl.textContent = state.current.target;
+    statusEl.textContent = `${state.current.meaningSound || state.current.answerLabel} 버블을 맞춰요`;
+    progressEl.textContent = String(state.bubbles.filter(b => !b.popped).length);
   }
 
   function startGame() {
@@ -2540,6 +2732,7 @@ __SHOOTER_LOGIC_SCRIPT__
       state.score += shotResult.scoreDelta;
       scoreEl.textContent = String(state.score);
       state.bubbles = shotResult.bubbles;
+      progressEl.textContent = String(state.bubbles.filter(b => !b.popped).length);
       const say = praise[Math.floor(Math.random() * praise.length)];
       statusEl.textContent = `${say} 정답 버블을 터뜨렸어`;
       playTone(780, 0.11, 'triangle');
@@ -2550,6 +2743,7 @@ __SHOOTER_LOGIC_SCRIPT__
       state.score += shotResult.scoreDelta;
       scoreEl.textContent = String(state.score);
       state.bubbles = shotResult.bubbles;
+      progressEl.textContent = String(state.bubbles.filter(b => !b.popped).length);
       const say = praise[Math.floor(Math.random() * praise.length)];
       statusEl.textContent = `${say} 정답 버블을 터뜨렸어`;
       playTone(780, 0.11, 'triangle');
@@ -2560,6 +2754,7 @@ __SHOOTER_LOGIC_SCRIPT__
       state.score += 100;
       scoreEl.textContent = String(state.score);
       state.bubbles = state.bubbles.filter(b => b !== hit);
+      progressEl.textContent = String(state.bubbles.filter(b => !b.popped).length);
       const say = praise[Math.floor(Math.random() * praise.length)];
       statusEl.textContent = `${say} 정답 버블을 터뜨렸어`;
       playTone(780, 0.11, 'triangle');
@@ -2767,7 +2962,7 @@ def index() -> None:
 @ui.page('/bubble')
 def bubble() -> None:
     ui.add_head_html(
-        '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
     )
     ui.add_body_html(bubble_html())
 
@@ -2775,7 +2970,7 @@ def bubble() -> None:
 @ui.page('/bubble-shooter')
 def bubble_shooter() -> None:
     ui.add_head_html(
-        '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
     )
     ui.add_body_html(shooter_html())
 

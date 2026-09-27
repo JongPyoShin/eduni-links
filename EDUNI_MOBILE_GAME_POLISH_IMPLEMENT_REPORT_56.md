@@ -54,8 +54,26 @@ Screenshots captured from headed Chrome:
 - Bubble retains the 10-round flow, score/stars, feedback, explanation, sound, restart, and resize behavior.
 - Shooter retains canonical questions, target/answer mapping, shared collision/shot rules, physics, scoring, round flow, sound, praise, and explanation. The only gameplay-script adjustment is responsive canvas geometry.
 - Validation used headed Chrome mobile emulation, not a physical handset. A successful correct-scoring shooter hit was not demonstrated in the manual pointer check; automated shared-logic coverage and the existing gameplay tests remain in place.
-- Production EDUNI/8081 and host 8080 were **not contacted or modified**. No merge or deploy occurred. This implementation is local verification only; no PR was created.
+- At the implementation milestone, production EDUNI/8081 and host 8080 had **not been contacted or modified**; no merge/deploy had occurred. A later deployment, explicitly requested by the user, is recorded below. No PR was created.
 
 ## Verdict
 
 **EDUNI MOBILE GAME POLISH IMPLEMENT PASS — READY FOR VERIFY**
+
+## Subsequent production deployment — 2026-09-28
+
+After the implementation milestone, the user explicitly requested deployment for phone verification. The product image was built from source commit `e9fb88da73c59307e245ae545ad118f3794ae57b` and only the existing Compose `eduni-game` service was recreated under project `eduni-space-mvp`.
+
+- New image: `sha256:ffe98a0b3fe2c05b359b5f8c3d5d3e7524025dc49edfd1c3cc8d233ccd67967b`; container healthy, restart count 0.
+- `eduni-space-mvp_eduni_data` and `eduni-space-mvp_eduni_postgres_data` were preserved. PostgreSQL was not recreated; it remained healthy and internal-only (`5432/tcp` not host-published).
+- Read-only data checks after deployment: SQLite integrity `ok`, 1 child profile, 0 activity sessions; PostgreSQL Reading Journal health remained `postgresql`, with 0 records before and after. No production test record was created.
+- Pre-deploy backups: `D:/Codex/Backups/eduni-mobile-game-polish-20260928T084707` (SQLite 20,480 bytes, PostgreSQL logical dump 2,880 bytes, covers directory copied).
+- Production `/healthz`, `/portal`, `/reading`, `/reading/api/health`, `/ai/health`, `/link`, `/bubble`, `/bubble-shooter`, `/baduk`, and `/omok` all returned HTTP 200. AI remained disabled. No fatal/traceback lines appeared in the scoped recent app logs.
+- Headed Chrome mobile emulation on production `100.75.214.95:8081` verified all three game routes at 390×844 and 800×360; all returned 200 with no horizontal overflow, page/console errors, or failed responses. Link More/codex and Bubble answer overlay interactions worked. A landscape Shooter pointer aim/release was sent; that manual action did not demonstrate a score increase.
+- Host 8080 was not queried, contacted, bound, stopped, killed, or otherwise touched. No merge or PR was performed. Physical phone confirmation remains with the user.
+
+Phone URLs:
+
+- `http://100.75.214.95:8081/link`
+- `http://100.75.214.95:8081/bubble`
+- `http://100.75.214.95:8081/bubble-shooter`

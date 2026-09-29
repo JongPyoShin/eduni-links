@@ -13,12 +13,15 @@ The existing Canvas/Three play loop now keeps the bird quiz session in localStor
 
 The WIP bird codex, 65-question bank, three bird manifest entries, hub link/count, and Camp/Waterfall/Sky Ridge quiz bridges are included. Cave and Giant Tree retain their authored sequential learning/reward loops.
 
+The visual follow-up adds a numbered five-stage route rail, explicit `진행 가능` / `잠김` / `완료 · 다시 보기` card states, and a persisted progress meter to the hub. The phone breakpoint is `900px` CSS width to account for the headed Chrome device scale used in QA; this keeps the stage cards one-column and touch-sized at phone widths without changing gameplay or storage logic.
+
 ## Verification
 
 - `npm test`: **232 passed, 0 failed**.
 - `git diff --check`: passed (only normal LF/CRLF warnings).
 - Headed Chrome extension QA opened and exercised real keyboard input on all five entry points at `?qa=1`: Camp, Waterfall, Cave, Giant Tree, Sky Ridge. Each page loaded its expected title/HUD and input controls; Cave reported `GLB 4/4 · fallback 0`, Giant Tree `GLB 6/6 · fallback 0`, and no console warning/error entries were captured.
 - Hub DOM showed the codex link `(0/3)`, all five stage cards, and the expected locked progression text.
+- Follow-up hub QA showed the new route heading, all five numbered card states, and progress meter. At the emulated phone viewport, computed grid columns changed to a single `684px` column with `overflow=false`.
 - Explicit viewport QA used Browser Control/CUA's viewport capability on an isolated local tab. The emulated device scale was `dpr=0.5`, so CSS sizes were doubled while the requested physical sizes were applied.
   - `360x800`: hub and Camp screenshots rendered; successful capture reported CSS `720x1600` at `dpr=0.5`; console warnings/errors `[]`.
   - `390x844`: Camp, Waterfall, Cave, Giant Tree, and Sky Ridge each captured once with `getAXStateAndScreenshot()`; measured CSS `780x1688`, `overflow=false`; Cave `GLB 4/4 · fallback 0`, Giant Tree `GLB 6/6 · fallback 0`, and Sky Ridge `단계 1/9 · skyGate`.
@@ -27,6 +30,6 @@ The WIP bird codex, 65-question bank, three bird manifest entries, hub link/coun
 
 ## Limitations / verdict
 
-390×844 visual capture now covers all five regions, and 360×800 covers hub/Camp. 412×915 and tablet/landscape remain blocked by the specific screenshot/zero-width errors above; no screenshot call was retried after each failure.
+390×844 visual capture previously covered all five regions, and 360×800 covered hub/Camp. The updated hub's 390px screenshot call timed out after the CSS breakpoint fix (`Page.captureScreenshot`, one attempt); DOM/computed-style evidence confirms the one-column fix. 412×915 and tablet/landscape remain blocked by the specific screenshot/zero-width errors above; no failed screenshot call was retried.
 
 **PARTIAL — not ready to claim full visual release acceptance.** Source/test scope is ready for review; rerun headed Chrome with a non-zero viewport and attach screenshots before merge/deploy.

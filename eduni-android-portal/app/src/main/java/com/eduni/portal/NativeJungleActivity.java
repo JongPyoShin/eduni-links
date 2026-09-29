@@ -43,6 +43,7 @@ public class NativeJungleActivity extends Activity {
 
     @Override protected void onResume() { super.onResume(); hideSystemUi(); game.resume(); }
     @Override protected void onPause() { game.pause(); super.onPause(); }
+    @Override protected void onDestroy() { game.destroy(); super.onDestroy(); }
     @Override public void onWindowFocusChanged(boolean hasFocus) { super.onWindowFocusChanged(hasFocus); if (hasFocus) hideSystemUi(); }
 
     private void hideSystemUi() {
@@ -81,7 +82,10 @@ public class NativeJungleActivity extends Activity {
         final ArrayList<Dot> stars = new ArrayList<>();
         final ArrayList<Bird> birds = new ArrayList<>();
         final ArrayList<Spark> sparks = new ArrayList<>(); // EDUNI_NATIVE_JUNGLE_PARTICLES_PATCH_V6
-        boolean running, left, right, up, down;
+        boolean left, right, up, down;
+        final JungleLoopGuard loop = new JungleLoopGuard();
+        final JungleQuizRequestGuard quizRequests = new JungleQuizRequestGuard();
+        final JungleWorldMapInput worldMapInput = new JungleWorldMapInput();
         float px = .18f, py = .52f, ax = 0, ay = 0;
         // JNG-001: keep Android events at the edge; the Canvas loop consumes intents and state.
         final InputActionMapper inputActions = new InputActionMapper();
@@ -130,13 +134,31 @@ public class NativeJungleActivity extends Activity {
         String log = "Native 정글탐험 시작! 방향키 이동, A 잡기";
         Quiz quiz;
 
-        final Runnable tick = new Runnable() { @Override public void run() { update(); invalidate(); if (running) main.postDelayed(this, 16); } };
+        final Runnable tick = new Runnable() { @Override public void run() { if (!loop.active()) return; update(); invalidate(); if (loop.active()) main.postDelayed(this, 16); } };
 
         Game(Context c) { super(c); setFocusable(true); setFocusableInTouchMode(true); reset(); }
-        void resume() { running = true; requestFocus(); main.removeCallbacks(tick); main.post(tick); }
-        void pause() { running = false; main.removeCallbacks(tick); }
+        void resume() { if (!loop.resume()) return; requestFocus(); main.removeCallbacks(tick); main.post(tick); }
+        void pause() { loop.pause(); main.removeCallbacks(tick); quizRequests.invalidate(); clearMovement(); }
+        void destroy() { pause(); loop.destroy(); if (tone != null) { tone.release(); tone = null; } }
+
+        void clearMovement() {
+            left = right = up = down = false;
+            ax = ay = 0f;
+            inputActions.reset(); locomotion.stop(); worldMapInput.reset();
+            campTouchStickHeld = false; eduniTouchTargetActiveV26_4 = false;
+            lastMovementUpdateMs = 0L;
+        }
+
+        void invalidateQuizSession() {
+            quizRequests.invalidate();
+            quiz = null;
+            campEncounter.reset();
+            clearMovement();
+        }
 
         void reset() {
+            invalidateQuizSession();
+            stageCompleteShown = false; stageCompleteLife = 0;
             eduniApplyStageSpawnV26_3(); foundStars = 0; caughtBirds = 0; hearts = 3; mode = FIELD; select = 0;
             stars.clear(); birds.clear(); sparks.clear(); starClearBonus=false; birdClearBonus=false;
             campEncounter.reset(); locomotion.stop(); inputActions.reset(); campTouchStickHeld = false; eduniTouchTargetActiveV26_4 = false; lastMovementUpdateMs = 0L;
@@ -151,6 +173,8 @@ public class NativeJungleActivity extends Activity {
         }
 
         void eduniOpenWorldMapV20_10() {
+            invalidateQuizSession();
+            stageCompleteShown = false;
             eduniStagePlayingV20_10 = false;
             showStageSelect = true;
             mode = FIELD;
@@ -215,6 +239,7 @@ public class NativeJungleActivity extends Activity {
 
         // EDUNI_NATIVE_JUNGLE_INTRO_A_TO_WORLDMAP_FIX_V21_4
         void eduniOpenWorldMapFromIntroV21_4() {
+            invalidateQuizSession();
             showStartScreen = false;
             showStageSelect = true;
             eduniStagePlayingV20_10 = false;
@@ -245,6 +270,7 @@ public class NativeJungleActivity extends Activity {
         }
 
         boolean handleKey(KeyEvent e) {
+            if (!loop.active()) return true;
             boolean dn = e.getAction() == KeyEvent.ACTION_DOWN;
             InputActionMapper.Action mapped = inputActions.mapKeyCode(e.getKeyCode());
             if (mapped != InputActionMapper.Action.NONE) inputActions.useController();
@@ -273,8 +299,18 @@ public class NativeJungleActivity extends Activity {
 
                 return true;
             }
-
-
+            if (eduniWorldMapActiveV20_10()) {
+                if (worldMapInput.press(e.getKeyCode(), dn, e.getRepeatCount())) {
+                    showStageSelect = true;
+                    eduniWorldMapKeyV20_8(e.getKeyCode(), true);
+                }
+                return true;
+            }
+            if (stageInputLock > 0 || stageCompleteShown) {
+                clearMovement();
+                if (stageCompleteShown && dn && e.getRepeatCount() == 0 && mapped == InputActionMapper.Action.CONFIRM) pressA();
+                return true;
+            }
             if (e.getRepeatCount() > 0 && isAction(e.getKeyCode())) return true;
             if (mapped == InputActionMapper.Action.NONE) return false;
             if (inputActions.isMovement(mapped)) {
@@ -293,9 +329,10 @@ public class NativeJungleActivity extends Activity {
             if (mapped == InputActionMapper.Action.PAUSE) { mode = mode == PAUSE ? FIELD : PAUSE; return true; }
             return false;
         }
-        boolean isAction(int k) { return k == KeyEvent.KEYCODE_BUTTON_A || k == KeyEvent.KEYCODE_BUTTON_B || k == KeyEvent.KEYCODE_BUTTON_X || k == KeyEvent.KEYCODE_BUTTON_Y || k == KeyEvent.KEYCODE_BUTTON_START || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_SPACE; }
+        boolean isAction(int k) { return k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_BUTTON_A || k == KeyEvent.KEYCODE_BUTTON_B || k == KeyEvent.KEYCODE_BUTTON_X || k == KeyEvent.KEYCODE_BUTTON_Y || k == KeyEvent.KEYCODE_BUTTON_START || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_SPACE; }
 
         boolean handleMotion(MotionEvent e) {
+            if (!loop.active() || showStartScreen || stageInputLock > 0 || stageCompleteShown) { clearMovement(); return true; }
             int s = e.getSource();
             boolean ctl = (s & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK || (s & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD || (s & InputDevice.SOURCE_DPAD) == InputDevice.SOURCE_DPAD;
             if (!ctl || e.getAction() != MotionEvent.ACTION_MOVE) return false;
@@ -312,6 +349,7 @@ public class NativeJungleActivity extends Activity {
         }
 
         @Override public boolean onTouchEvent(MotionEvent e) {
+            if (!loop.active() || stageInputLock > 0 || stageCompleteShown) { clearMovement(); return true; }
             requestFocus();
             inputActions.useTouch();
             if(showStartScreen) {
@@ -357,7 +395,7 @@ public class NativeJungleActivity extends Activity {
         }
         float axis(MotionEvent e, int... axes) { for (int a: axes) { float v = e.getAxisValue(a); if (Math.abs(v) > .18f) return v; } return 0; }
 
-        void nav(int dx, int dy) { if(showStageSelect){ eduniMoveWorldMapStageV20_8((dy != 0 ? dy : dx)); return; }  if(showStageSelect){ eduniMoveStageSelect((dy != 0 ? dy : dx)); return; }  if(showStageSelect){ stageSelect += (dy != 0 ? dy : dx); if(stageSelect < 0) stageSelect = stageNames.length-1; if(stageSelect >= stageNames.length) stageSelect = 0; invalidate(); return; }  if(stageCompleteShown && mode == FIELD) return;
+        void nav(int dx, int dy) { if(showStageSelect){ eduniMoveWorldMapStageV20_8((dy != 0 ? dy : dx)); return; } if(stageCompleteShown && mode == FIELD) return;
             if (mode == FIELD || mode == PAUSE) return;
             int n = count(); if (n == 0) return;
             int next = select + (Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : -1) : (dy > 0 ? 2 : -2));
@@ -367,7 +405,7 @@ public class NativeJungleActivity extends Activity {
 
 
         // EDUNI_NATIVE_JUNGLE_WORLDMAP_INPUT_FIX_V20_1
-        boolean stageSelectMoveFromKey(int code, boolean dn) { if(eduniWorldMapConsumeKey(code, dn)) return true;  if(stageSelectMoveFromKey(code, dn)) return true;
+        boolean stageSelectMoveFromKey(int code, boolean dn) { if(eduniWorldMapConsumeKey(code, dn)) return true;
             if(!showStageSelect) return false;
             if(!dn) return true;
 
@@ -494,7 +532,7 @@ public class NativeJungleActivity extends Activity {
 
         @Override
         public boolean dispatchKeyEvent(android.view.KeyEvent event) {
-            if(eduniWorldMapConsumeKey(event.getKeyCode(), event.getAction() == android.view.KeyEvent.ACTION_DOWN)) return true;
+            if(eduniWorldMapActiveV20_10()) return handleKey(event);
             return super.dispatchKeyEvent(event);
         }
 
@@ -637,12 +675,12 @@ public class NativeJungleActivity extends Activity {
 
 
         public boolean onKeyDown(int keyCode, android.view.KeyEvent event) {
-            if(eduniWorldMapKeyV20_8(keyCode, true)) return true;
+            if(eduniWorldMapActiveV20_10()) return handleKey(event);
             return super.onKeyDown(keyCode, event);
         }
 
         public boolean onKeyUp(int keyCode, android.view.KeyEvent event) {
-            if(eduniWorldMapKeyV20_8(keyCode, false)) return true;
+            if(eduniWorldMapActiveV20_10()) return handleKey(event);
             return super.onKeyUp(keyCode, event);
         }
 
@@ -673,6 +711,7 @@ public class NativeJungleActivity extends Activity {
         }
 
         void catchBird() {
+            if (!loop.active() || mode != FIELD || showStartScreen || eduniWorldMapActiveV20_10() || stageCompleteShown || stageInputLock > 0) return;
             Bird b = stageIndex == 0 ? campBird() : nearest();
             if (stageIndex == 0 && !campEncounter.canInteract()) { log = "파랑새의 노랫소리를 따라 등불 길 가까이 가보자."; return; }
             if (stageIndex == 0) {
@@ -684,8 +723,14 @@ public class NativeJungleActivity extends Activity {
                 return;
             }
             if (b == null) { log = "새에게 더 가까이 가서 A!"; return; }
+            final long request = quizRequests.begin();
+            if (request == 0) return;
             log = "문제 불러오는 중...";
-            new Thread(() -> { Quiz q = fetchQuiz(); if (q == null) q = localQuiz(); Quiz qq = q; main.post(() -> { quiz = qq; quiz.bird = b; select = 0; mode = QUIZ; log = "방향키로 정답 선택, A 확인"; }); }).start();
+            new Thread(() -> { Quiz q = fetchQuiz(); if (q == null) q = localQuiz(); Quiz qq = q; main.post(() -> {
+                if (!quizRequests.complete(request)) return;
+                if (!loop.active() || mode != FIELD || showStartScreen || eduniWorldMapActiveV20_10() || stageCompleteShown) return;
+                quiz = qq; quiz.bird = b; select = 0; mode = QUIZ; log = "방향키로 정답 선택, A 확인";
+            }); }).start();
         }
         Bird nearest() { Bird best = null; double bd = 99; for (Bird b: birds) if (!b.caught) { double d = Math.hypot(px-b.x, py-b.y); if (d < .09 && d < bd) { best = b; bd = d; } } return best; }
         Bird campBird() { return birds.isEmpty() || birds.get(0).caught ? null : (Math.hypot(px-campWorld.birdX, py-campWorld.birdY) < .095 ? birds.get(0) : null); }
@@ -717,6 +762,12 @@ public class NativeJungleActivity extends Activity {
 
 
         void postProgress(String eventType,String detail) {
+            final int eventMode = mode;
+            final int eventStars = foundStars;
+            final int eventBirds = caughtBirds;
+            final int eventHearts = hearts;
+            final float eventX = px;
+            final float eventY = py;
             new Thread(() -> {
                 java.net.HttpURLConnection conn = null;
                 try {
@@ -724,12 +775,12 @@ public class NativeJungleActivity extends Activity {
                     payload.put("event_type", eventType);
                     payload.put("detail", detail);
                     payload.put("client_ts", System.currentTimeMillis());
-                    payload.put("screen", mode);
-                    payload.put("stars", foundStars);
-                    payload.put("birds", caughtBirds);
-                    payload.put("hearts", hearts);
-                    payload.put("player_x", px);
-                    payload.put("player_y", py);
+                    payload.put("screen", eventMode);
+                    payload.put("stars", eventStars);
+                    payload.put("birds", eventBirds);
+                    payload.put("hearts", eventHearts);
+                    payload.put("player_x", eventX);
+                    payload.put("player_y", eventY);
                     payload.put("app", "eduni-native-jungle");
                     payload.put("patch", "v7-progress");
 
@@ -961,8 +1012,8 @@ public class NativeJungleActivity extends Activity {
             }
         }
 
-        void update() { if(eduniWorldMapActiveV20_10()){ showStageSelect = true; eduniUpdateWorldMapSelectionV20_8(); invalidate(); return; }  if(stageInputLock > 0) stageInputLock--; tickRewardScreen(); tickGuideOverlay(); tickStageProgression(); updateSparks(); tickClearBanner(); checkClearBonus(); tickEffects();
-            if (mode != FIELD) return;
+        void update() { if(eduniWorldMapActiveV20_10()){ if(stageInputLock > 0) stageInputLock--; showStageSelect = true; eduniUpdateWorldMapSelectionV20_8(); invalidate(); return; }  if(stageInputLock > 0) stageInputLock--; tickRewardScreen(); tickGuideOverlay(); tickStageProgression(); updateSparks(); tickClearBanner(); checkClearBonus(); tickEffects();
+            if (mode != FIELD || showStartScreen || stageCompleteShown || stageInputLock > 0) return;
             long now = android.os.SystemClock.uptimeMillis();
             float dt = lastMovementUpdateMs == 0L ? .016f : Math.min(.05f, (now - lastMovementUpdateMs) / 1000f);
             lastMovementUpdateMs = now;
@@ -1951,22 +2002,31 @@ public class NativeJungleActivity extends Activity {
         }
 
         void postQuizAttemptDetailed(boolean correct) {
+            final Object quizSnapshot = quiz;
+            final int selectedIndex = select;
+            final String questionSnapshot = eduniReflectString(quizSnapshot,"question","q","text","title");
+            final String answerSnapshot = eduniReflectString(quizSnapshot,"answer","correct","correctAnswer","a");
+            final String selectedSnapshot = eduniSelectedOptionText();
+            final int eventStage = stageIndex;
+            final String eventStageName = currentStageName();
+            final int eventStars = foundStars;
+            final int eventBirds = caughtBirds;
+            final int eventHearts = hearts;
             new Thread(() -> {
                 java.net.HttpURLConnection conn = null;
                 try {
-                    Object qz = quiz;
                     org.json.JSONObject payload = new org.json.JSONObject();
                     payload.put("event_type","quiz_attempt");
                     payload.put("correct", correct);
-                    payload.put("question", eduniReflectString(qz,"question","q","text","title"));
-                    payload.put("answer", eduniReflectString(qz,"answer","correct","correctAnswer","a"));
-                    payload.put("selected", eduniSelectedOptionText());
-                    payload.put("selected_index", select);
-                    payload.put("stage", stageIndex + 1);
-                    payload.put("stage_name", currentStageName());
-                    payload.put("stars", foundStars);
-                    payload.put("birds", caughtBirds);
-                    payload.put("hearts", hearts);
+                    payload.put("question", questionSnapshot);
+                    payload.put("answer", answerSnapshot);
+                    payload.put("selected", selectedSnapshot);
+                    payload.put("selected_index", selectedIndex);
+                    payload.put("stage", eventStage + 1);
+                    payload.put("stage_name", eventStageName);
+                    payload.put("stars", eventStars);
+                    payload.put("birds", eventBirds);
+                    payload.put("hearts", eventHearts);
                     payload.put("client_ts", System.currentTimeMillis());
 
                     org.json.JSONObject event = new org.json.JSONObject();
@@ -2012,6 +2072,7 @@ public class NativeJungleActivity extends Activity {
             if(stageCompleteLife > 0) stageCompleteLife--;
 
             if(!stageCompleteShown && foundStars >= targetStars() && caughtBirds >= targetBirds()) {
+                invalidateQuizSession();
                 stageCompleteShown = true;
                 stageCompleteLife = 9999;
                 log = currentStageName() + " 완료!";
@@ -2034,6 +2095,7 @@ public class NativeJungleActivity extends Activity {
         }
 
         void resetWorldForNextStage() {
+            invalidateQuizSession();
             foundStars = 0;
             caughtBirds = 0;
             hearts = 3; eduniApplyStageSpawnV26_3(); ax = 0; ay = 0;
@@ -2059,6 +2121,7 @@ public class NativeJungleActivity extends Activity {
         }
 
         void finishFinalStageAndReturn() {
+            invalidateQuizSession();
             stageCompleteShown = false;
             stageCompleteLife = 0;
             markStageCompleted(stageIndex); log = "모든 정글 탐험 완료! 최고야!";
@@ -2068,6 +2131,8 @@ public class NativeJungleActivity extends Activity {
 
 
         void advanceStage() {
+            invalidateQuizSession();
+            eduniStagePlayingV20_10 = false;
             markStageCompleted(stageIndex);
             if(stageIndex + 1 < stageNames.length) {
                 maxUnlockedStage = Math.max(maxUnlockedStage, stageIndex + 1);

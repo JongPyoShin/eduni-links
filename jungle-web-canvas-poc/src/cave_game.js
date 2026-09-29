@@ -70,6 +70,7 @@ export async function startCaveGame(canvas, modalEl, statusEl) {
     if (!runtime.player?.sprite) return;
     const p = caveLogicalToThree(player.x, player.y, 0);
     runtime.player.sprite.position.set(p.x, 1.02, p.z);
+    runtime.player.marker?.position.set(p.x, 0.08, p.z);
     runtime.player.glow?.position.set(p.x, 0.82, p.z + 0.08);
 
     const image = playerSprite.currentImage();
@@ -78,15 +79,17 @@ export async function startCaveGame(canvas, modalEl, statusEl) {
       runtime.player.sprite.material.needsUpdate = true;
     }
 
-    const framedTargetX = THREE.MathUtils.clamp(p.x, -5.5, 5.5);
-    const framedTargetZ = THREE.MathUtils.clamp(p.z, -4.6, 4.6);
-    runtime.controls.target.x += (framedTargetX - runtime.controls.target.x) * 0.1;
-    runtime.controls.target.z += (framedTargetZ - runtime.controls.target.z) * 0.1;
+    const focus = runtime.beacon?.group?.position || p;
+    const framedTargetX = THREE.MathUtils.clamp((p.x + focus.x) * 0.5, -5.5, 5.5);
+    const framedTargetZ = THREE.MathUtils.clamp((p.z + focus.z) * 0.5, -4.6, 4.6);
+    runtime.controls.target.x = framedTargetX;
+    runtime.controls.target.z = framedTargetZ;
     runtime.controls.target.y = 0.35;
     runtime.camera.position.x = runtime.controls.target.x;
     runtime.camera.position.z = runtime.controls.target.z + 8.2;
     runtime.camera.position.y = 11.5;
     runtime.camera.lookAt(runtime.controls.target.x, runtime.controls.target.y, runtime.controls.target.z);
+    runtime.camera.updateMatrixWorld(true);
   }
 
   function syncPhase() {

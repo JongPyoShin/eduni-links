@@ -137,11 +137,52 @@ test("Three runtime consumes existing Waterfall state and geometry", () => {
   assert.ok(!src.includes("createWaterfallState"), "runtime does not define progression");
 });
 
+test("Waterfall production camera receives the active gameplay target", () => {
+  const game = readFileSync(GAME_JS, "utf8");
+  const runtime = readFileSync(RUNTIME_JS, "utf8");
+  assert.match(game, /getTarget: qaTarget/);
+  assert.ok(game.includes('return target.id === "streamGate" ? { ...target, x: 620, y: 940 } : target;'));
+  assert.match(runtime, /bridge\.getTarget\?\./);
+  assert.match(runtime, /bridge\.getVisualTarget\?\./);
+  assert.match(runtime, /\(p\.x \+ targetPoint\.x\) \* 0\.5/);
+  assert.match(runtime, /\(p\.z \+ targetPoint\.z\) \* 0\.5/);
+});
+
 test("Canvas remains the default renderer and Three controls are debug-only", () => {
   const src = readFileSync(PREVIEW_JS, "utf8");
   assert.ok(src.includes('get("threeDebug") === "1"'), "OrbitControls require explicit debug query");
   assert.ok(src.includes("controls.enabled = debugControls"), "controls are disabled in normal mode");
   assert.ok(src.includes("export function logicalToThree"), "logical-to-Three bridge is explicit");
+});
+
+test("production preview leaves gameplay camera ownership to the runtime bridge", () => {
+  const src = readFileSync(PREVIEW_JS, "utf8");
+  assert.doesNotMatch(src, /const targetX = THREE\.MathUtils\.clamp/);
+  assert.doesNotMatch(src, /const targetZ = THREE\.MathUtils\.clamp/);
+  assert.doesNotMatch(src, /camera\.position\.x = controls\.target\.x \+ 8\.0/);
+  assert.doesNotMatch(src, /camera\.position\.z = controls\.target\.z \+ 9\.5/);
+});
+
+test("portrait preview keeps the player and first route beat in one frame", () => {
+  const src = readFileSync(PREVIEW_JS, "utf8");
+  assert.match(src, /const viewHeight = aspect < 0\.8 \? 14 : 10\.8/);
+  assert.match(src, /color: 0xffd36a/);
+  assert.match(src, /fog: false/);
+});
+
+test("Waterfall production canvas has an explicit clear and draw signal", () => {
+  const preview = readFileSync(PREVIEW_JS, "utf8");
+  const runtime = readFileSync(RUNTIME_JS, "utf8");
+  assert.match(preview, /renderer\.setClearColor\(0x87b9b4, 1\)/);
+  assert.match(preview, /renderer\.clear\(true, true, true\)/);
+  assert.match(preview, /canvas\.dataset\.renderedFrame/);
+  assert.match(preview, /player\.marker\?\.position\.copy\(p\)/);
+  assert.match(runtime, /runtime\.renderer\?\.setClearColor/);
+  assert.match(runtime, /statusEl\.dataset\.cameraDiagnostics/);
+  assert.match(runtime, /statusEl\.dataset\.renderProof/);
+  assert.match(runtime, /targetNdc/);
+  assert.match(runtime, /runtime\.controls\.target\.x = framedTargetX/);
+  assert.match(runtime, /runtime\.controls\.target\.z = framedTargetZ/);
 });
 
 test("Three mode skips the Canvas draw path while preserving gameplay updates", () => {

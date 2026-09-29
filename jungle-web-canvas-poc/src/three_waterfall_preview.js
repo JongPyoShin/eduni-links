@@ -76,7 +76,7 @@ function inspectModel(root) {
 function addGround(scene) {
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(16, 12),
-    material(0x315c3f, { roughness: 0.95 })
+    new THREE.MeshBasicMaterial({ color: 0x315c3f, fog: false })
   );
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
@@ -119,8 +119,8 @@ function addGround(scene) {
 function addRoute(scene) {
   const route = geometryContract.paths[0] || [];
   const radius = geometryContract.pathHalfWidth * WORLD_SCALE * 0.72;
-  const routeMat = material(0xd8c477, { roughness: 1 });
-  const edgeMat = material(0x65734d, { roughness: 1 });
+  const routeMat = new THREE.MeshBasicMaterial({ color: 0xf2d77b, fog: false });
+  const edgeMat = new THREE.MeshBasicMaterial({ color: 0x65734d, fog: false });
 
   for (let i = 0; i < route.length - 1; i += 1) {
     const a = worldPoint(route[i].x, route[i].y, 0.055);
@@ -134,20 +134,20 @@ function addRoute(scene) {
     const edge = new THREE.Mesh(new THREE.PlaneGeometry(len + radius, radius * 2.2), edgeMat);
     edge.rotation.set(-Math.PI / 2, 0, angle);
     edge.position.copy(mid);
-    edge.position.y = 0.042;
+    edge.position.y = 0.14;
     scene.add(edge);
 
     const strip = new THREE.Mesh(new THREE.PlaneGeometry(len + radius * 0.5, radius * 1.5), routeMat);
     strip.rotation.set(-Math.PI / 2, 0, angle);
     strip.position.copy(mid);
-    strip.position.y = 0.06;
+    strip.position.y = 0.18;
     scene.add(strip);
   }
 
   for (const node of route) {
     const pad = new THREE.Mesh(new THREE.CircleGeometry(radius * 0.78, 24), routeMat);
     pad.rotation.x = -Math.PI / 2;
-    pad.position.copy(worldPoint(node.x, node.y, 0.062));
+    pad.position.copy(worldPoint(node.x, node.y, 0.182));
     scene.add(pad);
   }
 }
@@ -242,7 +242,9 @@ function addGate(scene) {
   crown.rotation.z = Math.PI;
   crown.position.set(0, 2.22, 0);
   group.add(left, right, top, crown);
-  group.position.copy(worldPoint(700, 900, 0));
+  // Keep the visible gate within the authored 130px interaction radius while
+  // bringing it into the portrait start composition beside the player.
+  group.position.copy(worldPoint(620, 940, 0));
   group.rotation.y = -0.12;
   group.traverse((obj) => { if (obj.isMesh) obj.castShadow = true; });
   scene.add(group);
@@ -273,7 +275,7 @@ async function addStoryEnvironment(scene) {
   });
   const gateLanterns = new THREE.Group();
   const lanternMat = new THREE.MeshStandardMaterial({ color: 0xffd27a, emissive: 0xb85d18, emissiveIntensity: 0.9 });
-  for (const x of [650, 750]) {
+  for (const x of [570, 670]) {
     const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), lanternMat);
     lantern.position.copy(worldPoint(x, 900, 1.75));
     gateLanterns.add(lantern);
@@ -468,11 +470,17 @@ async function addPlayerBillboard(scene) {
     sprite.position.set(anchor.x, 1.02, anchor.z);
     sprite.scale.set(PLAYER_SPRITE_SCALE.width, PLAYER_SPRITE_SCALE.height, 1);
     scene.add(sprite);
+    const marker = new THREE.Sprite(new THREE.SpriteMaterial({
+      color: 0xffd36a, transparent: true, opacity: .3, depthWrite: false, depthTest: false,
+    }));
+    marker.scale.set(1.5, 2.0, 1);
+    scene.add(marker);
     const glow = new THREE.PointLight(0xffd98a, 1.4, 2.2, 2);
     glow.position.set(anchor.x, 0.85, anchor.z + 0.08);
     scene.add(glow);
     return {
       sprite,
+      marker,
       glow,
       textureCache,
       cacheTexture,
@@ -482,7 +490,14 @@ async function addPlayerBillboard(scene) {
       },
     };
   } catch {
-    return null;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0xffd36a, transparent: true, opacity: 0.98, fog: false }));
+    sprite.scale.set(PLAYER_SPRITE_SCALE.width, PLAYER_SPRITE_SCALE.height, 1);
+    scene.add(sprite);
+    const glow = new THREE.PointLight(0xffd98a, 1.8, 2.4, 2);
+    scene.add(glow);
+    const marker = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0xfff08a, transparent: true, opacity: .5, depthWrite: false, depthTest: false }));
+    marker.scale.set(1.5, 2.0, 1); scene.add(marker);
+    return { sprite, marker, glow, textureCache: new Map(), cacheTexture: () => null, disposeTextures() {} };
   }
 }
 
@@ -516,6 +531,8 @@ export async function startThreeWaterfallPreview(canvas, statusEl, options = {})
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
+  renderer.setClearColor(0x87b9b4, 1);
+  canvas.style.background = "#87b9b4";
 
   const scene = new THREE.Scene();
   addAtmosphere(scene);
@@ -564,7 +581,7 @@ export async function startThreeWaterfallPreview(canvas, statusEl, options = {})
     const height = canvas.clientHeight || globalThis.innerHeight || 720;
     renderer.setSize(width, height, false);
     const aspect = width / Math.max(1, height);
-    const viewHeight = 10.8;
+    const viewHeight = aspect < 0.8 ? 14 : 10.8;
     camera.left = -(viewHeight * aspect) / 2;
     camera.right = (viewHeight * aspect) / 2;
     camera.top = viewHeight / 2;
@@ -573,7 +590,7 @@ export async function startThreeWaterfallPreview(canvas, statusEl, options = {})
   }
 
   const cueAnchors = [
-    { key: "streamGateComplete", point: [700, 900] },
+    { key: "streamGateComplete", point: [620, 940] },
     { key: "steppingStonesComplete", point: [1080, 700] },
     { key: "echo", point: [1170, 560] },
     { key: "mistTrail", point: [1020, 480] },
@@ -652,16 +669,11 @@ export async function startThreeWaterfallPreview(canvas, statusEl, options = {})
       const logical = options.getPlayer?.();
       if (logical) {
         const p = worldPoint(logical.x, logical.y, 0);
-        const targetX = THREE.MathUtils.clamp(p.x, -3.1, 3.1);
-        const targetZ = THREE.MathUtils.clamp(p.z * 0.62 - 0.55, -3.0, 3.0);
-        controls.target.x += (targetX - controls.target.x) * 0.08;
-        controls.target.z += (targetZ - controls.target.z) * 0.08;
-        camera.position.x = controls.target.x + 8.0;
-        camera.position.z = controls.target.z + 9.5;
-        camera.position.y = 11.5;
         if (player?.sprite) {
           player.sprite.position.copy(p);
           player.sprite.position.y = 1.02;
+          player.marker?.position.copy(p);
+          if (player.marker) player.marker.position.y = 1.02;
           player.glow.position.set(p.x, 0.85, p.z + 0.08);
           const image = options.getPlayerImage?.();
           if (image && player.sprite.material.map?.image !== image) {
@@ -672,7 +684,9 @@ export async function startThreeWaterfallPreview(canvas, statusEl, options = {})
       }
     }
     controls.update();
+    renderer.clear(true, true, true);
     renderer.render(scene, camera);
+    canvas.dataset.renderedFrame = String(renderer.info.render.frame);
     if (statusEl) statusEl.dataset.rendererInfo = JSON.stringify({
       calls: renderer.info.render.calls,
       triangles: renderer.info.render.triangles,

@@ -66,7 +66,7 @@ function standardMaterial(color, extra = {}) {
 function addGround(scene) {
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(16, 12),
-    standardMaterial(0x202b31, { roughness: 1 })
+    standardMaterial(0x2b3948, { roughness: 1 })
   );
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
@@ -74,7 +74,7 @@ function addGround(scene) {
 
   const chamber = new THREE.Mesh(
     new THREE.CircleGeometry(2.45, 48),
-    standardMaterial(0x26343d, { roughness: 0.96 })
+    standardMaterial(0x344653, { roughness: 0.96 })
   );
   chamber.rotation.x = -Math.PI / 2;
   chamber.scale.set(1.25, 0.7, 1);
@@ -86,8 +86,8 @@ function addGround(scene) {
 function addRoute(scene) {
   const route = geometryContract.paths[0];
   const radius = geometryContract.pathHalfWidth * WORLD_SCALE * 0.72;
-  const edgeMat = standardMaterial(0x313341, { roughness: 1 });
-  const routeMat = standardMaterial(0x8da7be, { roughness: 1 });
+  const edgeMat = new THREE.MeshBasicMaterial({ color: 0x5b6a70, fog: false });
+  const routeMat = new THREE.MeshBasicMaterial({ color: 0xffffb0, fog: false });
 
   for (let i = 0; i < route.length - 1; i += 1) {
     const a = worldPoint(route[i].x, route[i].y, 0.045);
@@ -101,27 +101,34 @@ function addRoute(scene) {
     const edge = new THREE.Mesh(new THREE.PlaneGeometry(len + radius, radius * 2.15), edgeMat);
     edge.rotation.set(-Math.PI / 2, 0, angle);
     edge.position.copy(mid);
-    edge.position.y = 0.035;
+    edge.position.y = 0.14;
     scene.add(edge);
 
-    const strip = new THREE.Mesh(new THREE.PlaneGeometry(len + radius * 0.45, radius * 1.48), routeMat);
+    const strip = new THREE.Mesh(new THREE.PlaneGeometry(len + radius * 0.45, radius * 1.8), routeMat);
     strip.rotation.set(-Math.PI / 2, 0, angle);
     strip.position.copy(mid);
-    strip.position.y = 0.052;
+    strip.position.y = 0.2;
     scene.add(strip);
   }
 
   for (const node of route) {
     const pad = new THREE.Mesh(new THREE.CircleGeometry(radius * 0.76, 24), routeMat);
     pad.rotation.x = -Math.PI / 2;
-    pad.position.copy(worldPoint(node.x, node.y, 0.054));
+    pad.position.copy(worldPoint(node.x, node.y, 0.205));
     scene.add(pad);
+  }
+  const guideMat = new THREE.MeshBasicMaterial({ color: 0xfff3a0, transparent: true, opacity: .72, fog: false });
+  for (const [x, y] of [[200, 1000], [200, 960], [260, 930], [330, 930], [395, 930]]) {
+    const guide = new THREE.Mesh(new THREE.CircleGeometry(radius * .48, 20), guideMat);
+    guide.rotation.x = -Math.PI / 2;
+    guide.position.copy(worldPoint(x, y, .22));
+    scene.add(guide);
   }
 }
 
 function addForegroundFrame(scene) {
   const group = new THREE.Group();
-  const rockMat = standardMaterial(0x171a2a, { roughness: 1, transparent: true, opacity: .68 });
+  const rockMat = standardMaterial(0x171a2a, { roughness: 1, transparent: true, opacity: .16 });
   for (const [x, y, z, scale] of [[-7.1, 1.5, 3.2, 1.05], [7.1, 1.8, 3.1, .95], [-5.4, 5.1, 2.8, .62], [5.2, 5.2, 2.8, .66]]) {
     const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1.2, 1), rockMat);
     rock.position.set(x, y, z); rock.scale.set(scale, scale * 1.25, scale * .8);
@@ -133,9 +140,9 @@ function addForegroundFrame(scene) {
 
 function addObjectiveBeacon(scene) {
   const group = new THREE.Group();
-  const ring = new THREE.Mesh(new THREE.RingGeometry(.28, .38, 32), new THREE.MeshBasicMaterial({ color: 0xdfff75, transparent: true, opacity: .82, side: THREE.DoubleSide, depthWrite: false }));
+  const ring = new THREE.Mesh(new THREE.RingGeometry(.34, .48, 32), new THREE.MeshBasicMaterial({ color: 0xf4ff9a, transparent: true, opacity: .96, side: THREE.DoubleSide, depthWrite: false }));
   ring.rotation.x = -Math.PI / 2;
-  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.035, .15, 1.7, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xdfff75, transparent: true, opacity: .26, depthWrite: false }));
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.05, .2, 2.2, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xf4ff9a, transparent: true, opacity: .42, depthWrite: false }));
   beam.position.y = .86;
   group.add(ring, beam);
   scene.add(group);
@@ -189,8 +196,8 @@ async function loadCaveVendorLibrary(onProgress) {
 
 function populateCaveRocks(scene, library) {
   const placements = [
-    ["rockCluster", 330, 985, 1.15, -0.2], ["boulder", 455, 1010, 1.0, 0.15],
-    ["mossyBoulder", 345, 845, 0.95, 0.1], ["rockCluster", 505, 835, 1.05, -0.15],
+    ["rockCluster", 120, 900, 0.72, -0.2], ["boulder", 700, 1020, 0.62, 0.15],
+    ["mossyBoulder", 250, 780, 0.72, 0.1], ["rockCluster", 560, 760, 0.82, -0.15],
     ["boulder", 690, 790, 0.9, 0.3], ["rockCluster", 825, 765, 1.1, -0.25],
     ["mossyBoulder", 850, 625, 0.95, 0.2], ["rockCluster", 990, 670, 1.0, -0.1],
     ["boulder", 1015, 425, 1.15, 0.18], ["rockCluster", 1160, 625, 1.05, -0.22],
@@ -351,14 +358,25 @@ async function addPlayer(scene) {
   try {
     const texture = await new THREE.TextureLoader().loadAsync("assets/player/player_front_idle_00_v01.png");
     texture.colorSpace = THREE.SRGBColorSpace;
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false, depthTest: true }));
     sprite.scale.set(PLAYER_SPRITE_SCALE.width, PLAYER_SPRITE_SCALE.height, 1);
     scene.add(sprite);
+    const marker = new THREE.Mesh(new THREE.RingGeometry(.34, .52, 32), new THREE.MeshBasicMaterial({ color: 0xffe88a, transparent: true, opacity: .78, side: THREE.DoubleSide, depthWrite: false }));
+    marker.rotation.x = -Math.PI / 2;
+    scene.add(marker);
     const glow = new THREE.PointLight(0xffd98a, 1.0, 2.1, 2);
     scene.add(glow);
-    return { sprite, glow, texture };
+    return { sprite, marker, glow, texture };
   } catch {
-    return null;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0xffd36a, transparent: true, opacity: 0.98, fog: false, depthTest: true }));
+    sprite.scale.set(PLAYER_SPRITE_SCALE.width, PLAYER_SPRITE_SCALE.height, 1);
+    scene.add(sprite);
+    const glow = new THREE.PointLight(0xffd98a, 1.8, 2.4, 2);
+    scene.add(glow);
+    const marker = new THREE.Mesh(new THREE.RingGeometry(.34, .52, 32), new THREE.MeshBasicMaterial({ color: 0xffffa0, transparent: true, opacity: .82, side: THREE.DoubleSide, depthWrite: false }));
+    marker.rotation.x = -Math.PI / 2;
+    scene.add(marker);
+    return { sprite, marker, glow, texture: null };
   }
 }
 
@@ -383,7 +401,7 @@ function applyPhase(scene, renderer, story, crystals, player, beacon, phaseId) {
   const color = CAVE_PALETTES[phase.palette] ?? CAVE_PALETTES["twilight-violet"];
   scene.background.setHex(color);
   scene.fog.color.setHex(color);
-  scene.fog.density = 0.012 + phase.fog * 0.038;
+  scene.fog.density = 0.008 + phase.fog * 0.012;
   renderer.toneMappingExposure = 0.82 + phase.warmth * 0.34;
 
   story.entranceFireflies.visible = index <= 1;
@@ -405,7 +423,8 @@ function applyPhase(scene, renderer, story, crystals, player, beacon, phaseId) {
   const [x, y] = PHASE_ANCHORS[phaseId] || PHASE_ANCHORS.caveGate;
   // Keep the visual goal beside the approach lane; interaction remains at the
   // authored anchor so the avatar silhouette never sits on the landmark.
-  beacon.group.position.copy(worldPoint(x + 42, y - 34, .06));
+  const visualOffset = phaseId === "caveGate" ? { x: -15, y: 15 } : { x: 42, y: -34 };
+  beacon.group.position.copy(worldPoint(x + visualOffset.x, y + visualOffset.y, .06));
   beacon.group.visible = index < 7;
   if (player?.sprite) {
     const p = worldPoint(x - 55, y + 35, 0);
@@ -463,7 +482,7 @@ export async function startThreeCavePreview(canvas, statusEl, options = {}) {
     const height = canvas.clientHeight || globalThis.innerHeight || 720;
     renderer.setSize(width, height, false);
     const aspect = width / Math.max(1, height);
-    const viewHeight = 10.8;
+    const viewHeight = aspect < 0.8 ? 14.5 : 10.8;
     camera.left = -(viewHeight * aspect) / 2;
     camera.right = (viewHeight * aspect) / 2;
     camera.top = viewHeight / 2;
@@ -540,7 +559,7 @@ export async function startThreeCavePreview(canvas, statusEl, options = {}) {
     renderer.dispose();
   };
 
-  const api = { scene, camera, renderer, controls, geometryContract, vendor, rocks, crystals, story, player, phases: PHASES, setPhase, getPhase: () => PHASES[phaseIndex], dispose };
+  const api = { scene, camera, renderer, controls, geometryContract, vendor, rocks, crystals, story, player, beacon, phases: PHASES, setPhase, getPhase: () => PHASES[phaseIndex], dispose };
   globalThis.__eduniThreeCave = api;
   return api;
 }

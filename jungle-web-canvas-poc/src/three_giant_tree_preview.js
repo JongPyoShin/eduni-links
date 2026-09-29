@@ -62,8 +62,8 @@ function addGround(scene) {
 function addRoute(scene) {
   const route = geometryContract.paths[0];
   const radius = geometryContract.pathHalfWidth * WORLD_SCALE * 0.75;
-  const edgeMat = mat(0x3b392d, { roughness: 1 });
-  const routeMat = mat(0x9b8050, { roughness: 1 });
+  const edgeMat = new THREE.MeshBasicMaterial({ color: 0x3b392d, fog: false });
+  const routeMat = new THREE.MeshBasicMaterial({ color: 0xd4b76c, fog: false });
   for (let i = 0; i < route.length - 1; i += 1) {
     const a = worldPoint(route[i].x, route[i].y, 0.04);
     const b = worldPoint(route[i + 1].x, route[i + 1].y, 0.04);
@@ -94,13 +94,13 @@ function addRoute(scene) {
 function addForegroundFrame(scene) {
   const group = new THREE.Group();
   const rootMat = mat(0x3c2b20, { roughness: 1, transparent: true, opacity: .96 });
-  for (const [x, z, angle] of [[-6.1, 2.8, -.22], [6.1, 2.6, .22]]) {
+  for (const [x, z, angle] of [[8.0, 3.2, .22]]) {
     const root = new THREE.Mesh(new THREE.CapsuleGeometry(.34, 4.8, 6, 12), rootMat);
     root.rotation.set(0, angle, Math.PI / 2.8); root.position.set(x, .65, z);
     root.castShadow = true; group.add(root);
   }
-  const canopyMat = mat(0x29472d, { roughness: 1, transparent: true, opacity: .9 });
-  for (const [x, y, z, s] of [[-5.7, 4.9, 2.5, 1.45], [5.5, 5.1, 2.4, 1.35], [0, 5.9, 3.0, 1.1]]) {
+  const canopyMat = mat(0x29472d, { roughness: 1, transparent: true, opacity: .22 });
+  for (const [x, y, z, s] of [[-8.5, 6.0, 4.2, .26], [7.0, 5.8, 3.2, .34]]) {
     const canopy = new THREE.Mesh(new THREE.SphereGeometry(1.3, 14, 10), canopyMat);
     canopy.position.set(x, y, z); canopy.scale.set(s, s * .7, s * .8); canopy.castShadow = true; group.add(canopy);
   }
@@ -133,7 +133,8 @@ function addRoot(rootGroup, angle, length, width, y = 0.18) {
 
 function addAncientTree(scene) {
   const group = new THREE.Group();
-  group.position.copy(worldPoint(1120, 500, 0));
+  group.position.copy(worldPoint(620, 700, 0));
+  group.scale.setScalar(.72);
 
   const trunkMat = mat(0x725137, { roughness: 1 });
   const trunk = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.55, 6.8, 18), trunkMat);
@@ -325,8 +326,8 @@ async function loadVendor(onProgress) {
 
 function populateForest(scene, library) {
   const placements = [
-    ["floweringTree",250,930,.6,-.12],["cypressTree",350,790,.34,.18],["mangroveCluster",520,890,.48,-.2],
-    ["mossyBoulder",590,760,.75,.1],["grassTuft",700,900,.8,-.1],["rockCluster",760,610,.62,.2],
+    ["floweringTree",120,760,.42,-.12],["cypressTree",300,620,.26,.18],["mangroveCluster",560,760,.34,-.2],
+    ["mossyBoulder",700,760,.5,.1],["grassTuft",760,700,.56,-.1],["rockCluster",820,610,.5,.2],
     ["cypressTree",880,820,.32,-.14],["mangroveCluster",930,450,.46,.12],["mossyBoulder",1180,650,.7,-.08],
     ["floweringTree",1350,600,.55,.16],["grassTuft",1390,460,.8,-.2],["rockCluster",1510,410,.66,.1],
   ];
@@ -345,11 +346,22 @@ async function addPlayer(scene) {
   try {
     const texture=await new THREE.TextureLoader().loadAsync("assets/player/player_front_idle_00_v01.png");
     texture.colorSpace=THREE.SRGBColorSpace;
-    const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthWrite:false}));
+    const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthWrite:false,depthTest:false}));
     sprite.scale.set(PLAYER_SPRITE_SCALE.width, PLAYER_SPRITE_SCALE.height, 1); scene.add(sprite);
+    const marker = new THREE.Mesh(new THREE.RingGeometry(.34, .52, 32), new THREE.MeshBasicMaterial({ color: 0xffe88a, transparent: true, opacity: .78, side: THREE.DoubleSide, depthWrite: false }));
+    marker.rotation.x = -Math.PI / 2; scene.add(marker);
     const glow=new THREE.PointLight(0xffd98a,1.05,2.2,2); scene.add(glow);
-    return {sprite,glow,texture};
-  } catch { return null; }
+    return {sprite,marker,glow,texture};
+  } catch {
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0xffd36a, transparent: true, opacity: 0.98, fog: false, depthTest: false }));
+    sprite.scale.set(PLAYER_SPRITE_SCALE.width, PLAYER_SPRITE_SCALE.height, 1);
+    scene.add(sprite);
+    const glow = new THREE.PointLight(0xffd98a, 1.8, 2.4, 2);
+    scene.add(glow);
+    const marker = new THREE.Mesh(new THREE.RingGeometry(.34, .52, 32), new THREE.MeshBasicMaterial({ color: 0xffffa0, transparent: true, opacity: .82, side: THREE.DoubleSide, depthWrite: false }));
+    marker.rotation.x = -Math.PI / 2; scene.add(marker);
+    return { sprite, marker, glow, texture: null };
+  }
 }
 
 function addAtmosphere(scene) {
@@ -364,10 +376,11 @@ function applyPhase(scene, renderer, story, player, beacon, phaseId) {
   const phase=getGiantTreeVisualPhase(phaseId) || getGiantTreeVisualPhase("rootGate");
   const index=Math.max(0,PHASES.indexOf(phaseId));
   const color=PALETTES[phase.palette] ?? PALETTES["root-amber"];
-  scene.background.setHex(color); scene.fog.color.setHex(color); scene.fog.density=.009+phase.fog*.055;
+  scene.background.setHex(color); scene.fog.color.setHex(color); scene.fog.density=.007+phase.fog*.014;
   renderer.toneMappingExposure=.82+phase.warmth*.4;
 
   story.tree.barkMarks.visible=index>=1;
+  story.tree.group.visible = true;
   story.seedTrail.visible=index>=2 && index<=4;
   story.echo.visible=phaseId==="hollowEcho";
   story.rings.group.visible=index>=4;
@@ -386,7 +399,7 @@ export async function startThreeGiantTreePreview(canvas,statusEl,options={}) {
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:"high-performance"});
   renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio||1,1.5));
   renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping;
-  const scene=new THREE.Scene(); addAtmosphere(scene); addGround(scene); addStageComposition(scene, { backdrop: 0x263d2d, islands: [0x405b3c, 0x536844, 0x354e35], foreground: 0x2c3b2a }); addForegroundFrame(scene); addRoute(scene);
+  const scene=new THREE.Scene(); addAtmosphere(scene); addGround(scene); const composition=addStageComposition(scene, { backdrop: 0x263d2d, islands: [0x405b3c, 0x536844, 0x354e35], foreground: 0x2c3b2a }); composition.children[2]?.scale.set(.3, .3, .3); addForegroundFrame(scene); addRoute(scene);
   const tree=addAncientTree(scene); const rings=addRingGallery(scene); const seedTrail=addSeedTrail(scene); const echo=addHollowEcho(scene); const stairs=addSpiralStairs(scene); const squirrel=addSquirrel(scene); const reward=addReward(scene);
 
   const camera=new THREE.OrthographicCamera(-8,8,5,-5,.1,70); camera.position.set(8.5,12.5,11.0); camera.lookAt(1.2,1.2,-.6);
@@ -403,7 +416,7 @@ export async function startThreeGiantTreePreview(canvas,statusEl,options={}) {
   let phaseIndex=Math.max(0,PHASES.indexOf(options.phase||"rootGate"));
   let currentPhase=applyPhase(scene,renderer,story,player,beacon,PHASES[phaseIndex]);
 
-  function resize(){ const width=canvas.clientWidth||globalThis.innerWidth||1280; const height=canvas.clientHeight||globalThis.innerHeight||720; renderer.setSize(width,height,false); const aspect=width/Math.max(1,height); const viewHeight=10.8; camera.left=-(viewHeight*aspect)/2; camera.right=(viewHeight*aspect)/2; camera.top=viewHeight/2; camera.bottom=-viewHeight/2; camera.updateProjectionMatrix(); }
+  function resize(){ const width=canvas.clientWidth||globalThis.innerWidth||1280; const height=canvas.clientHeight||globalThis.innerHeight||720; renderer.setSize(width,height,false); const aspect=width/Math.max(1,height); const viewHeight=aspect < 0.8 ? 14 : 10.8; camera.left=-(viewHeight*aspect)/2; camera.right=(viewHeight*aspect)/2; camera.top=viewHeight/2; camera.bottom=-viewHeight/2; camera.updateProjectionMatrix(); }
   resize(); globalThis.addEventListener("resize",resize);
 
   const setPhase=(value)=>{ if(typeof value==="number") phaseIndex=THREE.MathUtils.clamp(Math.round(value),0,PHASES.length-1); else { const requested=PHASES.indexOf(value); if(requested>=0) phaseIndex=requested; } currentPhase=applyPhase(scene,renderer,story,player,beacon,PHASES[phaseIndex]); setStatus(`단계 ${phaseIndex+1}/${PHASES.length} · ${PHASES[phaseIndex]} · GLB ${vendor.loaded}/${vendor.total} · fallback ${vendor.fallbacks}`); if(statusEl) statusEl.dataset.stageVisual=JSON.stringify(currentPhase); return currentPhase; };
@@ -426,6 +439,6 @@ export async function startThreeGiantTreePreview(canvas,statusEl,options={}) {
   rafId=requestAnimationFrame(frame);
 
   const dispose=()=>{ if(disposed)return; disposed=true; cancelAnimationFrame(rafId); globalThis.removeEventListener("resize",resize); controls.dispose(); scene.traverse((obj)=>{ obj.geometry?.dispose?.(); const materials=Array.isArray(obj.material)?obj.material:[obj.material]; materials.filter(Boolean).forEach((m)=>{ Object.values(m).forEach((v)=>v?.isTexture&&v.dispose()); m.dispose?.(); }); }); player?.texture?.dispose?.(); renderer.dispose(); };
-  const api={scene,camera,renderer,controls,geometryContract,vendor,forest,story,player,phases:PHASES,setPhase,getPhase:()=>PHASES[phaseIndex],dispose};
+  const api={scene,camera,renderer,controls,geometryContract,vendor,forest,story,player,beacon,phases:PHASES,setPhase,getPhase:()=>PHASES[phaseIndex],dispose};
   globalThis.__eduniThreeGiantTree=api; return api;
 }

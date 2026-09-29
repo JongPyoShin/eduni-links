@@ -628,6 +628,13 @@ export async function start(canvas, modalEl) {
         geometry,
         getState: () => waterfall,
         getPlayer: () => player,
+        getTarget: qaTarget,
+        getVisualTarget: () => {
+          const target = qaTarget();
+          if (!target) return null;
+          return target.id === "streamGate" ? { ...target, x: 620, y: 940 } : target;
+        },
+        enableDiagnostics: params.get("qa") === "1",
         getPlayerImage: () => playerSprite.currentImage(),
       });
       startup.lastCompletedStep = "three-waterfall-runtime";

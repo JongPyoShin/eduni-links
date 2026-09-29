@@ -12,11 +12,13 @@ const GIANT_TREE = readFileSync(resolve(ROOT, "src", "giant_tree_game.js"), "utf
 const SKY_RIDGE = readFileSync(resolve(ROOT, "src", "sky_ridge_game.js"), "utf8");
 
 function assertCardinalGameCamera(source, y) {
-  assert.match(source, /const framedTargetZ = THREE\.MathUtils\.clamp\(p\.z, -4\.6, 4\.6\)/);
-  assert.match(source, /const framedTargetX = THREE\.MathUtils\.clamp\(p\.x, -5\.5, 5\.5\)/);
+  assert.match(source, /const framedTargetZ = THREE\.MathUtils\.clamp\(\(p\.z \+ focus\.z\) \* 0\.5, -4\.6, 4\.6\)/);
+  assert.match(source, /const framedTargetX = THREE\.MathUtils\.clamp\(\(p\.x \+ focus\.x\) \* 0\.5, -5\.5, 5\.5\)/);
   assert.match(source, /runtime\.camera\.position\.x = runtime\.controls\.target\.x/);
   assert.match(source, /runtime\.camera\.position\.z = runtime\.controls\.target\.z \+ 8\.2/);
   assert.match(source, /runtime\.camera\.lookAt\(runtime\.controls\.target\.x, runtime\.controls\.target\.y, runtime\.controls\.target\.z\)/);
+  assert.match(source, /runtime\.camera\.updateMatrixWorld\(true\)/);
+  assert.match(source, /runtime\.player\.marker\?\.position\.set\(p\.x, (?:1\.02|0\.08), p\.z\)/);
   assert.match(source, new RegExp(`runtime\\.camera\\.position\\.y = ${String(y).replace(".", "\\.")}`));
   assert.doesNotMatch(source, /p\.z \* 0\.62/);
   assert.doesNotMatch(source, /runtime\.controls\.target\.x \+ 8\.0/);
@@ -26,6 +28,7 @@ test("Waterfall production renderer overrides its preview camera with cardinal g
   assert.match(WATERFALL, /installCardinalGameplayCamera/);
   assert.match(WATERFALL, /runtime\.camera\.position\.set\(runtime\.controls\.target\.x, 11\.5, runtime\.controls\.target\.z \+ 8\.2\)/);
   assert.match(WATERFALL, /runtime\.camera\.lookAt\(target\.x, target\.y, target\.z\)/);
+  assert.match(WATERFALL, /runtime\.camera\.updateMatrixWorld\(true\)/);
   assert.doesNotMatch(WATERFALL, /requestAnimationFrame/);
 });
 

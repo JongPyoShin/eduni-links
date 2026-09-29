@@ -177,9 +177,9 @@ export const WATERFALL_THREE_PLACEMENTS = Object.freeze([
   { model: "cypressTree", x: 180, y: 690, scale: 0.24, rotation: 0.16 },
   { model: "mangroveCluster", x: 360, y: 705, scale: 0.42, rotation: -0.22 },
   { model: "rockCluster", x: 415, y: 805, scale: 0.58, rotation: 0.2 },
-  { model: "cypressTree", x: 270, y: 980, scale: 0.3, rotation: -0.18 },
-  { model: "mangroveCluster", x: 470, y: 930, scale: 0.48, rotation: 0.16 },
-  { model: "mossyBoulder", x: 565, y: 900, scale: 0.86, rotation: -0.08 },
+  { model: "cypressTree", x: 120, y: 900, scale: 0.22, rotation: -0.18 },
+  { model: "mangroveCluster", x: 390, y: 900, scale: 0.42, rotation: 0.16 },
+  { model: "mossyBoulder", x: 470, y: 850, scale: 0.68, rotation: -0.08 },
 
   // Crossing.
   { model: "cattailReedClump", x: 825, y: 805, scale: 0.88, rotation: -0.1 },

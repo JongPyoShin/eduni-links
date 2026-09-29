@@ -146,7 +146,10 @@ function addLearningHut(scene) {
 
 function addEntrance(scene) {
   const group = new THREE.Group();
-  group.position.copy(worldPoint(200, 1040, 0));
+  // Keep the entrance marker beside the spawn rather than directly in front of
+  // the avatar's portrait silhouette. The gameplay spawn remains unchanged.
+  group.position.copy(worldPoint(330, 990, 0));
+  group.scale.setScalar(0.78);
   const wood = mat(0x765439);
   for (const x of [-0.72, 0.72]) {
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.14, 2, 8), wood);
@@ -387,7 +390,7 @@ async function addPlayer(scene) {
   await playerSprite.load();
   const textureCache = new Map();
   const firstImage = playerSprite.currentImage();
-  const material = new THREE.SpriteMaterial({ transparent: true, depthWrite: false });
+  const material = new THREE.SpriteMaterial({ transparent: true, depthWrite: false, depthTest: true });
   const sprite = new THREE.Sprite(material);
     sprite.scale.set(PLAYER_SPRITE_SCALE.width, PLAYER_SPRITE_SCALE.height, 1);
   scene.add(sprite);
@@ -503,7 +506,7 @@ export async function startThreeCampRuntime(baseCanvas, bridge) {
     const aspect = width / Math.max(1, height);
     // All stage cameras use the same authored vertical world span so the
     // shared player billboard keeps the same apparent height across regions.
-    const viewHeight = 10.8;
+    const viewHeight = aspect < 0.8 ? 14 : 10.8;
     const viewWidth = viewHeight * aspect;
     cameraView.halfWidth = viewWidth / 2;
     cameraView.halfHeight = viewHeight / 2;
@@ -577,15 +580,16 @@ export async function startThreeCampRuntime(baseCanvas, bridge) {
     previousLogical = { x: logical.x, y: logical.y };
 
     const p = worldPoint(logical.x, logical.y, 0);
-    const focusX = clampFocus(p.x, cameraView.halfWidth, 8);
-    const focusZ = clampFocus(p.z, cameraView.halfHeight * 0.7, 6);
+    const target = bridge.getTarget?.() || null;
+    const targetPoint = target ? worldPoint(target.x, target.y, 0) : p;
+    const focusX = clampFocus((p.x + targetPoint.x) * 0.5, cameraView.halfWidth, 8);
+    const focusZ = clampFocus((p.z + targetPoint.z) * 0.5, cameraView.halfHeight * 0.7, 6);
     // No X camera offset: world X is screen-horizontal and world Y/Z is
     // screen-vertical. D-pad arrows therefore move exactly in their icon direction
     // while retaining an elevated 2.5D camera instead of a flat top-down view.
     camera.position.set(focusX, 11.5, focusZ + 8.2);
     camera.lookAt(focusX, 0.25, focusZ);
 
-    const target = bridge.getTarget?.() || null;
     interactionRing.visible = Boolean(target);
     if (target) {
       interactionRing.position.copy(worldPoint(target.x, target.y, 0.09));

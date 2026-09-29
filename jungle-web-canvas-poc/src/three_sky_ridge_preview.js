@@ -42,8 +42,8 @@ const mat = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, rough
 async function addPirateFoliage(scene) {
   const loader = new GLTFLoader();
   const entries = [
-    { file: "PN-PalmTreeStatic.gltf", height: 2.45, points: [[-2.65, 1.75], [2.95, -0.6]] },
-    { file: "PN-BirdsOfParadisePlant.gltf", height: 1.15, points: [[-1.6, 1.15], [1.35, -0.05], [2.4, -1.15]] },
+    { file: "PN-PalmTreeStatic.gltf", height: 1.4, points: [[-5.6, 2.0], [2.95, -0.6]] },
+    { file: "PN-BirdsOfParadisePlant.gltf", height: .6, points: [[-5.0, 1.25], [1.35, -0.05], [2.4, -1.15]] },
   ];
   const group = new THREE.Group();
   const report = [];
@@ -71,8 +71,8 @@ function addGround(scene) {
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   scene.add(ground);
-  for (const [x, y, r] of [[430,930,1.25],[1000,560,1.1],[1130,490,1.35],[1450,310,1.25]]) {
-    const shelf = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.08, .24, 28), mat(0x69766d));
+  for (const [x, y, r] of [[430,930,.8],[1000,560,.68],[1130,490,.78],[1450,310,.8]]) {
+    const shelf = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.08, .18, 28), mat(0x69766d));
     shelf.position.copy(worldPoint(x, y, .1));
     shelf.receiveShadow = true;
     scene.add(shelf);
@@ -82,8 +82,8 @@ function addGround(scene) {
 function addRoute(scene) {
   const route = geometryContract.paths[0];
   const radius = geometryContract.pathHalfWidth * WORLD_SCALE * 0.75;
-  const edgeMat = mat(0x445852, { roughness: 1 });
-  const routeMat = mat(0x8da49b, { roughness: 1 });
+  const edgeMat = new THREE.MeshBasicMaterial({ color: 0x445852, fog: false });
+  const routeMat = new THREE.MeshBasicMaterial({ color: 0xcfe5c9, fog: false });
   for (let i = 0; i < route.length - 1; i += 1) {
     const a = worldPoint(route[i].x, route[i].y, .05);
     const b = worldPoint(route[i + 1].x, route[i + 1].y, .05);
@@ -97,28 +97,28 @@ function addRoute(scene) {
     edge.position.copy(mid);
     edge.position.y = .025;
     scene.add(edge);
-    const strip = new THREE.Mesh(new THREE.PlaneGeometry(len + radius * .45, radius * 1.45), routeMat);
+    const strip = new THREE.Mesh(new THREE.PlaneGeometry(len + radius * .45, radius * 2.0), routeMat);
     strip.rotation.set(-Math.PI / 2, 0, angle);
     strip.position.copy(mid);
-    strip.position.y = .048;
+    strip.position.y = .18;
     scene.add(strip);
   }
   for (const node of route) {
     const pad = new THREE.Mesh(new THREE.CircleGeometry(radius * .78, 24), routeMat);
     pad.rotation.x = -Math.PI / 2;
-    pad.position.copy(worldPoint(node.x, node.y, .051));
+    pad.position.copy(worldPoint(node.x, node.y, .19));
     scene.add(pad);
   }
 }
 
 function addIslandTerraces(scene) {
   const group = new THREE.Group();
-  const terraces = [[-2.8, 2.35, 1.45, 0x587d72], [-.8, 1.15, 1.2, 0x6d8f7c], [1.15, .15, 1.05, 0x59766d], [2.85, -.9, 1.25, 0x718b78]];
-  terraces.forEach(([x, z, radius, color], index) => {
-    const island = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius * 1.12, .3, 12), mat(color, { roughness: 1 }));
-    island.position.set(x, .06, z); island.rotation.y = index * .18; island.receiveShadow = true; group.add(island);
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(radius * .78, .025, 6, 24), new THREE.MeshBasicMaterial({ color: 0xb6d6aa, transparent: true, opacity: .5 }));
-    rim.rotation.x = -Math.PI / 2; rim.position.set(x, .23, z); group.add(rim);
+  const spine = [[-5.75, 3.95, .72, 1.35, .06, 0x587d72], [-5.8, 3.15, .68, 1.25, .1, 0x6d8f7c], [-4.9, 2.8, .62, 1.15, .15, 0x59766d], [-3.75, 2.25, .58, 1.05, .2, 0x718b78]];
+  spine.forEach(([x, z, width, length, height, color], index) => {
+    const island = new THREE.Mesh(new THREE.BoxGeometry(width, .22, length), mat(color, { roughness: 1 }));
+    island.position.set(x, height, z); island.rotation.y = index % 2 ? -.18 : .12; island.receiveShadow = true; group.add(island);
+    const rim = new THREE.Mesh(new THREE.BoxGeometry(width * .92, .025, length * .92), new THREE.MeshBasicMaterial({ color: 0xb6d6aa, transparent: true, opacity: .28 }));
+    rim.position.set(x, height + .13, z); rim.rotation.y = island.rotation.y; group.add(rim);
   });
   scene.add(group);
   return group;
@@ -127,9 +127,9 @@ function addIslandTerraces(scene) {
 function addRewardMapWaypoints(scene) {
   const group = new THREE.Group();
   const colors = [0x9fe0d2, 0xffd782, 0xcfe9ff, 0xffefaa, 0xffc48b, 0xffdf72];
-  const points = [[470, 875], [690, 790], [850, 665], [1010, 555], [1160, 470], [1320, 405]];
+  const points = [[720, 780], [760, 750], [850, 665], [1010, 555], [1160, 470], [1320, 405]];
   points.forEach(([x, y], index) => {
-    const island = new THREE.Mesh(new THREE.CylinderGeometry(.34 + (index % 2) * .08, .46 + (index % 2) * .1, .16, 10), mat(0x73877a, { roughness: 1 }));
+    const island = new THREE.Mesh(new THREE.CylinderGeometry(.12 + (index % 2) * .03, .18 + (index % 2) * .04, .08, 10), mat(0x73877a, { roughness: 1 }));
     island.position.copy(worldPoint(x, y, .1));
     island.castShadow = true;
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(.018, .024, .62, 8), mat(0x765337));
@@ -137,7 +137,9 @@ function addRewardMapWaypoints(scene) {
     const flag = new THREE.Mesh(new THREE.PlaneGeometry(.24, .16), new THREE.MeshBasicMaterial({ color: colors[index], side: THREE.DoubleSide }));
     flag.position.copy(worldPoint(x + .12, y, 1.08));
     flag.rotation.y = -.12;
-    group.add(island, pole, flag);
+    const node = new THREE.Group();
+    node.add(island, pole, flag);
+    group.add(node);
   });
   scene.add(group);
   return group;
@@ -146,12 +148,12 @@ function addRewardMapWaypoints(scene) {
 function addForegroundFrame(scene) {
   const group = new THREE.Group();
   const cliffMat = mat(0x415d64, { roughness: 1, transparent: true, opacity: .92 });
-  for (const [x, y, z, s] of [[-6.2, 1.2, 2.6, 1.45], [6.2, 1.5, 2.5, 1.35]]) {
+  for (const [x, y, z, s] of [[-7.8, 1.0, 3.4, .62], [6.8, 1.3, 2.8, .78]]) {
     const cliff = new THREE.Mesh(new THREE.DodecahedronGeometry(1.35, 1), cliffMat);
     cliff.position.set(x, y, z); cliff.scale.set(s, s * 1.8, s * .9); cliff.castShadow = true; group.add(cliff);
   }
   const cloudMat = new THREE.MeshBasicMaterial({ color: 0xd7edf0, transparent: true, opacity: .42, depthWrite: false });
-  for (const [x, y, z, s] of [[-4.6, 5.3, 2.3, 1.3], [4.8, 5.1, 2.4, 1.15]]) {
+  for (const [x, y, z, s] of [[-4.6, 5.3, 2.3, .85], [4.8, 5.1, 2.4, .9]]) {
     const cloud = new THREE.Mesh(new THREE.SphereGeometry(1.15, 14, 10), cloudMat);
     cloud.position.set(x, y, z); cloud.scale.set(s * 1.5, s * .55, s); group.add(cloud);
   }
@@ -270,14 +272,23 @@ async function addPlayer(scene) {
   try {
     const texture = await new THREE.TextureLoader().loadAsync("assets/player/player_front_idle_00_v01.png");
     texture.colorSpace = THREE.SRGBColorSpace;
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false, depthTest: false }));
     sprite.scale.set(PLAYER_SPRITE_SCALE.width, PLAYER_SPRITE_SCALE.height, 1);
     scene.add(sprite);
+    const marker = new THREE.Mesh(new THREE.RingGeometry(.34, .52, 32), new THREE.MeshBasicMaterial({ color: 0xffe88a, transparent: true, opacity: .78, side: THREE.DoubleSide, depthWrite: false }));
+    marker.rotation.x = -Math.PI / 2; scene.add(marker);
     const glow = new THREE.PointLight(0xffe2a3, .95, 2.2, 2);
     scene.add(glow);
-    return { sprite, glow, texture };
+    return { sprite, marker, glow, texture };
   } catch {
-    return null;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0xffd36a, transparent: true, opacity: 0.98, fog: false, depthTest: true }));
+    sprite.scale.set(PLAYER_SPRITE_SCALE.width, PLAYER_SPRITE_SCALE.height, 1);
+    scene.add(sprite);
+    const glow = new THREE.PointLight(0xffd98a, 1.8, 2.4, 2);
+    scene.add(glow);
+    const marker = new THREE.Mesh(new THREE.RingGeometry(.34, .52, 32), new THREE.MeshBasicMaterial({ color: 0xffffa0, transparent: true, opacity: .82, side: THREE.DoubleSide, depthWrite: false }));
+    marker.rotation.x = -Math.PI / 2; scene.add(marker);
+    return { sprite, marker, glow, texture: null };
   }
 }
 
@@ -298,7 +309,7 @@ function applyPhase(scene, renderer, story, player, beacon, phaseId) {
   const color = PALETTES[phase.palette] ?? PALETTES["dawn-sky"];
   scene.background.setHex(color);
   scene.fog.color.setHex(color);
-  scene.fog.density = .008 + phase.fog * .045;
+  scene.fog.density = .006 + phase.fog * .014;
   renderer.toneMappingExposure = .9 + phase.warmth * .32;
 
   story.ribbons.visible = index >= 1;
@@ -310,7 +321,7 @@ function applyPhase(scene, renderer, story, player, beacon, phaseId) {
   story.reward.visible = index >= 7;
 
   const [x, y] = PHASE_ANCHORS[phaseId] || PHASE_ANCHORS.skyGate;
-  beacon.group.position.copy(worldPoint(x + 44, y - 36, .06));
+  beacon.group.position.copy(worldPoint(x + 75, y - 55, .06));
   beacon.group.visible = index < 7;
   if (player?.sprite) {
     const p = worldPoint(x - 55, y + 35, 0);
@@ -331,11 +342,12 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
   const scene = new THREE.Scene();
   addAtmosphere(scene);
   addGround(scene);
-  addStageComposition(scene, { backdrop: 0x3f6973, islands: [0x587d72, 0x6d8f7c, 0x59766d], foreground: 0x344d55 });
+  const composition = addStageComposition(scene, { backdrop: 0x3f6973, islands: [0x587d72, 0x6d8f7c, 0x59766d], foreground: 0x344d55 });
+  composition.children.slice(1, 4).forEach((island, index) => island.scale.set(index === 1 ? .3 : .56, index === 1 ? .3 : .56, index === 1 ? .3 : .56));
   addIslandTerraces(scene);
   addForegroundFrame(scene);
-  addRewardMapWaypoints(scene);
   addRoute(scene);
+  const waypoints = addRewardMapWaypoints(scene);
   const story = addSkyEnvironment(scene);
   const player = await addPlayer(scene);
   const pirateFoliage = await addPirateFoliage(scene);
@@ -361,7 +373,7 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
     const height = canvas.clientHeight || globalThis.innerHeight || 720;
     renderer.setSize(width, height, false);
     const aspect = width / Math.max(1,height);
-    const viewHeight = 10.8;
+    const viewHeight = aspect < 0.8 ? 14 : 10.8;
     camera.left = -(viewHeight * aspect) / 2;
     camera.right = (viewHeight * aspect) / 2;
     camera.top = viewHeight / 2;
@@ -378,6 +390,7 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
       if (requested >= 0) phaseIndex = requested;
     }
     currentPhase = applyPhase(scene, renderer, story, player, beacon, PHASES[phaseIndex]);
+    waypoints.children.forEach((node, index) => { node.visible = index <= Math.min(phaseIndex + 1, waypoints.children.length - 1); });
     setStatus(`단계 ${phaseIndex + 1}/${PHASES.length} · ${currentPhase.phaseId}`);
     if (statusEl) statusEl.dataset.stageVisual = JSON.stringify(currentPhase);
     return currentPhase;
@@ -419,7 +432,7 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
     renderer.dispose();
   };
 
-  const api = { scene, camera, renderer, controls, geometryContract, story, player, pirateFoliage, phases: PHASES, setPhase, getPhase: () => PHASES[phaseIndex], dispose };
+  const api = { scene, camera, renderer, controls, geometryContract, story, player, pirateFoliage, beacon, phases: PHASES, setPhase, getPhase: () => PHASES[phaseIndex], dispose };
   globalThis.__eduniThreeSkyRidge = api;
   return api;
 }

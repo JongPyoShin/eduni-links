@@ -57,6 +57,7 @@ export async function startSkyRidgeGame(canvas, modalEl, statusEl) {
   let lastTs = null;
   let rafId = 0;
   let disposed = false;
+  const diagnosticsEnabled = new URLSearchParams(globalThis.location?.search || "").get("qa") === "1";
   let birdQuiz = null;
 
   function openBirdQuizQuestion() {
@@ -86,21 +87,36 @@ export async function startSkyRidgeGame(canvas, modalEl, statusEl) {
     if (!runtime.player?.sprite) return;
     const p = skyRidgeLogicalToThree(player.x, player.y, 0);
     runtime.player.sprite.position.set(p.x, 1.02, p.z);
+    runtime.player.marker?.position.set(p.x, 0.08, p.z);
     runtime.player.glow?.position.set(p.x, 0.82, p.z + 0.08);
     const image = playerSprite.currentImage();
     if (image && runtime.player.sprite.material.map?.image !== image) {
       runtime.player.sprite.material.map = cachePlayerTexture(image);
       runtime.player.sprite.material.needsUpdate = true;
     }
-    const framedTargetX = THREE.MathUtils.clamp(p.x, -5.5, 5.5);
-    const framedTargetZ = THREE.MathUtils.clamp(p.z, -4.6, 4.6);
-    runtime.controls.target.x += (framedTargetX - runtime.controls.target.x) * 0.1;
-    runtime.controls.target.z += (framedTargetZ - runtime.controls.target.z) * 0.1;
+    const focus = runtime.beacon?.group?.position || p;
+    const framedTargetX = THREE.MathUtils.clamp((p.x + focus.x) * 0.5, -5.5, 5.5);
+    const framedTargetZ = THREE.MathUtils.clamp((p.z + focus.z) * 0.5, -4.6, 4.6);
+    runtime.controls.target.x = framedTargetX;
+    runtime.controls.target.z = framedTargetZ;
     runtime.controls.target.y = 1.05;
     runtime.camera.position.x = runtime.controls.target.x;
     runtime.camera.position.z = runtime.controls.target.z + 8.2;
     runtime.camera.position.y = 12.0;
     runtime.camera.lookAt(runtime.controls.target.x, runtime.controls.target.y, runtime.controls.target.z);
+    runtime.camera.updateMatrixWorld(true);
+    if (diagnosticsEnabled && statusEl) {
+      statusEl.dataset.playerRenderDiagnostics = JSON.stringify({
+        logicalPlayer: { x: player.x, y: player.y },
+        world: runtime.player.sprite.position.toArray(),
+        cameraTarget: runtime.controls.target.toArray(),
+        cameraPosition: runtime.camera.position.toArray(),
+        ndc: runtime.player.sprite.position.clone().project(runtime.camera).toArray(),
+        texture: runtime.player.sprite.material.map?.image ? [runtime.player.sprite.material.map.image.width || 0, runtime.player.sprite.material.map.image.height || 0] : null,
+        visible: runtime.player.sprite.visible,
+        scale: runtime.player.sprite.scale.toArray(),
+      });
+    }
   }
 
   function syncPhase() {

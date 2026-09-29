@@ -18,6 +18,14 @@
       .route-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin: 4px 0 10px; color:#efffdc; }
       .route-heading h2 { margin:0; font-size:18px; }
       .route-heading span { color:#b8cdb7; font-size:12px; font-weight:750; }
+      .route-strip { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin:0 0 14px; padding:10px 12px; border:1px solid rgba(213,240,180,.18); border-radius:16px; background:rgba(6,22,16,.28); list-style:none; }
+      .route-stop { position:relative; display:grid; justify-items:center; gap:5px; min-width:0; color:#aebca7; font-size:10px; font-weight:850; text-align:center; }
+      .route-stop:not(:last-child)::after { content:""; position:absolute; top:9px; left:calc(50% + 10px); width:calc(100% - 4px); height:2px; background:rgba(213,240,180,.2); }
+      .route-dot { position:relative; z-index:1; width:18px; height:18px; border-radius:50%; border:2px solid rgba(226,249,199,.35); background:#243a2c; }
+      .route-stop.open { color:#efffdc; }
+      .route-stop.open .route-dot { border-color:#d8ed9d; background:#91bd61; box-shadow:0 0 0 3px rgba(145,189,97,.14); }
+      .route-stop.completed .route-dot { border-color:#ffe28a; background:#e6b953; }
+      .route-stop.current .route-dot { box-shadow:0 0 0 4px rgba(244,215,126,.2), 0 0 15px rgba(244,215,126,.5); }
       .grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
       .card { position: relative; min-height: 220px; overflow: hidden; border-radius: 22px; padding: 18px; border: 1px solid rgba(235,255,218,.22); box-shadow: 0 12px 30px rgba(0,0,0,.22); display: flex; flex-direction: column; justify-content: flex-end; }
       .card h2 { margin: 0 0 5px; font-size: 23px; }
@@ -40,6 +48,7 @@
       .progress-meter span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#b7d86b,#f4d77e); transition:width .25s ease; }
       /* Device emulation can expose a 2x CSS viewport at phone widths; keep cards touch-sized. */
       @media (max-width:900px) { .grid { grid-template-columns:1fr; } .card { min-height:190px; } }
+      @media (max-width:420px) { .route-strip { padding-inline:7px; } .route-stop { font-size:9px; } }
     </style>
   </head>
   <body>
@@ -51,6 +60,13 @@
       </div>
       <section class="badges" id="badges" aria-label="탐험 배지"></section>
       <div class="route-heading"><h2>탐험 순서</h2><span>배지를 모으면 다음 지역이 열려요</span></div>
+      <ol class="route-strip" aria-label="지역 진행 순서">
+        <li class="route-stop" data-route-stage="camp"><span class="route-dot"></span><span>캠프</span></li>
+        <li class="route-stop" data-route-stage="waterfall"><span class="route-dot"></span><span>폭포</span></li>
+        <li class="route-stop" data-route-stage="cave"><span class="route-dot"></span><span>동굴</span></li>
+        <li class="route-stop" data-route-stage="giantTree"><span class="route-dot"></span><span>고목</span></li>
+        <li class="route-stop" data-route-stage="skyRidge"><span class="route-dot"></span><span>능선</span></li>
+      </ol>
       <section class="grid">
         <article class="card camp" data-stage="camp"><div class="card-top"><span class="stage-kicker">01 · 첫걸음</span><span class="stage-state"></span></div><h2>🌿 숲속 탐험 캠프</h2><p>오두막에서 출발해 단서를 모으고 능선의 파랑새를 찾아가자.</p><a href="./?renderer=three">탐험 시작</a></article>
         <article class="card waterfall" data-stage="waterfall"><div class="card-top"><span class="stage-kicker">02 · 물의 길</span><span class="stage-state"></span></div><h2>💦 안개 폭포</h2><p>물소리와 안개 흔적을 따라 전망대의 물총새를 관찰하자.</p><a href="./?stage=waterfall&amp;renderer=three">탐험 시작</a></article>
@@ -93,6 +109,10 @@
         const earned = hasStageReward(collection, stageId);
         card.classList.toggle("completed", earned);
         state.textContent = earned ? "완료 · 다시 보기" : unlocked.has(stageId) ? "진행 가능" : "잠김";
+        const stop = document.querySelector(`[data-route-stage="${stageId}"]`);
+        stop.classList.toggle("completed", earned);
+        stop.classList.toggle("open", unlocked.has(stageId));
+        stop.classList.toggle("current", !earned && unlocked.has(stageId));
       }
       const finalComplete = hasStageReward(collection, "skyRidge");
       document.querySelector("#progress").textContent = finalComplete

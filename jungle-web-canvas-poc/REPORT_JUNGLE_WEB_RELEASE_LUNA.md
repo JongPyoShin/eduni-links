@@ -17,10 +17,13 @@ The visual follow-up adds a numbered five-stage route rail, explicit `진행 가
 
 The HUD follow-up adds a visible `지도` return link to Camp/Waterfall, Cave, Giant Tree, and Sky Ridge, plus a `숲속 탐험 캠프 · 탐험 중` / `안개 폭포 · 탐험 중` chip for the shared Camp/Waterfall entry screen.
 
+The final UI pass adds a compact five-stop route strip to the hub. It mirrors the same persisted reward state as the cards, highlighting open/completed stages and pulsing the next available stop without changing progression or storage logic.
+
 ## Verification
 
 - `npm test`: **232 passed, 0 failed**.
 - `git diff --check`: passed (only normal LF/CRLF warnings).
+- Updated hub smoke on headed Chrome (`http://localhost:8124`, isolated worktree server): route strip exposed all five stops (`캠프`, `폭포`, `동굴`, `고목`, `능선`), cards exposed `진행 가능`/`잠김`, and computed document overflow was `false` at the available `2168×1210` CSS viewport. Camp `?renderer=three&qa=1` reached `startup=ready`, `threeReady=true`, objective `학습 오두막을 찾아가 보자`, and stage chip `숲속 탐험 캠프 · 탐험 중`.
 - Headed Chrome extension QA opened and exercised real keyboard input on all five entry points at `?qa=1`: Camp, Waterfall, Cave, Giant Tree, Sky Ridge. Each page loaded its expected title/HUD and input controls; Cave reported `GLB 4/4 · fallback 0`, Giant Tree `GLB 6/6 · fallback 0`, and no console warning/error entries were captured.
 - Hub DOM showed the codex link `(0/3)`, all five stage cards, and the expected locked progression text.
 - Follow-up hub QA showed the new route heading, all five numbered card states, and progress meter. At the emulated phone viewport, computed grid columns changed to a single `684px` column with `overflow=false`.
@@ -33,6 +36,6 @@ The HUD follow-up adds a visible `지도` return link to Camp/Waterfall, Cave, G
 
 ## Limitations / verdict
 
-390×844 visual capture previously covered all five regions, and 360×800 covered hub/Camp. The updated hub's 390px screenshot call timed out after the CSS breakpoint fix (`Page.captureScreenshot`, one attempt); DOM/computed-style evidence confirms the one-column fix. 412×915 and tablet/landscape remain blocked by the specific screenshot/zero-width errors above; no failed screenshot call was retried.
+390×844 visual capture previously covered all five regions, and 360×800 covered hub/Camp. The updated hub's 390px screenshot call timed out after the CSS breakpoint fix (`Page.captureScreenshot`, one attempt); DOM/computed-style evidence confirms the one-column fix. 412×915 and tablet/landscape remain blocked by the specific screenshot/zero-width errors above; no failed screenshot call was retried. The new route strip was additionally smoke-checked at the available headed Chrome viewport, but no new 412/tablet screenshot claim is made.
 
 **PARTIAL — not ready to claim full visual release acceptance.** Source/test scope is ready for review; rerun headed Chrome with a non-zero viewport and attach screenshots before merge/deploy.

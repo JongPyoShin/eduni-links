@@ -103,6 +103,7 @@
       const unlocked = new Set(["camp", "waterfall", "cave"]);
       if (giantTreeUnlocked) unlocked.add("giantTree");
       if (skyRidgeUnlocked) unlocked.add("skyRidge");
+      const currentStage = stageOrder.find((stageId) => unlocked.has(stageId) && !hasStageReward(collection, stageId));
       for (const stageId of stageOrder) {
         const card = document.querySelector(`[data-stage="${stageId}"]`);
         const state = card.querySelector(".stage-state");
@@ -112,7 +113,7 @@
         const stop = document.querySelector(`[data-route-stage="${stageId}"]`);
         stop.classList.toggle("completed", earned);
         stop.classList.toggle("open", unlocked.has(stageId));
-        stop.classList.toggle("current", !earned && unlocked.has(stageId));
+        stop.classList.toggle("current", stageId === currentStage);
       }
       const finalComplete = hasStageReward(collection, "skyRidge");
       document.querySelector("#progress").textContent = finalComplete

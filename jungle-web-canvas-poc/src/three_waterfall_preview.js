@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { PLAYER_SPRITE_SCALE } from "./player_visual_constants.js";
+import { addStageComposition } from "./stage_composition.js";
 import { WaterfallWorldGeometry } from "./geometry.js";
 import {
   THREEJSASSETS_FREE_MODELS,
@@ -464,7 +466,7 @@ async function addPlayerBillboard(scene) {
     }));
     const anchor = worldPoint(700, 930, 0);
     sprite.position.set(anchor.x, 1.02, anchor.z);
-    sprite.scale.set(1.35, 1.8, 1);
+    sprite.scale.set(PLAYER_SPRITE_SCALE.width, PLAYER_SPRITE_SCALE.height, 1);
     scene.add(sprite);
     const glow = new THREE.PointLight(0xffd98a, 1.4, 2.2, 2);
     glow.position.set(anchor.x, 0.85, anchor.z + 0.08);
@@ -518,6 +520,7 @@ export async function startThreeWaterfallPreview(canvas, statusEl, options = {})
   const scene = new THREE.Scene();
   addAtmosphere(scene);
   const water = addGround(scene);
+  addStageComposition(scene, { backdrop: 0x3c7880, islands: [0x4f8e87, 0x6aa69b, 0x417b7d], foreground: 0x315c68 });
   addRoute(scene);
   const fall = addWaterfall(scene);
   const stones = addSteppingStones(scene);

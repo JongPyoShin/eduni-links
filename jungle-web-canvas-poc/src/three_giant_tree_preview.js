@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { PLAYER_SPRITE_SCALE } from "./player_visual_constants.js";
+import { addStageComposition } from "./stage_composition.js";
 import { GiantTreeWorldGeometry } from "./geometry.js";
 import { getGiantTreeVisualPhase } from "./content/giant_tree_visuals.js";
 import { THREEJSASSETS_FREE_MODELS, threeVendorUrl } from "./three_vendor_manifest.js";
@@ -344,7 +346,7 @@ async function addPlayer(scene) {
     const texture=await new THREE.TextureLoader().loadAsync("assets/player/player_front_idle_00_v01.png");
     texture.colorSpace=THREE.SRGBColorSpace;
     const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthWrite:false}));
-    sprite.scale.set(1.35,1.8,1); scene.add(sprite);
+    sprite.scale.set(PLAYER_SPRITE_SCALE.width, PLAYER_SPRITE_SCALE.height, 1); scene.add(sprite);
     const glow=new THREE.PointLight(0xffd98a,1.05,2.2,2); scene.add(glow);
     return {sprite,glow,texture};
   } catch { return null; }
@@ -374,7 +376,7 @@ function applyPhase(scene, renderer, story, player, beacon, phaseId) {
   story.reward.visible=index>=7;
 
   const [x,y]=PHASE_ANCHORS[phaseId] || PHASE_ANCHORS.rootGate;
-  beacon.group.position.copy(worldPoint(x, y, .06));
+  beacon.group.position.copy(worldPoint(x + 44, y - 36, .06));
   beacon.group.visible = index < 7;
   if(player?.sprite){ const p=worldPoint(x-48,y+34,0); player.sprite.position.set(p.x,1.02,p.z); player.glow.position.set(p.x,.82,p.z+.08); }
   return phase;
@@ -384,7 +386,7 @@ export async function startThreeGiantTreePreview(canvas,statusEl,options={}) {
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:"high-performance"});
   renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio||1,1.5));
   renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping;
-  const scene=new THREE.Scene(); addAtmosphere(scene); addGround(scene); addForegroundFrame(scene); addRoute(scene);
+  const scene=new THREE.Scene(); addAtmosphere(scene); addGround(scene); addStageComposition(scene, { backdrop: 0x263d2d, islands: [0x405b3c, 0x536844, 0x354e35], foreground: 0x2c3b2a }); addForegroundFrame(scene); addRoute(scene);
   const tree=addAncientTree(scene); const rings=addRingGallery(scene); const seedTrail=addSeedTrail(scene); const echo=addHollowEcho(scene); const stairs=addSpiralStairs(scene); const squirrel=addSquirrel(scene); const reward=addReward(scene);
 
   const camera=new THREE.OrthographicCamera(-8,8,5,-5,.1,70); camera.position.set(8.5,12.5,11.0); camera.lookAt(1.2,1.2,-.6);

@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { SkyRidgeWorldGeometry } from "./geometry.js";
+import { PLAYER_SPRITE_SCALE } from "./player_visual_constants.js";
+import { addStageComposition } from "./stage_composition.js";
 import { getSkyRidgeVisualPhase } from "./content/sky_ridge_visuals.js";
 
 const WORLD_SCALE = 0.01;
@@ -269,7 +271,7 @@ async function addPlayer(scene) {
     const texture = await new THREE.TextureLoader().loadAsync("assets/player/player_front_idle_00_v01.png");
     texture.colorSpace = THREE.SRGBColorSpace;
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
-    sprite.scale.set(1.75, 2.35, 1);
+    sprite.scale.set(PLAYER_SPRITE_SCALE.width, PLAYER_SPRITE_SCALE.height, 1);
     scene.add(sprite);
     const glow = new THREE.PointLight(0xffe2a3, .95, 2.2, 2);
     scene.add(glow);
@@ -308,7 +310,7 @@ function applyPhase(scene, renderer, story, player, beacon, phaseId) {
   story.reward.visible = index >= 7;
 
   const [x, y] = PHASE_ANCHORS[phaseId] || PHASE_ANCHORS.skyGate;
-  beacon.group.position.copy(worldPoint(x, y, .06));
+  beacon.group.position.copy(worldPoint(x + 44, y - 36, .06));
   beacon.group.visible = index < 7;
   if (player?.sprite) {
     const p = worldPoint(x - 55, y + 35, 0);
@@ -329,6 +331,7 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
   const scene = new THREE.Scene();
   addAtmosphere(scene);
   addGround(scene);
+  addStageComposition(scene, { backdrop: 0x3f6973, islands: [0x587d72, 0x6d8f7c, 0x59766d], foreground: 0x344d55 });
   addIslandTerraces(scene);
   addForegroundFrame(scene);
   addRewardMapWaypoints(scene);
@@ -358,7 +361,7 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
     const height = canvas.clientHeight || globalThis.innerHeight || 720;
     renderer.setSize(width, height, false);
     const aspect = width / Math.max(1,height);
-    const viewHeight = 8.9;
+    const viewHeight = 10.8;
     camera.left = -(viewHeight * aspect) / 2;
     camera.right = (viewHeight * aspect) / 2;
     camera.top = viewHeight / 2;

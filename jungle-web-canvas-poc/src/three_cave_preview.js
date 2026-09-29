@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { PLAYER_SPRITE_SCALE } from "./player_visual_constants.js";
+import { addStageComposition } from "./stage_composition.js";
 import { CaveWorldGeometry } from "./geometry.js";
 import { getStageVisualPhase } from "./content/stage_manifest.js";
 import { THREEJSASSETS_FREE_MODELS, threeVendorUrl } from "./three_vendor_manifest.js";
@@ -350,7 +352,7 @@ async function addPlayer(scene) {
     const texture = await new THREE.TextureLoader().loadAsync("assets/player/player_front_idle_00_v01.png");
     texture.colorSpace = THREE.SRGBColorSpace;
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
-    sprite.scale.set(1.35, 1.8, 1);
+    sprite.scale.set(PLAYER_SPRITE_SCALE.width, PLAYER_SPRITE_SCALE.height, 1);
     scene.add(sprite);
     const glow = new THREE.PointLight(0xffd98a, 1.0, 2.1, 2);
     scene.add(glow);
@@ -401,7 +403,9 @@ function applyPhase(scene, renderer, story, crystals, player, beacon, phaseId) {
   crystals.roost.visible = index >= 6;
 
   const [x, y] = PHASE_ANCHORS[phaseId] || PHASE_ANCHORS.caveGate;
-  beacon.group.position.copy(worldPoint(x, y, .06));
+  // Keep the visual goal beside the approach lane; interaction remains at the
+  // authored anchor so the avatar silhouette never sits on the landmark.
+  beacon.group.position.copy(worldPoint(x + 42, y - 34, .06));
   beacon.group.visible = index < 7;
   if (player?.sprite) {
     const p = worldPoint(x - 55, y + 35, 0);
@@ -424,6 +428,7 @@ export async function startThreeCavePreview(canvas, statusEl, options = {}) {
   const scene = new THREE.Scene();
   addAtmosphere(scene);
   addGround(scene);
+  addStageComposition(scene, { backdrop: 0x11182d, islands: [0x293548, 0x334458, 0x26394b], foreground: 0x151b2a });
   addForegroundFrame(scene);
   addRoute(scene);
 

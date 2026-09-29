@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { PLAYER_SPRITE_SCALE } from "./player_visual_constants.js";
+import { addStageComposition } from "./stage_composition.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { CampWorldGeometry } from "./geometry.js";
@@ -387,7 +389,7 @@ async function addPlayer(scene) {
   const firstImage = playerSprite.currentImage();
   const material = new THREE.SpriteMaterial({ transparent: true, depthWrite: false });
   const sprite = new THREE.Sprite(material);
-  sprite.scale.set(1.35, 1.8, 1);
+    sprite.scale.set(PLAYER_SPRITE_SCALE.width, PLAYER_SPRITE_SCALE.height, 1);
   scene.add(sprite);
   const glow = new THREE.PointLight(0xffd98a, 1.2, 2.1, 2);
   scene.add(glow);
@@ -472,6 +474,7 @@ export async function startThreeCampRuntime(baseCanvas, bridge) {
   const scene = new THREE.Scene();
   addAtmosphere(scene);
   addGround(scene);
+  addStageComposition(scene, { backdrop: 0x24452f, islands: [0x4d6b3a, 0x63794a, 0x3d5b36], foreground: 0x2b402b });
   addRoute(scene);
   const entrance = addEntrance(scene);
   const hut = addLearningHut(scene);
@@ -498,9 +501,9 @@ export async function startThreeCampRuntime(baseCanvas, bridge) {
     const height = canvas.clientHeight || globalThis.innerHeight || 720;
     renderer.setSize(width, height, false);
     const aspect = width / Math.max(1, height);
-    // Keep the visible width inside the 16-unit Camp ground on wide PC screens.
-    // This removes the empty strip while preserving a comfortable tablet view.
-    const viewHeight = Math.min(10.2, 15.2 / Math.max(0.1, aspect));
+    // All stage cameras use the same authored vertical world span so the
+    // shared player billboard keeps the same apparent height across regions.
+    const viewHeight = 10.8;
     const viewWidth = viewHeight * aspect;
     cameraView.halfWidth = viewWidth / 2;
     cameraView.halfHeight = viewHeight / 2;

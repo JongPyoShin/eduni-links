@@ -89,6 +89,17 @@ function addRoute(scene) {
   }
 }
 
+function addObjectiveBeacon(scene) {
+  const group = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.RingGeometry(.3, .42, 32), new THREE.MeshBasicMaterial({ color: 0xffdf78, transparent: true, opacity: .82, side: THREE.DoubleSide, depthWrite: false }));
+  ring.rotation.x = -Math.PI / 2;
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.04, .16, 1.8, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xffdf78, transparent: true, opacity: .24, depthWrite: false }));
+  beam.position.y = .9;
+  group.add(ring, beam);
+  scene.add(group);
+  return { group, ring, beam };
+}
+
 function addRoot(rootGroup, angle, length, width, y = 0.18) {
   const root = new THREE.Mesh(new THREE.CapsuleGeometry(width, length, 5, 10), mat(0x63492e));
   root.rotation.z = Math.PI / 2;
@@ -330,7 +341,7 @@ function addAtmosphere(scene) {
   const fill=new THREE.DirectionalLight(0x83c9aa,.42); fill.position.set(7,5,-5); scene.add(fill);
 }
 
-function applyPhase(scene, renderer, story, player, phaseId) {
+function applyPhase(scene, renderer, story, player, beacon, phaseId) {
   const phase=getGiantTreeVisualPhase(phaseId) || getGiantTreeVisualPhase("rootGate");
   const index=Math.max(0,PHASES.indexOf(phaseId));
   const color=PALETTES[phase.palette] ?? PALETTES["root-amber"];
@@ -346,6 +357,8 @@ function applyPhase(scene, renderer, story, player, phaseId) {
   story.reward.visible=index>=7;
 
   const [x,y]=PHASE_ANCHORS[phaseId] || PHASE_ANCHORS.rootGate;
+  beacon.group.position.copy(worldPoint(x, y, .06));
+  beacon.group.visible = index < 7;
   if(player?.sprite){ const p=worldPoint(x-48,y+34,0); player.sprite.position.set(p.x,1.02,p.z); player.glow.position.set(p.x,.82,p.z+.08); }
   return phase;
 }
@@ -365,19 +378,22 @@ export async function startThreeGiantTreePreview(canvas,statusEl,options={}) {
   const vendor=await loadVendor(({loaded,fallbacks,total})=>setStatus(`고목 숲 GLB ${loaded}/${total} · fallback ${fallbacks}`));
   const forest=populateForest(scene,vendor.library);
   const player=await addPlayer(scene);
+  const beacon=addObjectiveBeacon(scene);
   const story={tree,rings,seedTrail,echo,stairs,squirrel,reward};
 
   let phaseIndex=Math.max(0,PHASES.indexOf(options.phase||"rootGate"));
-  let currentPhase=applyPhase(scene,renderer,story,player,PHASES[phaseIndex]);
+  let currentPhase=applyPhase(scene,renderer,story,player,beacon,PHASES[phaseIndex]);
 
   function resize(){ const width=canvas.clientWidth||globalThis.innerWidth||1280; const height=canvas.clientHeight||globalThis.innerHeight||720; renderer.setSize(width,height,false); const aspect=width/Math.max(1,height); const viewHeight=10.8; camera.left=-(viewHeight*aspect)/2; camera.right=(viewHeight*aspect)/2; camera.top=viewHeight/2; camera.bottom=-viewHeight/2; camera.updateProjectionMatrix(); }
   resize(); globalThis.addEventListener("resize",resize);
 
-  const setPhase=(value)=>{ if(typeof value==="number") phaseIndex=THREE.MathUtils.clamp(Math.round(value),0,PHASES.length-1); else { const requested=PHASES.indexOf(value); if(requested>=0) phaseIndex=requested; } currentPhase=applyPhase(scene,renderer,story,player,PHASES[phaseIndex]); setStatus(`단계 ${phaseIndex+1}/${PHASES.length} · ${PHASES[phaseIndex]} · GLB ${vendor.loaded}/${vendor.total} · fallback ${vendor.fallbacks}`); if(statusEl) statusEl.dataset.stageVisual=JSON.stringify(currentPhase); return currentPhase; };
+  const setPhase=(value)=>{ if(typeof value==="number") phaseIndex=THREE.MathUtils.clamp(Math.round(value),0,PHASES.length-1); else { const requested=PHASES.indexOf(value); if(requested>=0) phaseIndex=requested; } currentPhase=applyPhase(scene,renderer,story,player,beacon,PHASES[phaseIndex]); setStatus(`단계 ${phaseIndex+1}/${PHASES.length} · ${PHASES[phaseIndex]} · GLB ${vendor.loaded}/${vendor.total} · fallback ${vendor.fallbacks}`); if(statusEl) statusEl.dataset.stageVisual=JSON.stringify(currentPhase); return currentPhase; };
   setPhase(phaseIndex);
 
   const clock=new THREE.Clock(); let rafId=0; let disposed=false;
   function frame(){ if(disposed)return; const t=clock.getElapsedTime();
+    beacon.ring.scale.setScalar(1 + Math.sin(t * 3.1) * .14);
+    beacon.beam.material.opacity = .16 + (Math.sin(t * 2.2) + 1) * .06;
     story.tree.crowns.forEach((c,i)=>{ c.rotation.y=Math.sin(t*.35+i)*.035; c.position.y += Math.sin(t*.8+i)*.0008; });
     story.rings.rings.forEach((r,i)=>{ r.material.opacity=.76+Math.sin(t*2+i*.4)*.18; r.material.transparent=true; });
     story.seedTrail.children.forEach((a,i)=>{ a.position.y=.16+Math.sin(t*2.2+i*.5)*.025; });

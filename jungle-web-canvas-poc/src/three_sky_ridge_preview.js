@@ -81,6 +81,17 @@ function addRoute(scene) {
   }
 }
 
+function addObjectiveBeacon(scene) {
+  const group = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.RingGeometry(.28, .4, 32), new THREE.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: .82, side: THREE.DoubleSide, depthWrite: false }));
+  ring.rotation.x = -Math.PI / 2;
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.035, .14, 1.75, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: .24, depthWrite: false }));
+  beam.position.y = .88;
+  group.add(ring, beam);
+  scene.add(group);
+  return { group, ring, beam };
+}
+
 function addCloud(scene, x, y, z, scale = 1) {
   const group = new THREE.Group();
   const cloudMat = new THREE.MeshBasicMaterial({ color: 0xeef7f5, transparent: true, opacity: .72, depthWrite: false });
@@ -203,7 +214,7 @@ function addAtmosphere(scene) {
   scene.add(sun);
 }
 
-function applyPhase(scene, renderer, story, player, phaseId) {
+function applyPhase(scene, renderer, story, player, beacon, phaseId) {
   const index = Math.max(0, PHASES.indexOf(phaseId));
   const phase = getSkyRidgeVisualPhase(phaseId) || getSkyRidgeVisualPhase("skyGate");
   const color = PALETTES[phase.palette] ?? PALETTES["dawn-sky"];
@@ -221,6 +232,8 @@ function applyPhase(scene, renderer, story, player, phaseId) {
   story.reward.visible = index >= 7;
 
   const [x, y] = PHASE_ANCHORS[phaseId] || PHASE_ANCHORS.skyGate;
+  beacon.group.position.copy(worldPoint(x, y, .06));
+  beacon.group.visible = index < 7;
   if (player?.sprite) {
     const p = worldPoint(x - 55, y + 35, 0);
     player.sprite.position.set(p.x, 1.02, p.z);
@@ -243,6 +256,7 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
   addRoute(scene);
   const story = addSkyEnvironment(scene);
   const player = await addPlayer(scene);
+  const beacon = addObjectiveBeacon(scene);
 
   const camera = new THREE.OrthographicCamera(-8,8,5,-5,.1,60);
   camera.position.set(8.5,12.2,10.8);
@@ -256,7 +270,7 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
 
   const setStatus = (text) => { if (statusEl) statusEl.textContent = text; };
   let phaseIndex = Math.max(0, PHASES.indexOf(options.phase || "skyGate"));
-  let currentPhase = applyPhase(scene, renderer, story, player, PHASES[phaseIndex]);
+  let currentPhase = applyPhase(scene, renderer, story, player, beacon, PHASES[phaseIndex]);
 
   function resize() {
     const width = canvas.clientWidth || globalThis.innerWidth || 1280;
@@ -279,7 +293,7 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
       const requested = PHASES.indexOf(value);
       if (requested >= 0) phaseIndex = requested;
     }
-    currentPhase = applyPhase(scene, renderer, story, player, PHASES[phaseIndex]);
+    currentPhase = applyPhase(scene, renderer, story, player, beacon, PHASES[phaseIndex]);
     setStatus(`단계 ${phaseIndex + 1}/${PHASES.length} · ${currentPhase.phaseId}`);
     if (statusEl) statusEl.dataset.stageVisual = JSON.stringify(currentPhase);
     return currentPhase;
@@ -292,6 +306,8 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
   function frame() {
     if (disposed) return;
     const t = clock.getElapsedTime();
+    beacon.ring.scale.setScalar(1 + Math.sin(t * 3.2) * .14);
+    beacon.beam.material.opacity = .16 + (Math.sin(t * 2.4) + 1) * .06;
     story.clouds.forEach((cloud, index) => { cloud.position.x += Math.sin(t * .22 + index) * .0008; });
     story.ribbons.children.forEach((ribbon,index) => { ribbon.rotation.y = Math.sin(t * 2 + index) * .22; ribbon.rotation.z = .2 + Math.sin(t * 1.7 + index) * .08; });
     story.chime.children.slice(1).forEach((tube,index) => { tube.rotation.z = Math.sin(t * 2.4 + index) * .08; });

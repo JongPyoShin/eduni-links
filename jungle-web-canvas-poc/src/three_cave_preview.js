@@ -117,6 +117,17 @@ function addRoute(scene) {
   }
 }
 
+function addObjectiveBeacon(scene) {
+  const group = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.RingGeometry(.28, .38, 32), new THREE.MeshBasicMaterial({ color: 0xdfff75, transparent: true, opacity: .82, side: THREE.DoubleSide, depthWrite: false }));
+  ring.rotation.x = -Math.PI / 2;
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.035, .15, 1.7, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xdfff75, transparent: true, opacity: .26, depthWrite: false }));
+  beam.position.y = .86;
+  group.add(ring, beam);
+  scene.add(group);
+  return { group, ring, beam };
+}
+
 function fallbackRock() {
   const rock = new THREE.Mesh(
     new THREE.DodecahedronGeometry(0.58, 0),
@@ -352,7 +363,7 @@ function addAtmosphere(scene) {
   scene.add(cyanFill);
 }
 
-function applyPhase(scene, renderer, story, crystals, player, phaseId) {
+function applyPhase(scene, renderer, story, crystals, player, beacon, phaseId) {
   const index = Math.max(0, PHASES.indexOf(phaseId));
   const phase = getStageVisualPhase("cave", phaseId) || getStageVisualPhase("cave", "caveGate");
   const color = CAVE_PALETTES[phase.palette] ?? CAVE_PALETTES["twilight-violet"];
@@ -378,6 +389,8 @@ function applyPhase(scene, renderer, story, crystals, player, phaseId) {
   crystals.roost.visible = index >= 6;
 
   const [x, y] = PHASE_ANCHORS[phaseId] || PHASE_ANCHORS.caveGate;
+  beacon.group.position.copy(worldPoint(x, y, .06));
+  beacon.group.visible = index < 7;
   if (player?.sprite) {
     const p = worldPoint(x - 55, y + 35, 0);
     player.sprite.position.set(p.x, 1.02, p.z);
@@ -422,9 +435,10 @@ export async function startThreeCavePreview(canvas, statusEl, options = {}) {
   const crystals = addCrystals(scene);
   const story = addStoryEnvironment(scene);
   const player = await addPlayer(scene);
+  const beacon = addObjectiveBeacon(scene);
 
   let phaseIndex = Math.max(0, PHASES.indexOf(options.phase || "caveGate"));
-  let currentPhase = applyPhase(scene, renderer, story, crystals, player, PHASES[phaseIndex]);
+  let currentPhase = applyPhase(scene, renderer, story, crystals, player, beacon, PHASES[phaseIndex]);
 
   function resize() {
     const width = canvas.clientWidth || globalThis.innerWidth || 1280;
@@ -447,7 +461,7 @@ export async function startThreeCavePreview(canvas, statusEl, options = {}) {
       const requested = PHASES.indexOf(value);
       if (requested >= 0) phaseIndex = requested;
     }
-    currentPhase = applyPhase(scene, renderer, story, crystals, player, PHASES[phaseIndex]);
+    currentPhase = applyPhase(scene, renderer, story, crystals, player, beacon, PHASES[phaseIndex]);
     setStatus(`단계 ${phaseIndex + 1}/${PHASES.length} · ${PHASES[phaseIndex]} · GLB ${vendor.loaded}/${vendor.total} · fallback ${vendor.fallbacks}`);
     if (statusEl) statusEl.dataset.stageVisual = JSON.stringify(currentPhase);
     return currentPhase;
@@ -460,6 +474,8 @@ export async function startThreeCavePreview(canvas, statusEl, options = {}) {
   function frame() {
     if (disposed) return;
     const t = clock.getElapsedTime();
+    beacon.ring.scale.setScalar(1 + Math.sin(t * 3.2) * .14);
+    beacon.beam.material.opacity = .18 + (Math.sin(t * 2.4) + 1) * .06;
     story.entranceFireflies.material.opacity = 0.68 + Math.sin(t * 2.2) * 0.2;
     story.chamberFireflies.material.opacity = 0.7 + Math.sin(t * 2.8) * 0.18;
     story.reward.material.opacity = 0.72 + Math.sin(t * 3.1) * 0.2;

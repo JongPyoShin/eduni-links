@@ -19,11 +19,15 @@ The HUD follow-up adds a visible `지도` return link to Camp/Waterfall, Cave, G
 
 The final UI pass adds a compact five-stop route strip to the hub. It mirrors the same persisted reward state as the cards, highlighting open/completed stages and pulsing the next available stop without changing progression or storage logic.
 
+The scene composition pass adds a phase-driven objective beacon to the Cave, Giant Tree, and Sky Ridge Three.js scenes: a grounded animated ring plus a translucent vertical light column at the authored next landmark. Camp keeps its existing interaction ring and Waterfall keeps its authored cue rings, so all five playable scenes now expose a scene-level target without changing quiz, reward, or save state.
+
 ## Verification
 
 - `npm test`: **232 passed, 0 failed**.
+- Focused scene regression after the beacon pass: **62 passed, 0 failed** (`Cave gameplay`, `Giant Tree`, `Sky Ridge` patterns).
 - `git diff --check`: passed (only normal LF/CRLF warnings).
 - Updated hub smoke on headed Chrome (`http://localhost:8124`, isolated worktree server): route strip exposed all five stops (`캠프`, `폭포`, `동굴`, `고목`, `능선`), cards exposed `진행 가능`/`잠김`, and computed document overflow was `false` at the available `2168×1210` CSS viewport. Camp `?renderer=three&qa=1` reached `startup=ready`, `threeReady=true`, objective `학습 오두막을 찾아가 보자`, and stage chip `숲속 탐험 캠프 · 탐험 중`.
+- Updated scene smoke on headed Chrome (`http://localhost:8125`, isolated worktree server): Cave `단계 1/9 · caveGate · GLB 4/4 · fallback 0`, Giant Tree `단계 1/9 · rootGate · GLB 6/6 · fallback 0`, Sky Ridge `단계 1/9 · skyGate`, and Waterfall `threejsassets local GLB 14/14 loaded · fallback 0`; all reported `overflow=false` at the available `2168×1210` CSS viewport. Cave and Waterfall screenshots visibly showed the target ring/landmark framing with HUD and D-pad outside the canvas content.
 - Headed Chrome extension QA opened and exercised real keyboard input on all five entry points at `?qa=1`: Camp, Waterfall, Cave, Giant Tree, Sky Ridge. Each page loaded its expected title/HUD and input controls; Cave reported `GLB 4/4 · fallback 0`, Giant Tree `GLB 6/6 · fallback 0`, and no console warning/error entries were captured.
 - Hub DOM showed the codex link `(0/3)`, all five stage cards, and the expected locked progression text.
 - Follow-up hub QA showed the new route heading, all five numbered card states, and progress meter. At the emulated phone viewport, computed grid columns changed to a single `684px` column with `overflow=false`.

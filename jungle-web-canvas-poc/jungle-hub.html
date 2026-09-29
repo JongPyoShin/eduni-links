@@ -35,6 +35,9 @@
     <main class="wrap">
       <h1>정글 탐험 지도</h1>
       <p class="lead">탐험 배지를 차례로 모아 마지막 하늘 능선까지 올라가 보자!</p>
+      <div style="display:flex;gap:9px;margin-bottom:18px;">
+        <a href="./bird-codex.html" style="display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:12px;background:rgba(255,255,255,.09);color:#dceecb;text-decoration:none;font-weight:800;border:1px solid rgba(213,240,180,.22);">📖 새 도감 <span id="codex-count"></span></a>
+      </div>
       <section class="badges" id="badges" aria-label="탐험 배지"></section>
       <section class="grid">
         <article class="card camp"><h2>🌿 숲속 탐험 캠프</h2><p>오두막에서 출발해 단서를 모으고 능선의 파랑새를 찾아가자.</p><a href="./?renderer=three">탐험 시작</a></article>
@@ -47,6 +50,9 @@
     </main>
     <script type="module">
       import { STAGE_REWARDS, hasStageReward, loadRewardCollection } from "./src/content/stage_rewards.js";
+      import { loadBirdCodex, capturedBirdCount } from "./src/content/bird_codex.js";
+      const codexCount = capturedBirdCount(loadBirdCodex());
+      document.querySelector("#codex-count").textContent = `(${codexCount}/3)`;
       const collection = loadRewardCollection();
       const container = document.querySelector("#badges");
       const stageOrder = ["camp","waterfall","cave","giantTree","skyRidge"];

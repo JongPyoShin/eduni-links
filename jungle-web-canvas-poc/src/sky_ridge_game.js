@@ -21,6 +21,9 @@ import { nearestSkyRidgeInteractable } from "./content/sky_ridge_interactables.j
 import { skyRidgeVisualPhase } from "./content/stage_visual_director.js";
 import { stageReward, awardAndSaveStageReward } from "./content/stage_rewards.js";
 import { skyRidgeLogicalToThree, startThreeSkyRidgePreview } from "./three_sky_ridge_preview.js";
+import { createBirdQuizSession, loadBirdQuizSession, saveBirdQuizSession, clearBirdQuizSession, currentQuestion, answerBirdQuiz, isQuizComplete, isCaptureSuccess } from "./content/bird_quiz.js";
+import { loadBirdCodex, saveBirdCodex, captureBird, hasCapturedBird } from "./content/bird_codex.js";
+import { getBirdData } from "./content/bird_manifest.js";
 
 const PATTERN_LABELS = Object.freeze({ star: "별", moon: "달", cloud: "구름" });
 
@@ -54,6 +57,20 @@ export async function startSkyRidgeGame(canvas, modalEl, statusEl) {
   let lastTs = null;
   let rafId = 0;
   let disposed = false;
+  let birdQuiz = null;
+
+  function openBirdQuizQuestion() {
+    const q = currentQuestion(birdQuiz);
+    if (!q) return;
+    panel.openPanel({
+      kind: "birdQuiz",
+      title: `퀴즈 ${q.number} / ${q.total}`,
+      body: q.question,
+      choices: q.choices.map((c) => ({ id: c.id, label: c.label })),
+      choiceMode: "single",
+      confirmLabel: "답하기",
+    });
+  }
 
   function cachePlayerTexture(image) {
     if (!image) return null;
@@ -184,8 +201,48 @@ export async function startSkyRidgeGame(canvas, modalEl, statusEl) {
     else if (kind === "windChime") sky = collectSkyRidgeClue(sky, "windChime");
     else if (kind === "summitBridge") sky = completeSummitBridge(sky);
     else if (kind === "hawk") {
-      sky = completeSkyHawk(sky);
-      openRewardCeremony();
+      birdQuiz = loadBirdQuizSession("skyHawk") || createBirdQuizSession("skyHawk");
+      saveBirdQuizSession(birdQuiz);
+      openBirdQuizQuestion();
+      updateUi();
+      return;
+    } else if (kind === "birdQuiz") {
+      const answer = answerBirdQuiz(birdQuiz, result.choice.id);
+      birdQuiz = answer.session;
+      saveBirdQuizSession(birdQuiz);
+      if (!answer.correct) {
+        audio.play("wrong");
+        panel.setResponse(`아쉬워! 정답은 ${answer.lastAnswer.explanation}`, "gentle");
+      } else {
+        audio.play("correct");
+        panel.setResponse("정답!", "gentle");
+      }
+      if (isQuizComplete(birdQuiz)) {
+        if (isCaptureSuccess(birdQuiz)) {
+          const codex = loadBirdCodex();
+          const newCodex = captureBird(codex, "skyHawk", birdQuiz.correctCount);
+          saveBirdCodex(newCodex);
+          clearBirdQuizSession();
+          sky = completeSkyHawk(sky);
+          openRewardCeremony();
+        } else {
+          clearBirdQuizSession();
+          panel.openPanel({
+            kind: "birdQuizResult",
+            title: "아쉽다!",
+            body: "새가 조금 떨어진 곳으로 날아갔어.\n다시 도전해 보자!",
+            confirmLabel: "다시 도전",
+          });
+        }
+      } else {
+        setTimeout(() => openBirdQuizQuestion(), 600);
+      }
+      updateUi();
+      return;
+    } else if (kind === "birdQuizResult") {
+      birdQuiz = null;
+      panel.closePanel();
+      updateUi();
       return;
     } else if (kind === "reward") {
       sky = completeSkyRidgeReward(sky);

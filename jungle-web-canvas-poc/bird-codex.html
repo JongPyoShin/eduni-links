@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta http-equiv="cache-control" content="no-store" />
+    <title>새 도감 — EDUNI Jungle</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; background: linear-gradient(#18352c,#10261f); color: #f7ffe9; font-family: system-ui,sans-serif; }
+      body { min-height: 100vh; padding: 18px; }
+      .wrap { width: min(640px,100%); margin: 0 auto; }
+      h1 { margin: 4px 0 3px; font-size: clamp(24px,5vw,36px); text-align: center; }
+      .count { text-align: center; margin-bottom: 18px; color: #dceecb; font-weight: 800; }
+      .back { display: inline-block; margin-bottom: 14px; padding: 8px 14px; border-radius: 10px; background: rgba(255,255,255,.1); color: #dceecb; text-decoration: none; font-weight: 800; }
+      .back:hover { background: rgba(255,255,255,.18); }
+      .grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+      .bird-card { border-radius: 16px; padding: 18px; border: 1px solid rgba(213,240,180,.22); background: rgba(6,22,16,.45); }
+      .bird-card.locked { opacity: 0.55; }
+      .bird-card .icon { font-size: 48px; margin-bottom: 8px; }
+      .bird-card.locked .icon { filter: grayscale(1); opacity: 0.4; }
+      .bird-card .name { font-size: 20px; font-weight: 900; margin-bottom: 4px; }
+      .bird-card .habitat { font-size: 13px; color: #aebca7; margin-bottom: 6px; }
+      .bird-card .desc { font-size: 14px; color: #dceecb; line-height: 1.5; }
+      .bird-card .stats { margin-top: 10px; font-size: 12px; color: #8fa; }
+      .bird-card.locked .name { color: #666; }
+      .bird-card.locked .habitat, .bird-card.locked .desc { display: none; }
+      .locked-label { font-size: 13px; color: #8a8; font-style: italic; }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <a class="back" href="./jungle-hub.html">← 지도로 돌아가기</a>
+      <h1>📖 새 도감</h1>
+      <div class="count" id="count"></div>
+      <div class="grid" id="grid"></div>
+    </main>
+    <script type="module">
+      import { BIRD_MANIFEST, BIRD_IDS } from "./src/content/bird_manifest.js";
+      import { loadBirdCodex, hasCapturedBird, birdCodexEntry, capturedBirdCount } from "./src/content/bird_codex.js";
+
+      const codex = loadBirdCodex();
+      const count = capturedBirdCount(codex);
+      document.querySelector("#count").textContent = `${count} / ${BIRD_IDS.length} 발견`;
+
+      const grid = document.querySelector("#grid");
+      for (const birdId of BIRD_IDS) {
+        const bird = BIRD_MANIFEST[birdId];
+        const captured = hasCapturedBird(codex, birdId);
+        const entry = birdCodexEntry(codex, birdId);
+        const card = document.createElement("div");
+        card.className = `bird-card${captured ? "" : " locked"}`;
+        if (captured) {
+          card.innerHTML = `
+            <div class="icon">${bird.icon}</div>
+            <div class="name">${bird.name}</div>
+            <div class="habitat">서식지: ${bird.habitat}</div>
+            <div class="desc">"${bird.description}"</div>
+            <div class="stats">최고 점수: ${entry?.bestScore ?? 0} / 3 · 도전 횟수: ${entry?.attempts ?? 0}</div>
+          `;
+        } else {
+          card.innerHTML = `
+            <div class="icon">❓</div>
+            <div class="name">???</div>
+            <div class="locked-label">아직 발견하지 못했어</div>
+          `;
+        }
+        grid.append(card);
+      }
+    </script>
+  </body>
+</html>

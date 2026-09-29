@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { SkyRidgeWorldGeometry } from "./geometry.js";
 import { getSkyRidgeVisualPhase } from "./content/sky_ridge_visuals.js";
@@ -35,6 +36,33 @@ export function skyRidgeLogicalToThree(x, y, height = 0) {
 
 const worldPoint = skyRidgeLogicalToThree;
 const mat = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.88, metalness: 0, ...extra });
+
+async function addPirateFoliage(scene) {
+  const loader = new GLTFLoader();
+  const entries = [
+    { file: "PN-PalmTreeStatic.gltf", height: 2.45, points: [[-2.65, 1.75], [2.95, -0.6]] },
+    { file: "PN-BirdsOfParadisePlant.gltf", height: 1.15, points: [[-1.6, 1.15], [1.35, -0.05], [2.4, -1.15]] },
+  ];
+  const group = new THREE.Group();
+  const report = [];
+  for (const entry of entries) {
+    try {
+      const asset = await loader.loadAsync(`./assets/vendor/piratenation/${entry.file}`);
+      const bounds = new THREE.Box3().setFromObject(asset.scene);
+      const size = bounds.getSize(new THREE.Vector3());
+      const center = bounds.getCenter(new THREE.Vector3());
+      asset.scene.scale.setScalar(entry.height / Math.max(size.y, 0.001));
+      asset.scene.position.set(-center.x * asset.scene.scale.x, -bounds.min.y * asset.scene.scale.y, -center.z * asset.scene.scale.z);
+      asset.scene.traverse((object) => { if (object.isMesh) { object.castShadow = true; object.receiveShadow = true; } });
+      for (const [x, z] of entry.points) group.add(asset.scene.clone(true).translateX(x).translateZ(z));
+      report.push({ file: entry.file, loaded: true, meshes: asset.scene.children.length });
+    } catch (error) {
+      report.push({ file: entry.file, loaded: false, error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+  scene.add(group);
+  return { group, report };
+}
 
 function addGround(scene) {
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(16, 12), mat(0x466c68, { roughness: 1 }));
@@ -307,6 +335,7 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
   addRoute(scene);
   const story = addSkyEnvironment(scene);
   const player = await addPlayer(scene);
+  const pirateFoliage = await addPirateFoliage(scene);
   const beacon = addObjectiveBeacon(scene);
 
   const camera = new THREE.OrthographicCamera(-8,8,5,-5,.1,60);
@@ -320,6 +349,7 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
   controls.update();
 
   const setStatus = (text) => { if (statusEl) statusEl.textContent = text; };
+  if (statusEl) statusEl.dataset.pirateFoliage = JSON.stringify(pirateFoliage.report);
   let phaseIndex = Math.max(0, PHASES.indexOf(options.phase || "skyGate"));
   let currentPhase = applyPhase(scene, renderer, story, player, beacon, PHASES[phaseIndex]);
 
@@ -386,7 +416,7 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
     renderer.dispose();
   };
 
-  const api = { scene, camera, renderer, controls, geometryContract, story, player, phases: PHASES, setPhase, getPhase: () => PHASES[phaseIndex], dispose };
+  const api = { scene, camera, renderer, controls, geometryContract, story, player, pirateFoliage, phases: PHASES, setPhase, getPhase: () => PHASES[phaseIndex], dispose };
   globalThis.__eduniThreeSkyRidge = api;
   return api;
 }

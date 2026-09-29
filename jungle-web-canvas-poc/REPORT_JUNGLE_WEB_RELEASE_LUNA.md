@@ -27,6 +27,8 @@ The Pirate Nation art check confirmed `git lfs version` is unavailable (`git: 'l
 
 The latest Sky Ridge composition pass tightens the orthographic view height from `10.8` to `8.9`, enlarges the player billboard from `1.35×1.8` to `1.75×2.35`, adds four contrasting low-poly island terraces with rim accents, and shifts the camera target toward the authored route. The resulting after capture shows the player, pennant waypoints, route, and summit landmarks at a readable scale instead of a wide flat plane.
 
+The requested direct media check succeeded without Git LFS installation: both CC0 glTFs downloaded as valid JSON with embedded buffers/images and zero external `.bin`/image URIs. Sky Ridge now loads `PN-PalmTreeStatic.gltf` and `PN-BirdsOfParadisePlant.gltf` through the existing local `GLTFLoader`; runtime status dataset reported both `loaded:true`, and the after capture visibly shows the palm/fern clusters along the route.
+
 ## Verification
 
 - `npm test`: **232 passed, 0 failed**.
@@ -38,6 +40,7 @@ The latest Sky Ridge composition pass tightens the orthographic view height from
 - Fresh all-five smoke on `http://localhost:8126` reported CSS `1084×428`, `overflow=false`, and ready/status evidence for Camp (`qa=ready`), Waterfall (`GLB 14/14, fallback 0`), Cave (`GLB 4/4, fallback 0`), Giant Tree (`GLB 6/6, fallback 0`), and Sky Ridge (`skyGate`).
 - Fresh Sky Ridge after-capture visibly shows the six pennant waypoints stepping from the player toward the summit route; HUD and D-pad remain outside the map canvas at CSS `1084×428`, `overflow=false`.
 - Final Sky Ridge before/after capture comparison: before showed a wide low-contrast green plane, small player, and overlapping circular masses; after shows a tighter framed route, larger player, four differentiated island terraces, six pennant waypoints, and stronger terrain contrast. Final headed Chrome evidence was CSS `1084×428`, `overflow=false`, status `단계 1/9 · skyGate`.
+- Final CC0 foliage after capture at CSS `1084×428`: `pirateFoliage` reported Palm and Birds of Paradise entries loaded successfully; HUD/D-pad remained outside the canvas and `overflow=false`.
 - Headed Chrome extension QA opened and exercised real keyboard input on all five entry points at `?qa=1`: Camp, Waterfall, Cave, Giant Tree, Sky Ridge. Each page loaded its expected title/HUD and input controls; Cave reported `GLB 4/4 · fallback 0`, Giant Tree `GLB 6/6 · fallback 0`, and no console warning/error entries were captured.
 - Hub DOM showed the codex link `(0/3)`, all five stage cards, and the expected locked progression text.
 - Follow-up hub QA showed the new route heading, all five numbered card states, and progress meter. At the emulated phone viewport, computed grid columns changed to a single `684px` column with `overflow=false`.

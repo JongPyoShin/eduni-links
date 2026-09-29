@@ -62,11 +62,21 @@ Nation art remains a visual reference only.
 
 Current checkout result: `git lfs version` failed because Git LFS is not
 installed, and no system installation or settings change was attempted. The
-GitHub API/LFS responses for the candidate files were pointer text, so the
-selected file count is **0**, with no asset hash to record. The scene work
-instead applies the reference's island-exploration/reward-map language through
-existing route geometry, stepping surfaces, authored landmarks, foreground
-framing, and stage reward cues.
+two requested `media.githubusercontent.com` URLs were nevertheless valid
+binary JSON glTF responses with embedded buffers/textures (no external buffer
+or image dependencies), so they were selected and verified:
+
+| Local file | Original CC0 source path | SHA-256 | Runtime use |
+| --- | --- | --- | --- |
+| `assets/vendor/piratenation/PN-PalmTreeStatic.gltf` | `Voxel Game Assets/world items/Trees/Palm Tree Static/20221023/PN-PalmTreeStatic.gltf` | `D1E3D1DF945C586837B065DCDD1817298B7733449134C500D785B998A387760E` | Sky Ridge mid/foreground palm silhouettes |
+| `assets/vendor/piratenation/PN-BirdsOfParadisePlant.gltf` | `Voxel Game Assets/world items/Decorations/Birds of Paradise Fern/GLTF/PN-BirdsOfParadisePlant.gltf` | `C3D3254B02F2F4975696AEA4D4311A15DD38122D01DBC76A9FA03BB5BF58529B` | Sky Ridge foreground fern clusters |
+
+CC0 notice: the source repository is `proofofplay/piratenation-art` and its
+repository license is CC0 1.0. These files were fetched directly from
+`media.githubusercontent.com/media/proofofplay/piratenation-art/main/...`,
+parsed as JSON, and checked for zero external `.bin`/image URIs before being
+connected to the local `GLTFLoader`. No Pirate Nation logo, branded UI, or
+Unity game code is included.
 
 ## Acquisition acceptance
 

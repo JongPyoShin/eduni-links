@@ -60,6 +60,14 @@ the path and license here, then prove `GLTFLoader`/image loading and a rendered
 scene before considering runtime inclusion. Until those checks pass, Pirate
 Nation art remains a visual reference only.
 
+Current checkout result: `git lfs version` failed because Git LFS is not
+installed, and no system installation or settings change was attempted. The
+GitHub API/LFS responses for the candidate files were pointer text, so the
+selected file count is **0**, with no asset hash to record. The scene work
+instead applies the reference's island-exploration/reward-map language through
+existing route geometry, stepping surfaces, authored landmarks, foreground
+framing, and stage reward cues.
+
 ## Acquisition acceptance
 
 - Browser download event received and local file verified.

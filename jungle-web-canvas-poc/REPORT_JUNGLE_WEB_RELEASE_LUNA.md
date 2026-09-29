@@ -23,6 +23,8 @@ The scene composition pass adds a phase-driven objective beacon to the Cave, Gia
 
 The follow-up composition pass makes the scene change visible beyond the beacon: Cave now has a restrained translucent stalactite/boulder frame at the safe edges, Giant Tree now has foreground roots and canopy framing the authored trunk, and Sky Ridge now has cliff-edge silhouettes and foreground cloud banks framing the route. These use existing procedural Three geometry/materials only; route centerlines and gameplay anchors are unchanged.
 
+The Pirate Nation art check confirmed `git lfs version` is unavailable (`git: 'lfs' is not a git command`), so no external CC0 pointer was imported. To make the reference concrete without installing LFS or adding a bundle, Sky Ridge now has six small existing-geometry island waypoints with colored pennants offset along the authored route, giving the summit map a readable island-exploration/reward-map cadence.
+
 ## Verification
 
 - `npm test`: **232 passed, 0 failed**.
@@ -32,6 +34,7 @@ The follow-up composition pass makes the scene change visible beyond the beacon:
 - Updated scene smoke on headed Chrome (`http://localhost:8125`, isolated worktree server): Cave `단계 1/9 · caveGate · GLB 4/4 · fallback 0`, Giant Tree `단계 1/9 · rootGate · GLB 6/6 · fallback 0`, Sky Ridge `단계 1/9 · skyGate`, and Waterfall `threejsassets local GLB 14/14 loaded · fallback 0`; all reported `overflow=false` at the available `2168×1210` CSS viewport. Cave and Waterfall screenshots visibly showed the target ring/landmark framing with HUD and D-pad outside the canvas content.
 - Before/after headed Chrome comparison on the composition pass: before Cave was a mostly empty dark field with the route and rocks concentrated in the upper center; after Cave shows a readable framed chamber with the route still unobstructed after reducing the initial frame opacity/scale. After Giant Tree visibly frames the trunk route with two foreground roots and canopy masses; after Sky Ridge frames the pale route with cliff silhouettes and cloud banks. HUD, map link, and D-pad remained outside the canvas scene in all three captures.
 - Fresh all-five smoke on `http://localhost:8126` reported CSS `1084×428`, `overflow=false`, and ready/status evidence for Camp (`qa=ready`), Waterfall (`GLB 14/14, fallback 0`), Cave (`GLB 4/4, fallback 0`), Giant Tree (`GLB 6/6, fallback 0`), and Sky Ridge (`skyGate`).
+- Fresh Sky Ridge after-capture visibly shows the six pennant waypoints stepping from the player toward the summit route; HUD and D-pad remain outside the map canvas at CSS `1084×428`, `overflow=false`.
 - Headed Chrome extension QA opened and exercised real keyboard input on all five entry points at `?qa=1`: Camp, Waterfall, Cave, Giant Tree, Sky Ridge. Each page loaded its expected title/HUD and input controls; Cave reported `GLB 4/4 · fallback 0`, Giant Tree `GLB 6/6 · fallback 0`, and no console warning/error entries were captured.
 - Hub DOM showed the codex link `(0/3)`, all five stage cards, and the expected locked progression text.
 - Follow-up hub QA showed the new route heading, all five numbered card states, and progress meter. At the emulated phone viewport, computed grid columns changed to a single `684px` column with `overflow=false`.

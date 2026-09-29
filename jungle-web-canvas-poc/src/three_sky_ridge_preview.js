@@ -81,6 +81,25 @@ function addRoute(scene) {
   }
 }
 
+function addRewardMapWaypoints(scene) {
+  const group = new THREE.Group();
+  const colors = [0x9fe0d2, 0xffd782, 0xcfe9ff, 0xffefaa, 0xffc48b, 0xffdf72];
+  const points = [[470, 875], [690, 790], [850, 665], [1010, 555], [1160, 470], [1320, 405]];
+  points.forEach(([x, y], index) => {
+    const island = new THREE.Mesh(new THREE.CylinderGeometry(.34 + (index % 2) * .08, .46 + (index % 2) * .1, .16, 10), mat(0x73877a, { roughness: 1 }));
+    island.position.copy(worldPoint(x, y, .1));
+    island.castShadow = true;
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(.018, .024, .62, 8), mat(0x765337));
+    pole.position.copy(worldPoint(x, y, .82));
+    const flag = new THREE.Mesh(new THREE.PlaneGeometry(.24, .16), new THREE.MeshBasicMaterial({ color: colors[index], side: THREE.DoubleSide }));
+    flag.position.copy(worldPoint(x + .12, y, 1.08));
+    flag.rotation.y = -.12;
+    group.add(island, pole, flag);
+  });
+  scene.add(group);
+  return group;
+}
+
 function addForegroundFrame(scene) {
   const group = new THREE.Group();
   const cliffMat = mat(0x415d64, { roughness: 1, transparent: true, opacity: .92 });
@@ -270,6 +289,7 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
   addAtmosphere(scene);
   addGround(scene);
   addForegroundFrame(scene);
+  addRewardMapWaypoints(scene);
   addRoute(scene);
   const story = addSkyEnvironment(scene);
   const player = await addPlayer(scene);

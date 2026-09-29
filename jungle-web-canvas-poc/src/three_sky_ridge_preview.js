@@ -37,7 +37,7 @@ const worldPoint = skyRidgeLogicalToThree;
 const mat = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.88, metalness: 0, ...extra });
 
 function addGround(scene) {
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(16, 12), mat(0x526a63, { roughness: 1 }));
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(16, 12), mat(0x466c68, { roughness: 1 }));
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   scene.add(ground);
@@ -79,6 +79,19 @@ function addRoute(scene) {
     pad.position.copy(worldPoint(node.x, node.y, .051));
     scene.add(pad);
   }
+}
+
+function addIslandTerraces(scene) {
+  const group = new THREE.Group();
+  const terraces = [[-2.8, 2.35, 1.45, 0x587d72], [-.8, 1.15, 1.2, 0x6d8f7c], [1.15, .15, 1.05, 0x59766d], [2.85, -.9, 1.25, 0x718b78]];
+  terraces.forEach(([x, z, radius, color], index) => {
+    const island = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius * 1.12, .3, 12), mat(color, { roughness: 1 }));
+    island.position.set(x, .06, z); island.rotation.y = index * .18; island.receiveShadow = true; group.add(island);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(radius * .78, .025, 6, 24), new THREE.MeshBasicMaterial({ color: 0xb6d6aa, transparent: true, opacity: .5 }));
+    rim.rotation.x = -Math.PI / 2; rim.position.set(x, .23, z); group.add(rim);
+  });
+  scene.add(group);
+  return group;
 }
 
 function addRewardMapWaypoints(scene) {
@@ -228,7 +241,7 @@ async function addPlayer(scene) {
     const texture = await new THREE.TextureLoader().loadAsync("assets/player/player_front_idle_00_v01.png");
     texture.colorSpace = THREE.SRGBColorSpace;
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false }));
-    sprite.scale.set(1.35, 1.8, 1);
+    sprite.scale.set(1.75, 2.35, 1);
     scene.add(sprite);
     const glow = new THREE.PointLight(0xffe2a3, .95, 2.2, 2);
     scene.add(glow);
@@ -288,6 +301,7 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
   const scene = new THREE.Scene();
   addAtmosphere(scene);
   addGround(scene);
+  addIslandTerraces(scene);
   addForegroundFrame(scene);
   addRewardMapWaypoints(scene);
   addRoute(scene);
@@ -297,12 +311,12 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
 
   const camera = new THREE.OrthographicCamera(-8,8,5,-5,.1,60);
   camera.position.set(8.5,12.2,10.8);
-  camera.lookAt(.8,.3,-.5);
+  camera.lookAt(.45,.7,.25);
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enabled = options.debugControls ?? true;
   controls.enableDamping = true;
   controls.enablePan = false;
-  controls.target.set(.8,.5,-.5);
+  controls.target.set(.45,.7,.25);
   controls.update();
 
   const setStatus = (text) => { if (statusEl) statusEl.textContent = text; };
@@ -314,7 +328,7 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
     const height = canvas.clientHeight || globalThis.innerHeight || 720;
     renderer.setSize(width, height, false);
     const aspect = width / Math.max(1,height);
-    const viewHeight = 10.8;
+    const viewHeight = 8.9;
     camera.left = -(viewHeight * aspect) / 2;
     camera.right = (viewHeight * aspect) / 2;
     camera.top = viewHeight / 2;

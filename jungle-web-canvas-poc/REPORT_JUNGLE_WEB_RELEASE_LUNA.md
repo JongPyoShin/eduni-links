@@ -25,6 +25,8 @@ The follow-up composition pass makes the scene change visible beyond the beacon:
 
 The Pirate Nation art check confirmed `git lfs version` is unavailable (`git: 'lfs' is not a git command`), so no external CC0 pointer was imported. To make the reference concrete without installing LFS or adding a bundle, Sky Ridge now has six small existing-geometry island waypoints with colored pennants offset along the authored route, giving the summit map a readable island-exploration/reward-map cadence.
 
+The latest Sky Ridge composition pass tightens the orthographic view height from `10.8` to `8.9`, enlarges the player billboard from `1.35×1.8` to `1.75×2.35`, adds four contrasting low-poly island terraces with rim accents, and shifts the camera target toward the authored route. The resulting after capture shows the player, pennant waypoints, route, and summit landmarks at a readable scale instead of a wide flat plane.
+
 ## Verification
 
 - `npm test`: **232 passed, 0 failed**.
@@ -35,6 +37,7 @@ The Pirate Nation art check confirmed `git lfs version` is unavailable (`git: 'l
 - Before/after headed Chrome comparison on the composition pass: before Cave was a mostly empty dark field with the route and rocks concentrated in the upper center; after Cave shows a readable framed chamber with the route still unobstructed after reducing the initial frame opacity/scale. After Giant Tree visibly frames the trunk route with two foreground roots and canopy masses; after Sky Ridge frames the pale route with cliff silhouettes and cloud banks. HUD, map link, and D-pad remained outside the canvas scene in all three captures.
 - Fresh all-five smoke on `http://localhost:8126` reported CSS `1084×428`, `overflow=false`, and ready/status evidence for Camp (`qa=ready`), Waterfall (`GLB 14/14, fallback 0`), Cave (`GLB 4/4, fallback 0`), Giant Tree (`GLB 6/6, fallback 0`), and Sky Ridge (`skyGate`).
 - Fresh Sky Ridge after-capture visibly shows the six pennant waypoints stepping from the player toward the summit route; HUD and D-pad remain outside the map canvas at CSS `1084×428`, `overflow=false`.
+- Final Sky Ridge before/after capture comparison: before showed a wide low-contrast green plane, small player, and overlapping circular masses; after shows a tighter framed route, larger player, four differentiated island terraces, six pennant waypoints, and stronger terrain contrast. Final headed Chrome evidence was CSS `1084×428`, `overflow=false`, status `단계 1/9 · skyGate`.
 - Headed Chrome extension QA opened and exercised real keyboard input on all five entry points at `?qa=1`: Camp, Waterfall, Cave, Giant Tree, Sky Ridge. Each page loaded its expected title/HUD and input controls; Cave reported `GLB 4/4 · fallback 0`, Giant Tree `GLB 6/6 · fallback 0`, and no console warning/error entries were captured.
 - Hub DOM showed the codex link `(0/3)`, all five stage cards, and the expected locked progression text.
 - Follow-up hub QA showed the new route heading, all five numbered card states, and progress meter. At the emulated phone viewport, computed grid columns changed to a single `684px` column with `overflow=false`.

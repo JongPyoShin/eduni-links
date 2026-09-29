@@ -31,6 +31,7 @@ GAME_STATIC_DIR = Path(__file__).resolve().parent / "static_games"
 JUNGLE_STATIC_DIR = Path(__file__).resolve().parent / "jungle_static"
 app.add_static_files("/jungle-static", JUNGLE_STATIC_DIR)
 app.add_static_files("/jungle-assets", GAME_STATIC_DIR / "assets")
+app.add_static_files("/sudoku-assets", GAME_STATIC_DIR)
 
 
 def _game_html_response(filename: str) -> HTMLResponse:
@@ -143,6 +144,12 @@ def eduni_link_game() -> HTMLResponse:
 @app.get("/omok/", response_class=HTMLResponse)
 def eduni_omok_game() -> HTMLResponse:
     return _game_html_response("eduni_omok.html")
+
+
+@app.get("/sudoku", response_class=HTMLResponse)
+@app.get("/sudoku/", response_class=HTMLResponse)
+def eduni_sudoku_game() -> HTMLResponse:
+    return _game_html_response("eduni_sudoku.html")
 
 
 @app.get("/games/eduni-link", response_class=HTMLResponse)
@@ -289,6 +296,7 @@ def register_pages() -> None:
 
             _section_title("빠른 시작", "자주 쓰는 학습과 게임으로 바로 이동합니다.")
             with ui.element("section").classes("portal-quick"):
+                _portal_card("/sudoku", "스도쿠 탐험", "4×4부터 차근차근 푸는 숫자 퍼즐", "새 게임", "portal-game-green")
                 _portal_card(EDUNI_SPACE_URL, "공간탐험", "공간지각·규칙·조건·길찾기를 섞은 사고추론 10문제", "470문제", "portal-game-space")
                 _portal_card(EDUNI_JUNGLE_URL, "정글 새탐험", "정글 맵을 탐험하며 새를 채집하는 모험", "탐험", "portal-game-jungle")
                 _portal_card(EDUNI_OMOK_URL, "AI 오목", "AI 친구와 오목을 두는 두뇌 게임", "신규", "portal-game-violet")

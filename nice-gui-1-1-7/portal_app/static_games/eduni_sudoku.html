@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>EDUNI 스도쿠 탐험</title>
+  <style>
+    :root { color-scheme:light; font-family:system-ui,"Malgun Gothic",sans-serif; color:#17233c; background:#f5f8ff; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100dvh; background:radial-gradient(circle at top,#dcecff,#f5f8ff 52%); }
+    button,a { font:inherit; }
+    button { cursor:pointer; touch-action:manipulation; }
+    button:focus-visible,a:focus-visible { outline:3px solid #fd8f26; outline-offset:2px; }
+    .shell { width:min(100%,640px); min-height:100dvh; margin:auto; padding:12px 12px calc(18px + env(safe-area-inset-bottom)); }
+    header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+    .back { color:#214779; font-weight:800; text-decoration:none; padding:12px 8px; }
+    h1 { margin:0; font-size:clamp(21px,5vw,29px); letter-spacing:-.04em; }
+    .card { background:#fff; border:1px solid #d7e3f6; border-radius:23px; box-shadow:0 12px 30px #3c66a91a; }
+    .intro { padding:15px 16px 14px; }
+    .intro p { margin:6px 0 0; color:#4b5c78; font-size:14px; font-weight:650; line-height:1.45; }
+    .level-row { display:flex; gap:8px; margin:13px 0 0; }
+    .level { flex:1; min-height:48px; padding:7px 4px; border:2px solid #d7e3f6; border-radius:14px; background:#fff; color:#314363; font-size:14px; font-weight:850; }
+    .level.active { border-color:#3e63db; background:#eaf0ff; color:#2444ad; }
+    .game { margin-top:12px; padding:14px; }
+    .guide { min-height:46px; display:flex; align-items:center; justify-content:center; text-align:center; margin:0 0 12px; padding:8px 12px; border-radius:13px; background:#ebf6ff; color:#214779; font-size:15px; font-weight:800; line-height:1.35; }
+    .board { width:min(100%,420px); aspect-ratio:1; margin:auto; display:grid; border:3px solid #263d6c; border-radius:11px; overflow:hidden; background:#fff; }
+    .cell { min-width:0; min-height:0; padding:0; border:0; border-right:1px solid #a9bddb; border-bottom:1px solid #a9bddb; border-radius:0; background:#fff; color:#20385d; font-size:clamp(25px,9vw,42px); font-weight:800; }
+    .board.six .cell { font-size:clamp(22px,6.8vw,32px); }
+    .cell.peer { background:#f2f7ff; }
+    .cell.given { color:#31446d; background:#eef3fb; }
+    .cell.given.peer { background:#e6eefb; }
+    .cell.selected { background:#cde0ff; box-shadow:inset 0 0 0 3px #416bda; }
+    .cell.conflict { color:#a7202f; background:#ffe3e4; }
+    .cell.hint { box-shadow:inset 0 0 0 3px #ffa544; }
+    .cell.box-right { border-right:3px solid #263d6c; }
+    .cell.box-bottom { border-bottom:3px solid #263d6c; }
+    .cell.edge-right { border-right:0; }
+    .cell.edge-bottom { border-bottom:0; }
+    .keypad { display:grid; gap:8px; margin:15px auto 0; max-width:420px; }
+    .key { min-height:62px; border:0; border-radius:15px; background:#305de0; color:white; font-size:29px; font-weight:850; box-shadow:0 4px 0 #213e9d; }
+    .key:active { transform:translateY(2px); box-shadow:0 2px 0 #213e9d; }
+    .tools { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:420px; margin:14px auto 0; }
+    .tool { min-height:52px; border:1px solid #d4dfef; border-radius:13px; background:#f8faff; color:#263d6c; font-size:14px; font-weight:850; }
+    .tool:disabled { opacity:.5; cursor:default; }
+    .footer { display:flex; align-items:center; justify-content:space-between; gap:12px; max-width:420px; margin:12px auto 0; }
+    .new { min-height:45px; border:0; border-radius:12px; padding:0 16px; background:#e9f0ff; color:#284caa; font-weight:800; }
+    .progress { color:#657390; font-size:13px; font-weight:700; }
+    .finish { max-width:420px; margin:14px auto 0; padding:17px; border-radius:17px; background:#e9f8ee; text-align:center; }
+    .finish strong { display:block; font-size:20px; color:#15683a; }
+    .finish p { margin:7px 0 12px; color:#315d44; }
+    .finish button { min-height:48px; width:100%; border:0; border-radius:12px; background:#17844b; color:#fff; font-weight:850; }
+    [hidden] { display:none!important; }
+    @media (max-width:375px) { .shell { padding-inline:8px; } .game { padding:9px; } .intro { padding:12px; } .level { font-size:12px; } }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; animation:none!important; transition:none!important; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header><a class="back" href="/portal" aria-label="포털로 돌아가기">← 포털</a><h1>🔢 스도쿠 탐험</h1><span aria-hidden="true">✦</span></header>
+    <section class="card intro" aria-label="퍼즐 선택">
+      <strong id="levelTitle">숫자 1부터 4까지</strong>
+      <p>가로줄, 세로줄, 작은 네모칸에 같은 숫자를 한 번씩 넣어봐!</p>
+      <div class="level-row" role="group" aria-label="난이도 선택">
+        <button class="level" data-level="starter" type="button">연습 4×4</button>
+        <button class="level" data-level="explorer" type="button">탐험 4×4</button>
+        <button class="level" data-level="challenge" type="button">도전 6×6</button>
+      </div>
+    </section>
+    <section class="card game" aria-label="스도쿠 게임">
+      <p id="message" class="guide" role="status" aria-live="polite">빈칸을 눌러 숫자를 골라줘.</p>
+      <div id="board" class="board" role="group" aria-label="스도쿠 보드"></div>
+      <div id="keypad" class="keypad" role="group" aria-label="숫자 입력"></div>
+      <div class="tools">
+        <button id="undo" class="tool" type="button">↶ 되돌리기</button>
+        <button id="erase" class="tool" type="button">⌫ 지우기</button>
+        <button id="hint" class="tool" type="button">💡 힌트</button>
+      </div>
+      <div id="finish" class="finish" hidden>
+        <strong>퍼즐 완성! 🎉</strong>
+        <p id="finishMessage">차근차근 잘 풀었어.</p>
+        <button id="next" type="button">다음 퍼즐</button>
+      </div>
+      <div class="footer"><span id="progress" class="progress"></span><button id="new" class="new" type="button">새 퍼즐</button></div>
+    </section>
+  </main>
+  <script src="/sudoku-assets/eduni_sudoku_core.js"></script>
+  <script>
+    (() => {
+      "use strict";
+      const KEY = "eduni-sudoku-v1";
+      const $ = id => document.getElementById(id);
+      const names = { starter:"연습 4×4", explorer:"탐험 4×4", challenge:"도전 6×6" };
+      const recentKey = "eduni-sudoku-recent-v1";
+      const readJson = key => { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } };
+      const validSave = saved => {
+        const config = saved && SudokuCore.LEVELS[saved.level];
+        return Boolean(config && Array.isArray(saved.puzzle) && Array.isArray(saved.solution) &&
+          Array.isArray(saved.entries) && [saved.puzzle,saved.solution,saved.entries]
+            .every(values => values.length === config.size ** 2 && values.every(value => Number.isInteger(value) && value >= 0 && value <= config.size)) &&
+          saved.puzzle.every((value,index) => !value || (saved.entries[index] === value && saved.solution[index] === value)) &&
+          saved.solution.every(Boolean) && SudokuCore.conflicts(saved.solution, config).length === 0 &&
+          (!saved.undo || (Array.isArray(saved.undo) && saved.undo.length <= 30 &&
+            saved.undo.every(move => Number.isInteger(move.index) && move.index >= 0 &&
+              move.index < config.size ** 2 && Number.isInteger(move.value) &&
+              move.value >= 0 && move.value <= config.size && !saved.puzzle[move.index]))));
+      };
+      let recent = Array.isArray(readJson(recentKey)) ? readJson(recentKey).slice(-6) : [];
+      let state = readJson(KEY);
+      if (!validSave(state)) state = null;
+      let undoStack = state ? (state.undo || []) : [];
+      if (state) state.undo = undoStack;
+      let hintStage = 0, hintIndex = -1;
+      const save = () => {
+        try { localStorage.setItem(KEY, JSON.stringify(state)); localStorage.setItem(recentKey, JSON.stringify(recent)); }
+        catch { $("message").textContent = "이 기기에서는 이어하기 저장을 사용할 수 없어."; }
+      };
+      const config = () => SudokuCore.LEVELS[state.level];
+      const announce = text => { $("message").textContent = text; };
+      const start = level => {
+        const generated = SudokuCore.generate(level);
+        state = { ...generated, entries:[...generated.puzzle], selected:-1, hints:0, mistakes:0, completed:false, undo:[] };
+        undoStack = state.undo; hintStage = 0; hintIndex = -1;
+        save(); render(); announce("빈칸을 누르고 아래에서 숫자를 골라줘.");
+      };
+      const setValue = (value, fromHint = false) => {
+        const index = state.selected;
+        if (state.completed || index < 0 || state.puzzle[index] || state.entries[index] === value) return;
+        undoStack.push({ index, value:state.entries[index] });
+        if (undoStack.length > 30) undoStack.shift();
+        state.entries[index] = value;
+        hintStage = 0; hintIndex = -1;
+        if (!fromHint && value && value !== state.solution[index]) {
+          state.mistakes++;
+          announce("이 칸의 숫자를 다시 살펴볼까?");
+        } else announce("좋아! 다음 빈칸도 찾아보자.");
+        if (state.entries.every((entry, cell) => entry === state.solution[cell])) {
+          state.completed = true;
+          recent.push({ level:state.level, completed:true, hints:state.hints, conflicts:state.mistakes });
+          recent = recent.slice(-6);
+          announce("퍼즐 완성! 다음 탐험도 해볼까?");
+        }
+        save(); render();
+      };
+      const render = () => {
+        const { size, boxRows, boxCols } = config();
+        const bad = new Set(state.entries.flatMap((value,index) =>
+          value && value !== state.solution[index] ? [index] : []));
+        $("levelTitle").textContent = `숫자 1부터 ${size}까지 · ${names[state.level]}`;
+        document.querySelectorAll(".level").forEach(button => {
+          button.classList.toggle("active", button.dataset.level === state.level);
+          button.setAttribute("aria-pressed", button.dataset.level === state.level ? "true" : "false");
+        });
+        const board = $("board");
+        board.className = `board ${size === 6 ? "six" : "four"}`;
+        board.style.gridTemplateColumns = `repeat(${size},1fr)`;
+        board.innerHTML = state.entries.map((value,index) => {
+          const row = Math.floor(index / size), col = index % size;
+          const chosen = state.selected, chosenRow = Math.floor(chosen / size), chosenCol = chosen % size;
+          const peer = chosen >= 0 && (row === chosenRow || col === chosenCol ||
+            (Math.floor(row / boxRows) === Math.floor(chosenRow / boxRows) &&
+             Math.floor(col / boxCols) === Math.floor(chosenCol / boxCols)));
+          const classes = ["cell", state.puzzle[index] && "given", peer && "peer",
+            chosen === index && "selected", bad.has(index) && "conflict", hintIndex === index && "hint",
+            (col + 1) % boxCols === 0 && col !== size - 1 && "box-right",
+            (row + 1) % boxRows === 0 && row !== size - 1 && "box-bottom",
+            col === size - 1 && "edge-right", row === size - 1 && "edge-bottom"].filter(Boolean).join(" ");
+          return `<button type="button" class="${classes}" data-cell="${index}" aria-label="${row + 1}행 ${col + 1}열, ${value || "빈칸"}${state.puzzle[index] ? ", 시작 숫자" : ""}" aria-pressed="${chosen === index}">${value || ""}</button>`;
+        }).join("");
+        $("keypad").style.gridTemplateColumns = `repeat(${size === 4 ? 4 : 3},1fr)`;
+        $("keypad").innerHTML = Array.from({length:size},(_,i) =>
+          `<button class="key" type="button" data-number="${i + 1}" aria-label="${i + 1} 넣기">${i + 1}</button>`).join("");
+        $("undo").disabled = !undoStack.length || state.completed;
+        $("erase").disabled = state.completed || state.selected < 0 || Boolean(state.puzzle[state.selected]) || !state.entries[state.selected];
+        $("hint").disabled = state.completed;
+        $("finish").hidden = !state.completed;
+        if (state.completed) {
+          const recommended = SudokuCore.recommend(state.level, recent);
+          $("finishMessage").textContent = recommended === state.level ? "차근차근 잘 풀었어." :
+            `다음에는 ${names[recommended]}을 해볼까?`;
+          $("next").dataset.level = recommended;
+        }
+        $("progress").textContent = `채운 칸 ${state.entries.filter(Boolean).length} / ${size ** 2}`;
+      };
+      $("board").addEventListener("click", event => {
+        const button = event.target.closest("[data-cell]");
+        if (!button || state.completed) return;
+        state.selected = Number(button.dataset.cell);
+        hintStage = 0; hintIndex = -1;
+        save(); render();
+        announce(state.puzzle[state.selected] ? "이 숫자는 처음부터 놓인 숫자야. 빈칸을 골라줘." : "아래에서 넣을 숫자를 골라줘.");
+      });
+      $("keypad").addEventListener("click", event => {
+        const button = event.target.closest("[data-number]");
+        if (!button) return;
+        if (state.selected < 0) return announce("먼저 보드에서 빈칸을 골라줘.");
+        if (state.puzzle[state.selected]) return announce("처음부터 놓인 숫자는 바꿀 수 없어.");
+        setValue(Number(button.dataset.number));
+      });
+      $("undo").addEventListener("click", () => {
+        const last = undoStack.pop();
+        if (!last || state.completed) return;
+        state.entries[last.index] = last.value; state.selected = last.index;
+        hintStage = 0; hintIndex = -1; save(); render(); announce("한 번 되돌렸어.");
+      });
+      $("erase").addEventListener("click", () => setValue(0));
+      $("hint").addEventListener("click", () => {
+        const wrong = state.entries.findIndex((value,index) => value && value !== state.solution[index]);
+        if (wrong >= 0) {
+          state.selected = wrong; hintIndex = wrong; hintStage = 0; render();
+          return announce("빛나는 칸의 숫자를 다시 확인해볼까?");
+        }
+        const hint = SudokuCore.nextHint(state.entries, config());
+        if (!hint) return announce("빈칸을 하나 골라 다시 살펴볼까?");
+        if (hintIndex !== hint.index) hintStage = 0;
+        hintIndex = hint.index; state.selected = hint.index;
+        if (hintStage === 0) { hintStage = 1; announce("빛나는 칸의 가로줄과 세로줄을 살펴봐."); }
+        else if (hintStage === 1) {
+          hintStage = 2;
+          announce(hint.reason === "single" ?
+            "이 칸에 들어갈 수 있는 숫자는 하나뿐이야. 한 번 더 누르면 보여줄게." :
+            "어떤 숫자는 이 칸에만 들어갈 수 있어. 한 번 더 누르면 보여줄게.");
+        }
+        else { state.hints++; setValue(hint.value, true); }
+        render();
+      });
+      document.querySelectorAll(".level").forEach(button => button.addEventListener("click", () => {
+        if (button.dataset.level !== state.level && window.confirm(`${names[button.dataset.level]} 새 퍼즐을 시작할까? 지금 퍼즐은 새 퍼즐로 바뀌어.`))
+          start(button.dataset.level);
+      }));
+      $("new").addEventListener("click", () => { if (window.confirm("새 퍼즐을 시작할까? 지금 퍼즐은 새 퍼즐로 바뀌어.")) start(state.level); });
+      $("next").addEventListener("click", () => start($("next").dataset.level));
+      if (state) render(); else start("starter");
+    })();
+  </script>
+</body>
+</html>

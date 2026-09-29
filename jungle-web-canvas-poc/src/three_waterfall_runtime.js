@@ -51,8 +51,10 @@ function installCardinalGameplayCamera(runtime, bridge) {
       const p = logicalToThree(logical.x, logical.y, 0);
       const targetX = clamp(p.x, -3.1, 3.1);
       const targetZ = clamp(p.z, -3.0, 3.0);
-      runtime.controls.target.x += (targetX - runtime.controls.target.x) * 0.1;
-      runtime.controls.target.z += (targetZ - runtime.controls.target.z) * 0.1;
+      const framedTargetX = clamp(p.x, -5.5, 5.5);
+      const framedTargetZ = clamp(p.z, -4.6, 4.6);
+      runtime.controls.target.x += (framedTargetX - runtime.controls.target.x) * 0.1;
+      runtime.controls.target.z += (framedTargetZ - runtime.controls.target.z) * 0.1;
       runtime.controls.target.y = 0.3;
       // Gameplay camera has no X offset. World X is screen-horizontal and
       // logical Y/world Z is screen-vertical, so D-pad arrows match the screen.

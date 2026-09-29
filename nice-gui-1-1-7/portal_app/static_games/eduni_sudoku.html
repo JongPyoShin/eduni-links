@@ -27,10 +27,12 @@
     .cell { min-width:0; min-height:0; padding:0; border:0; border-right:1px solid #a9bddb; border-bottom:1px solid #a9bddb; border-radius:0; background:#fff; color:#20385d; font-size:clamp(25px,9vw,42px); font-weight:800; }
     .board.six .cell { font-size:clamp(22px,6.8vw,32px); }
     .cell.peer { background:#f2f7ff; }
-    .cell.given { color:#31446d; background:#eef3fb; }
+    .cell.given { color:#31446d; background:#eef3fb; box-shadow:inset 0 0 0 2px #8ea5cb; }
+    .cell.entry { color:#173f9d; background:#f7faff; }
+    .cell.entry.peer { background:#edf4ff; }
     .cell.given.peer { background:#e6eefb; }
     .cell.selected { background:#cde0ff; box-shadow:inset 0 0 0 3px #416bda; }
-    .cell.conflict { color:#a7202f; background:#ffe3e4; }
+    .cell.conflict { color:#a7202f; background:#ffe3e4; box-shadow:inset 0 0 0 3px #c73545; }
     .cell.hint { box-shadow:inset 0 0 0 3px #ffa544; }
     .cell.box-right { border-right:3px solid #263d6c; }
     .cell.box-bottom { border-bottom:3px solid #263d6c; }
@@ -49,8 +51,20 @@
     .finish strong { display:block; font-size:20px; color:#15683a; }
     .finish p { margin:7px 0 12px; color:#315d44; }
     .finish button { min-height:48px; width:100%; border:0; border-radius:12px; background:#17844b; color:#fff; font-weight:850; }
+    .help { min-height:44px; margin-top:10px; border:2px solid #d7e3f6; border-radius:12px; padding:0 14px; background:#fff; color:#284caa; font-weight:850; }
+    dialog { width:min(calc(100% - 28px),380px); border:0; border-radius:18px; padding:0; color:#17233c; box-shadow:0 18px 55px #17233c55; }
+    dialog::backdrop { background:#17233c66; }
+    .dialog-body { padding:20px; }
+    .dialog-body h2 { margin:0; font-size:20px; }
+    .dialog-body p { margin:9px 0 0; color:#4b5c78; line-height:1.55; }
+    .dialog-actions { display:flex; gap:8px; margin-top:18px; }
+    .dialog-actions button { flex:1; min-height:48px; border:0; border-radius:12px; font-weight:850; }
+    .dialog-cancel { background:#eef3fb; color:#284c6f; }
+    .dialog-confirm { background:#305de0; color:#fff; }
+    .rules-list { margin:12px 0 0; padding-left:20px; color:#31506f; line-height:1.75; }
     [hidden] { display:none!important; }
     @media (max-width:375px) { .shell { padding-inline:8px; } .game { padding:9px; } .intro { padding:12px; } .level { font-size:12px; } }
+    @media (max-width:400px) { .sudoku-six .intro p { display:none; } }
     @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; animation:none!important; transition:none!important; } }
   </style>
 </head>
@@ -81,8 +95,30 @@
         <button id="next" type="button">다음 퍼즐</button>
       </div>
       <div class="footer"><span id="progress" class="progress"></span><button id="new" class="new" type="button">새 퍼즐</button></div>
+      <button id="rules" class="help" type="button">📘 놀이 방법</button>
     </section>
   </main>
+  <dialog id="confirmDialog" aria-labelledby="confirmTitle">
+    <form method="dialog" class="dialog-body">
+      <h2 id="confirmTitle">새 퍼즐을 시작할까?</h2>
+      <p id="confirmText">지금 풀고 있는 퍼즐은 새 퍼즐로 바뀌어.</p>
+      <div class="dialog-actions">
+        <button class="dialog-cancel" value="cancel">취소</button>
+        <button id="confirmOk" class="dialog-confirm" value="confirm">시작하기</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="rulesDialog" aria-labelledby="rulesTitle">
+    <form method="dialog" class="dialog-body">
+      <h2 id="rulesTitle">놀이 방법</h2>
+      <ul class="rules-list">
+        <li>가로줄마다 1부터 <span class="rule-max">4</span>까지 숫자를 한 번씩 넣어.</li>
+        <li>세로줄마다 1부터 <span class="rule-max">4</span>까지 숫자를 한 번씩 넣어.</li>
+        <li>작은 네모칸에도 1부터 <span class="rule-max">4</span>까지 숫자를 한 번씩 넣어.</li>
+      </ul>
+      <div class="dialog-actions"><button class="dialog-confirm" value="close">알겠어!</button></div>
+    </form>
+  </dialog>
   <script src="/sudoku-assets/eduni_sudoku_core.js"></script>
   <script>
     (() => {
@@ -110,6 +146,7 @@
       let undoStack = state ? (state.undo || []) : [];
       if (state) state.undo = undoStack;
       let hintStage = 0, hintIndex = -1;
+      let pendingConfirm = null, confirmReturn = null;
       const save = () => {
         try { localStorage.setItem(KEY, JSON.stringify(state)); localStorage.setItem(recentKey, JSON.stringify(recent)); }
         catch { $("message").textContent = "이 기기에서는 이어하기 저장을 사용할 수 없어."; }
@@ -143,6 +180,8 @@
       };
       const render = () => {
         const { size, boxRows, boxCols } = config();
+        document.body.classList.toggle("sudoku-six", size === 6);
+        document.querySelectorAll(".rule-max").forEach(item => { item.textContent = size; });
         const bad = new Set(state.entries.flatMap((value,index) =>
           value && value !== state.solution[index] ? [index] : []));
         $("levelTitle").textContent = `숫자 1부터 ${size}까지 · ${names[state.level]}`;
@@ -159,7 +198,7 @@
           const peer = chosen >= 0 && (row === chosenRow || col === chosenCol ||
             (Math.floor(row / boxRows) === Math.floor(chosenRow / boxRows) &&
              Math.floor(col / boxCols) === Math.floor(chosenCol / boxCols)));
-          const classes = ["cell", state.puzzle[index] && "given", peer && "peer",
+          const classes = ["cell", state.puzzle[index] && "given", !state.puzzle[index] && value && "entry", peer && "peer",
             chosen === index && "selected", bad.has(index) && "conflict", hintIndex === index && "hint",
             (col + 1) % boxCols === 0 && col !== size - 1 && "box-right",
             (row + 1) % boxRows === 0 && row !== size - 1 && "box-bottom",
@@ -223,11 +262,24 @@
         else { state.hints++; setValue(hint.value, true); }
         render();
       });
+      const confirmDialog = $("confirmDialog");
+      const openConfirm = (level, returnFocus) => {
+        pendingConfirm = level; confirmReturn = returnFocus;
+        $("confirmTitle").textContent = level === state.level ? "새 퍼즐을 시작할까?" : `${names[level]} 퍼즐로 바꿀까?`;
+        $("confirmText").textContent = "지금 풀고 있는 퍼즐은 새 퍼즐로 바뀌어.";
+        confirmDialog.showModal(); $("confirmOk").focus();
+      };
+      confirmDialog.addEventListener("close", () => {
+        if (confirmDialog.returnValue === "confirm" && pendingConfirm) start(pendingConfirm);
+        pendingConfirm = null;
+        if (confirmReturn) confirmReturn.focus();
+        confirmReturn = null;
+      });
       document.querySelectorAll(".level").forEach(button => button.addEventListener("click", () => {
-        if (button.dataset.level !== state.level && window.confirm(`${names[button.dataset.level]} 새 퍼즐을 시작할까? 지금 퍼즐은 새 퍼즐로 바뀌어.`))
-          start(button.dataset.level);
+        if (button.dataset.level !== state.level) openConfirm(button.dataset.level, button);
       }));
-      $("new").addEventListener("click", () => { if (window.confirm("새 퍼즐을 시작할까? 지금 퍼즐은 새 퍼즐로 바뀌어.")) start(state.level); });
+      $("new").addEventListener("click", () => openConfirm(state.level, $("new")));
+      $("rules").addEventListener("click", () => $("rulesDialog").showModal());
       $("next").addEventListener("click", () => start($("next").dataset.level));
       if (state) render(); else start("starter");
     })();

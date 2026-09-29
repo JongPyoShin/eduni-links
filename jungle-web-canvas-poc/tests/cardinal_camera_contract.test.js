@@ -16,6 +16,7 @@ function assertCardinalGameCamera(source, y) {
   assert.match(source, /const framedTargetX = THREE\.MathUtils\.clamp\(p\.x, -5\.5, 5\.5\)/);
   assert.match(source, /runtime\.camera\.position\.x = runtime\.controls\.target\.x/);
   assert.match(source, /runtime\.camera\.position\.z = runtime\.controls\.target\.z \+ 8\.2/);
+  assert.match(source, /runtime\.camera\.lookAt\(runtime\.controls\.target\.x, runtime\.controls\.target\.y, runtime\.controls\.target\.z\)/);
   assert.match(source, new RegExp(`runtime\\.camera\\.position\\.y = ${String(y).replace(".", "\\.")}`));
   assert.doesNotMatch(source, /p\.z \* 0\.62/);
   assert.doesNotMatch(source, /runtime\.controls\.target\.x \+ 8\.0/);
@@ -24,6 +25,7 @@ function assertCardinalGameCamera(source, y) {
 test("Waterfall production renderer overrides its preview camera with cardinal gameplay axes", () => {
   assert.match(WATERFALL, /installCardinalGameplayCamera/);
   assert.match(WATERFALL, /runtime\.camera\.position\.set\(runtime\.controls\.target\.x, 11\.5, runtime\.controls\.target\.z \+ 8\.2\)/);
+  assert.match(WATERFALL, /runtime\.camera\.lookAt\(target\.x, target\.y, target\.z\)/);
   assert.doesNotMatch(WATERFALL, /requestAnimationFrame/);
 });
 

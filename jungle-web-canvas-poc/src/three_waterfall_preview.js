@@ -119,7 +119,7 @@ function addGround(scene) {
 function addRoute(scene) {
   const route = geometryContract.paths[0] || [];
   const radius = geometryContract.pathHalfWidth * WORLD_SCALE * 0.72;
-  const routeMat = material(0xa99a60, { roughness: 1 });
+  const routeMat = material(0xd8c477, { roughness: 1 });
   const edgeMat = material(0x65734d, { roughness: 1 });
 
   for (let i = 0; i < route.length - 1; i += 1) {

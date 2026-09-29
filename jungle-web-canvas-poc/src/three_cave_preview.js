@@ -87,7 +87,7 @@ function addRoute(scene) {
   const route = geometryContract.paths[0];
   const radius = geometryContract.pathHalfWidth * WORLD_SCALE * 0.72;
   const edgeMat = standardMaterial(0x313341, { roughness: 1 });
-  const routeMat = standardMaterial(0x625b72, { roughness: 1 });
+  const routeMat = standardMaterial(0x8da7be, { roughness: 1 });
 
   for (let i = 0; i < route.length - 1; i += 1) {
     const a = worldPoint(route[i].x, route[i].y, 0.045);

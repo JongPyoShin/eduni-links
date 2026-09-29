@@ -39,6 +39,8 @@ The old clamp variables were then removed entirely; the updated camera contract 
 
 The follow-up blank-screen trace found OrbitControls was still overwriting the gameplay camera after the target/position assignment. Waterfall now reapplies its cardinal camera after `originalUpdate()`, and Cave/Giant Tree/Sky Ridge skip OrbitControls updates when `debugControls:false` and explicitly `lookAt()` the gameplay target. This preserves the mobile camera orientation instead of only moving the camera position.
 
+The final source trace also confirms the portrait start platform and first route segment are now inside the safe composition (`start=(-5.8,4.35)` in Three space), with brighter Waterfall/Cave/Giant Tree route materials and explicit camera-orientation contract coverage. These are source-level fixes only until a non-zero headed Chrome capture is available.
+
 The requested direct media check succeeded without Git LFS installation: both CC0 glTFs downloaded as valid JSON with embedded buffers/images and zero external `.bin`/image URIs. Sky Ridge now loads `PN-PalmTreeStatic.gltf` and `PN-BirdsOfParadisePlant.gltf` through the existing local `GLTFLoader`; runtime status dataset reported both `loaded:true`, and the after capture visibly shows the palm/fern clusters along the route.
 
 ## Verification

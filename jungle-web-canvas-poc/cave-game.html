@@ -13,6 +13,7 @@
       #objective-hud.objective-change { animation: objective-change .42s ease; }
       @keyframes objective-change { 0% { transform: translateY(5px); opacity: .3; } 70% { transform: translateY(-1px); opacity: 1; } 100% { transform: none; } }
       #status { position: fixed; top: 62px; left: 14px; z-index: 5; color: #cbe8ff; font-size: 11px; background: rgba(20,22,42,.58); padding: 5px 8px; border-radius: 9px; pointer-events: none; }
+      #hub-link { position: fixed; top: 14px; right: 14px; z-index: 6; border: 1px solid rgba(205,231,255,.42); border-radius: 999px; background: rgba(20,22,42,.72); color: #f7fbff; padding: 7px 10px; font-size: 12px; font-weight: 850; text-decoration: none; }
       #dpad { position: fixed; left: 18px; bottom: 18px; width: 168px; height: 168px; z-index: 8; }
       .dbtn { position: absolute; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 13px; background: rgba(224,235,255,.18); border: 2px solid rgba(224,235,255,.42); color: #fff; font-size: 20px; font-weight: 800; user-select: none; touch-action: none; }
       #dpad-up { left: 58px; top: 0; } #dpad-left { left: 0; top: 58px; } #dpad-right { left: 116px; top: 58px; } #dpad-down { left: 58px; top: 116px; }
@@ -54,6 +55,7 @@
     <canvas id="three-cave-game"></canvas>
     <div id="objective-hud" aria-live="polite">반딧불이 모여 있는 동굴 입구를 찾아가 보자</div>
     <div id="status">반딧불 동굴 준비 중…</div>
+    <a id="hub-link" href="./jungle-hub.html">지도</a>
 
     <div id="dpad">
       <div class="dbtn" id="dpad-up">▲</div><div class="dbtn" id="dpad-left">◀</div><div class="dbtn" id="dpad-right">▶</div><div class="dbtn" id="dpad-down">▼</div>

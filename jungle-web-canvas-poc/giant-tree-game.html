@@ -13,6 +13,7 @@
       #objective-hud.objective-change { animation: objective-change .42s ease; }
       @keyframes objective-change { 0% { transform: translateY(5px); opacity: .3; } 70% { transform: translateY(-1px); opacity: 1; } 100% { transform: none; } }
       #status { position: fixed; top: 62px; left: 14px; z-index: 5; color: #ece4c4; font-size: 11px; background: rgba(42,46,29,.58); padding: 5px 8px; border-radius: 9px; pointer-events: none; }
+      #hub-link { position: fixed; top: 14px; right: 14px; z-index: 6; border: 1px solid rgba(255,226,158,.42); border-radius: 999px; background: rgba(42,46,29,.72); color: #fff8df; padding: 7px 10px; font-size: 12px; font-weight: 850; text-decoration: none; }
       #dpad { position: fixed; left: 18px; bottom: 18px; width: 168px; height: 168px; z-index: 8; }
       .dbtn { position: absolute; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 13px; background: rgba(255,246,216,.18); border: 2px solid rgba(255,236,181,.42); color: #fff; font-size: 20px; font-weight: 800; user-select: none; touch-action: none; }
       #dpad-up { left: 58px; top: 0; } #dpad-left { left: 0; top: 58px; } #dpad-right { left: 116px; top: 58px; } #dpad-down { left: 58px; top: 116px; }
@@ -54,6 +55,7 @@
     <canvas id="three-giant-tree-game"></canvas>
     <div id="objective-hud" aria-live="polite">거대한 뿌리 사이의 입구를 찾아가 보자</div>
     <div id="status">거대한 고목 준비 중…</div>
+    <a id="hub-link" href="./jungle-hub.html">지도</a>
     <div id="dpad"><div class="dbtn" id="dpad-up">▲</div><div class="dbtn" id="dpad-left">◀</div><div class="dbtn" id="dpad-right">▶</div><div class="dbtn" id="dpad-down">▼</div></div>
     <div class="dbtn" id="dpad-a">A</div><div class="dbtn" id="dpad-b">B</div>
     <div id="modal"><div class="card"><div id="reward-badge" aria-label="고목 씨앗 배지">🌰</div><img id="modal-img" alt="" /><div id="modal-progress"></div><h2 id="modal-title">거대한 고목</h2><p id="modal-body"></p><div id="modal-response" class="response"></div><div id="modal-choices"></div><div id="reward-summary"></div><button id="modal-confirm" type="button">계속</button><div id="modal-hint">A / Enter로 계속 · B / Escape로 닫기</div></div></div>

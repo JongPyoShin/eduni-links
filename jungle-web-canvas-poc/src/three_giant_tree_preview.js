@@ -419,7 +419,7 @@ export async function startThreeGiantTreePreview(canvas,statusEl,options={}) {
     story.echo.children.forEach((r,i)=>{ r.scale.setScalar(.9+((t*.28+i*.22)%1)*.42); });
     if(story.squirrel.visible){ story.squirrel.position.y=1+Math.sin(t*2.5)*.05; story.squirrel.rotation.y=Math.sin(t*1.4)*.18; }
     if(story.reward.visible) story.reward.rotation.y=t*.55;
-    controls.update(); renderer.render(scene,camera);
+    if (controls.enabled) controls.update(); renderer.render(scene,camera);
     if(statusEl) statusEl.dataset.rendererInfo=JSON.stringify({calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures});
     rafId=requestAnimationFrame(frame);
   }

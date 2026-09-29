@@ -398,7 +398,7 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
     story.stars.children.forEach((star,index) => { star.scale.setScalar(.8 + Math.sin(t * 3 + index) * .22); star.rotation.y = t * .8; });
     if (story.hawk.visible) { story.hawk.position.y = 2.3 + Math.sin(t * 1.6) * .14; story.hawk.rotation.y = Math.sin(t * .7) * .25; }
     if (story.reward.visible) { story.reward.rotation.y = t * .5; story.reward.children[0].scale.setScalar(.92 + Math.sin(t * 3.2) * .1); }
-    controls.update();
+    if (controls.enabled) controls.update();
     renderer.render(scene,camera);
     if (statusEl) statusEl.dataset.rendererInfo = JSON.stringify({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures });
     rafId = requestAnimationFrame(frame);

@@ -511,7 +511,7 @@ export async function startThreeCavePreview(canvas, statusEl, options = {}) {
     crystals.echo.rotation.y = t * 0.16;
     crystals.chamberA.rotation.y = -t * 0.1;
     crystals.chamberB.rotation.y = t * 0.12;
-    controls.update();
+    if (controls.enabled) controls.update();
     renderer.render(scene, camera);
     if (statusEl) statusEl.dataset.rendererInfo = JSON.stringify({
       calls: renderer.info.render.calls,

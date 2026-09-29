@@ -58,7 +58,11 @@ function installCardinalGameplayCamera(runtime, bridge) {
       // logical Y/world Z is screen-vertical, so D-pad arrows match the screen.
       runtime.camera.position.set(runtime.controls.target.x, 11.5, runtime.controls.target.z + 8.2);
     }
-    return originalUpdate();
+    const result = originalUpdate();
+    const target = runtime.controls.target;
+    runtime.camera.position.set(target.x, 11.5, target.z + 8.2);
+    runtime.camera.lookAt(target.x, target.y, target.z);
+    return result;
   };
 }
 

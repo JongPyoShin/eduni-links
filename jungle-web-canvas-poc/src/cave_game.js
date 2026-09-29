@@ -86,6 +86,7 @@ export async function startCaveGame(canvas, modalEl, statusEl) {
     runtime.camera.position.x = runtime.controls.target.x;
     runtime.camera.position.z = runtime.controls.target.z + 8.2;
     runtime.camera.position.y = 11.5;
+    runtime.camera.lookAt(runtime.controls.target.x, runtime.controls.target.y, runtime.controls.target.z);
   }
 
   function syncPhase() {

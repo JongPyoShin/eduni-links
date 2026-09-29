@@ -21,6 +21,8 @@ The final UI pass adds a compact five-stop route strip to the hub. It mirrors th
 
 The scene composition pass adds a phase-driven objective beacon to the Cave, Giant Tree, and Sky Ridge Three.js scenes: a grounded animated ring plus a translucent vertical light column at the authored next landmark. Camp keeps its existing interaction ring and Waterfall keeps its authored cue rings, so all five playable scenes now expose a scene-level target without changing quiz, reward, or save state.
 
+The follow-up composition pass makes the scene change visible beyond the beacon: Cave now has a restrained translucent stalactite/boulder frame at the safe edges, Giant Tree now has foreground roots and canopy framing the authored trunk, and Sky Ridge now has cliff-edge silhouettes and foreground cloud banks framing the route. These use existing procedural Three geometry/materials only; route centerlines and gameplay anchors are unchanged.
+
 ## Verification
 
 - `npm test`: **232 passed, 0 failed**.
@@ -28,6 +30,8 @@ The scene composition pass adds a phase-driven objective beacon to the Cave, Gia
 - `git diff --check`: passed (only normal LF/CRLF warnings).
 - Updated hub smoke on headed Chrome (`http://localhost:8124`, isolated worktree server): route strip exposed all five stops (`캠프`, `폭포`, `동굴`, `고목`, `능선`), cards exposed `진행 가능`/`잠김`, and computed document overflow was `false` at the available `2168×1210` CSS viewport. Camp `?renderer=three&qa=1` reached `startup=ready`, `threeReady=true`, objective `학습 오두막을 찾아가 보자`, and stage chip `숲속 탐험 캠프 · 탐험 중`.
 - Updated scene smoke on headed Chrome (`http://localhost:8125`, isolated worktree server): Cave `단계 1/9 · caveGate · GLB 4/4 · fallback 0`, Giant Tree `단계 1/9 · rootGate · GLB 6/6 · fallback 0`, Sky Ridge `단계 1/9 · skyGate`, and Waterfall `threejsassets local GLB 14/14 loaded · fallback 0`; all reported `overflow=false` at the available `2168×1210` CSS viewport. Cave and Waterfall screenshots visibly showed the target ring/landmark framing with HUD and D-pad outside the canvas content.
+- Before/after headed Chrome comparison on the composition pass: before Cave was a mostly empty dark field with the route and rocks concentrated in the upper center; after Cave shows a readable framed chamber with the route still unobstructed after reducing the initial frame opacity/scale. After Giant Tree visibly frames the trunk route with two foreground roots and canopy masses; after Sky Ridge frames the pale route with cliff silhouettes and cloud banks. HUD, map link, and D-pad remained outside the canvas scene in all three captures.
+- Fresh all-five smoke on `http://localhost:8126` reported CSS `1084×428`, `overflow=false`, and ready/status evidence for Camp (`qa=ready`), Waterfall (`GLB 14/14, fallback 0`), Cave (`GLB 4/4, fallback 0`), Giant Tree (`GLB 6/6, fallback 0`), and Sky Ridge (`skyGate`).
 - Headed Chrome extension QA opened and exercised real keyboard input on all five entry points at `?qa=1`: Camp, Waterfall, Cave, Giant Tree, Sky Ridge. Each page loaded its expected title/HUD and input controls; Cave reported `GLB 4/4 · fallback 0`, Giant Tree `GLB 6/6 · fallback 0`, and no console warning/error entries were captured.
 - Hub DOM showed the codex link `(0/3)`, all five stage cards, and the expected locked progression text.
 - Follow-up hub QA showed the new route heading, all five numbered card states, and progress meter. At the emulated phone viewport, computed grid columns changed to a single `684px` column with `overflow=false`.
@@ -40,6 +44,6 @@ The scene composition pass adds a phase-driven objective beacon to the Cave, Gia
 
 ## Limitations / verdict
 
-390×844 visual capture previously covered all five regions, and 360×800 covered hub/Camp. The updated hub's 390px screenshot call timed out after the CSS breakpoint fix (`Page.captureScreenshot`, one attempt); DOM/computed-style evidence confirms the one-column fix. 412×915 and tablet/landscape remain blocked by the specific screenshot/zero-width errors above; no failed screenshot call was retried. The new route strip was additionally smoke-checked at the available headed Chrome viewport, but no new 412/tablet screenshot claim is made.
+390×844 visual capture previously covered all five regions, and 360×800 covered hub/Camp. The updated hub's 390px screenshot call timed out after the CSS breakpoint fix (`Page.captureScreenshot`, one attempt); DOM/computed-style evidence confirms the one-column fix. 412×915 and tablet/landscape remain blocked by the specific screenshot/zero-width errors above; no failed screenshot call was retried. The scene composition pass was verified at the available headed Chrome `1084×428` viewport, but exact 360×800, 390×844, 412×915, and tablet screenshot claims remain **NOT VERIFIED** in this pass because the supported viewport override/capture path was not available in the active browser surface.
 
 **PARTIAL — not ready to claim full visual release acceptance.** Source/test scope is ready for review; rerun headed Chrome with a non-zero viewport and attach screenshots before merge/deploy.

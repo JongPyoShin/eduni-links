@@ -89,6 +89,23 @@ function addRoute(scene) {
   }
 }
 
+function addForegroundFrame(scene) {
+  const group = new THREE.Group();
+  const rootMat = mat(0x3c2b20, { roughness: 1, transparent: true, opacity: .96 });
+  for (const [x, z, angle] of [[-6.1, 2.8, -.22], [6.1, 2.6, .22]]) {
+    const root = new THREE.Mesh(new THREE.CapsuleGeometry(.34, 4.8, 6, 12), rootMat);
+    root.rotation.set(0, angle, Math.PI / 2.8); root.position.set(x, .65, z);
+    root.castShadow = true; group.add(root);
+  }
+  const canopyMat = mat(0x29472d, { roughness: 1, transparent: true, opacity: .9 });
+  for (const [x, y, z, s] of [[-5.7, 4.9, 2.5, 1.45], [5.5, 5.1, 2.4, 1.35], [0, 5.9, 3.0, 1.1]]) {
+    const canopy = new THREE.Mesh(new THREE.SphereGeometry(1.3, 14, 10), canopyMat);
+    canopy.position.set(x, y, z); canopy.scale.set(s, s * .7, s * .8); canopy.castShadow = true; group.add(canopy);
+  }
+  scene.add(group);
+  return group;
+}
+
 function addObjectiveBeacon(scene) {
   const group = new THREE.Group();
   const ring = new THREE.Mesh(new THREE.RingGeometry(.3, .42, 32), new THREE.MeshBasicMaterial({ color: 0xffdf78, transparent: true, opacity: .82, side: THREE.DoubleSide, depthWrite: false }));
@@ -367,7 +384,7 @@ export async function startThreeGiantTreePreview(canvas,statusEl,options={}) {
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:"high-performance"});
   renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio||1,1.5));
   renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping;
-  const scene=new THREE.Scene(); addAtmosphere(scene); addGround(scene); addRoute(scene);
+  const scene=new THREE.Scene(); addAtmosphere(scene); addGround(scene); addForegroundFrame(scene); addRoute(scene);
   const tree=addAncientTree(scene); const rings=addRingGallery(scene); const seedTrail=addSeedTrail(scene); const echo=addHollowEcho(scene); const stairs=addSpiralStairs(scene); const squirrel=addSquirrel(scene); const reward=addReward(scene);
 
   const camera=new THREE.OrthographicCamera(-8,8,5,-5,.1,70); camera.position.set(8.5,12.5,11.0); camera.lookAt(1.2,1.2,-.6);

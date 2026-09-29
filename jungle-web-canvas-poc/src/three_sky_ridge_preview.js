@@ -81,6 +81,22 @@ function addRoute(scene) {
   }
 }
 
+function addForegroundFrame(scene) {
+  const group = new THREE.Group();
+  const cliffMat = mat(0x415d64, { roughness: 1, transparent: true, opacity: .92 });
+  for (const [x, y, z, s] of [[-6.2, 1.2, 2.6, 1.45], [6.2, 1.5, 2.5, 1.35]]) {
+    const cliff = new THREE.Mesh(new THREE.DodecahedronGeometry(1.35, 1), cliffMat);
+    cliff.position.set(x, y, z); cliff.scale.set(s, s * 1.8, s * .9); cliff.castShadow = true; group.add(cliff);
+  }
+  const cloudMat = new THREE.MeshBasicMaterial({ color: 0xd7edf0, transparent: true, opacity: .42, depthWrite: false });
+  for (const [x, y, z, s] of [[-4.6, 5.3, 2.3, 1.3], [4.8, 5.1, 2.4, 1.15]]) {
+    const cloud = new THREE.Mesh(new THREE.SphereGeometry(1.15, 14, 10), cloudMat);
+    cloud.position.set(x, y, z); cloud.scale.set(s * 1.5, s * .55, s); group.add(cloud);
+  }
+  scene.add(group);
+  return group;
+}
+
 function addObjectiveBeacon(scene) {
   const group = new THREE.Group();
   const ring = new THREE.Mesh(new THREE.RingGeometry(.28, .4, 32), new THREE.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: .82, side: THREE.DoubleSide, depthWrite: false }));
@@ -253,6 +269,7 @@ export async function startThreeSkyRidgePreview(canvas, statusEl, options = {}) 
   const scene = new THREE.Scene();
   addAtmosphere(scene);
   addGround(scene);
+  addForegroundFrame(scene);
   addRoute(scene);
   const story = addSkyEnvironment(scene);
   const player = await addPlayer(scene);

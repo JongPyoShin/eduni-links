@@ -117,6 +117,18 @@ function addRoute(scene) {
   }
 }
 
+function addForegroundFrame(scene) {
+  const group = new THREE.Group();
+  const rockMat = standardMaterial(0x171a2a, { roughness: 1, transparent: true, opacity: .68 });
+  for (const [x, y, z, scale] of [[-7.1, 1.5, 3.2, 1.05], [7.1, 1.8, 3.1, .95], [-5.4, 5.1, 2.8, .62], [5.2, 5.2, 2.8, .66]]) {
+    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1.2, 1), rockMat);
+    rock.position.set(x, y, z); rock.scale.set(scale, scale * 1.25, scale * .8);
+    rock.castShadow = true; group.add(rock);
+  }
+  scene.add(group);
+  return group;
+}
+
 function addObjectiveBeacon(scene) {
   const group = new THREE.Group();
   const ring = new THREE.Mesh(new THREE.RingGeometry(.28, .38, 32), new THREE.MeshBasicMaterial({ color: 0xdfff75, transparent: true, opacity: .82, side: THREE.DoubleSide, depthWrite: false }));
@@ -412,6 +424,7 @@ export async function startThreeCavePreview(canvas, statusEl, options = {}) {
   const scene = new THREE.Scene();
   addAtmosphere(scene);
   addGround(scene);
+  addForegroundFrame(scene);
   addRoute(scene);
 
   const camera = new THREE.OrthographicCamera(-8, 8, 5, -5, 0.1, 60);

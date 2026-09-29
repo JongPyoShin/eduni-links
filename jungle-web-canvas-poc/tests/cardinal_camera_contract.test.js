@@ -12,7 +12,8 @@ const GIANT_TREE = readFileSync(resolve(ROOT, "src", "giant_tree_game.js"), "utf
 const SKY_RIDGE = readFileSync(resolve(ROOT, "src", "sky_ridge_game.js"), "utf8");
 
 function assertCardinalGameCamera(source, y) {
-  assert.match(source, /const targetZ = THREE\.MathUtils\.clamp\(p\.z, -3\.0, 3\.0\)/);
+  assert.match(source, /const framedTargetZ = THREE\.MathUtils\.clamp\(p\.z, -4\.6, 4\.6\)/);
+  assert.match(source, /const framedTargetX = THREE\.MathUtils\.clamp\(p\.x, -5\.5, 5\.5\)/);
   assert.match(source, /runtime\.camera\.position\.x = runtime\.controls\.target\.x/);
   assert.match(source, /runtime\.camera\.position\.z = runtime\.controls\.target\.z \+ 8\.2/);
   assert.match(source, new RegExp(`runtime\\.camera\\.position\\.y = ${String(y).replace(".", "\\.")}`));

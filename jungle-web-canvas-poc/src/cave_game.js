@@ -78,8 +78,6 @@ export async function startCaveGame(canvas, modalEl, statusEl) {
       runtime.player.sprite.material.needsUpdate = true;
     }
 
-    const targetX = THREE.MathUtils.clamp(p.x, -3.1, 3.1);
-    const targetZ = THREE.MathUtils.clamp(p.z, -3.0, 3.0);
     const framedTargetX = THREE.MathUtils.clamp(p.x, -5.5, 5.5);
     const framedTargetZ = THREE.MathUtils.clamp(p.z, -4.6, 4.6);
     runtime.controls.target.x += (framedTargetX - runtime.controls.target.x) * 0.1;

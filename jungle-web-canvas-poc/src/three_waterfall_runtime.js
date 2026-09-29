@@ -49,8 +49,6 @@ function installCardinalGameplayCamera(runtime, bridge) {
     const logical = bridge.getPlayer?.();
     if (logical) {
       const p = logicalToThree(logical.x, logical.y, 0);
-      const targetX = clamp(p.x, -3.1, 3.1);
-      const targetZ = clamp(p.z, -3.0, 3.0);
       const framedTargetX = clamp(p.x, -5.5, 5.5);
       const framedTargetZ = clamp(p.z, -4.6, 4.6);
       runtime.controls.target.x += (framedTargetX - runtime.controls.target.x) * 0.1;

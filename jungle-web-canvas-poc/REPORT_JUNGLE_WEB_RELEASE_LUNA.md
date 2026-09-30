@@ -174,4 +174,4 @@ The preceding historical notes retain earlier pre-fix failures for traceability.
 
 All five canvases reported `390×844`; no stage showed a blank canvas, missing player, or detached route in this pass. The route spines are visual-only and do not change authored anchors, interaction radii, progression, or camera contracts. Focused validation remains **70 passed, 0 failed**; `node --check` and `git diff --check` pass. Temporary QA diagnostics remain gated behind `qa=1`.
 
-**READY FOR REVIEW — commit/push pending final source review; no merge/deploy performed.** Alternate `360×800` and `412×915` visual acceptance remains unverified.
+**READY FOR REVIEW — committed and pushed; no merge/deploy performed.** Alternate `360×800` and `412×915` visual acceptance remains unverified.

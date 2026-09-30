@@ -111,6 +111,8 @@ The close-to-pass Sky capture now receives a small visual-only ridge bend/altitu
 
 Final audit reconciliation: Waterfall, Cave, Camp, and Giant Tree have stable 390×844 evidence meeting their current avatar/route/target criteria; Sky Ridge had avatar/trail co-visibility before this latest bend/side-target pass but requires a new post-change capture. The current focused suite is **70 passed, 0 failed**. No claim of full five-stage completion is made until all five are recaptured after their latest source state.
 
+The post-acceptance art pass adds stage-specific continuous terrain spines without changing logical geometry: Camp uses an olive forest trail tube, Waterfall a cyan stream spine, Cave a luminous organic corridor, Giant Tree a warm root spine, and Sky Ridge a pale stepped ridge spine. These replace the repeated flat-pad-only read with distinct route silhouettes while retaining all authored anchors and interaction logic. Fresh headed 390×844 captures are required before this pass is committed or pushed.
+
 Stable Giant Tree and Sky Ridge captures likewise remain FAIL: GLB-ready Giant Tree still let rounded tree/canopy masses dominate the spawn corridor, and GLB-ready Sky Ridge still showed disconnected circular pads/pennants with no avatar. Both previews now add a bright avatar marker using normal depth testing, reduce/reposition foreground set pieces, and preserve a high-contrast route/first-goal corridor. Avatar materials no longer globally disable depth testing; occlusion is addressed by moving/scaling the surrounding props instead. These are source fixes awaiting fresh post-load 390×844 recapture.
 
 Stable Giant Tree and Sky Ridge evidence drives separate composition fixes. Giant Tree now keeps the player sprite depth-test-independent, suppresses the oversized tree landmark until the route reaches its reveal phase, and lifts/reduces the foreground canopy. Sky Ridge similarly depth-tests the avatar in front, reduces/repositions the left Pirate Nation foliage, shrinks waypoint islands/rims, and reduces foreground cliff/cloud scale. Camp moves and scales the entrance arch beside the unchanged spawn and keeps the avatar depth-test-independent, so the arch no longer covers the portrait silhouette. These changes target the shared portrait guide: avatar lower-middle, active goal upper-middle, and a continuous high-contrast path between them.
@@ -158,3 +160,18 @@ The requested direct media check succeeded without Git LFS installation: both CC
 Final stable 390×844 review records Waterfall, Cave, Camp, Giant Tree, and Sky Ridge as co-visibility PASS for avatar/path/active-target composition. The remaining Camp L-corridor and Sky/Giant polish notes are documented as composition ceilings, not acceptance blockers. 360×800 and 412×915 remain unverified.
 
 **READY FOR REVIEW — no merge/deploy performed.** All five stages have stable 390×844 evidence for avatar/path/active-target co-visibility; remaining risks are documented composition polish and unverified alternate viewports.
+
+## Authoritative post-art-pass acceptance (2026-09-30)
+
+The preceding historical notes retain earlier pre-fix failures for traceability. They are superseded for the current source state by this headed Chrome review, performed after the stage-specific `TubeGeometry` route-spine pass.
+
+- Browser viewport override: `390×844`; each stage was reloaded and allowed to settle after its local GLB readiness signal.
+- Waterfall: `GLB 14/14`, avatar, cyan stream spine, and wooden gate are co-visible.
+- Cave: `GLB 4/4`, avatar, continuous luminous corridor, and cave entrance/active beam framing are co-visible.
+- Camp: avatar, olive trail spine, hut entrance, and connected L-corridor are co-visible; the L bend remains a documented composition ceiling.
+- Giant Tree: `GLB 6/6`, avatar, warm root spine, beacon marker, and recognizable right-side tree landmark are co-visible.
+- Sky Ridge: avatar, pale stepped ridge spine, central objective terrace, and summit/pennant route are co-visible.
+
+All five canvases reported `390×844`; no stage showed a blank canvas, missing player, or detached route in this pass. The route spines are visual-only and do not change authored anchors, interaction radii, progression, or camera contracts. Focused validation remains **70 passed, 0 failed**; `node --check` and `git diff --check` pass. Temporary QA diagnostics remain gated behind `qa=1`.
+
+**READY FOR REVIEW — commit/push pending final source review; no merge/deploy performed.** Alternate `360×800` and `412×915` visual acceptance remains unverified.

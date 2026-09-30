@@ -108,6 +108,10 @@ function addRoute(scene) {
     pad.position.copy(worldPoint(node.x, node.y, 0.049));
     scene.add(pad);
   }
+  const trailCurve = new THREE.CatmullRomCurve3(route.map((node) => worldPoint(node.x, node.y, 0)));
+  const trail = new THREE.Mesh(new THREE.TubeGeometry(trailCurve, 96, .13, 8, false), new THREE.MeshBasicMaterial({ color: 0xc8ad74, transparent: true, opacity: .72 }));
+  trail.position.y = .11;
+  scene.add(trail);
 }
 
 function addLearningHut(scene) {

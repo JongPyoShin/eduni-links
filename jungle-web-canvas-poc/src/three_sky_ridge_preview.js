@@ -109,6 +109,10 @@ function addRoute(scene) {
     pad.position.copy(worldPoint(node.x, node.y, .19));
     scene.add(pad);
   }
+  const ridgeCurve = new THREE.CatmullRomCurve3(route.map((node) => worldPoint(node.x, node.y, 0)));
+  const ridgeSpine = new THREE.Mesh(new THREE.TubeGeometry(ridgeCurve, 112, .14, 8, false), new THREE.MeshBasicMaterial({ color: 0xe4f5c5, transparent: true, opacity: .7 }));
+  ridgeSpine.position.y = .16;
+  scene.add(ridgeSpine);
 }
 
 function addIslandTerraces(scene) {

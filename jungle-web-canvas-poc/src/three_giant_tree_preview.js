@@ -89,6 +89,10 @@ function addRoute(scene) {
     pad.position.copy(worldPoint(node.x, node.y, 0.047));
     scene.add(pad);
   }
+  const rootCurve = new THREE.CatmullRomCurve3(route.map((node) => worldPoint(node.x, node.y, 0)));
+  const rootSpine = new THREE.Mesh(new THREE.TubeGeometry(rootCurve, 112, .15, 8, false), new THREE.MeshBasicMaterial({ color: 0xb98b52, transparent: true, opacity: .68 }));
+  rootSpine.position.y = .13;
+  scene.add(rootSpine);
 }
 
 function addForegroundFrame(scene) {

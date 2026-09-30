@@ -124,6 +124,10 @@ function addRoute(scene) {
     guide.position.copy(worldPoint(x, y, .22));
     scene.add(guide);
   }
+  const glowCurve = new THREE.CatmullRomCurve3(route.map((node) => worldPoint(node.x, node.y, 0)));
+  const glowSpine = new THREE.Mesh(new THREE.TubeGeometry(glowCurve, 112, .12, 8, false), new THREE.MeshBasicMaterial({ color: 0xdfff9a, transparent: true, opacity: .52 }));
+  glowSpine.position.y = .16;
+  scene.add(glowSpine);
 }
 
 function addForegroundFrame(scene) {

@@ -150,6 +150,10 @@ function addRoute(scene) {
     pad.position.copy(worldPoint(node.x, node.y, 0.182));
     scene.add(pad);
   }
+  const streamCurve = new THREE.CatmullRomCurve3(route.map((node) => worldPoint(node.x, node.y, 0)));
+  const streamSpine = new THREE.Mesh(new THREE.TubeGeometry(streamCurve, 112, .16, 8, false), new THREE.MeshBasicMaterial({ color: 0x6bc9d5, transparent: true, opacity: .7 }));
+  streamSpine.position.y = .13;
+  scene.add(streamSpine);
 }
 
 function addWaterfall(scene) {

@@ -118,6 +118,27 @@ Asset sources require license and redistribution checks before acquisition or co
   - re-check provider terms before acquisition or publication
   - keep procedural/runtime fallbacks so missing local assets do not break gameplay
 
+### Pirate Nation game archive
+- URL: https://github.com/proofofplay/piratenation-game
+- Category: gameplay/map/collectible-flow reference only
+- Discovered in:
+  - branch `feature/jungle-web-canvas-luna`
+  - `jungle-web-canvas-poc/ASSET_SOURCES.md`
+- Repository-recorded constraints:
+  - archived Unity WebGL reference with missing commercial dependencies/inactive backend
+  - do not copy Unity code, commercial dependencies, brand UI, or runtime assets into EDUNI
+- Status: reference only; not a runtime dependency.
+
+### Pirate Nation art
+- URL: https://github.com/proofofplay/piratenation-art
+- Category: optional CC0 art/reference source
+- Discovered in:
+  - branch `feature/jungle-web-canvas-luna`
+  - `jungle-web-canvas-poc/ASSET_SOURCES.md`
+- Existing branch record classifies the repository license as CC0 1.0.
+- Use only exact verified asset paths after binary/LFS and loader/render verification; do not copy branded UI.
+- Status: branch-specific source discovered during cross-branch inventory; not present in `main`'s current `ASSET_SOURCES.md`.
+
 ## 6. Project-specific Reference Rules
 
 ### Jungle
@@ -140,7 +161,7 @@ Project-specific rules override generic suggestions where they are more restrict
 | Kenney Nature Kit | asset source | Jungle AGENTS, ASSET_SOURCES | Jungle asset candidate |
 | Kenney Survival Kit | asset source | Jungle AGENTS, ASSET_SOURCES | Jungle asset candidate |
 | Quaternius Ultimate Stylized Nature | asset source | Jungle AGENTS, ASSET_SOURCES | Jungle asset candidate |
-| threejsassets Free | asset source | Jungle AGENTS, THREEJSASSETS | local-only; redistribution constraints |
+| threejsassets Free | asset source | Jungle AGENTS, THREEJSASSETS | local-only; redistribution constraints |\n| Pirate Nation game archive | gameplay reference | feature/jungle-web-canvas-luna ASSET_SOURCES | reference only; no Unity/runtime copying |\n| Pirate Nation art | asset/reference source | feature/jungle-web-canvas-luna ASSET_SOURCES | branch-discovered CC0 source; exact-path verification required |
 
 ## 8. Maintenance
 

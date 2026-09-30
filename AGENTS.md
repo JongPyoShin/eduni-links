@@ -9,6 +9,12 @@ Keep repository exploration and output minimal. Follow only the rules relevant t
 - `nice-gui-1-1-7/content/activities/`: activity JSON content.
 - `files-mentioned-by-the-user-oracle/`: separate DB and hanja quiz server.
 
+## Shared references
+- For design, gameplay, UI/UX, asset, or AI-generation work, read `docs/REFERENCES.md` and use only the sections relevant to the assigned task.
+- If the target project contains its own `AGENTS.md` or reference document, read that in addition to the shared references.
+- Shared references do not override project-specific constraints, licensing rules, privacy rules, or task-specific requirements.
+- Do not scan every external reference by default; preserve the targeted, token-efficient workflow below.
+
 ## Preserve compatibility
 - Keep existing game routes: `/`, `/bubble`, `/bubble-shooter`.
 - Keep the existing hanja entry path and static redirects.

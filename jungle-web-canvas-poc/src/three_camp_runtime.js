@@ -82,36 +82,57 @@ function addRoute(scene) {
   const edgeMat = mat(0x43513d, { roughness: 1 });
   const routeMat = mat(0xb19869, { roughness: 1 });
 
+  // Keep collision and interaction on CampWorldGeometry, but give the scene a
+  // genuinely different composition: the authored beats become a winding
+  // forest boardwalk instead of a stack of axis-aligned rectangles. Endpoints
+  // and all landmark beats remain the same; only the visual terrain envelope
+  // changes.
+  const visualRoute = [];
   for (let i = 0; i < route.length - 1; i += 1) {
-    const a = worldPoint(route[i].x, route[i].y, 0.04);
-    const b = worldPoint(route[i + 1].x, route[i + 1].y, 0.04);
+    const a = route[i];
+    const b = route[i + 1];
+    visualRoute.push(a);
     const dx = b.x - a.x;
-    const dz = b.z - a.z;
-    const len = Math.hypot(dx, dz);
-    const mid = a.clone().add(b).multiplyScalar(0.5);
-    const angle = -Math.atan2(dz, dx);
-    const edge = new THREE.Mesh(new THREE.PlaneGeometry(len + radius, radius * 2.15), edgeMat);
-    edge.rotation.set(-Math.PI / 2, 0, angle);
-    edge.position.copy(mid);
-    edge.position.y = 0.028;
-    scene.add(edge);
-    const strip = new THREE.Mesh(new THREE.PlaneGeometry(len + radius * 0.45, radius * 1.5), routeMat);
-    strip.rotation.set(-Math.PI / 2, 0, angle);
-    strip.position.copy(mid);
-    strip.position.y = 0.047;
-    scene.add(strip);
+    const dy = b.y - a.y;
+    const length = Math.hypot(dx, dy) || 1;
+    const nx = -dy / length;
+    const ny = dx / length;
+    const bend = i % 2 === 0 ? 24 : -24;
+    visualRoute.push({ x: a.x + dx * 0.34 + nx * bend, y: a.y + dy * 0.34 + ny * bend });
+    visualRoute.push({ x: a.x + dx * 0.68 - nx * bend, y: a.y + dy * 0.68 - ny * bend });
   }
-
-  for (const node of route) {
-    const pad = new THREE.Mesh(new THREE.CircleGeometry(radius * 0.79, 24), routeMat);
-    pad.rotation.x = -Math.PI / 2;
-    pad.position.copy(worldPoint(node.x, node.y, 0.049));
+  visualRoute.push(route.at(-1));
+  const visualPoints = visualRoute.map((node) => worldPoint(node.x, node.y, 0));
+  const edgeCurve = new THREE.CurvePath();
+  const trailCurve = new THREE.CurvePath();
+  for (let i = 0; i < visualPoints.length - 1; i += 1) {
+    edgeCurve.add(new THREE.LineCurve3(visualPoints[i], visualPoints[i + 1]));
+    trailCurve.add(new THREE.LineCurve3(visualPoints[i], visualPoints[i + 1]));
+  }
+  const edge = new THREE.Mesh(new THREE.TubeGeometry(edgeCurve, 160, radius * 0.34, 10, false), edgeMat);
+  edge.position.y = 0.035;
+  scene.add(edge);
+  const trail = new THREE.Mesh(new THREE.TubeGeometry(trailCurve, 160, radius * 0.27, 10, false), routeMat);
+  trail.position.y = 0.12;
+  scene.add(trail);
+  for (let i = 0; i < visualPoints.length; i += 2) {
+    const pad = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.82, radius * 0.9, 0.08, 16), routeMat);
+    pad.position.copy(visualPoints[i]);
+    pad.position.y = 0.12;
     scene.add(pad);
   }
-  const trailCurve = new THREE.CatmullRomCurve3(route.map((node) => worldPoint(node.x, node.y, 0)));
-  const trail = new THREE.Mesh(new THREE.TubeGeometry(trailCurve, 96, .13, 8, false), new THREE.MeshBasicMaterial({ color: 0xc8ad74, transparent: true, opacity: .72 }));
-  trail.position.y = .11;
-  scene.add(trail);
+  const clearingMats = [0x668454, 0x8b7b54, 0x55765a, 0x7d895b].map((color) => mat(color, { roughness: 1 }));
+  geometryContract.clearings.forEach((clearing, index) => {
+    const island = new THREE.Mesh(new THREE.CircleGeometry(clearing.r * WORLD_SCALE * 0.72, 32), clearingMats[index % clearingMats.length]);
+    island.rotation.x = -Math.PI / 2;
+    island.position.copy(worldPoint(clearing.x, clearing.y, 0.02));
+    island.scale.set(1.12, 0.78, 1);
+    scene.add(island);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(clearing.r * WORLD_SCALE * 0.58, 0.035, 8, 32), mat(0xc3a866, { roughness: 1 }));
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.copy(worldPoint(clearing.x, clearing.y, 0.16));
+    scene.add(ring);
+  });
 }
 
 function addLearningHut(scene) {

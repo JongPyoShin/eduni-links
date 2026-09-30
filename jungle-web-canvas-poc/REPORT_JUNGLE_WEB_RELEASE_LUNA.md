@@ -175,3 +175,9 @@ The preceding historical notes retain earlier pre-fix failures for traceability.
 All five canvases reported `390×844`; no stage showed a blank canvas, missing player, or detached route in this pass. The route spines are visual-only and do not change authored anchors, interaction radii, progression, or camera contracts. Focused validation remains **70 passed, 0 failed**; `node --check` and `git diff --check` pass. Temporary QA diagnostics remain gated behind `qa=1`.
 
 **READY FOR REVIEW — committed and pushed; no merge/deploy performed.** Alternate `360×800` and `412×915` visual acceptance remains unverified.
+
+## Camp composition correction (2026-09-30)
+
+The prior Camp L-corridor ceiling is superseded by a follow-up composition pass. The rendered boardwalk now samples `CampWorldGeometry.paths[0]` directly, inserts only bounded lateral weave points (maximum `24` logical units against `pathHalfWidth=72`), and keeps every authored endpoint/clearing/interaction anchor unchanged. Rounded grove islands and boardwalk pads replace the former long rectangular strip read. Fresh headed `390×844` evidence shows the avatar, hut objective, and continuous winding trail together. Camp movement/anchor focused coverage remains green (`92 passed, 0 failed` focused matrix).
+
+This pass is a visual composition change over the shared walkable source, not a relocated gameplay route; no unwalkable visual shortcut is claimed.

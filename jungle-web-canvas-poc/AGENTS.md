@@ -1,5 +1,9 @@
 # Game vendor-asset workflow
 
+Shared EDUNI reference index: `../docs/REFERENCES.md`.
+
+Use the shared index only for references relevant to the assigned task. The project-specific licensing, acquisition, runtime fallback, and Git rules below remain authoritative for Jungle vendor assets.
+
 ## Use this process for every new asset source
 
 1. Define the gameplay need first: e.g. tree canopy, trail marker, rock, reeds,

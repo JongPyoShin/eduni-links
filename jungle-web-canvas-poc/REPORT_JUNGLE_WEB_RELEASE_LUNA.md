@@ -181,3 +181,16 @@ All five canvases reported `390×844`; no stage showed a blank canvas, missing p
 The prior Camp L-corridor ceiling is superseded by a follow-up composition pass. The rendered boardwalk now samples `CampWorldGeometry.paths[0]` directly, inserts only bounded lateral weave points (maximum `24` logical units against `pathHalfWidth=72`), and keeps every authored endpoint/clearing/interaction anchor unchanged. Rounded grove islands and boardwalk pads replace the former long rectangular strip read. Fresh headed `390×844` evidence shows the avatar, hut objective, and continuous winding trail together. Camp movement/anchor focused coverage remains green (`92 passed, 0 failed` focused matrix).
 
 This pass is a visual composition change over the shared walkable source, not a relocated gameplay route; no unwalkable visual shortcut is claimed.
+
+## Independent final review of HEAD `cb6cff7` (2026-09-30)
+
+The historical pre-load/blank-frame and earlier stage-failure notes above are retained for traceability only. They are superseded by the independent post-load headed Chrome review of the current HEAD.
+
+- Fresh headed Chrome evidence at physical `390×844` was captured for Waterfall, Cave, Camp, Giant Tree, and Sky Ridge. All five show the avatar, active target/beacon, and a connected route together. Camp retains the intentionally bounded winding boardwalk/grove composition; its weave is derived from the shared walkable path and remains within the authored corridor.
+- Exact focused command: `npm test -- --test-name-pattern="(camera|geometry|renderer|preview|player|vendor)"` → **73 passed, 0 failed**.
+- `node --check` passed for the six touched Three runtime/preview JavaScript files.
+- `git show --check --stat HEAD` passed.
+- Temporary diagnostics remain QA-gated behind `qa=1`; no production debug dataset is asserted.
+- `360×800` and `412×915` visual acceptance remain **NOT VERIFIED**.
+
+**READY FOR REVIEW — docs-only reconciliation committed/pushed on `feature/jungle-web-canvas-luna`; no merge/deploy performed.**

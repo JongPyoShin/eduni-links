@@ -161,7 +161,9 @@ Project-specific rules override generic suggestions where they are more restrict
 | Kenney Nature Kit | asset source | Jungle AGENTS, ASSET_SOURCES | Jungle asset candidate |
 | Kenney Survival Kit | asset source | Jungle AGENTS, ASSET_SOURCES | Jungle asset candidate |
 | Quaternius Ultimate Stylized Nature | asset source | Jungle AGENTS, ASSET_SOURCES | Jungle asset candidate |
-| threejsassets Free | asset source | Jungle AGENTS, THREEJSASSETS | local-only; redistribution constraints |\n| Pirate Nation game archive | gameplay reference | feature/jungle-web-canvas-luna ASSET_SOURCES | reference only; no Unity/runtime copying |\n| Pirate Nation art | asset/reference source | feature/jungle-web-canvas-luna ASSET_SOURCES | branch-discovered CC0 source; exact-path verification required |
+| threejsassets Free | asset source | Jungle AGENTS, THREEJSASSETS | local-only; redistribution constraints |
+| Pirate Nation game archive | gameplay reference | `feature/jungle-web-canvas-luna` at `95a6e1b194290f6e002c61874d20a2cd74ad536b`; introduced in `cf855cb950092ee361981ebebbf3704a58add4b0`; `jungle-web-canvas-poc/ASSET_SOURCES.md` | reference only; no Unity/runtime copying |
+| Pirate Nation art | asset/reference source | `feature/jungle-web-canvas-luna` at `95a6e1b194290f6e002c61874d20a2cd74ad536b`; introduced in `cf855cb950092ee361981ebebbf3704a58add4b0`; `jungle-web-canvas-poc/ASSET_SOURCES.md` | branch-discovered CC0 source; exact-path verification required |
 
 ## 8. Maintenance
 

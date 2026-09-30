@@ -238,6 +238,126 @@ enter stage
 
 The player should not need a modal after every step.
 
+
+## 3.4 Map scale and child-friendly movement redesign
+
+This is a V2 prerequisite, not a cosmetic pass.
+
+### Current geometry problem
+
+Current baseline values:
+- world: `1600 x 1200`;
+- Camp `pathHalfWidth = 72`, so the nominal path width is only `144 px`;
+- player visual width: `112 px`;
+- Cave / Giant Tree / Sky Ridge use repeated short horizontal/vertical segments, often turning 90 degrees every ~100–220 px.
+
+This makes a child repeatedly correct direction just to remain on the path.
+
+The movement challenge should come from intentional gameplay mechanics, not from fighting narrow corridors.
+
+### Map target
+
+For V2 stage rebuilds:
+
+- enlarge the effective stage footprint to roughly **1.5–2.0x the current traversal length**;
+- use fewer but longer route segments;
+- keep a clear main route and add optional side pockets/loops for discoveries;
+- avoid staircase-like zig-zag paths as the default route shape;
+- use broad curves, gentle diagonals, and large clearings;
+- place major landmarks far enough apart that reaching them feels like exploration;
+- keep interesting scenery between objectives so longer travel does not feel empty.
+
+Recommended first geometry range:
+- main route half-width: **110–140 px**;
+- full main route width: **220–280 px**;
+- major clearing radius: **180–240 px**;
+- ordinary turn spacing: preferably **250–500 px** between meaningful direction changes.
+
+Exact values must be validated visually and by touch playtest rather than treated as immutable constants.
+
+### Route topology
+
+Preferred stage structure:
+
+```text
+ENTRY
+  │
+  ├── broad main path ───────── major landmark
+  │                         ├── optional discovery pocket
+  │                         └── return loop
+  │
+  └──────── broad connector ─── signature challenge
+                               │
+                               └──────── final encounter
+```
+
+Avoid forcing the child through a long sequence of narrow right-angle corridors.
+
+### Movement forgiveness
+
+Add a lightweight steering-assist layer for the main exploration route.
+
+When the player is close to a valid route edge and input is broadly aligned with the route:
+- slide along the route instead of stopping abruptly;
+- gently bias movement toward the local route tangent/centerline;
+- never teleport;
+- never visibly take control away from the player;
+- disable or reduce assist inside precision mini-games.
+
+Suggested new abstraction:
+
+```text
+MovementController
+  → raw input vector
+NavigationAssist
+  → route-aware corrected vector / edge slide
+Geometry
+  → final walkability validation
+```
+
+Potential file:
+`src/runtime/navigation_assist.js`
+
+### Touch controls
+
+The current four-button D-pad should remain available, but V2 should evaluate a thumb-friendly virtual analog pad.
+
+Target behavior:
+- 8-direction/continuous direction;
+- large touch area;
+- configurable deadzone;
+- no need to lift and retap at every bend;
+- pointer capture so the thumb can slide naturally;
+- D-pad retained as fallback/accessibility mode.
+
+Do not make analog input mandatory for keyboard or QA automation.
+
+### Camera assistance
+
+Use camera composition to make movement easier:
+- slightly more look-ahead in movement direction;
+- expose the next landmark before a turn when possible;
+- avoid camera motion that makes a simple bend harder to read;
+- consider a slightly wider exploration framing than current close follow;
+- preserve player readability.
+
+### Acceptance criteria
+
+A redesigned route is acceptable only if:
+1. a child can traverse the main route mostly with sustained directional holds rather than repeated taps;
+2. ordinary path following does not require pixel-level correction;
+3. the main path remains visually obvious without a minimap;
+4. route length feels longer, but empty walking does not dominate;
+5. every 20–40 seconds there is a landmark, visual event, discovery, or gameplay beat;
+6. keyboard, D-pad, and touch can all complete the route;
+7. real-input E2E completes without coordinate mutation or navigation hacks.
+
+### Implementation priority
+
+Map/control redesign should happen **before or together with the first Cave V2 vertical slice**.
+
+Do not build sophisticated new mini-games on top of the current narrow staircase geometry and then preserve that geometry for compatibility.
+
 ---
 
 # 4. Runtime architecture refactor

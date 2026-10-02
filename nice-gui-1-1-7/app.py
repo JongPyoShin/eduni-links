@@ -8,6 +8,7 @@ from nicegui import app as fastapi_app, ui
 from fastapi.responses import RedirectResponse
 
 from portal_app.routes import register_pages
+from portal_app.ai.companion import COMPANION_ASSET_TAGS
 from portal_app import hanja  # register the single-process Hanja routes/API
 
 
@@ -2761,6 +2762,7 @@ def index() -> None:
     ui.add_head_html(
         '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">'
     )
+    ui.add_head_html(COMPANION_ASSET_TAGS)
     ui.add_body_html(GAME_HTML)
 
 
@@ -2769,6 +2771,7 @@ def bubble() -> None:
     ui.add_head_html(
         '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">'
     )
+    ui.add_head_html(COMPANION_ASSET_TAGS)
     ui.add_body_html(bubble_html())
 
 
@@ -2777,6 +2780,7 @@ def bubble_shooter() -> None:
     ui.add_head_html(
         '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">'
     )
+    ui.add_head_html(COMPANION_ASSET_TAGS)
     ui.add_body_html(shooter_html())
 
 

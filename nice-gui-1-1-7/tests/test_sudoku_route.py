@@ -10,6 +10,7 @@ class SudokuRouteTests(unittest.TestCase):
         body = response.body.decode("utf-8")
         self.assertIn('id="board"', body)
         self.assertIn("/sudoku-assets/eduni_sudoku_core.js", body)
+        self.assertIn("/sudoku-assets/eduni_companion.js", body)
         self.assertIn("스도쿠 탐험", body)
 
 

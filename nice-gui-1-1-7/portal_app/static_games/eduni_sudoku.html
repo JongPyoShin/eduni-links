@@ -153,6 +153,16 @@
       };
       const config = () => SudokuCore.LEVELS[state.level];
       const announce = text => { $("message").textContent = text; };
+      const publishCompanionContext = () => {
+        const selected = state.selected;
+        const size = config().size;
+        const choices = selected >= 0 ? SudokuCore.candidates(state.entries, selected, config()).map(String) : [];
+        const visibleBoard = Array.from({length:size},(_,row)=>state.entries.slice(row*size,(row+1)*size).map(value=>value||"·").join(" ")).join(" / ");
+        const question = `현재 보드(·는 빈칸): ${visibleBoard}`;
+        const selection = selected >= 0 ? `${Math.floor(selected / size) + 1}행 ${selected % size + 1}열` : "선택 없음";
+        const context = {activity:"sudoku",question,choices,selected:`${selection}: ${selected >= 0 && state.entries[selected] ? state.entries[selected] : "빈칸"}`};
+        window.EDUNICompanion ? window.EDUNICompanion.setContext(context) : window.EDUNICompanionPendingContext = context;
+      };
       const start = level => {
         const generated = SudokuCore.generate(level);
         state = { ...generated, entries:[...generated.puzzle], selected:-1, hints:0, mistakes:0, completed:false, undo:[] };
@@ -219,6 +229,7 @@
           $("next").dataset.level = recommended;
         }
         $("progress").textContent = `채운 칸 ${state.entries.filter(Boolean).length} / ${size ** 2}`;
+        publishCompanionContext();
       };
       $("board").addEventListener("click", event => {
         const button = event.target.closest("[data-cell]");

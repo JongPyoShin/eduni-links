@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from .database import (
@@ -122,6 +123,7 @@ def render_pattern_train(activity: Activity) -> None:
         "hint_count": 0,
         "retry_count": 0,
         "completed": False,
+        "companion_selected": "",
     }
 
     ui.label("규칙 기차").classes("text-h4 text-weight-bold")
@@ -142,8 +144,18 @@ def render_pattern_train(activity: Activity) -> None:
     def current_level() -> tuple[int, list[dict[str, Any]]]:
         return levels[state["level_index"]]
 
+    def companion_context(item: dict[str, Any]) -> None:
+        context = {"activity": "pattern_train", "question": f"{item['prompt']} 순서: {' '.join(item['sequence'])} 다음 모양을 찾아봐.",
+                   "choices": item["choices"], "selected": state["companion_selected"]}
+        encoded = json.dumps(context, ensure_ascii=True).replace("<", "\\u003c")
+        ui.run_javascript(f"window.EDUNICompanion ? window.EDUNICompanion.setContext({encoded}) : window.EDUNICompanionPendingContext = {encoded};")
+
     def show_level_complete() -> None:
         level, level_items = current_level()
+        state["companion_selected"] = ""
+        context = {"activity": "pattern_train", "question": "레벨을 마쳤어. 다음에는 어떤 규칙을 찾아볼까?", "choices": [], "selected": ""}
+        encoded = json.dumps(context, ensure_ascii=True).replace("<", "\\u003c")
+        ui.run_javascript(f"window.EDUNICompanion ? window.EDUNICompanion.setContext({encoded}) : window.EDUNICompanionPendingContext = {encoded};")
         choices.clear()
         action_row.set_visibility(False)
         level_actions.clear()
@@ -170,6 +182,7 @@ def render_pattern_train(activity: Activity) -> None:
     def render_question() -> None:
         level, level_items = current_level()
         item = level_items[state["item_index"]]
+        state["companion_selected"] = ""
         state["hint_level"] = 0
         state["answered"] = False
         state["attempted_current_question"] = False
@@ -183,10 +196,13 @@ def render_pattern_train(activity: Activity) -> None:
         hint_text.set_text("")
         next_button.set_visibility(False)
         choices.clear()
+        companion_context(item)
 
         def choose_answer(symbol: str) -> None:
             if state["answered"]:
                 return
+            state["companion_selected"] = symbol
+            companion_context(item)
             if symbol == item["answer"]:
                 state["answered"] = True
                 state["correct_count"] += 1

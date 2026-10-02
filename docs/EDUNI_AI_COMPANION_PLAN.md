@@ -41,6 +41,11 @@
 - 합성 문제로 실제 ChatGPT E2E 확인; 개인정보/production DB를 사용하지 않는다.
 - 개발·검증 보고서에 자동/실제 브라우저/실기기 미검증을 구분한다.
 
+## 아동 안전 운영 gate
+공식 Under-18 지침은 13세 미만 개인정보 처리 전 API zero data retention을 요구한다. 구독 요청의 `store:false`가 이 요건을 충족한다고 가정하지 않는다. 이번 개발·E2E는 합성 학습 문제와 성인 감독 테스트만 사용한다. 이름·학교·주소·연락처·아이의 사적인 독서기록을 보내지 않는다. 기본 disabled를 유지하고, 독립적인 아동 자유대화 서비스 운영은 구독 연동의 적용 조건·개인정보 처리 요건·연령 적합 안전 장치 검토가 끝나기 전 NO-GO다. UI 경고와 프롬프트는 유용하지만 개인정보 차단·답변 안전성을 보장하는 필터가 아니다.
+
 ## 참고
 - [공식 ChatGPT subscription inference](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference)
 - [구독 연동 지원 범위](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations)
+- [Under-18 안전 안내](https://developers.openai.com/api/docs/guides/safety-checks/under-18-api-guidance)
+- [브라우저 음성 인식 지원과 서버 처리 가능성](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition)

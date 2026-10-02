@@ -17,6 +17,7 @@ from .database import (
 )
 from .jungle_expedition import JUNGLE_EXPEDITION_ACTIVITY_ID, render_jungle_expedition
 from .pattern_train import render_pattern_train
+from .ai.companion import COMPANION_ASSET_TAGS, inject_companion_assets, companion_chat  # Registers the child UI and disabled-by-default API.
 from .registry import get_world
 from .schemas import Activity
 
@@ -46,7 +47,9 @@ def _game_html_response(filename: str) -> HTMLResponse:
             """,
             status_code=404,
         )
-    return HTMLResponse(path.read_text(encoding="utf-8"))
+    body = path.read_text(encoding="utf-8")
+    body = inject_companion_assets(body)
+    return HTMLResponse(body)
 
 
 def _redirect_html(title: str, url: str) -> HTMLResponse:
@@ -164,7 +167,7 @@ def eduni_omok_redirect() -> HTMLResponse:
     return _redirect_html("EDUNI 오목으로 이동", EDUNI_OMOK_URL)
 
 
-def _head() -> None:
+def _head(*, companion: bool = True) -> None:
     ui.add_head_html(
         """
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -224,6 +227,8 @@ def _head() -> None:
         </style>
         """
     )
+    if companion:
+        ui.add_head_html(COMPANION_ASSET_TAGS)
 
 
 def _section_title(title: str, subtitle: str) -> None:
@@ -359,7 +364,7 @@ def register_pages() -> None:
 
     @ui.page("/portal/parent")
     def parent_page() -> None:
-        _head()
+        _head(companion=False)
         initialize_database()
         with ui.element("main").classes("portal-shell"):
             ui.link("포털 홈", "/portal").classes("muted")

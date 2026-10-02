@@ -5,6 +5,8 @@ from pathlib import Path
 from fastapi.responses import HTMLResponse, Response
 from nicegui import app
 
+from .ai.companion import inject_companion_assets
+
 
 SPACE_GAME_URL = "/space"
 SPACE_QUESTION_BANK_URL = "/space-question-bank.js"
@@ -366,6 +368,7 @@ def _space_game_html() -> HTMLResponse:
     html = _inject_question_bank(html)
     html = _inject_reasoning_modes(html)
     html = _inject_home_button(html)
+    html = inject_companion_assets(html)
     return HTMLResponse(html)
 
 

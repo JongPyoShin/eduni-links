@@ -5,6 +5,8 @@ from pathlib import Path
 from fastapi.responses import HTMLResponse
 from nicegui import app
 
+from .ai.companion import inject_companion_assets
+
 
 FACTO_PREP_URL = "/facto"
 _GAME_STATIC_DIR = Path(__file__).resolve().parent / "static_games"
@@ -47,6 +49,7 @@ def facto_competition_prep() -> HTMLResponse:
 
     html = path.read_text(encoding="utf-8")
     html = html.replace("</body>", f"{_FACTO_CLARITY_PATCH}</body>")
+    html = inject_companion_assets(html)
     return HTMLResponse(
         html,
         headers={"Cache-Control": "no-store, max-age=0"},

@@ -4,6 +4,7 @@ from fastapi.responses import HTMLResponse
 from nicegui import app
 
 from . import routes
+from .ai.companion import inject_companion_assets
 from .baduk_endgame_safety import integrate_endgame_safety
 from .baduk_v2_integration import integrate_v2_coach
 
@@ -81,7 +82,7 @@ def _baduk_html_response() -> HTMLResponse:
                 logic_script,
                 coach_path.read_text(encoding="utf-8"),
             )
-    return HTMLResponse(source)
+    return HTMLResponse(inject_companion_assets(source))
 
 
 @app.get("/baduk", response_class=HTMLResponse)

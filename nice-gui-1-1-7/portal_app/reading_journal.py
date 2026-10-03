@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import binascii
 from datetime import date
+from datetime import timedelta
 from pathlib import Path
 import os
 import re
@@ -10,7 +11,7 @@ import uuid
 from typing import Any
 
 from fastapi import Body, Query
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from nicegui import app
 
 from .database import DATA_DIR, default_child_profile_id, utc_now
@@ -20,6 +21,7 @@ from .reading_storage import (
     reading_database_connection,
     reading_uses_postgres,
 )
+from .reading_covers import CoverLookupUnavailable, CoverNotFound, download_cover, search_open_library
 
 
 READING_STATIC_DIR = Path(__file__).resolve().parent / "static_games"
@@ -385,6 +387,60 @@ def reading_record_summary(
     }
 
 
+def reading_parent_insights(
+    path: Path | None = None,
+    *,
+    child_profile_id: int | None = None,
+    today: date | None = None,
+) -> dict[str, Any]:
+    """Return descriptive local aggregates for the server-selected profile."""
+    as_of = today or date.today()
+    profile_id = child_profile_id if child_profile_id is not None else default_child_profile_id(path)
+    recent_start = as_of - timedelta(days=29)
+    previous_start = as_of - timedelta(days=59)
+    previous_end = recent_start - timedelta(days=1)
+    ensure_reading_journal_schema(path)
+    with reading_database_connection(path) as conn:
+        aggregate = conn.execute(
+            """
+            SELECT COUNT(*), COUNT(DISTINCT LOWER(TRIM(title))),
+                   SUM(CASE WHEN read_date >= ? THEN 1 ELSE 0 END),
+                   SUM(CASE WHEN read_date BETWEEN ? AND ? THEN 1 ELSE 0 END)
+              FROM reading_record
+             WHERE child_profile_id = ? AND read_date <= ?
+            """,
+            (recent_start.isoformat(), previous_start.isoformat(), previous_end.isoformat(), profile_id, as_of.isoformat()),
+        ).fetchone()
+        mode_rows = conn.execute(
+            """
+            SELECT reading_mode, COUNT(*) FROM reading_record
+             WHERE child_profile_id = ? AND read_date <= ?
+             GROUP BY reading_mode
+            """,
+            (profile_id, as_of.isoformat()),
+        ).fetchall()
+
+    total = int(aggregate[0] or 0) if aggregate else 0
+    distinct_titles = int(aggregate[1] or 0) if aggregate else 0
+    mode_counts = {mode: 0 for mode in sorted(READING_MODES)}
+    for mode, count in mode_rows:
+        if mode in mode_counts:
+            mode_counts[str(mode)] = int(count)
+    return {
+        "as_of": as_of.isoformat(),
+        "recorded_count": total,
+        "distinct_titles": distinct_titles,
+        "repeated_readings": max(0, total - distinct_titles),
+        "reading_modes": mode_counts,
+        "recent_30_days": int(aggregate[2] or 0) if aggregate else 0,
+        "previous_30_days": int(aggregate[3] or 0) if aggregate else 0,
+        "recent_period_start": recent_start.isoformat(),
+        "previous_period_start": previous_start.isoformat(),
+        "previous_period_end": previous_end.isoformat(),
+        "insufficient_data": total < 3,
+    }
+
+
 def list_reading_records(
     limit: int = 100,
     path: Path | None = None,
@@ -558,6 +614,44 @@ def reading_records_api(
             "summary": summary,
         }
     )
+
+
+@app.get("/reading/api/insights")
+def reading_parent_insights_api() -> JSONResponse:
+    try:
+        return JSONResponse(reading_parent_insights())
+    except Exception:
+        return JSONResponse({"ok": False, "error": "insights_unavailable"}, status_code=503)
+
+
+@app.post("/reading/api/covers/search")
+def reading_cover_search_api(payload: dict[str, Any] | None = Body(default=None)) -> JSONResponse:
+    values = payload or {}
+    if set(values) - {"title", "publisher"}:
+        return JSONResponse({"ok": False, "error": "invalid_search"}, status_code=400)
+    title, publisher = values.get("title", ""), values.get("publisher", "")
+    if not isinstance(title, str) or not isinstance(publisher, str) or not title.strip() or len(title) > 160 or len(publisher) > 120:
+        return JSONResponse({"ok": False, "error": "invalid_search"}, status_code=400)
+    try:
+        candidates = search_open_library(title, publisher)
+    except ValueError:
+        return JSONResponse({"ok": False, "error": "invalid_search"}, status_code=400)
+    except CoverLookupUnavailable:
+        return JSONResponse({"ok": False, "error": "cover_search_unavailable"}, status_code=503)
+    return JSONResponse({"ok": True, "candidates": candidates}, headers={"Cache-Control": "no-store"})
+
+
+@app.get("/reading/api/covers/{cover_id:int}")
+def reading_cover_image_api(cover_id: int) -> Response:
+    try:
+        image, content_type = download_cover(cover_id)
+    except ValueError:
+        return Response(status_code=400)
+    except CoverNotFound:
+        return Response(status_code=404)
+    except CoverLookupUnavailable:
+        return Response(status_code=503)
+    return Response(image, media_type=content_type, headers={"Cache-Control": "private, max-age=900", "X-Content-Type-Options": "nosniff"})
 
 
 @app.post("/reading/api/records")

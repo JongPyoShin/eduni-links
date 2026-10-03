@@ -68,6 +68,28 @@
     }
     .stat b { display:block; font-size:24px; }
     .stat span { color:var(--muted); font-size:12px; font-weight:800; }
+    .parent-tools { margin-top:10px; border:1px solid var(--line); border-radius:18px; background:rgba(255,253,248,.88); }
+    .parent-tools > summary { padding:14px 16px; cursor:pointer; color:#365342; font-weight:900; }
+    .parent-tools-body { padding:0 16px 16px; color:var(--muted); font-size:13px; line-height:1.55; }
+    .insight-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:8px 0; }
+    .insight-stat { padding:10px; border-radius:12px; background:#f3f0e8; }
+    .insight-stat b { display:block; color:var(--ink); font-size:18px; }
+    .source-cards { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:12px; }
+    .source-card { border:1px solid var(--line); border-radius:12px; padding:10px; background:white; }
+    .source-card h3 { margin:0 0 4px; font-size:13px; color:var(--ink); }
+    .source-card p { margin:4px 0; }
+    .source-card a { color:#365342; font-weight:800; }
+    .cover-lookup { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:end; }
+    .cover-lookup label { grid-column:1/-1; color:#534b45; font-size:13px; font-weight:900; }
+    .cover-lookup input { min-width:0; width:100%; min-height:44px; border:1px solid #dcd1c5; border-radius:13px; padding:0 12px; }
+    .cover-lookup button,.candidate-choice { min-height:42px; border:1px solid var(--leaf); border-radius:12px; padding:7px 12px; background:var(--leaf-soft); color:#365342; font-weight:850; }
+    .lookup-note,.lookup-status { grid-column:1/-1; margin:0; color:var(--muted); font-size:12px; line-height:1.45; }
+    .cover-candidates { display:grid; gap:8px; margin-top:8px; }
+    .cover-candidate { display:grid; gap:4px; padding:10px; border:1px solid var(--line); border-radius:12px; background:#fff; }
+    .cover-candidate strong { color:var(--ink); }
+    .cover-candidate small { color:var(--muted); }
+    .cover-candidate button { justify-self:start; }
+    .lookup-actions { display:flex; gap:8px; align-items:end; }
     .section-title {
       display:flex; align-items:end; justify-content:space-between; gap:12px; margin:28px 2px 12px;
     }
@@ -207,6 +229,10 @@
     body.force-mobile .stats { grid-template-columns:repeat(3,1fr); }
     body.force-mobile .stat { padding:11px 9px; }
     body.force-mobile .stat b { font-size:21px; }
+    body.force-mobile .insight-grid, body.force-mobile .source-cards { grid-template-columns:1fr; }
+    body.force-mobile .cover-lookup { grid-template-columns:1fr; }
+    body.force-mobile .cover-lookup label,.lookup-note,.lookup-status { grid-column:1; }
+    body.force-mobile .cover-candidate button { width:100%; }
     @media (max-width:780px) {
       .hero { grid-template-columns:1fr; padding:20px; }
       .hero-mark { display:none; }
@@ -230,6 +256,10 @@
       .filter-panel { width:100%; margin-left:0; margin-right:0; }
       .new-btn { padding:0 13px; }
       .view-btn { display:none; }
+      .insight-grid,.source-cards { grid-template-columns:1fr; }
+      .cover-lookup { grid-template-columns:1fr; }
+      .cover-lookup label,.lookup-note,.lookup-status { grid-column:1; }
+      .cover-candidate button { width:100%; }
     }
   </style>
 </head>
@@ -257,6 +287,37 @@
       <div class="stat"><b id="monthCount">0</b><span>이번 달</span></div>
       <div class="stat"><b id="favoriteCount">0</b><span>또 읽고 싶은 책</span></div>
     </section>
+
+    <details id="parentTools" class="parent-tools">
+      <summary>보호자용 · 함께 읽기 기록과 자료</summary>
+      <div class="parent-tools-body">
+        <p>저장된 기록만 EDUNI 서버 안에서 집계해요. 독서기록은 외부 검색이나 AI로 보내지 않아요. 능력·발달 평가가 아니며, 기록하지 않은 날은 읽지 않았다는 뜻이 아니에요. 같은 제목은 다른 판본이어도 한 책으로 셀 수 있어요.</p>
+        <div id="insightStatus" role="status" aria-live="polite">기록 요약을 불러오는 중이에요…</div>
+        <div id="insightSummary" class="insight-grid"></div>
+        <p id="insightSuggestion">가볍게 해볼 수 있어요: 아이가 고른 책을 다시 읽기, 기억에 남는 장면을 열린 질문으로 이야기하기, 읽은 뒤 그림이나 놀이로 이어가기.</p>
+        <h3>함께 읽기 참고자료</h3>
+        <div class="source-cards">
+          <article class="source-card">
+            <h3>함께 읽기는 대화와 관계를 위한 시간</h3>
+            <p>정해진 양을 채우기보다 아이가 고른 장면을 편하게 이야기해 보세요. 영유아 중심 안내이므로 7세 아이에 대한 평가로 쓰지 않아요.</p>
+            <small>발표 2024-09-29 · 확인 2026-10-03</small><br>
+            <a href="https://www.healthychildren.org/English/news/Pages/beyond-literacy-shared-reading-starting-in-infancy-offers-lifelong-benefits.aspx" target="_blank" rel="noopener noreferrer">American Academy of Pediatrics 자료</a>
+          </article>
+          <article class="source-card">
+            <h3>아이마다 즐기는 방식은 달라요</h3>
+            <p>영국 조사 결과는 이 아이의 점수나 한국 기준이 아니에요. 즐거운 책과 형식을 함께 찾아보는 데 참고해요.</p>
+            <small>발표 2026-06-09 · 확인 2026-10-03</small><br>
+            <a href="https://literacytrust.org.uk/research-services/research-reports/children-and-young-peoples-reading-in-2026/" target="_blank" rel="noopener noreferrer">National Literacy Trust 조사</a>
+          </article>
+          <article class="source-card">
+            <h3>책과 이야기를 여러 방식으로 만나기</h3>
+            <p>가정과 공동체에서 즐거운 읽기 기회를 만드는 캠페인 안내예요. 게시일은 확인되지 않아 연도만 표시했어요.</p>
+            <small>연도 2026 · 게시일 미표시 · 확인 2026-10-03</small><br>
+            <a href="https://literacytrust.org.uk/about-us/national-year-of-reading-2026/schools/" target="_blank" rel="noopener noreferrer">National Year of Reading 안내</a>
+          </article>
+        </div>
+      </div>
+    </details>
 
     <div class="section-title" id="writeSection">
       <div>
@@ -292,6 +353,15 @@
             <label for="author">글쓴이 / 출판사</label>
             <input id="author" maxlength="120" placeholder="몰라도 괜찮아요">
           </div>
+        </div>
+
+        <div class="cover-lookup" aria-labelledby="coverLookupTitle">
+          <label id="coverLookupTitle" for="lookupPublisher">표지 찾기 · 출판사 (검색 전용, 기록에 저장되지 않음)</label>
+          <input id="lookupPublisher" maxlength="120" placeholder="출판사 이름은 선택사항이에요">
+          <button id="findCoverButton" type="button">표지 찾기</button>
+          <p class="lookup-note">버튼을 누르면 책 제목과 선택한 출판사만 Open Library로 전송돼요. 아이 이름·메모·감상·사진은 보내지 않아요. 한국어 책은 검색 결과가 적을 수 있고, 결과 표지는 다른 판본일 수 있어요. NAVER 검색은 아직 연결하지 않았어요.</p>
+          <div id="coverLookupStatus" class="lookup-status" role="status" aria-live="polite"></div>
+          <div id="coverCandidates" class="cover-candidates" aria-live="polite"></div>
         </div>
 
         <div class="field">
@@ -400,6 +470,15 @@
   <script>
     (() => {
       const form = document.getElementById('recordForm');
+      const titleInput = document.getElementById('title');
+      const lookupPublisher = document.getElementById('lookupPublisher');
+      const findCoverButton = document.getElementById('findCoverButton');
+      const coverLookupStatus = document.getElementById('coverLookupStatus');
+      const coverCandidates = document.getElementById('coverCandidates');
+      const insightStatus = document.getElementById('insightStatus');
+      const insightSummary = document.getElementById('insightSummary');
+      const insightSuggestion = document.getElementById('insightSuggestion');
+      const parentTools = document.getElementById('parentTools');
       const cameraInput = document.getElementById('cameraInput');
       const galleryInput = document.getElementById('galleryInput');
       const cameraPickerButton = document.getElementById('cameraPickerButton');
@@ -432,6 +511,7 @@
       let editingId = null;
       let imageJobGeneration = 0;
       let imageProcessing = false;
+      let savingRecord = false;
       let readingMode = 'together';
       let rating = 5;
       let records = [];
@@ -440,6 +520,33 @@
       let searchRequestGeneration = 0;
       let searchDebounceTimer = null;
       let loadingRecords = false;
+      let insightRequestGeneration = 0;
+
+      function setImageProcessing(value) {
+        imageProcessing = value;
+        saveButton.disabled = value || savingRecord;
+        findCoverButton.disabled = value || savingRecord;
+      }
+
+      function invalidateCoverWork({ clearCandidates = true } = {}) {
+        imageJobGeneration++;
+        if (imageProcessing) setImageProcessing(false);
+        if (clearCandidates) coverCandidates.replaceChildren();
+        coverLookupStatus.textContent = '';
+      }
+
+      function setSaving(value) {
+        savingRecord = value;
+        for (const control of form.querySelectorAll('input,textarea,button,select')) {
+          if (value) {
+            control.dataset.preSaveDisabled = control.disabled ? 'true' : 'false';
+            control.disabled = true;
+          } else {
+            control.disabled = control.dataset.preSaveDisabled === 'true';
+            delete control.dataset.preSaveDisabled;
+          }
+        }
+      }
 
       function localDateString(d = new Date()) {
         const offset = d.getTimezoneOffset();
@@ -473,6 +580,7 @@
       });
 
       document.getElementById('scrollToForm').addEventListener('click', () => {
+        if (savingRecord) return;
         if (editingId !== null) resetFormState();
         document.getElementById('writeSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
         setTimeout(() => document.getElementById('title').focus(), 350);
@@ -519,8 +627,8 @@
         const file = input.files && input.files[0];
         if (!file) return;
         const jobGeneration = ++imageJobGeneration;
-        imageProcessing = true;
-        saveButton.disabled = true;
+        setImageProcessing(true);
+        coverCandidates.replaceChildren();
         try {
           setStatus('사진 준비 중…');
           const preparedDataUrl = await imageToDataUrl(file);
@@ -539,11 +647,104 @@
         } finally {
           input.value = '';
           if (jobGeneration === imageJobGeneration) {
-            imageProcessing = false;
-            saveButton.disabled = false;
+            setImageProcessing(false);
           }
         }
       }
+
+      function showCoverCandidates(candidates, generation) {
+        coverCandidates.replaceChildren();
+        for (const candidate of candidates) {
+          if (!Number.isInteger(candidate.cover_id) || candidate.cover_id <= 0 ||
+              typeof candidate.title !== 'string' || !candidate.title.trim()) continue;
+          const card = document.createElement('article');
+          card.className = 'cover-candidate';
+          const title = document.createElement('strong');
+          title.textContent = candidate.title;
+          const details = document.createElement('small');
+          const authors = Array.isArray(candidate.authors) ? candidate.authors.filter(v => typeof v === 'string').join(', ') : '';
+          const publishers = Array.isArray(candidate.publishers) ? candidate.publishers.filter(v => typeof v === 'string').join(', ') : '';
+          details.textContent = [authors, publishers, candidate.first_publish_year, candidate.edition_count ? `${candidate.edition_count}개 판본` : ''].filter(Boolean).join(' · ');
+          const choose = document.createElement('button');
+          choose.type = 'button'; choose.className = 'candidate-choice';
+          choose.textContent = '이 후보 표지를 미리보기로 가져오기';
+          choose.addEventListener('click', () => importCoverCandidate(candidate.cover_id, generation));
+          card.append(title, details, choose);
+          coverCandidates.append(card);
+        }
+      }
+
+      async function findCoverCandidates() {
+        if (savingRecord || imageProcessing) return;
+        const title = titleInput.value.trim();
+        const publisher = lookupPublisher.value.trim();
+        if (!title) {
+          coverLookupStatus.textContent = '먼저 책 제목을 적어주세요.';
+          titleInput.focus();
+          return;
+        }
+        const generation = ++imageJobGeneration;
+        coverCandidates.replaceChildren();
+        setImageProcessing(true);
+        coverLookupStatus.textContent = 'Open Library에서 책 제목과 출판사만 찾아보고 있어요…';
+        try {
+          const response = await fetch('/reading/api/covers/search', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, publisher }), cache: 'no-store'
+          });
+          const data = await response.json().catch(() => ({}));
+          if (generation !== imageJobGeneration) return;
+          if (!response.ok || !data.ok || !Array.isArray(data.candidates)) throw new Error('표지를 찾을 수 없어요. 카메라나 갤러리를 이용할 수 있어요.');
+          if (!data.candidates.length) {
+            coverLookupStatus.textContent = '표지 후보가 없어요. 카메라나 갤러리를 이용해 주세요.';
+          } else {
+            showCoverCandidates(data.candidates.slice(0, 5), generation);
+            coverLookupStatus.textContent = '후보를 골라 미리보기에 가져와 주세요. 다른 판본의 표지일 수 있어요.';
+          }
+        } catch (error) {
+          if (generation === imageJobGeneration) coverLookupStatus.textContent = error.message || '표지를 찾을 수 없어요.';
+        } finally {
+          if (generation === imageJobGeneration) setImageProcessing(false);
+        }
+      }
+
+      async function importCoverCandidate(coverId, searchGeneration) {
+        if (savingRecord || imageProcessing || searchGeneration !== imageJobGeneration) return;
+        const generation = searchGeneration;
+        setImageProcessing(true);
+        coverLookupStatus.textContent = '선택한 표지를 안전하게 확인하고 미리보기를 준비해요…';
+        coverCandidates.querySelectorAll('button').forEach(button => { button.disabled = true; });
+        try {
+          const response = await fetch('/reading/api/covers/' + encodeURIComponent(String(coverId)), { cache: 'no-store' });
+          if (!response.ok) throw new Error('표지 이미지를 가져오지 못했어요. 다른 후보를 골라주세요.');
+          const blob = await response.blob();
+          if (!blob.size || blob.size > 4 * 1024 * 1024 || !/^image\/(jpeg|png|webp)$/.test(blob.type)) {
+            throw new Error('표지 이미지 형식을 확인할 수 없어요.');
+          }
+          const prepared = await imageToDataUrl(new File([blob], 'open-library-cover', { type: blob.type }));
+          if (generation !== imageJobGeneration) return;
+          coverDataUrl = prepared;
+          if (editingId !== null) coverAction = 'replace';
+          coverPreview.src = coverDataUrl;
+          coverPicker.classList.add('has-image');
+          removePhotoButton.classList.remove('hidden');
+          coverLookupStatus.textContent = '미리보기를 확인한 뒤 기록 저장을 눌러야 반영돼요.';
+        } catch (error) {
+          if (generation === imageJobGeneration) coverLookupStatus.textContent = error.message || '표지를 가져오지 못했어요.';
+        } finally {
+          if (generation === imageJobGeneration) {
+            setImageProcessing(false);
+            coverCandidates.querySelectorAll('button').forEach(button => { button.disabled = false; });
+          }
+        }
+      }
+
+      function invalidateLookupOnTextChange() {
+        if (!savingRecord) invalidateCoverWork();
+      }
+      titleInput.addEventListener('input', invalidateLookupOnTextChange);
+      lookupPublisher.addEventListener('input', invalidateLookupOnTextChange);
+      findCoverButton.addEventListener('click', findCoverCandidates);
 
       cameraPickerButton.addEventListener('click', () => cameraInput.click());
       galleryPickerButton.addEventListener('click', () => galleryInput.click());
@@ -576,6 +777,59 @@
         document.getElementById('totalCount').textContent = Number(safeSummary.total || 0);
         document.getElementById('monthCount').textContent = Number(safeSummary.month || 0);
         document.getElementById('favoriteCount').textContent = Number(safeSummary.favorite || 0);
+      }
+
+      function renderInsightNumber(label, value) {
+        const card = document.createElement('div'); card.className = 'insight-stat';
+        const number = document.createElement('b'); number.textContent = Number(value || 0);
+        const caption = document.createElement('span'); caption.textContent = label;
+        card.append(number, caption); return card;
+      }
+
+      async function loadParentInsights() {
+        const requestGeneration = ++insightRequestGeneration;
+        insightSummary.replaceChildren();
+        insightSuggestion.textContent = '독서기록을 확인하는 중이에요.';
+        insightStatus.textContent = '저장된 기록만 EDUNI 서버 안에서 집계하고 있어요…';
+        try {
+          const response = await fetch('/reading/api/insights', { cache: 'no-store' });
+          const data = await response.json().catch(() => ({}));
+          if (requestGeneration !== insightRequestGeneration) return;
+          if (!response.ok || !Number.isInteger(data.recorded_count)) throw new Error('요약을 불러오지 못했어요.');
+          const recentStart = data.recent_period_start || '';
+          const recentEnd = data.as_of || '';
+          const previousStart = data.previous_period_start || '';
+          const previousEnd = data.previous_period_end || '';
+          insightSummary.replaceChildren(
+            renderInsightNumber('저장된 기록', data.recorded_count),
+            renderInsightNumber('서로 다른 제목', data.distinct_titles),
+            renderInsightNumber('반복해서 읽은 기록', data.repeated_readings),
+            renderInsightNumber(`최근 30일 · ${recentStart}–${recentEnd}`, data.recent_30_days),
+            renderInsightNumber(`이전 30일 · ${previousStart}–${previousEnd}`, data.previous_30_days)
+          );
+          const modes = data.reading_modes || {};
+          const labels = { alone: '혼자 읽기', together: '함께 읽기', read_aloud: '읽어주기' };
+          for (const [mode, label] of Object.entries(labels)) insightSummary.append(renderInsightNumber(label, modes[mode]));
+          insightStatus.textContent = data.insufficient_data
+            ? `기록 ${data.recorded_count}건이에요. 아직은 반복되는 흐름을 말하기 어려워요. 기록된 내용만 보여주는 요약이며 평가가 아니에요.`
+            : `오늘(${recentEnd})까지 저장된 기록 ${data.recorded_count}건을 모두 집계했어요. 제목은 대소문자와 앞뒤 공백을 정리해 비교하며, 판본은 구분하지 않아요.`;
+          if (data.insufficient_data) {
+            insightSuggestion.textContent = '기록이 적어 맞춤 패턴 제안은 하지 않아요. 아이가 고른 책을 함께 보며 “어떤 장면이 기억나?”라고 물어보는 것부터 해보세요. 기록하지 않아도 괜찮아요.';
+          } else if (Number(data.repeated_readings) > 0) {
+            insightSuggestion.textContent = '반복해서 읽은 기록이 있어요. 아이가 다시 고른 책을 함께 보며 좋아했던 장면 하나를 이야기해 보세요.';
+          } else {
+            const modes = data.reading_modes || {};
+            const modeLabels = { alone: '혼자 읽기', together: '함께 읽기', read_aloud: '읽어주기' };
+            const mostUsed = Object.keys(modeLabels).sort((a, b) => Number(modes[b] || 0) - Number(modes[a] || 0))[0];
+            const modeText = Number(modes[mostUsed] || 0) ? `${modeLabels[mostUsed]} 기록이 가장 많아요. 다음에는 아이가 고르게 하고, 다른 방법으로 읽어봐도 괜찮아요.` : '아이가 고른 책을 함께 보며 “어떤 장면이 기억나?”라고 물어보세요.';
+            insightSuggestion.textContent = modeText;
+          }
+        } catch (error) {
+          if (requestGeneration === insightRequestGeneration) {
+            insightStatus.textContent = error.message || '요약을 불러오지 못했어요.';
+            insightSuggestion.textContent = '요약을 불러오지 못해 기록에 맞춘 제안을 표시하지 않아요.';
+          }
+        }
       }
 
       function hasActiveSearch() {
@@ -650,9 +904,11 @@
 
       function resetFormState() {
         imageJobGeneration++;
-        imageProcessing = false;
-        saveButton.disabled = false;
+        setImageProcessing(false);
         form.reset();
+        coverCandidates.replaceChildren();
+        coverLookupStatus.textContent = '';
+        lookupPublisher.value = '';
         clearCoverInputs();
         editingId = null;
         coverDataUrl = null;
@@ -671,9 +927,11 @@
 
       function startEdit(record) {
         imageJobGeneration++;
-        imageProcessing = false;
-        saveButton.disabled = false;
+        setImageProcessing(false);
         clearCoverInputs();
+        coverCandidates.replaceChildren();
+        coverLookupStatus.textContent = '';
+        lookupPublisher.value = '';
         editingId = record.id;
         coverDataUrl = null;
         coverAction = 'keep';
@@ -707,8 +965,9 @@
 
       removePhotoButton.addEventListener('click', () => {
         imageJobGeneration++;
-        imageProcessing = false;
-        saveButton.disabled = false;
+        setImageProcessing(false);
+        coverCandidates.replaceChildren();
+        coverLookupStatus.textContent = '';
         coverDataUrl = null;
         clearCoverInputs();
         coverPreview.removeAttribute('src');
@@ -825,6 +1084,7 @@
       loadMoreButton.addEventListener('click', () => loadRecords({ reset: false }));
 
       recordsEl.addEventListener('click', async (event) => {
+        if (savingRecord) return;
         const editButton = event.target.closest('[data-edit]');
         if (editButton) {
           const id = Number(editButton.getAttribute('data-edit'));
@@ -843,6 +1103,7 @@
           if (!response.ok) throw new Error();
           if (editingId === id) resetFormState();
           await loadRecords({ reset: true });
+          await loadParentInsights();
         } catch (_) {
           deleteButton.disabled = false;
           window.alert('삭제하지 못했어요. 다시 시도해주세요.');
@@ -851,6 +1112,7 @@
 
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
+        if (savingRecord) return;
         if (imageProcessing) {
           setStatus('사진 준비가 끝날 때까지 잠시 기다려주세요.', 'error');
           return;
@@ -878,7 +1140,7 @@
           if (coverAction === 'replace') payload.cover_data_url = coverDataUrl;
         }
 
-        saveButton.disabled = true;
+        setSaving(true);
         setStatus(editingId === null ? '저장 중…' : '수정 저장 중…');
         try {
           const editTarget = editingId;
@@ -895,16 +1157,18 @@
 
           resetFormState();
           await loadRecords({ reset: true });
+          await loadParentInsights();
           setStatus(editTarget === null ? '독서기록을 저장했어요 ✓' : '수정 내용을 저장했어요 ✓', 'success');
           setTimeout(() => setStatus(''), 2600);
         } catch (error) {
           setStatus(error.message || '저장하지 못했어요.', 'error');
         } finally {
-          saveButton.disabled = false;
+          setSaving(false);
         }
       });
 
       loadRecords();
+      loadParentInsights();
     })();
   </script>
 </body>

@@ -44,6 +44,11 @@
 ## 아동 안전 운영 gate
 공식 Under-18 지침은 13세 미만 개인정보 처리 전 API zero data retention을 요구한다. 구독 요청의 `store:false`가 이 요건을 충족한다고 가정하지 않는다. 이번 개발·E2E는 합성 학습 문제와 성인 감독 테스트만 사용한다. 이름·학교·주소·연락처·아이의 사적인 독서기록을 보내지 않는다. 기본 disabled를 유지하고, 독립적인 아동 자유대화 서비스 운영은 구독 연동의 적용 조건·개인정보 처리 요건·연령 적합 안전 장치 검토가 끝나기 전 NO-GO다. UI 경고와 프롬프트는 유용하지만 개인정보 차단·답변 안전성을 보장하는 필터가 아니다.
 
+## 후속 요구: 화면 문맥을 모든 질문의 기본값으로
+사용자 후속 요청에 따라 “이 문제”라는 문구 없이도 질문마다 최신 화면 문맥을 자동 첨부한다. 규칙 기차/스도쿠의 명시적 adapter를 보존하고, 고정된 child route별 public DOM selector로 현재 문제·보기만 추출한다. 바둑은 확정 보드 getter의 공개 상태만, 오목은 실제 렌더링된 돌 배치만 사용한다. hidden 정답·source question object·전체 DOM·스크립트·부모/독서 입력은 읽지 않는다. 화면 fallback은 route별 고정 학습 안내이며 화면 데이터가 없는 것을 있는 것처럼 표현하지 않는다.
+
+UI에는 현재 문제 참고/문제 글만 참고/일반 안내를 구분해서 표시한다. 그림·캔버스 해석이 없는 활동은 이 한계를 모델에도 알린다. send 직전에 snapshot을 다시 읽고, 질문·보드 변경만 request generation을 무효화한다. 시계·애니메이션·AI 패널 변경은 문맥 변경으로 처리하지 않는다. 사용자가 명시적으로 다른 주제를 묻는 경우에는 일반 질문도 답할 수 있다. 상세 실제 연결 범위는 `EDUNI_AI_COMPANION_SCREEN_CONTEXT_REPORT.md`에 기록한다.
+
 ## 참고
 - [공식 ChatGPT subscription inference](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference)
 - [구독 연동 지원 범위](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations)

@@ -45,12 +45,18 @@ class CompanionValidationTests(unittest.TestCase):
             "activity": "sudoku", "question": "현재 보드 ·", "choices": ["1", "2"], "selected": "2행 1열"}})
         self.assertEqual("힌트", p)
         self.assertEqual("sudoku", context["activity"])
+        board = "/".join(["." * 19] * 19)
+        _, projected = companion.validate_companion_payload({"prompt": "힌트", "context": {
+            "activity": "baduk", "question": "현재 바둑판: " + board, "choices": ["보기"] * 10}})
+        self.assertEqual("baduk", projected["activity"])
+        self.assertEqual(10, len(projected["choices"]))
         for data in (
             {"prompt": "x", "context": {"parent_note": "private"}},
             {"prompt": "x", "context": {"answer": "hidden"}},
             {"prompt": "x" * 501, "context": {}},
             {"prompt": "x", "context": {"choices": [1]}},
-            {"prompt": "x", "context": {"choices": ["x"] * 10}},
+            {"prompt": "x", "context": {"choices": ["x"] * 11}},
+            {"prompt": "x", "context": {"activity": "baduk", "question": "x" * 601}},
         ):
             with self.subTest(data=data), self.assertRaises(ValueError):
                 companion.validate_companion_payload(data)
@@ -70,6 +76,8 @@ class CompanionValidationTests(unittest.TestCase):
         self.assertEqual((0, "한 줄씩 살펴봐!"), (status, answer))
         self.assertEqual([], fake.tools)
         self.assertNotIn("reading_search", str(fake.messages))
+        self.assertIn("현재 화면 참고", fake.messages[0]["content"])
+        self.assertIn("추측하지 않는다", fake.messages[0]["content"])
 
     def test_local_provider_rejects_tool_calls(self):
         class FakeProvider:
@@ -161,6 +169,7 @@ class BridgeContractTests(unittest.TestCase):
         self.assertFalse(opener.payload["store"])
         self.assertTrue(opener.payload["stream"])
         self.assertEqual("Bearer test-only", opener.authorization)
+        self.assertIn("현재 화면 참고", opener.payload["instructions"])
 
     def test_requires_completed_event_and_bounds_sse(self):
         class FakeOpener:
@@ -214,6 +223,8 @@ class BridgeContractTests(unittest.TestCase):
             bridge._context_prompt("hint", {"activity": "sudoku", "solution": "secret"})
         with self.assertRaises(ValueError):
             bridge._context_prompt("hint", {"activity": "general", "choices": list(range(10))})
+        self.assertIn("현재 바둑판", bridge._context_prompt("힌트", {
+            "activity": "baduk", "question": "현재 바둑판: " + "/".join(["." * 19] * 19), "choices": [], "selected": ""}))
 
 
 if __name__ == "__main__":

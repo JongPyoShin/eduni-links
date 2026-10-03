@@ -73,12 +73,23 @@ async function main() {
   const prompt=element('처음 문제');
   f=fixture('/bubble', {'#questionText':[prompt],'#bubbleField .answer-bubble':[element('공개 보기')]});
   f.controls.get('textarea').value='설명해 줘';
-  f.controls.set('[data-action="guardian"]', Object.assign(element(), {checked:true}));
   const pending=f.controls.get('[data-action="send"]').events.click();
   assert.match(f.request().context.question,/처음 문제/);
   prompt.textContent='다음 문제';
   f.finish(); await pending;
   assert.notEqual(f.controls.get('#eduni-companion-answer').textContent,'old answer');
+
+  f.window.isSecureContext=true;
+  f.window.SpeechRecognition=function(){f.window.lastRecognition=this;this.start=()=>{};this.stop=()=>{};};
+  f.controls.get('textarea').focus=function(){this.focused=true;};
+  f.controls.get('[data-action="voice"]').events.click();
+  f.window.lastRecognition.onresult({results:[[{transcript:'말한 질문'}]]});
+  assert.equal(f.controls.get('textarea').value,'말한 질문');
+  assert.equal(f.controls.get('textarea').focused,undefined,'voice result must not open keyboard');
+  const oldRecognition=f.window.lastRecognition;
+  f.window.EDUNICompanion.setContext({activity:'pattern_train',question:'새 문제',choices:[],selected:''});
+  oldRecognition.onresult({results:[[{transcript:'늦은 음성'}]]});
+  assert.equal(f.controls.get('textarea').value,'말한 질문','late recognition must not overwrite after screen change');
   console.log('PASS: screen text, visibility, board completeness/privacy, fallback, send-time context, stale answer');
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});

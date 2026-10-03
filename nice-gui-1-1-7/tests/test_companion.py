@@ -126,6 +126,18 @@ class CompanionValidationTests(unittest.TestCase):
             self.assertEqual(403, asyncio.run(companion.companion_chat(make_request(payload, origin=None))).status_code)
             self.assertEqual(400, asyncio.run(companion.companion_chat(make_request(payload, content_type="text/plain"))).status_code)
 
+    def test_configured_https_origin_override_is_exact_and_fails_closed(self):
+        payload = json.dumps({"prompt": "힌트", "context": {}}, ensure_ascii=False).encode()
+        valid_env = {"EDUNI_AI_COMPANION_ENABLED": "1", "EDUNI_AI_COMPANION_PROVIDER": "disabled",
+                     "EDUNI_AI_COMPANION_ORIGIN": "https://portal.example:8443/"}
+        with patch.dict("os.environ", valid_env, clear=True):
+            response = asyncio.run(companion.companion_chat(make_request(payload, origin="https://portal.example:8443")))
+            self.assertEqual(503, response.status_code)
+            self.assertEqual(403, asyncio.run(companion.companion_chat(make_request(payload, origin="http://testserver"))).status_code)
+        for invalid in ("http://portal.example", "https://portal.example/path", "https://u:p@portal.example"):
+            with self.subTest(invalid=invalid), patch.dict("os.environ", {**valid_env, "EDUNI_AI_COMPANION_ORIGIN": invalid}, clear=True):
+                self.assertEqual(403, asyncio.run(companion.companion_chat(make_request(payload, origin=invalid))).status_code)
+
     def test_route_sanitizes_timeout_and_unavailable(self):
         payload = json.dumps({"prompt": "힌트", "context": {}}, ensure_ascii=False).encode()
         env = {"EDUNI_AI_COMPANION_ENABLED": "1"}

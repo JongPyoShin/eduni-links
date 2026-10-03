@@ -30,3 +30,4 @@ nice-gui-1-1-7/work/*.log
 # Local secrets
 .env
 !.env.example
+.env.companion

@@ -40,6 +40,24 @@ def _error(code: str, status: int) -> JSONResponse:
     return JSONResponse({"ok": False, "error": code}, status_code=status, headers={"Cache-Control": "no-store"})
 
 
+def _expected_companion_origin(base_url: str, configured: str) -> str | None:
+    if not configured.strip():
+        return base_url.rstrip("/")
+    from urllib.parse import urlsplit
+
+    value = configured.strip()
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError:
+        return None
+    if (parsed.scheme.lower() != "https" or not parsed.hostname or parsed.username or parsed.password
+            or parsed.path not in {"", "/"} or parsed.query or parsed.fragment
+            or (port is not None and not 1 <= port <= 65535)):
+        return None
+    return value.rstrip("/")
+
+
 def validate_companion_payload(data: Any) -> tuple[str, dict[str, Any]]:
     if not isinstance(data, dict) or set(data) != {"prompt", "context"}:
         raise ValueError("request")
@@ -103,8 +121,8 @@ async def companion_chat(request: Request) -> JSONResponse:
     if os.environ.get("EDUNI_AI_COMPANION_ENABLED", "0").strip() != "1":
         return _error("ai_unavailable", 503)
     origin = request.headers.get("origin", "")
-    expected = str(request.base_url).rstrip("/")
-    if origin.rstrip("/") != expected or request.headers.get("x-requested-with") != "XMLHttpRequest":
+    expected = _expected_companion_origin(str(request.base_url), os.environ.get("EDUNI_AI_COMPANION_ORIGIN", ""))
+    if expected is None or origin.rstrip("/") != expected or request.headers.get("x-requested-with") != "XMLHttpRequest":
         return _error("request_rejected", 403)
     if request.headers.get("content-type", "").split(";", 1)[0].strip().lower() != "application/json":
         return _error("invalid_request", 400)

@@ -17,13 +17,17 @@
   panel.innerHTML = `<header><span>AI 친구</span><button type="button" class="close" aria-label="닫기">닫기</button></header><div class="quick">${readingPrompts}</div><div id="eduni-companion-screen" aria-live="polite"></div><section class="answer-card" aria-labelledby="eduni-companion-answer-title"><h2 id="eduni-companion-answer-title">친구의 답변</h2><div id="eduni-companion-answer" aria-live="polite">궁금한 것을 물어봐!</div></section><details id="eduni-companion-notice"><summary>체험과 개인정보 안내</summary><p>아직은 보호자 감독 아래 합성 문제로 시험하는 기능이에요. 독립적인 어린이 사용은 준비되지 않았어요. 질문과 화면에 보이는 문제 일부가 OpenAI로 전송되며 구독 사용량에 포함됩니다. 이름, 학교, 주소, 연락처, 사적인 기록은 입력하지 마세요. 음성 인식은 브라우저 제공자를 이용할 수 있어요.</p></details><textarea rows="2" maxlength="500" aria-label="AI 친구에게 질문" placeholder="질문을 적어 줘"></textarea><div class="actions"><button type="button" data-action="voice">🎙️ 말하기</button><button type="button" data-action="speak">🔊 읽어 줘</button><button type="button" data-action="send">보내기</button></div><div id="eduni-companion-status" role="status" aria-live="polite" aria-atomic="true"></div>`;
   document.body.append(launch, panel);
   const avoidBottomDock = () => {
-    const target = launch.getBoundingClientRect(); let offset = 0;
+    const target = launch.getBoundingClientRect(), viewportHeight = innerHeight; let offset = 0;
     for (const node of document.querySelectorAll("body *")) {
       if (node === launch || node === panel || panel.contains(node)) continue;
       const style = getComputedStyle(node), rect = node.getBoundingClientRect();
-      if (style.position !== "fixed" || style.visibility === "hidden" || Number(style.opacity) === 0 || rect.height < 32 || rect.bottom < innerHeight - 12) continue;
-      if (rect.left < target.right && rect.right > target.left) offset = Math.max(offset, innerHeight - rect.top + 12);
+      const opacity = Number(style.opacity);
+      if (style.position !== "fixed" || style.display === "none" || style.visibility !== "visible" || !Number.isFinite(opacity) || opacity <= 0
+          || rect.width <= 0 || rect.height < 32 || rect.height > viewportHeight / 2
+          || rect.top < viewportHeight / 2 || rect.top >= viewportHeight || rect.bottom < viewportHeight - 12) continue;
+      if (rect.left < target.right && rect.right > target.left) offset = Math.max(offset, viewportHeight - rect.top + 12);
     }
+    offset = Math.min(offset, Math.max(0, viewportHeight - target.height - 14));
     document.documentElement.style.setProperty("--eduni-companion-offset", `${offset}px`);
   };
   requestAnimationFrame(avoidBottomDock); window.addEventListener("resize", avoidBottomDock);

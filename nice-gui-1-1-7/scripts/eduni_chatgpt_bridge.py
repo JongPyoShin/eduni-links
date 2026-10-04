@@ -133,7 +133,7 @@ def _context_prompt(prompt: str, context: dict) -> str:
         raise ValueError("invalid prompt")
     if not isinstance(context, dict) or set(context) - {"activity", "question", "choices", "selected"}:
         raise ValueError("invalid context")
-    if context.get("activity", "general") not in {"general", "pattern_train", "sudoku", "space", "facto", "hanja", "bubble", "bubble_shooter", "baduk", "omok", "link", "jungle"}:
+    if context.get("activity", "general") not in {"general", "pattern_train", "sudoku", "space", "facto", "hanja", "bubble", "bubble_shooter", "baduk", "omok", "link", "jungle", "reading"}:
         raise ValueError("invalid context")
     question, choices, selected = context.get("question", ""), context.get("choices", []), context.get("selected", "")
     if not isinstance(question, str) or len(question) > 600 or not isinstance(choices, list) or len(choices) > 10 or any(not isinstance(x, str) or len(x) > 60 for x in choices) or not isinstance(selected, str) or len(selected) > 60:

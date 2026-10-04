@@ -7,9 +7,14 @@ from pathlib import Path
 import threading
 import unittest
 from urllib.error import HTTPError
+from urllib.parse import urlparse
 from urllib.request import Request as URLRequest, urlopen
 from unittest.mock import patch
 
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from fastapi.testclient import TestClient
+from nicegui import app as nicegui_app
 from starlette.requests import Request
 
 from portal_app.ai import companion
@@ -50,6 +55,11 @@ class CompanionValidationTests(unittest.TestCase):
             "activity": "baduk", "question": "현재 바둑판: " + board, "choices": ["보기"] * 10}})
         self.assertEqual("baduk", projected["activity"])
         self.assertEqual(10, len(projected["choices"]))
+        _, reading = companion.validate_companion_payload({"prompt": "도와줘", "context": {
+            "activity": "reading", "question": "PRIVATE_TITLE PRIVATE_COMMENT PRIVATE_NOTE PRIVATE_IMAGE",
+            "choices": ["PRIVATE_CHOICE"], "selected": "PRIVATE_SELECTED"}})
+        self.assertEqual({"activity": "reading", "question": companion.READING_CONTEXT_QUESTION, "choices": [], "selected": ""}, reading)
+        self.assertNotIn("PRIVATE_", json.dumps(reading))
         for data in (
             {"prompt": "x", "context": {"parent_note": "private"}},
             {"prompt": "x", "context": {"answer": "hidden"}},
@@ -95,6 +105,75 @@ class CompanionValidationTests(unittest.TestCase):
         self.assertEqual(1, page.count("eduni_companion.js"))
         self.assertEqual("<body>api</body>", companion.inject_companion_assets("<body>api</body>"))
 
+    def test_https_navigation_redirect_is_exact_host_page_only_and_fixed_origin(self):
+        def request(method="GET", host="100.75.214.95:8081", path="/reading", query=b"", accept="text/html",
+                    extra_headers=()):
+            raw_path = path.encode("ascii")
+            headers = [(b"host", host.encode()), (b"accept", accept.encode())]
+            headers.extend(extra_headers)
+            scope = {"type":"http", "http_version":"1.1", "method":method, "scheme":"http",
+                     "path":path, "raw_path":raw_path, "query_string":query, "root_path":"", "headers":headers,
+                     "server":("100.75.214.95",8081), "client":("127.0.0.1",12345)}
+            return Request(scope)
+
+        origin = "https://k12.tail8b64d5.ts.net:8443"
+        location = companion.https_navigation_redirect_location(
+            request(path="/reading", query=b"tab=1&next=%2Fportal"), origin)
+        self.assertEqual(origin + "/reading?tab=1&next=%2Fportal", location)
+        self.assertEqual(origin + "/portal", companion.https_navigation_redirect_location(request(path="/portal"), origin))
+        self.assertIsNone(companion.https_navigation_redirect_location(request(method="POST"), origin))
+        self.assertIsNone(companion.https_navigation_redirect_location(request(accept="application/json"), origin))
+        self.assertIsNone(companion.https_navigation_redirect_location(request(host="100.75.214.95:80810"), origin))
+        self.assertIsNone(companion.https_navigation_redirect_location(request(host="100.75.214.95:8081.evil.test"), origin))
+        self.assertIsNone(companion.https_navigation_redirect_location(request(path="/reading/api/health"), origin))
+        self.assertIsNone(companion.https_navigation_redirect_location(request(path="/ai/health"), origin))
+        self.assertIsNone(companion.https_navigation_redirect_location(request(path="/sudoku-assets/eduni_companion.js"), origin))
+        self.assertIsNone(companion.https_navigation_redirect_location(
+            request(host="k12.tail8b64d5.ts.net:8443"), origin), "canonical HTTPS Host must not loop behind HTTP proxy")
+        self.assertIsNone(companion.https_navigation_redirect_location(
+            request(path="//evil.test/path"), origin), "scheme-relative path rejected")
+        self.assertIsNone(companion.https_navigation_redirect_location(
+            request(path="/\\\\evil.test/path"), origin), "backslash path rejected")
+        bad_origin = "https://k12.tail8b64d5.ts.net:8443/path"
+        self.assertIsNone(companion.https_navigation_redirect_location(request(), bad_origin))
+        self.assertIsNone(companion.https_navigation_redirect_location(request(), ""))
+        self.assertEqual(origin + "/reading", companion.https_navigation_redirect_location(request(method="HEAD"), origin))
+        self.assertIsNone(companion.https_navigation_redirect_location(request(path="/%0d%0aevil"), origin))
+        self.assertIsNone(companion.https_navigation_redirect_location(request(query=b"x=%0d%0a"), origin))
+        self.assertIsNone(companion.https_navigation_redirect_location(request(query=b"next=%5C%5Cevil.test"), origin))
+        open_redirect_attempt = companion.https_navigation_redirect_location(request(query=b"next=%2F%2Fevil.test"), origin)
+        self.assertEqual("k12.tail8b64d5.ts.net:8443", urlparse(open_redirect_attempt).netloc)
+        forwarded = request(extra_headers=((b"x-forwarded-host", b"evil.example"),
+                                           (b"x-forwarded-proto", b"https")))
+        self.assertEqual(origin + "/reading", companion.https_navigation_redirect_location(forwarded, origin),
+                         "redirect destination must ignore forwarded headers")
+
+    def test_navigation_middleware_is_registered_and_keeps_health_and_canonical_host(self):
+        origin = "https://k12.tail8b64d5.ts.net:8443"
+        self.assertTrue(any(getattr(item, "kwargs", {}).get("dispatch") is companion.https_navigation_middleware
+                            for item in nicegui_app.user_middleware), "companion import registers canonical navigation middleware")
+        isolated_app = FastAPI()
+        isolated_app.middleware("http")(companion.https_navigation_middleware)
+
+        @isolated_app.api_route("/{path:path}", methods=["GET", "HEAD", "POST"])
+        async def endpoint(path: str):
+            return JSONResponse({"path": path})
+
+        with patch.dict("os.environ", {"EDUNI_AI_COMPANION_ORIGIN": origin}, clear=False), \
+             TestClient(isolated_app, follow_redirects=False) as client:
+            legacy = client.get("/portal", headers={"host":"100.75.214.95:8081", "accept":"text/html"})
+            self.assertEqual(307, legacy.status_code)
+            self.assertEqual(origin + "/portal", legacy.headers["location"])
+            health = client.get("/healthz", headers={"host":"100.75.214.95:8081", "accept":"text/html"})
+            self.assertNotEqual(307, health.status_code)
+            canonical = client.get("/portal", headers={"host":"k12.tail8b64d5.ts.net:8443", "accept":"text/html"})
+            self.assertEqual(200, canonical.status_code, "HTTP reverse-proxy transport must not loop canonical Host")
+
+        with patch.dict("os.environ", {}, clear=True), \
+             TestClient(isolated_app, follow_redirects=False) as client:
+            local = client.get("/portal", headers={"host":"100.75.214.95:8081", "accept":"text/html"})
+            self.assertNotEqual(307, local.status_code, "unset Origin must fail closed without redirect loop")
+
     def test_bridge_rejects_public_endpoints_and_uses_caller_key(self):
         payload = {"activity": "general", "question": "", "choices": [], "selected": ""}
         with patch.dict("os.environ", {"EDUNI_AI_COMPANION_BRIDGE_URL": "https://api.example.test", "EDUNI_AI_COMPANION_BRIDGE_KEY": "x" * 40}, clear=False):
@@ -125,6 +204,19 @@ class CompanionValidationTests(unittest.TestCase):
             self.assertEqual(403, asyncio.run(companion.companion_chat(make_request(payload, requested=None))).status_code)
             self.assertEqual(403, asyncio.run(companion.companion_chat(make_request(payload, origin=None))).status_code)
             self.assertEqual(400, asyncio.run(companion.companion_chat(make_request(payload, content_type="text/plain"))).status_code)
+
+    def test_reading_api_normalizes_untrusted_display_context_before_provider(self):
+        payload = json.dumps({"prompt":"기록 도와줘", "context": {
+            "activity":"reading", "question":"PRIVATE_TITLE PRIVATE_COMMENT PRIVATE_NOTE PRIVATE_PHOTO",
+            "choices":["PRIVATE_CHOICE"], "selected":"PRIVATE_SELECTED"}}, ensure_ascii=False).encode()
+        with patch.dict("os.environ", {"EDUNI_AI_COMPANION_ENABLED":"1"}, clear=True), \
+             patch.object(companion, "_run_provider", return_value=(0,"일반 안내예요.")) as provider:
+            response = asyncio.run(companion.companion_chat(make_request(payload)))
+        self.assertEqual(200, response.status_code)
+        received = provider.call_args.args[1]
+        self.assertEqual({"activity":"reading", "question":companion.READING_CONTEXT_QUESTION,
+                          "choices":[], "selected":""}, received)
+        self.assertNotIn("PRIVATE_", json.dumps(received))
 
     def test_configured_https_origin_override_is_exact_and_fails_closed(self):
         payload = json.dumps({"prompt": "힌트", "context": {}}, ensure_ascii=False).encode()
@@ -250,6 +342,8 @@ class BridgeContractTests(unittest.TestCase):
             bridge._context_prompt("hint", {"activity": "general", "choices": list(range(10))})
         self.assertIn("현재 바둑판", bridge._context_prompt("힌트", {
             "activity": "baduk", "question": "현재 바둑판: " + "/".join(["." * 19] * 19), "choices": [], "selected": ""}))
+        self.assertIn('"activity": "reading"', bridge._context_prompt("책 이야기", {
+            "activity":"reading", "question":"독서기록 기능 안내", "choices":[], "selected":""}))
 
 
 if __name__ == "__main__":

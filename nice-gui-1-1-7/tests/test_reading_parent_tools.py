@@ -15,6 +15,7 @@ from portal_app.reading_journal import (
     reading_cover_image_api,
     reading_cover_search_api,
     reading_parent_insights,
+    reading_journal_page,
 )
 from portal_app.reading_storage import ensure_reading_journal_schema
 
@@ -136,6 +137,12 @@ class ReadingCoverLookupTests(unittest.TestCase):
         self.assertEqual({"ok": True, "candidates": []}, json.loads(response.body))
         with patch("portal_app.reading_journal.download_cover", side_effect=reading_covers.CoverNotFound()):
             self.assertEqual(404, reading_cover_image_api(42).status_code)
+
+    def test_reading_page_injects_one_shared_companion_widget(self):
+        page = reading_journal_page().body.decode("utf-8")
+        self.assertEqual(1, page.count("eduni_companion.css"))
+        self.assertEqual(1, page.count("eduni_companion.js"))
+        self.assertIn("eduni_companion.js?v=", page)
 
 
 class ReadingParentInsightsTests(unittest.TestCase):

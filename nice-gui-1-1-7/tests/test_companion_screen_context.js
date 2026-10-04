@@ -10,7 +10,7 @@ function element(text = '', display = 'block') {
     events:{}, classList:{add(){},remove(){},contains(){return true;}},
     setAttribute(){}, getAttribute(){return null;}, addEventListener(name, callback){this.events[name]=callback;}, focus(){}};
 }
-function fixture(route, nodes = {}, engine) {
+function fixture(route, nodes = {}, engine, pendingContext) {
   const controls = new Map();
   const panel = element();
   panel.querySelector = selector => {
@@ -22,7 +22,7 @@ function fixture(route, nodes = {}, engine) {
     getElementById(){return null;}, createElement(tag){return tag==='section'?panel:element();},
     querySelector(selector){return (nodes[selector] || [])[0] || null;},
     querySelectorAll(selector){return nodes[selector] || [];}};
-  const window = {addEventListener(){}, EDUNIBadukEngine:engine};
+  const window = {addEventListener(){}, EDUNIBadukEngine:engine, EDUNICompanionPendingContext:pendingContext};
   window.top = window.self = window;
   let settle;
   let request;
@@ -34,7 +34,7 @@ function fixture(route, nodes = {}, engine) {
     'window.__readScreen=screenContext; screenLabel.textContent=screenContext().label;');
   assert.notEqual(instrumented, source, 'resolver exposure marker exists');
   vm.runInNewContext(instrumented, sandbox);
-  return {window, controls, read:()=>JSON.parse(JSON.stringify(window.__readScreen())),
+  return {window, panel, controls, read:()=>JSON.parse(JSON.stringify(window.__readScreen())),
     request:()=>request, finish:()=>settle({ok:true,status:200,json:async()=>({ok:true,answer:'old answer'})})};
 }
 
@@ -90,6 +90,26 @@ async function main() {
   f.window.EDUNICompanion.setContext({activity:'pattern_train',question:'새 문제',choices:[],selected:''});
   oldRecognition.onresult({results:[[{transcript:'늦은 음성'}]]});
   assert.equal(f.controls.get('textarea').value,'말한 질문','late recognition must not overwrite after screen change');
+
+  const privateFields={activity:'pattern_train',question:'PRIVATE_TITLE PRIVATE_COMMENT PRIVATE_NOTE PRIVATE_PUBLISHER',
+    choices:['PRIVATE_CHOICE'],selected:'PRIVATE_SELECTED'};
+  f=fixture('/reading', {'#readingRecords':[element('PRIVATE_ROW')], '#parentInsight':[element('PRIVATE_INSIGHT')]}, undefined, privateFields);
+  const readingContext=f.read().payload;
+  assert.equal(readingContext.activity,'reading');
+  assert.match(readingContext.question,/저장된 책 제목/);
+  assert.doesNotMatch(JSON.stringify(readingContext),/PRIVATE_/);
+  assert.match(f.panel.innerHTML,/책 이야기 도와줘/);
+  assert.match(f.panel.innerHTML,/기록하는 방법 알려줘/);
+  assert.doesNotMatch(f.panel.innerHTML,/힌트 줘|쉽게 설명해 줘/);
+  f.window.EDUNICompanionPendingContext.question='PRIVATE_MUTATION';
+  assert.doesNotMatch(JSON.stringify(f.read().payload),/PRIVATE_MUTATION/,'shared pending context cannot mutate the frozen reading projection');
+  f.window.EDUNICompanion.setContext(privateFields);
+  assert.doesNotMatch(JSON.stringify(f.read().payload),/PRIVATE_/,'pending or later context overrides cannot leak into reading context');
+  const manualQuestion=f.controls.get('textarea'); manualQuestion.value='책 이야기 도와줘';
+  const pendingSend=f.controls.get('[data-action="send"]').events.click();
+  assert.equal(f.request().context.activity,'reading');
+  assert.doesNotMatch(JSON.stringify(f.request().context),/PRIVATE_/);
+  f.finish(); await pendingSend;
   console.log('PASS: screen text, visibility, board completeness/privacy, fallback, send-time context, stale answer');
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});

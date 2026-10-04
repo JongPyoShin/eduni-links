@@ -4,8 +4,17 @@
   const launch = document.createElement("button");
   launch.id = "eduni-companion-launch"; launch.type = "button"; launch.textContent = "🐣";
   launch.setAttribute("aria-label", "AI 친구 열기");
+  const route = (() => {
+    const path = location.pathname.replace(/\/$/, "") || "/";
+    const routes = [["/pattern-train","pattern_train","패턴 연습"],["/sudoku","sudoku","스도쿠"],["/space","space","공간탐험"],["/facto","facto","팩토 연습"],["/hanja","hanja","한자 시험"],["/bubble-shooter","bubble_shooter","버블 슈터"],["/bubble","bubble","버블 게임"],["/baduk","baduk","바둑"],["/omok","omok","오목"],["/link","link","블럭 링크"],["/jungle-3d","jungle","정글 탐험"],["/jungle","jungle","정글 탐험"],["/reading","reading","독서기록"]];
+    return routes.find(([prefix]) => path === prefix || path.startsWith(prefix + "/")) || [path,"general",cleanTitle()];
+  })();
+  const READING_CONTEXT_QUESTION = "독서기록 기능 안내 화면입니다. 저장된 책 제목, 글쓴이, 아이의 메모와 감상, 검색 내용, 사진, 기록 수와 집계 정보는 전달되지 않았습니다. 기록 방법이나 일반적인 책 이야기는 도울 수 있지만, 저장된 기록을 본 것처럼 말하지 마세요.";
+  const readingPrompts = route[1] === "reading"
+    ? '<button type="button" data-prompt="책 이야기 도와줘">책 이야기 도와줘</button><button type="button" data-prompt="기록하는 방법 알려줘">기록하는 방법 알려줘</button>'
+    : '<button type="button" data-prompt="힌트 줘">힌트 줘</button><button type="button" data-prompt="쉽게 설명해 줘">쉽게 설명해 줘</button>';
   const panel = document.createElement("section"); panel.id = "eduni-companion-panel"; panel.setAttribute("aria-label", "AI 친구");
-  panel.innerHTML = '<header><span>AI 친구</span><button type="button" class="close" aria-label="닫기">닫기</button></header><div class="quick"><button type="button" data-prompt="힌트 줘">힌트 줘</button><button type="button" data-prompt="쉽게 설명해 줘">쉽게 설명해 줘</button></div><div id="eduni-companion-screen" aria-live="polite"></div><section class="answer-card" aria-labelledby="eduni-companion-answer-title"><h2 id="eduni-companion-answer-title">친구의 답변</h2><div id="eduni-companion-answer" aria-live="polite">궁금한 것을 물어봐!</div></section><details id="eduni-companion-notice"><summary>체험과 개인정보 안내</summary><p>아직은 보호자 감독 아래 합성 문제로 시험하는 기능이에요. 독립적인 어린이 사용은 준비되지 않았어요. 질문과 화면에 보이는 문제 일부가 OpenAI로 전송되며 구독 사용량에 포함됩니다. 이름, 학교, 주소, 연락처, 사적인 기록은 입력하지 마세요. 음성 인식은 브라우저 제공자를 이용할 수 있어요.</p></details><textarea rows="2" maxlength="500" aria-label="AI 친구에게 질문" placeholder="질문을 적어 줘"></textarea><div class="actions"><button type="button" data-action="voice">🎙️ 말하기</button><button type="button" data-action="speak">🔊 읽어 줘</button><button type="button" data-action="send">보내기</button></div><div id="eduni-companion-status" role="status" aria-live="polite" aria-atomic="true"></div>';
+  panel.innerHTML = `<header><span>AI 친구</span><button type="button" class="close" aria-label="닫기">닫기</button></header><div class="quick">${readingPrompts}</div><div id="eduni-companion-screen" aria-live="polite"></div><section class="answer-card" aria-labelledby="eduni-companion-answer-title"><h2 id="eduni-companion-answer-title">친구의 답변</h2><div id="eduni-companion-answer" aria-live="polite">궁금한 것을 물어봐!</div></section><details id="eduni-companion-notice"><summary>체험과 개인정보 안내</summary><p>아직은 보호자 감독 아래 합성 문제로 시험하는 기능이에요. 독립적인 어린이 사용은 준비되지 않았어요. 질문과 화면에 보이는 문제 일부가 OpenAI로 전송되며 구독 사용량에 포함됩니다. 이름, 학교, 주소, 연락처, 사적인 기록은 입력하지 마세요. 음성 인식은 브라우저 제공자를 이용할 수 있어요.</p></details><textarea rows="2" maxlength="500" aria-label="AI 친구에게 질문" placeholder="질문을 적어 줘"></textarea><div class="actions"><button type="button" data-action="voice">🎙️ 말하기</button><button type="button" data-action="speak">🔊 읽어 줘</button><button type="button" data-action="send">보내기</button></div><div id="eduni-companion-status" role="status" aria-live="polite" aria-atomic="true"></div>`;
   document.body.append(launch, panel);
   const avoidBottomDock = () => {
     const target = launch.getBoundingClientRect(); let offset = 0;
@@ -20,19 +29,17 @@
   requestAnimationFrame(avoidBottomDock); window.addEventListener("resize", avoidBottomDock);
   const input = panel.querySelector("textarea"), answer = panel.querySelector("#eduni-companion-answer"), status = panel.querySelector("#eduni-companion-status"), screenLabel = panel.querySelector("#eduni-companion-screen");
   const buttons = [...panel.querySelectorAll("button")];
-  let context = window.EDUNICompanionPendingContext || {activity:"general",question:"",choices:[],selected:""};
+  const readingContext = Object.freeze({activity:"reading",question:READING_CONTEXT_QUESTION,choices:Object.freeze([]),selected:""});
+  let context = route[1] === "reading" ? readingContext : window.EDUNICompanionPendingContext || {activity:"general",question:"",choices:[],selected:""};
+  if (route[1] === "reading") window.EDUNICompanionPendingContext = readingContext;
   let generation = 0, controller = null, busy = false, recognition = null, screenWatch = null;
-  const route = (() => {
-    const path = location.pathname.replace(/\/$/, "") || "/";
-    const routes = [["/pattern-train","pattern_train","패턴 연습"],["/sudoku","sudoku","스도쿠"],["/space","space","공간탐험"],["/facto","facto","팩토 연습"],["/hanja","hanja","한자 시험"],["/bubble-shooter","bubble_shooter","버블 슈터"],["/bubble","bubble","버블 게임"],["/baduk","baduk","바둑"],["/omok","omok","오목"],["/link","link","블럭 링크"],["/jungle-3d","jungle","정글 탐험"],["/jungle","jungle","정글 탐험"]];
-    return routes.find(([prefix]) => path === prefix || path.startsWith(prefix + "/")) || [path,"general",cleanTitle()];
-  })();
   const cleanText = (value, max=600) => String(value || "").replace(/\s+/g," ").trim().slice(0,max);
   function cleanTitle(){return document.title.replace(/\s+/g," ").trim().slice(0,40)||"학습 화면";}
   const isVisible = node => { for(let n=node;n&&n!==document.documentElement;n=n.parentElement){const s=getComputedStyle(n);if(n.hidden||n.getAttribute("aria-hidden")==="true"||s.display==="none"||s.visibility==="hidden"||Number(s.opacity)===0)return false;}return true; };
   const visibleText = selector => [...document.querySelectorAll(selector)].filter(isVisible).map(node=>cleanText(node.textContent)).filter(Boolean).join(" ").slice(0,600);
   const visibleChoices = selector => [...document.querySelectorAll(selector)].filter(node=>!node.disabled&&isVisible(node)).map(node=>cleanText(node.textContent,60)).filter(Boolean).slice(0,10);
   const screenContext = () => {
+    if (route[1] === "reading") return {payload:readingContext, label:"함께 보는 화면: 독서기록 · 일반 안내"};
     if (context.activity === "pattern_train" || context.activity === "sudoku") return {payload:context, label:`함께 보는 화면: ${context.activity==="pattern_train"?"패턴 연습":"스도쿠"} · ${context.question?"현재 문제":"문제 없음"}`};
     const [path, activity, title] = route;
     let question="", choices=[], selected="", mode="글로 읽을 수 없는 화면";
@@ -88,6 +95,11 @@
   window.EDUNICompanion = {
     setContext(next) {
       if (!next || typeof next !== "object") return;
+      if (route[1] === "reading") {
+        context = readingContext; window.EDUNICompanionPendingContext = readingContext;
+        screenLabel.textContent=screenContext().label; answer.textContent="궁금한 것을 물어봐!"; status.textContent=""; invalidate();
+        return;
+      }
       context = {activity:next.activity,question:next.question,choices:next.choices,selected:next.selected};
       window.EDUNICompanionPendingContext = context;
       screenLabel.textContent=screenContext().label;

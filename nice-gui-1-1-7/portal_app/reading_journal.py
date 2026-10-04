@@ -15,6 +15,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from nicegui import app
 
 from .database import DATA_DIR, default_child_profile_id, utc_now
+from .ai.companion import inject_companion_assets
 from .reading_storage import (
     check_reading_storage,
     ensure_reading_journal_schema,
@@ -569,7 +570,7 @@ def delete_reading_record(
 def reading_journal_page() -> HTMLResponse:
     if not READING_HTML.exists():
         return HTMLResponse("<h1>독서기록 페이지를 찾을 수 없습니다.</h1>", status_code=404)
-    return HTMLResponse(READING_HTML.read_text(encoding="utf-8"))
+    return HTMLResponse(inject_companion_assets(READING_HTML.read_text(encoding="utf-8")))
 
 
 @app.get("/reading/api/health")

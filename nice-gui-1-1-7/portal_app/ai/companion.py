@@ -24,7 +24,9 @@ MAX_PROMPT = 500
 _SLOTS = threading.BoundedSemaphore(4)
 _RATE_LOCK = threading.Lock()
 _CALLER_LAST: dict[str, float] = {}
-_ACTIVITIES = {"general", "pattern_train", "sudoku", "space", "facto", "hanja", "bubble", "bubble_shooter", "baduk", "omok", "link", "jungle"}
+READING_CONTEXT_QUESTION = "독서기록 기능 안내 화면입니다. 저장된 책 제목, 글쓴이, 아이의 메모와 감상, 검색 내용, 사진, 기록 수와 집계 정보는 전달되지 않았습니다. 기록 방법이나 일반적인 책 이야기는 도울 수 있지만, 저장된 기록을 본 것처럼 말하지 마세요."
+_ACTIVITIES = {"general", "pattern_train", "sudoku", "space", "facto", "hanja", "bubble", "bubble_shooter", "baduk", "omok", "link", "jungle", "reading"}
+_LEGACY_BROWSER_HOST = "100.75.214.95:8081"
 _STATIC_DIR = Path(__file__).resolve().parents[1] / "static_games"
 _CSS_VERSION = hashlib.sha256((_STATIC_DIR / "eduni_companion.css").read_bytes()).hexdigest()[:12]
 _JS_VERSION = hashlib.sha256((_STATIC_DIR / "eduni_companion.js").read_bytes()).hexdigest()[:12]
@@ -76,7 +78,64 @@ def validate_companion_payload(data: Any) -> tuple[str, dict[str, Any]]:
         raise ValueError("context")
     if not isinstance(selected, str) or len(selected) > 60:
         raise ValueError("context")
+    if activity == "reading":
+        return prompt.strip(), {"activity": "reading", "question": READING_CONTEXT_QUESTION, "choices": [], "selected": ""}
     return prompt.strip(), {"activity": activity, "question": question, "choices": choices, "selected": selected}
+
+
+def https_navigation_redirect_location(request: Request, configured_origin: str) -> str | None:
+    """Return a fixed-origin redirect for legacy HTML navigations only."""
+    if request.method.upper() not in {"GET", "HEAD"}:
+        return None
+    if not configured_origin.strip():
+        return None
+    accept = request.headers.get("accept", "").lower()
+    if "text/html" not in {part.split(";", 1)[0].strip() for part in accept.split(",")}:
+        return None
+    destination = _expected_companion_origin("", configured_origin)
+    if not destination:
+        return None
+    from urllib.parse import quote_from_bytes, unquote_to_bytes, urlsplit
+
+    parts = urlsplit(destination)
+    host = request.headers.get("host", "").lower()
+    if host != _LEGACY_BROWSER_HOST or host == parts.netloc.lower():
+        return None
+    fetch_dest = request.headers.get("sec-fetch-dest", "").lower()
+    fetch_mode = request.headers.get("sec-fetch-mode", "").lower()
+    if (fetch_dest and fetch_dest != "document") or (fetch_mode and fetch_mode != "navigate"):
+        return None
+
+    path = request.url.path
+    if (path in {"/health", "/healthz", "/ready", "/readyz", "/chat", "/favicon.ico"} or path.endswith(("/health", "/healthz", "/ready", "/readyz")) or path.startswith((
+            "/ai/", "/api/", "/reading/api/", "/jungle-static/", "/jungle-assets/",
+            "/reading-media/", "/sudoku-assets/", "/_nicegui/"))
+            or "/api/" in path or path.endswith("/api")
+            or path.lower().endswith((".css", ".js", ".mjs", ".map", ".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico", ".woff", ".woff2", ".ttf"))):
+        return None
+
+    raw_path = request.scope.get("raw_path", path.encode("utf-8"))
+    raw_query = request.scope.get("query_string", b"")
+    if not isinstance(raw_path, bytes) or not isinstance(raw_query, bytes):
+        return None
+    decoded_path, decoded_query = unquote_to_bytes(raw_path), unquote_to_bytes(raw_query)
+    if (not decoded_path.startswith(b"/") or decoded_path.startswith(b"//") or b"\\" in decoded_path or b"\\" in decoded_query
+            or any(byte < 0x20 or byte == 0x7f for byte in decoded_path + decoded_query)):
+        return None
+    safe_path = quote_from_bytes(raw_path, safe="/%:@-._~!$&'()*+,;=")
+    safe_query = quote_from_bytes(raw_query, safe="/%:@-._~!$&'()*+,;=?")
+    return destination + safe_path + ("?" + safe_query if raw_query else "")
+
+
+async def https_navigation_middleware(request: Request, call_next):
+    location = https_navigation_redirect_location(request, os.environ.get("EDUNI_AI_COMPANION_ORIGIN", ""))
+    if location is not None:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(location, status_code=307, headers={"Cache-Control": "no-store"})
+    return await call_next(request)
+
+
+app.middleware("http")(https_navigation_middleware)
 
 
 def _bridge_answer(prompt: str, context: dict[str, Any]) -> str:

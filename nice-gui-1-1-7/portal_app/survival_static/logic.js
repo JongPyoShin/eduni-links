@@ -30,6 +30,15 @@
   // The key is reachable without entering a hazard; taking it wakes the jaguar.
   const KEY = Object.freeze({ x: 611, y: 367, radius: 19 });
   const JAGUAR = Object.freeze({ x: 597, y: 199, radius: 22, speed: 174, kind: "jaguar" });
+  // A shelter is a one-use hiding place. Hiding has a fixed limit, then it vanishes.
+  const HIDE_EXIT_GRACE = 1.3;
+  const HIDE_EXIT_BOOST = 0.8;
+  const SHELTERS = Object.freeze([
+    Object.freeze({ id: "bush-south", kind: "bush", name: "덤불", x: 112, y: 576, radius: 32, hideSeconds: 4 }),
+    Object.freeze({ id: "log-middle", kind: "log", name: "통나무", x: 380, y: 571, radius: 33, hideSeconds: 5 }),
+    Object.freeze({ id: "cave-north", kind: "cave", name: "동굴", x: 367, y: 238, radius: 35, hideSeconds: 6 }),
+    Object.freeze({ id: "bush-east", kind: "bush", name: "덤불", x: 588, y: 300, radius: 31, hideSeconds: 4 }),
+  ]);
   // Fruit fall warning (orange ring) → short dangerous pulse (red ring).
   const HAZARDS = Object.freeze([
     Object.freeze({ x: 205, y: 252, radius: 41, phase: 0 }),
@@ -144,6 +153,31 @@
       y: origin + Math.floor(i / side) * step,
     }));
   }
+
+  function nearbyShelter(player, shelters, maxDistance = 46) {
+    return shelters.find(shelter =>
+      shelter.status === "available" &&
+      Math.hypot(player.x - shelter.x, player.y - shelter.y) <= maxDistance) || null;
+  }
+  function hideCountdown(current, elapsed) {
+    const next = Math.max(0, current - clamp(Number.isFinite(elapsed) ? elapsed : 0, 0, 0.05));
+    return { remaining: next, expired: next <= 0 };
+  }
+  function searchTarget(lastSeen, seconds, enemyIndex) {
+    // Enemies investigate where they last saw the player rather than tracking a hidden player.
+    const angle = Math.floor(seconds / 1.8 + enemyIndex * 1.7) * 1.618;
+    const radius = 46 + (enemyIndex % 2) * 19;
+    const point = { x: lastSeen.x + Math.cos(angle) * radius,
+      y: lastSeen.y + Math.sin(angle) * radius };
+    return canOccupy(point.x, point.y, 22) ? point : lastSeen;
+  }
+  function hideStateStart(shelter) {
+    return { shelterId: shelter.id, remaining: shelter.hideSeconds, max: shelter.hideSeconds };
+  }
+  function hideStateEnd(invulnerable, boost) {
+    return { invulnerable: Math.max(invulnerable, HIDE_EXIT_GRACE),
+      boost: Math.max(boost, HIDE_EXIT_BOOST) };
+  }
   function dangerPhase(seconds, offset = 0, mode = "thrill") {
     const duration = mode === "explore" ? 7.0 : 5.8;
     const t = ((seconds + offset) % duration + duration) % duration;
@@ -158,7 +192,7 @@
     const dx = player.x - jaguar.x, dy = player.y - jaguar.y;
     const distance = Math.hypot(dx, dy);
     if (!seconds || distance < 1) return { ...jaguar };
-    const stride = (mode === "explore" ? 126 : jaguar.speed) * seconds;
+    const stride = (mode === "explore" ? jaguar.speed * (126 / 174) : jaguar.speed) * seconds;
     const nx = dx / distance, ny = dy / distance;
     let x = jaguar.x, y = jaguar.y;
     // Enemies obey the same tree collision as the child character.
@@ -189,6 +223,7 @@
   return Object.freeze({
     SIZE, PADDING, PLAYER_RADIUS, PLAYER_SPEED, START, EXIT, OBSTACLES, ENEMIES, STARS,
     ENEMY_COOLDOWN_SECONDS, DASH_BOOST, DASH_SECONDS, DASH_COOLDOWN, TIME_LIMITS, KEY, JAGUAR, HAZARDS,
+    SHELTERS, HIDE_EXIT_GRACE, HIDE_EXIT_BOOST, nearbyShelter, hideCountdown, hideStateStart, hideStateEnd, searchTarget,
     dangerPhase, chaseJaguar, findChasePath, remainingTime, clamp, selectLives, scoreMultiplier, circleHitsRect,
     canOccupy, movePlayer, patrol, circlesTouch, resolveEnemyHit, hasEscaped, calculateScore,
   });

@@ -111,12 +111,12 @@
   $("hideButton").addEventListener("click", toggleHide);
 
   function followChaser(enemy, key, index, dt) {
-    const track = state.chaseRoutes[key] ||= { waypoints: [], age: 0 };
+    const track = state.chaseRoutes[key] ||= { waypoints: [], age: 0.7 };
     const target = state.hiding
       ? L.searchTarget(state.lastSeen, state.seconds, index)
       : state.player;
     track.age += dt;
-    if (track.age >= 0.7 || !track.waypoints.length) {
+    if (track.age >= 0.7) {
       track.waypoints = L.findChasePath(enemy, target);
       track.age = 0;
     }

@@ -600,6 +600,18 @@
     }
     requestAnimationFrame(frame);
   }
+  function paintAvatarPreviews() {
+    for (const [id, bunny] of [["explorerPreview", false], ["bunnyPreview", true]]) {
+      const preview = $(id);
+      const previewCtx = preview?.getContext("2d");
+      if (!previewCtx) continue;
+      previewCtx.clearRect(0, 0, 98, 112);
+      R.drawPlayer(previewCtx, { x: 49, y: 108 }, {
+        facing: "down", moving: false, walk: 0, bunny,
+      });
+    }
+  }
   updateLifeChoice();
+  paintAvatarPreviews();
   requestAnimationFrame(frame);
 })();

@@ -103,3 +103,20 @@ test("the 45s chase and 90s relaxed timers expire exactly", () => {
   assert.equal(L.remainingTime(0, "explore"), 90);
   assert.equal(L.remainingTime(90, "explore"), 0);
 });
+
+test("tree-aware pursuit takes a detour instead of sticking at a wall", () => {
+  let enemy = { ...L.JAGUAR, x: 95, y: 264 };
+  let route = [], routeAge = 0;
+  for (let i = 0; i < 400; i++) {
+    routeAge += .05;
+    if (!route.length || routeAge >= .85) {
+      route = L.findChasePath(enemy, L.KEY);
+      routeAge = 0;
+    }
+    while (route.length && Math.hypot(enemy.x - route[0].x, enemy.y - route[0].y) < 13) route.shift();
+    enemy = L.chaseJaguar(enemy, route[0] || L.KEY, .05, "thrill");
+    assert.ok(L.canOccupy(enemy.x, enemy.y, enemy.radius), "enemy may not cross trees");
+    if (Math.hypot(enemy.x - L.KEY.x, enemy.y - L.KEY.y) < 35) break;
+  }
+  assert.ok(Math.hypot(enemy.x - L.KEY.x, enemy.y - L.KEY.y) < 35, "chaser reaches the target by navigating around obstacles");
+});

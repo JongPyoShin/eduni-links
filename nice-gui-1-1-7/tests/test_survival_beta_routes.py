@@ -48,10 +48,13 @@ class SurvivalBetaRouteTests(unittest.TestCase):
                 self.assertIn(expected, html)
 
     def test_sandboxed_beta_does_not_change_existing_game_routes(self) -> None:
-        for path in ("/jungle", "/jungle-3d", "/link", "/omok", "/bubble", "/bubble-shooter", "/", "/portal"):
+        for path in ("/jungle", "/jungle-3d", "/link", "/omok", "/portal"):
             self.assertIsNotNone(route_for(path), path)
         portal_source = (ROOT / "portal_app" / "routes.py").read_text(encoding="utf-8")
         self.assertIn('_portal_card(EDUNI_SURVIVAL_URL, "마주치지 마! 서바이벌"', portal_source)
+        app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+        for game_path in ("@ui.page('/')", "@ui.page('/bubble')", "@ui.page('/bubble-shooter')"):
+            self.assertIn(game_path, app_source)
 
 
 if __name__ == "__main__":

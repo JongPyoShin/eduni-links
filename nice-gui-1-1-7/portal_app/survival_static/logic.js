@@ -33,6 +33,19 @@
   // A shelter is a one-use hiding place. Hiding has a fixed limit, then it vanishes.
   const HIDE_EXIT_GRACE = 1.3;
   const HIDE_EXIT_BOOST = 0.8;
+  const SEARCH_SAFE_RADIUS = 210;
+  const SEARCH_AFTER_HIDE_SECONDS = 2.8;
+  // Search areas far from shelter entrances, rather than waiting beside the child.
+  const SEARCH_LOCATIONS = Object.freeze([
+    Object.freeze({ x: 95, y: 100 }),
+    Object.freeze({ x: 620, y: 105 }),
+    Object.freeze({ x: 90, y: 620 }),
+    Object.freeze({ x: 620, y: 620 }),
+    Object.freeze({ x: 344, y: 94 }),
+    Object.freeze({ x: 350, y: 625 }),
+    Object.freeze({ x: 95, y: 340 }),
+    Object.freeze({ x: 622, y: 340 }),
+  ]);
   const SHELTERS = Object.freeze([
     Object.freeze({ id: "bush-south", kind: "bush", name: "덤불", x: 112, y: 576, radius: 32, hideSeconds: 4 }),
     Object.freeze({ id: "log-middle", kind: "log", name: "통나무", x: 380, y: 571, radius: 33, hideSeconds: 5 }),
@@ -163,13 +176,21 @@
     const next = Math.max(0, current - clamp(Number.isFinite(elapsed) ? elapsed : 0, 0, 0.05));
     return { remaining: next, expired: next <= 0 };
   }
-  function searchTarget(lastSeen, seconds, enemyIndex) {
-    // Enemies investigate where they last saw the player rather than tracking a hidden player.
-    const angle = Math.floor(seconds / 1.8 + enemyIndex * 1.7) * 1.618;
-    const radius = 46 + (enemyIndex % 2) * 19;
-    const point = { x: lastSeen.x + Math.cos(angle) * radius,
-      y: lastSeen.y + Math.sin(angle) * radius };
-    return canOccupy(point.x, point.y, 22) ? point : lastSeen;
+  function searchTarget(shelter, round, enemyIndex) {
+    // Deliberately scatter enemies to distant, traversable map regions.
+    // Keep the destination stable for the whole hiding round, including the
+    // post-hide grace period; enemies may not instantly re-acquire the player.
+    const distance = point => Math.hypot(point.x - shelter.x, point.y - shelter.y);
+    const choices = SEARCH_LOCATIONS.filter(point =>
+      canOccupy(point.x, point.y, 22) && distance(point) >= SEARCH_SAFE_RADIUS)
+      .sort((a, b) => distance(b) - distance(a));
+    if (!choices.length) {
+      return SEARCH_LOCATIONS.filter(point => canOccupy(point.x, point.y, 22))
+        .sort((a, b) => distance(b) - distance(a))[0] || { ...shelter };
+    }
+    const sector = Math.max(0, Math.floor(Number.isFinite(enemyIndex) ? enemyIndex : 0));
+    const offset = Math.max(0, Math.floor(Number.isFinite(round) ? round : 0));
+    return choices[(sector + offset) % Math.min(choices.length, 4)];
   }
   function hideStateStart(shelter) {
     return { shelterId: shelter.id, remaining: shelter.hideSeconds, max: shelter.hideSeconds };
@@ -223,7 +244,8 @@
   return Object.freeze({
     SIZE, PADDING, PLAYER_RADIUS, PLAYER_SPEED, START, EXIT, OBSTACLES, ENEMIES, STARS,
     ENEMY_COOLDOWN_SECONDS, DASH_BOOST, DASH_SECONDS, DASH_COOLDOWN, TIME_LIMITS, KEY, JAGUAR, HAZARDS,
-    SHELTERS, HIDE_EXIT_GRACE, HIDE_EXIT_BOOST, nearbyShelter, hideCountdown, hideStateStart, hideStateEnd, searchTarget,
+    SHELTERS, HIDE_EXIT_GRACE, HIDE_EXIT_BOOST, SEARCH_SAFE_RADIUS, SEARCH_AFTER_HIDE_SECONDS,
+    SEARCH_LOCATIONS, nearbyShelter, hideCountdown, hideStateStart, hideStateEnd, searchTarget,
     dangerPhase, chaseJaguar, findChasePath, remainingTime, clamp, selectLives, scoreMultiplier, circleHitsRect,
     canOccupy, movePlayer, patrol, circlesTouch, resolveEnemyHit, hasEscaped, calculateScore,
   });

@@ -1,4 +1,4 @@
-/* 마주치지 마! v0.3 — hide-and-seek pursuit; offline/browser-only */
+/* 마주치지 마! v0.3.1 — monsters disperse when the child hides; offline/browser-only */
 (() => {
   "use strict";
   const L = window.SurvivalLogic;
@@ -84,13 +84,14 @@
     const shelter = state.shelters.find(s => s.id === state.hiding.shelterId);
     if (shelter) shelter.status = "used";
     state.hiding = null;
+    state.disperseUntil = state.seconds + L.SEARCH_AFTER_HIDE_SECONDS;
     const escape = L.hideStateEnd(state.invulnerable, state.escapeBoost);
     state.invulnerable = escape.invulnerable;
     state.escapeBoost = escape.boost;
     state.chaseRoutes = {};
     setStatus(expired
-      ? "💨 은신처가 사라졌어요! 잠깐 보호받는 동안 다음 곳으로 도망쳐요!"
-      : "🏃 은신처에서 나왔어요! 여기는 다시 숨을 수 없어요.");
+      ? "💨 은신처가 사라졌어요! 몬스터들은 아직 다른 곳을 수색 중! 지금 도망쳐요!"
+      : "🏃 은신처에서 나왔어요! 몬스터들은 잠깐 다른 곳을 수색해요.");
     updateHud();
   }
   function toggleHide() {
@@ -100,20 +101,23 @@
     if (!shelter) { setStatus("🌿 은신처의 동그란 표시 안에 들어가서 숨기를 눌러요."); return; }
     state.hiding = L.hideStateStart(shelter);
     shelter.status = "occupied";
-    state.lastSeen = { x: state.player.x, y: state.player.y };
+    state.disperseAnchor = { x: shelter.x, y: shelter.y };
+    state.disperseRound += 1;
+    state.disperseUntil = 0;
     state.dashRemaining = 0;
     state.escapeBoost = 0;
     state.chaseRoutes = {};
     clearInput();
-    setStatus("🙈 " + shelter.name + "에 숨었어요! " + shelter.hideSeconds + "초 뒤 은신처가 사라져요.");
+    setStatus("🙈 " + shelter.name + "에 숨었어요! 몬스터들이 다른 곳으로 가요. " + shelter.hideSeconds + "초 후 다시 도망쳐요!");
     updateHud();
   }
   $("hideButton").addEventListener("click", toggleHide);
 
   function followChaser(enemy, key, index, dt) {
     const track = state.chaseRoutes[key] ||= { waypoints: [], age: 0.7 };
-    const target = state.hiding
-      ? L.searchTarget(state.lastSeen, state.seconds, index)
+    const distracted = Boolean(state.hiding) || state.seconds < state.disperseUntil;
+    const target = distracted && state.disperseAnchor
+      ? L.searchTarget(state.disperseAnchor, state.disperseRound, index)
       : state.player;
     track.age += dt;
     if (track.age >= 0.7) {
@@ -153,7 +157,8 @@
     const allEnemies = [...state.enemies, ...(state.jaguar ? [state.jaguar] : [])];
     const nearest = Math.min(...allEnemies.map(enemy =>
       Math.hypot(enemy.x - state.player.x, enemy.y - state.player.y)));
-    $("hudDanger").textContent = state.hiding ? "🔍 악당들이 찾는 중" :
+    $("hudDanger").textContent = state.hiding ? "🌿 악당들이 멀리 이동 중" :
+      state.seconds < state.disperseUntil ? "🔍 악당들이 다른 곳 수색 중" :
       nearest < 150 ? "🚨 악당이 가까워요!" : "👹 계속 추격 중";
     updateDash();
     updateHideControls();
@@ -164,7 +169,7 @@
       phase: "playing", character, mode: selectedMode, startingLives: L.selectLives(range.value),
       lives: L.selectLives(range.value), player: { ...L.START, radius: L.PLAYER_RADIUS },
       enemies: L.ENEMIES.map((enemy) => ({ ...enemy, speed: enemy.speed * 1.22 })),
-      chaseRoutes: {}, lastSeen: { ...L.START },
+      chaseRoutes: {}, disperseAnchor: null, disperseRound: 0, disperseUntil: 0,
       stars: L.STARS.map((star) => ({ ...star, collected: false })),
       shelters: L.SHELTERS.map(shelter => ({ ...shelter, status: "available" })),
       hiding: null, escapeBoost: 0,
@@ -309,7 +314,6 @@
           state.dashRemaining > 0 ? L.DASH_BOOST : state.escapeBoost > 0 ? 1.55 : 1),
         radius: L.PLAYER_RADIUS,
       };
-      state.lastSeen = { x: state.player.x, y: state.player.y };
     }
     state.enemies = state.enemies.map((enemy, index) =>
       followChaser(enemy, enemy.id, index, seconds));

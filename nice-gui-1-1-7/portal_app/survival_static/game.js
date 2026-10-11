@@ -1,4 +1,4 @@
-/* 마주치지 마! v0.1 — browser-only, private session, no external services */
+/* 마주치지 마! v0.2 — jungle chase adventure; offline/browser-only */
 (() => {
   "use strict";
   const L = window.SurvivalLogic;
@@ -16,6 +16,7 @@
   const heldKeys = new Set();
   const pointerDirections = new Map();
   let character = "explorer";
+  let selectedMode = "thrill";
   let state = null;
   let lastFrame = 0;
 
@@ -23,7 +24,7 @@
     arrowup: "up", w: "up", arrowleft: "left", a: "left",
     arrowdown: "down", s: "down", arrowright: "right", d: "right",
   };
-  const vector = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+
   function setStatus(message) { $("liveStatus").textContent = message; }
   function clearInput() {
     heldKeys.clear();
@@ -50,27 +51,62 @@
       candidate.setAttribute("aria-pressed", String(candidate === button)));
   }));
 
+
+  document.querySelectorAll("[data-mode]").forEach((button) => button.addEventListener("click", () => {
+    selectedMode = button.dataset.mode === "explore" ? "explore" : "thrill";
+    document.querySelectorAll("[data-mode]").forEach((candidate) =>
+      candidate.setAttribute("aria-pressed", String(candidate.dataset.mode === selectedMode)));
+    $("modeHint").textContent = selectedMode === "thrill"
+      ? "⏱ 110초 · 빠른 재규어 · 보너스 점수"
+      : "🌿 190초 · 느린 재규어 · 연습에 좋아요";
+  }));
+  function updateDash() {
+    if (!state) return;
+    const dash = $("dashButton");
+    const ready = state.phase === "playing" && state.dashCooldown <= 0;
+    dash.disabled = !ready;
+    dash.textContent = state.dashRemaining > 0 ? "⚡ 질주 중!" :
+      ready ? "⚡ 긴급 질주" : "⚡ " + Math.ceil(state.dashCooldown) + "초 뒤";
+  }
+  function triggerDash() {
+    if (!state || state.phase !== "playing" || state.dashCooldown > 0) return;
+    const input = getInput();
+    if (!input.dx && !input.dy) { setStatus("방향 버튼을 누른 채 ⚡ 긴급 질주를 눌러요!"); return; }
+    state.dashRemaining = L.DASH_SECONDS;
+    state.dashCooldown = L.DASH_COOLDOWN;
+    setStatus("⚡ 질주! 재규어와 위험 지역에서 멀어져요!");
+    updateDash();
+  }
+  $("dashButton").addEventListener("click", triggerDash);
+
   function updateHud() {
     if (!state) return;
     $("hudLives").textContent = state.lives + " / " + state.startingLives;
     $("hudStars").textContent = state.stars.filter((star) => star.collected).length + " / " + L.STARS.length;
-    $("hudTime").textContent = Math.floor(state.seconds) + "초";
+    $("hudTime").textContent = L.remainingTime(state.seconds, state.mode) + "초 남음";
+    $("hudKey").textContent = state.keyCollected ? "🔑 획득" : "🔒 열쇠 찾기";
+    if (state.jaguar) {
+      const distance = Math.round(Math.hypot(state.jaguar.x - state.player.x, state.jaguar.y - state.player.y));
+      $("hudDanger").textContent = distance < 160 ? "🚨 재규어 근접!" : "🐆 재규어 추격 중";
+    } else { $("hudDanger").textContent = "🌴 탐험 중"; }
+    updateDash();
   }
   function begin() {
     clearInput();
     state = {
-      phase: "playing", character, startingLives: L.selectLives(range.value),
+      phase: "playing", character, mode: selectedMode, startingLives: L.selectLives(range.value),
       lives: L.selectLives(range.value), player: { ...L.START, radius: L.PLAYER_RADIUS },
       enemies: L.ENEMIES.map((enemy) => ({ ...enemy })),
       stars: L.STARS.map((star) => ({ ...star, collected: false })),
       invulnerable: 0, seconds: 0, flash: 0,
+      keyCollected: false, jaguar: null, dashCooldown: 0, dashRemaining: 0,
     };
     setup.hidden = true;
     game.hidden = false;
     pauseOverlay.hidden = true;
     resultOverlay.hidden = true;
     $("pauseButton").textContent = "⏸ 일시정지";
-    setStatus("화면 오른쪽 위의 빛나는 출구로 가요! 원숭이와 뱀을 조심해요.");
+    setStatus("🔑 먼저 정글 오른쪽의 열쇠를 찾아요. 출구는 잠겨 있어요!");
     updateHud();
     lastFrame = performance.now();
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -82,6 +118,7 @@
     pauseOverlay.hidden = false;
     $("pauseButton").textContent = "▶ 계속";
     setStatus("일시정지했어요.");
+    updateDash();
   }
   function resume() {
     if (!state || state.phase !== "paused") return;
@@ -89,9 +126,10 @@
     pauseOverlay.hidden = true;
     $("pauseButton").textContent = "⏸ 일시정지";
     lastFrame = performance.now();
-    setStatus("다시 출발! 출구까지 가요.");
+    setStatus("다시 출발! 열쇠를 찾고 출구로 가요.");
+    updateDash();
   }
-  function finish(won) {
+  function finish(won, reason = "life") {
     if (!state || state.phase !== "playing") return;
     state.phase = won ? "won" : "lost";
     clearInput();
@@ -101,8 +139,10 @@
     $("resultText").textContent = won ?
       "남은 목숨 " + state.lives + "개 · 모은 별 " + picked + "개 · " +
       Math.floor(state.seconds) + "초 · " +
-      L.calculateScore(state.startingLives, state.lives, picked, state.seconds) + "점!" :
-      "목숨을 모두 사용했어요. 적의 움직임을 보고 다른 길로 피해 볼까요?";
+      Math.round(L.calculateScore(state.startingLives, state.lives, picked, state.seconds) *
+        (state.mode === "thrill" ? 1.3 : 1)) + "점!" :
+      reason === "time" ? "⏰ 해가 졌어요! 이번엔 열쇠를 먼저 찾아 빠르게 탈출해 봐요." :
+      "목숨을 모두 사용했어요. 위험 예고를 보고 ⚡ 긴급 질주로 피해 보세요!";
     resultOverlay.hidden = false;
     setStatus(won ? "정글 탈출 성공! 다음 도전에서는 더 많은 별을 찾아보세요." : "게임 종료. 다시 도전 버튼으로 재시작할 수 있어요.");
   }
@@ -131,6 +171,10 @@
         event.preventDefault();
         state.phase === "playing" ? pause() : resume();
       }
+      return;
+    }
+    if (event.code === "Space" || event.key === "Shift") {
+      if (state.phase === "playing") { event.preventDefault(); triggerDash(); }
       return;
     }
     const dir = directions[event.key.toLowerCase()];
@@ -170,10 +214,17 @@
     if (!state || state.phase !== "playing") return;
     const seconds = L.clamp(dt, 0, 0.05);
     state.seconds += seconds;
+    if (L.remainingTime(state.seconds, state.mode) === 0) { finish(false, "time"); return; }
+    state.dashCooldown = Math.max(0, state.dashCooldown - seconds);
+    state.dashRemaining = Math.max(0, state.dashRemaining - seconds);
     state.invulnerable = Math.max(0, state.invulnerable - seconds);
     state.flash = Math.max(0, state.flash - seconds);
     const { dx, dy } = getInput();
-    state.player = { ...L.movePlayer(state.player, dx, dy, seconds), radius: L.PLAYER_RADIUS };
+    state.player = {
+      ...L.movePlayer(state.player, dx, dy, seconds, L.OBSTACLES,
+        state.dashRemaining > 0 ? L.DASH_BOOST : 1),
+      radius: L.PLAYER_RADIUS,
+    };
     state.enemies = state.enemies.map((enemy) => L.patrol(enemy, seconds));
     for (const star of state.stars) {
       if (!star.collected && Math.hypot(star.x - state.player.x, star.y - state.player.y) < 34) {
@@ -181,15 +232,34 @@
         setStatus("⭐ 반짝이는 별을 찾았어요!");
       }
     }
-    // Escaping takes precedence if the goal and an enemy are both touched in one frame.
-    if (L.hasEscaped(state.player)) { finish(true); return; }
-    const touching = state.enemies.some((enemy) => L.circlesTouch(state.player, enemy));
+    if (!state.keyCollected && Math.hypot(state.player.x - L.KEY.x, state.player.y - L.KEY.y) < 36) {
+      state.keyCollected = true;
+      state.jaguar = { ...L.JAGUAR };
+      setStatus("🔑 열쇠 획득! 🐆 재규어가 깨어났어요! 이제 출구로 달려요!");
+    }
+    if (state.jaguar) {
+      state.jaguar = L.chaseJaguar(state.jaguar, state.player, seconds, state.mode);
+    }
+    // Gate only opens after the key; arriving at a locked gate never silently wins.
+    if (L.hasEscaped(state.player) && state.keyCollected) { finish(true); return; }
+    if (L.hasEscaped(state.player) && !state.keyCollected && !state.nearGateWarned) {
+      state.nearGateWarned = true;
+      setStatus("🔒 출구가 잠겼어요. 정글 오른쪽의 🔑 열쇠가 필요해요!");
+    }
+    const fallingFruit = L.HAZARDS.some((h) =>
+      L.dangerPhase(state.seconds, h.phase, state.mode) === "active" &&
+      L.circlesTouch(state.player, h));
+    const touching = fallingFruit ||
+      state.enemies.some((enemy) => L.circlesTouch(state.player, enemy)) ||
+      (state.jaguar && L.circlesTouch(state.player, state.jaguar));
     const hit = L.resolveEnemyHit(state.lives, state.invulnerable, touching);
     if (hit.hit) {
       state.lives = hit.lives;
       state.invulnerable = hit.invulnerableSeconds;
       state.flash = 0.35;
-      setStatus("앗, 마주쳤어요! 목숨 1개 감소. 잠깐 무적이에요.");
+      setStatus("앗! " + (fallingFruit ? "나무 열매가 떨어졌어요!" : "적과 마주쳤어요!") +
+        " 목숨 -1 · 잠시 무적!");
+
       if (hit.dead) { finish(false); return; }
     }
     updateHud();
@@ -252,13 +322,13 @@
   function drawExit(time) {
     const e = L.EXIT;
     const pulse = Math.sin(time * 3) * 4;
-    circle(e.x, e.y, e.radius + 11 + pulse, "#fff4a733");
-    circle(e.x, e.y, e.radius + pulse / 2, "#2d9e8c", "#ffe87e", 6);
+    circle(e.x, e.y, e.radius + 11 + pulse, state.keyCollected ? "#fff4a733" : "#17372b55");
+    circle(e.x, e.y, e.radius + pulse / 2, state.keyCollected ? "#2d9e8c" : "#5e716a", state.keyCollected ? "#ffe87e" : "#adb7b2", 6);
     circle(e.x, e.y, 24, "#155c4c");
     ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "39px system-ui";
-    ctx.fillText("🚪", e.x, e.y + 2);
+    ctx.fillText(state.keyCollected ? "🚪" : "🔒", e.x, e.y + 2);
     ctx.font = "900 18px system-ui"; ctx.fillStyle = "#102f29";
-    ctx.fillText("출구!", e.x, e.y + 69);
+    ctx.fillText(state.keyCollected ? "탈출!" : "열쇠 필요", e.x, e.y + 69);
   }
   function drawStar(x, y, time) {
     const r = 14 + Math.sin(time * 4 + x * 0.1) * 2.4;
@@ -273,12 +343,38 @@
     ctx.closePath(); ctx.fillStyle = "#ffe475"; ctx.strokeStyle = "#886422";
     ctx.lineWidth = 3; ctx.fill(); ctx.stroke(); ctx.restore();
   }
+
+  function drawKey(time) {
+    if (state.keyCollected) return;
+    const k = L.KEY;
+    circle(k.x, k.y, 38 + Math.sin(time * 4) * 4, "#ffed8999", "#fff1a7", 3);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "41px system-ui";
+    ctx.fillText("🔑", k.x, k.y);
+    ctx.font = "900 17px system-ui"; ctx.fillStyle = "#132a25";
+    ctx.fillText("열쇠", k.x, k.y + 54);
+  }
+  function drawHazards(time) {
+    L.HAZARDS.forEach((h) => {
+      const phase = L.dangerPhase(time, h.phase, state.mode);
+      if (phase === "idle") {
+        circle(h.x, h.y, h.radius + 6, "#4f8a5040", "#e9cd8c", 2);
+      } else {
+        const pulse = Math.sin(time * 15) * 4;
+        circle(h.x, h.y, h.radius + pulse, phase === "active" ? "#ef463f91" : "#ffc24763",
+          phase === "active" ? "#ff413c" : "#ffdc56", 7);
+        ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "36px system-ui";
+        ctx.fillText(phase === "active" ? "💥" : "⚠️", h.x, h.y);
+      }
+    });
+  }
   function drawEnemy(enemy, time) {
     const isMonkey = enemy.kind === "monkey";
+    const isJaguar = enemy.kind === "jaguar";
     circle(enemy.x, enemy.y + 6, enemy.radius + 5, "#193a2788");
-    circle(enemy.x, enemy.y, enemy.radius + 1, isMonkey ? "#d68b55" : "#6ebc52", "#2b5138", 4);
+    if (isJaguar) circle(enemy.x, enemy.y, enemy.radius + 14 + Math.sin(time * 8) * 3, "#e33a5377", "#f86b59", 3);
+    circle(enemy.x, enemy.y, enemy.radius + 1, isJaguar ? "#c44745" : isMonkey ? "#d68b55" : "#6ebc52", "#2b5138", 4);
     ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "39px system-ui";
-    ctx.fillText(isMonkey ? "🐵" : "🐍", enemy.x, enemy.y - 3 + Math.sin(time * 6 + enemy.x) * 2);
+    ctx.fillText(isJaguar ? "🐆" : isMonkey ? "🐵" : "🐍", enemy.x, enemy.y - 3 + Math.sin(time * 6 + enemy.x) * 2);
   }
   function drawPlayer(time) {
     if (!state) return;
@@ -301,10 +397,17 @@
     ctx.clearRect(0, 0, L.SIZE, L.SIZE);
     drawGround();
     drawObstacles();
+    drawHazards(time);
     drawExit(time);
+    drawKey(time);
     for (const star of state.stars) if (!star.collected) drawStar(star.x, star.y, time);
     for (const enemy of state.enemies) drawEnemy(enemy, time);
+    if (state.jaguar) drawEnemy(state.jaguar, time);
     drawPlayer(time);
+    if (L.remainingTime(time, state.mode) <= 20) {
+      ctx.fillStyle = "rgba(180,20,45," + (0.09 + Math.max(0,Math.sin(time * 5)) * 0.11) + ")";
+      ctx.fillRect(0, 0, L.SIZE, 18);
+    }
     if (state.flash > 0) {
       ctx.fillStyle = "rgba(255,100,90," + (state.flash * 0.28) + ")";
       ctx.fillRect(0, 0, L.SIZE, L.SIZE);

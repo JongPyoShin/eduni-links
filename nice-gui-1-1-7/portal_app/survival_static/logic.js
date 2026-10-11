@@ -13,7 +13,7 @@
   const DASH_BOOST = 2.05;
   const DASH_SECONDS = 0.5;
   const DASH_COOLDOWN = 5;
-  const TIME_LIMITS = Object.freeze({ thrill: 110, explore: 190 });
+  const TIME_LIMITS = Object.freeze({ thrill: 45, explore: 90 });
   const START = Object.freeze({ x: 78, y: 637 });
   const EXIT = Object.freeze({ x: 635, y: 83, radius: 38 });
   const OBSTACLES = Object.freeze([
@@ -29,7 +29,7 @@
   ]);
   // The key is reachable without entering a hazard; taking it wakes the jaguar.
   const KEY = Object.freeze({ x: 611, y: 367, radius: 19 });
-  const JAGUAR = Object.freeze({ x: 95, y: 264, radius: 22, speed: 174, kind: "jaguar" });
+  const JAGUAR = Object.freeze({ x: 597, y: 199, radius: 22, speed: 174, kind: "jaguar" });
   // Fruit fall warning (orange ring) → short dangerous pulse (red ring).
   const HAZARDS = Object.freeze([
     Object.freeze({ x: 205, y: 252, radius: 41, phase: 0 }),

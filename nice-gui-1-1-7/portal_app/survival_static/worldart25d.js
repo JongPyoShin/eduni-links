@@ -17,37 +17,94 @@
   function poly(c,arr,fill,stroke,w=2){c.beginPath();c.moveTo(arr[0][0],arr[0][1]);for(const a of arr.slice(1))c.lineTo(a[0],a[1]);c.closePath();if(fill){c.fillStyle=fill;c.fill()}if(stroke){c.strokeStyle=stroke;c.lineWidth=w;c.stroke()}}
   function rect(c,x,y,w,h,r,fill,stroke,width=2){c.beginPath();c.roundRect(x,y,w,h,r);if(fill){c.fillStyle=fill;c.fill()}if(stroke){c.strokeStyle=stroke;c.lineWidth=width;c.stroke()}}
   function shadow(c,x,y,rx=30){oval(c,x+5,y+6,rx+8,13,"#1d35414c");oval(c,x,y+2,rx,10,"#2440475c")}
+  function drawTrail(c,points,ice,secondary) {
+    if (!Array.isArray(points) || points.length < 2) return;
+    c.beginPath(); c.moveTo(points[0][0],points[0][1]);
+    for (let i=1;i<points.length;i++) {
+      const last=points[i-1],next=points[i];
+      if (ice) {
+        const midX=(last[0]+next[0])/2,midY=(last[1]+next[1])/2;
+        c.quadraticCurveTo(midX,midY,next[0],next[1]);
+      } else {
+        // Sandstone temples have angular, intersecting causeways.
+        c.lineTo(next[0],next[1]);
+      }
+    }
+    c.lineCap="round";c.lineJoin="round";
+    c.strokeStyle=ice?"#6baec7bb":"#a37b4da8";
+    c.lineWidth=secondary?75:117;c.stroke();
+    c.strokeStyle=ice?(secondary?"#c7f2f8":"#f8ffff"):(secondary?"#d5ac70":"#f3d294");
+    c.lineWidth=secondary?60:95;c.stroke();
+    if (!ice) {
+      c.setLineDash?.([17,24]);
+      c.strokeStyle="#ffe5b45a";c.lineWidth=3;c.stroke();
+      c.setLineDash?.([]);
+    }
+  }
   function drawGround(c,world,camera,time){
     const ice=world.id==="arctic",width=2048,height=1536;
-    c.fillStyle=gradient(c,0,0,width,height,ice?[[0,"#d7f6fb"],[.5,"#a8dce9"],[1,"#8ec1d3"]]:
-      [[0,"#f9d99d"],[.55,"#e8b46d"],[1,"#bd8750"]]);
+    c.fillStyle=gradient(c,0,0,width,height,ice?
+      [[0,"#d9f7fc"],[.42,"#bce9f4"],[1,"#8dbfcd"]]:
+      [[0,"#fae0ae"],[.48,"#f0c080"],[1,"#c88b50"]]);
     c.fillRect(0,0,width,height);
-    c.fillStyle=ice?"#faffffd0":"#ffe6af88";
-    if(ice){oval(c,1240,1230,435,220,"#a5ddea","#e5f9ff",24);oval(c,1240,1220,290,125,"#8dc4d599");}
-    else{oval(c,1220,1180,420,185,"#d9a15d66");oval(c,470,440,350,180,"#f7deaa88");}
-    c.lineCap="round";c.lineJoin="round";
-    c.beginPath();c.moveTo(world.start.x,world.start.y);
-    c.bezierCurveTo(360,1100,400,880,650,865);
-    c.bezierCurveTo(890,805,1005,1140,1310,1050);
-    c.bezierCurveTo(1530,995,1490,805,world.key.x,world.key.y);
-    c.strokeStyle=ice?"#5f9aa799":"#aa774399";c.lineWidth=107;c.stroke();
-    c.strokeStyle=ice?"#f7ffff":"#f6d79c";c.lineWidth=88;c.stroke();
-    c.beginPath();c.moveTo(world.key.x,world.key.y);
-    c.bezierCurveTo(1550,620,1820,480,1730,345);
-    c.bezierCurveTo(1660,240,1750,145,world.exit.x,world.exit.y);
-    c.strokeStyle=ice?"#5f9aa799":"#aa774399";c.lineWidth=100;c.stroke();
-    c.strokeStyle=ice?"#f7ffff":"#f6d79c";c.lineWidth=80;c.stroke();
-    // Deterministic small-scale ground textures, only visible tiles to save mobile draw time.
-    const x0=Math.max(0,Math.floor((camera.x-60)/74)),x1=Math.min(28,Math.ceil((camera.x+800)/74));
-    const y0=Math.max(0,Math.floor((camera.y-60)/74)),y1=Math.min(22,Math.ceil((camera.y+800)/74));
+    if(ice){
+      // Glacial cliffs, blue frozen lake and translucent aurora: no desert-style layout.
+      oval(c,1000,1220,480,220,"#8fd2e6","#e5fbff",20);
+      oval(c,1000,1220,355,145,"#66b1d299","#e5ffff",8);
+      oval(c,990,1190,150,42,"#d9f8f6b9");
+      oval(c,490,370,375,260,"#c7f4fa88");
+      oval(c,1595,480,305,270,"#7ebed196");
+      for(let i=0;i<5;i++){
+        const x=i*430-110;
+        poly(c,[[x,490],[x+120,215+(i%2)*75],[x+250,490]],
+          gradient(c,x,190,x+250,510,[[0,"#f5ffff"],[.6,"#c3ebf6"],[1,"#73adca"]]),
+          "#83bdce",5);
+      }
+      for(let i=0;i<3;i++){
+        c.beginPath();c.moveTo(950+i*64,52+i*23);
+        c.bezierCurveTo(1300+i*45,135+i*24,1480-i*19,24+i*30,2050,165+i*18);
+        c.strokeStyle=["#86ffb43a","#80dbff33","#d2a7ff2f"][i];
+        c.lineWidth=24-i*5;c.stroke();
+      }
+      for(let i=0;i<7;i++) {
+        const x=720+i*145;
+        line(c,x,1150+(i%3)*24,x+61,1130+(i%2)*26,"#eaffff74",3);
+        line(c,x+32,1100+(i%2)*24,x+67,1081+(i%3)*20,"#eaffff88",2);
+      }
+    } else {
+      // Pyramid: long squared stone corridors, tomb chambers and concentric dunes.
+      oval(c,280,1050,360,220,"#dcaa6b88");
+      oval(c,1800,1250,410,240,"#b7834d55");
+      oval(c,620,230,335,205,"#f8e0ad99");
+      rect(c,770,925,710,540,25,"#aa825242","#af7c4777",9);
+      rect(c,850,1000,540,375,12,"#e6be8480","#f9e3af",5);
+      rect(c,90,95,460,380,8,"#b9956277","#ae814e",10);
+      for(let i=0;i<4;i++){
+        const y=160+i*83;
+        line(c,110,y,525,y,"#f6dcaa88",8);
+      }
+      for(let i=0;i<5;i++){
+        const x=220+i*390;
+        poly(c,[[x,650],[x+100,500+(i%2)*55],[x+240,655]],"#d6a46b55");
+      }
+    }
+    // World-authored routes replace the old shared start→key→exit silhouette.
+    (world.trails||[]).forEach((route,i)=>drawTrail(c,route.points,ice,i>0));
+    // Sparse deterministic close-range texture rather than heavy full-world paint.
+    const x0=Math.max(0,Math.floor((camera.x-65)/82)),x1=Math.min(26,Math.ceil((camera.x+790)/82));
+    const y0=Math.max(0,Math.floor((camera.y-65)/82)),y1=Math.min(20,Math.ceil((camera.y+790)/82));
     for(let yi=y0;yi<=y1;yi++)for(let xi=x0;xi<=x1;xi++){
-      const x=xi*74+((yi*31+xi*7)%35),y=yi*74+((xi*27+yi*3)%29);
+      const x=xi*82+((yi*23+xi*7)%41),y=yi*82+((xi*17+yi*3)%29);
       if(ice){
-        oval(c,x,y,8+(xi%3)*2,2.5,"#faffff9c");
-        if((xi+yi)%4===0){line(c,x-3,y-9,x+2,y-14,"#f8ffffa8",1.4);line(c,x-1,y-14,x-6,y-16,"#f8ffffa8",1);}
-      }else{
-        oval(c,x,y,13,4,"#d8a36963");
-        if((xi+yi)%4===0){line(c,x-5,y,x+4,y-6,"#886b4a66",2);oval(c,x+8,y+4,3,2,"#a97e5466");}
+        oval(c,x,y,8+(xi%3)*3,2,"#ffffffb8");
+        if((xi+yi)%5===0){
+          line(c,x-6,y-11,x+6,y-11,"#f8ffffb9",1);
+          line(c,x,y-18,x,y-5,"#f8ffffb9",1);
+          line(c,x-4,y-16,x+4,y-7,"#f8ffffb9",1);
+        }
+      } else {
+        oval(c,x,y,14,4,"#c993585c");
+        if((xi+yi)%5===0){line(c,x-7,y,x+8,y-8,"#946c4966",2);oval(c,x+8,y+5,4,2,"#ad81545c");}
       }
     }
     for(const mark of world.landmarks){

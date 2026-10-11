@@ -49,9 +49,24 @@ class SurvivalBetaRouteTests(unittest.TestCase):
             '/survival-static/logic.js', '/survival-static/render25d.js',
             '/survival-static/worlds.js', '/survival-static/worldart25d.js', '/survival-static/game.js',
             'viewport-fit=cover',
+            'id="miniMapCanvas"', 'id="miniMapPanel"', 'id="miniMapTitle"',
+            'hud-extra', '.shell:has(#gameScreen:not([hidden]))',
+            '게임 화면 아래 미니맵을 펼쳐',
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, html)
+
+    def test_mobile_hud_and_map_do_not_cover_exit(self) -> None:
+        html = eduni_survival_game().body.decode("utf-8")
+        main_start = html.index('<canvas id="gameCanvas"')
+        main_end = html.index('id="resultOverlay"')
+        mini_map = html.index('<canvas id="miniMapCanvas"')
+        controls = html.index('<aside class="side"')
+        self.assertLess(main_start, main_end)
+        self.assertLess(main_end, mini_map)
+        self.assertLess(mini_map, controls)
+        self.assertIn('.hud-extra { display:none; }', html)
+        self.assertIn('width:100%;max-width:none;', html)
 
     def test_sandboxed_beta_does_not_change_existing_game_routes(self) -> None:
         for path in ("/jungle", "/jungle-3d", "/link", "/omok", "/portal"):

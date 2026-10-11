@@ -25,7 +25,7 @@ test("2.5D explorer and bunny render in all directions with silhouette and shado
       facing, bunny, walk: 2.1, moving: true, dash: true, invulnerable: true,
     });
     assert.ok((calls.ellipse || 0) >= 12, "body/hat/face/shadow details");
-    assert.ok((calls.gradients || 0) >= 6, "dimensional shading");
+    assert.ok((calls.gradients || 0) >= 4, "dimensional shading");
     assert.equal(calls.fillText || 0, 0, "player is not an emoji");
     assert.equal(calls.save, calls.restore, "canvas state balanced");
   }

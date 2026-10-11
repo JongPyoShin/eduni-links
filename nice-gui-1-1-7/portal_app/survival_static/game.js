@@ -173,7 +173,7 @@
     if (!state) return;
     $("hudLives").textContent = state.lives + " / " + state.startingLives;
     $("hudStars").textContent = state.stars.filter((star) => star.collected).length + " / " + state.world.stars.length;
-    $("hudArea").textContent = "📍 " + L.areaFor(state.player, state.world.areas);
+    $("hudArea").textContent = state.world.icon + " " + L.areaFor(state.player, state.world.areas);
     const goal = state.keyCollected ? state.world.exit : state.world.key;
     $("hudGoal").textContent = (state.keyCollected ? "🚪 출구" : "🔑 열쇠") + " " +
       Math.ceil(Math.hypot(goal.x - state.player.x, goal.y - state.player.y) / 20) + "걸음";
@@ -367,6 +367,7 @@
       state.keyCollected = true;
       state.jaguar = { ...state.world.boss };
       state.bannerUntil = state.seconds + 2.4;
+      $("eventBanner").textContent = "⚠️ " + state.world.bossName + " 등장! 탈출문으로 달려요!";
       $("eventBanner").hidden = false;
       setStatus("🔑 열쇠 획득! " + state.world.bossName + "이 깨어났어요! 이제 출구로 달려요!");
     }

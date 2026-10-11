@@ -1,9 +1,10 @@
-/* 마주치지 마! v0.4.1 — automatic shelter hiding; offline/browser-only */
+/* 마주치지 마! v0.5 — painter-sorted jungle explorer 2.5D art; offline/browser-only */
 (() => {
   "use strict";
   const L = window.SurvivalLogic;
-  if (!L) {
-    document.body.textContent = "게임 규칙을 불러올 수 없습니다. 다시 접속해 주세요.";
+  const R = window.SurvivalArt25D;
+  if (!L || !R) {
+    document.body.textContent = "게임 그래픽을 불러올 수 없습니다. 다시 접속해 주세요.";
     return;
   }
   const $ = (id) => document.getElementById(id);
@@ -190,6 +191,7 @@
       invulnerable: 0, seconds: 0, flash: 0,
       keyCollected: false, jaguar: null, dashCooldown: 0, dashRemaining: 0, bannerUntil: 0,
       camera: L.cameraFor(L.START),
+      facing: "down", moving: false, walkPhase: 0,
     };
     setup.hidden = true;
     game.hidden = false;
@@ -320,15 +322,23 @@
     const { dx, dy } = getInput();
     state.escapeBoost = Math.max(0, state.escapeBoost - seconds);
     if (state.hiding) {
+      state.moving = false;
       const countdown = L.hideCountdown(state.hiding.remaining, seconds);
       state.hiding.remaining = countdown.remaining;
       if (countdown.expired) endHiding(true);
     } else {
+      const previous = state.player;
       state.player = {
         ...L.movePlayer(state.player, dx, dy, seconds, L.OBSTACLES,
           state.dashRemaining > 0 ? L.DASH_BOOST : state.escapeBoost > 0 ? 1.55 : 1),
         radius: L.PLAYER_RADIUS,
       };
+      state.moving = Math.hypot(state.player.x - previous.x, state.player.y - previous.y) > .15;
+      if (state.moving) {
+        state.facing = Math.abs(dx) >= Math.abs(dy) ?
+          (dx < 0 ? "left" : "right") : (dy < 0 ? "up" : "down");
+        state.walkPhase += seconds * (state.dashRemaining > 0 ? 1.9 : 1.2);
+      }
       // Handle entry before enemies move or inflict damage on this frame.
       const entered = L.enteredShelter(state.player, state.shelters);
       if (entered) enterHiding(entered, true);
@@ -429,9 +439,9 @@
     circle(1165, 240, 112, "#48aabd", "#89e2e7", 10);
     circle(1160, 211, 64, "#d1f8e6a9");
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.font = "54px system-ui"; ctx.fillText("💦", 1165, 226);
+    R.drawLandmark(ctx, { x: 1165, y: 302, kind: "waterfall" }, state.seconds);
     ctx.font = "900 26px system-ui"; ctx.fillStyle = "#f3ffde";
-    ctx.fillText("폭포 계곡", 1165, 352);
+    ctx.fillText("폭포 계곡", 1165, 390);
     // Deterministic undergrowth and canopy provide depth while limiting draw calls to the viewport.
     const minXi = Math.max(0, Math.floor((state.camera.x - 45) / 52));
     const maxXi = Math.min(Math.ceil(L.WORLD_WIDTH / 52), Math.ceil((state.camera.x + L.SIZE + 45) / 52));
@@ -451,18 +461,17 @@
     }
     // Major landmarks help children recognize where they are, even with the map hidden.
     for (const marker of [
-      { x: 175, y: 1370, icon: "⛺", label: "정글 야영지" },
-      { x: 540, y: 480, icon: "🦋", label: "나비 숲" },
-      { x: 1055, y: 1355, icon: "🌼", label: "꽃밭 쉼터" },
-      { x: 1450, y: 425, icon: "🗿", label: "고대 유적" },
-      { x: 1750, y: 810, icon: "🌴", label: "신비한 숲길" },
+      { x: 175, y: 1370, kind: "camp", label: "정글 야영지" },
+      { x: 540, y: 480, kind: "butterflies", label: "나비 숲" },
+      { x: 1055, y: 1355, kind: "flowers", label: "꽃밭 쉼터" },
+      { x: 1450, y: 425, kind: "ruins", label: "고대 유적" },
+      { x: 1750, y: 810, kind: "jungle", label: "신비한 숲길" },
     ]) {
-      if (!onScreen(marker.x, marker.y, 140)) continue;
-      circle(marker.x, marker.y, 55, "#2f6f4599", "#d6eec1", 4);
+      if (!onScreen(marker.x, marker.y, 150)) continue;
+      R.drawLandmark(ctx, marker, state.seconds);
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.font = "47px system-ui"; ctx.fillText(marker.icon, marker.x, marker.y);
       ctx.font = "900 21px system-ui"; ctx.fillStyle = "#fff7d6";
-      ctx.fillText(marker.label, marker.x, marker.y + 76);
+      ctx.fillText(marker.label, marker.x, marker.y + 36);
     }
     ctx.strokeStyle = "#244e34"; ctx.lineWidth = 30;
     ctx.strokeRect(11, 11, L.WORLD_WIDTH - 22, L.WORLD_HEIGHT - 22);
@@ -475,120 +484,60 @@
       if (onScreen(L.WORLD_WIDTH - 12, y, 40)) circle(L.WORLD_WIDTH - 12, y, 21, "#2e7347");
     }
   }
-  function drawObstacles() {
-    L.OBSTACLES.forEach((rect, idx) => {
-      if (!onScreen(rect.x + rect.w / 2, rect.y + rect.h / 2, Math.max(rect.w, rect.h))) return;
-      rounded(rect.x, rect.y, rect.w, rect.h, 13, "#69442a", "#392f20", 5);
-      ctx.save();
-      ctx.beginPath(); ctx.roundRect(rect.x + 3, rect.y + 3, rect.w - 6, rect.h - 6, 10); ctx.clip();
-      for (let x = rect.x + 15; x < rect.x + rect.w + 15; x += 36) {
-        for (let y = rect.y + 10; y < rect.y + rect.h + 18; y += 29) {
-          circle(x + (idx % 2) * 5, y, 20, "#2c703f", "#235c36", 3);
-          circle(x - 4, y - 5, 9, "#59a759");
-        }
-      }
-      ctx.restore();
+  function drawObstaclesBase() {
+    L.OBSTACLES.forEach((rect) => {
+      if (onScreen(rect.x + rect.w/2, rect.y + rect.h/2, Math.max(rect.w,rect.h)+140))
+        R.drawObstacleBase(ctx, rect);
     });
-  }
-  function drawShelters(time) {
-    for (const shelter of state.shelters) {
-      if (!onScreen(shelter.x, shelter.y, 125)) continue;
-      if (shelter.status === "used") continue; // disappears permanently this round
-      const occupied = state.hiding?.shelterId === shelter.id;
-      const pulse = 2 * Math.sin(time * 5);
-      const radius = shelter.radius + (occupied ? 7 : pulse);
-      circle(shelter.x, shelter.y, radius + 7,
-        occupied ? "#55e6bbaf" : "#d0ec9b72", occupied ? "#e0ffef" : "#f8efa9", 4);
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.font = "38px system-ui";
-      ctx.fillText(shelter.kind === "bush" ? "🌿" : shelter.kind === "cave" ? "🕳️" : "🪵", shelter.x, shelter.y);
-      if (occupied) {
-        const progress = Math.max(0, state.hiding.remaining / state.hiding.max);
-        ctx.beginPath(); ctx.arc(shelter.x, shelter.y, shelter.radius + 15,
-          -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * progress);
-        ctx.strokeStyle = progress < .25 ? "#ff7385" : "#fce68a";
-        ctx.lineWidth = 9; ctx.stroke();
-      }
-      ctx.fillStyle = "#11342a"; ctx.font = "900 17px system-ui";
-      ctx.fillText(occupied ? state.hiding.remaining.toFixed(1) + "초" :
-        shelter.hideSeconds + "초 숨기", shelter.x, shelter.y + radius + 25);
-    }
-  }
-  function drawExit(time) {
-    const e = L.EXIT;
-    const pulse = Math.sin(time * 3) * 4;
-    circle(e.x, e.y, e.radius + 11 + pulse, state.keyCollected ? "#fff4a733" : "#17372b55");
-    circle(e.x, e.y, e.radius + pulse / 2, state.keyCollected ? "#2d9e8c" : "#5e716a", state.keyCollected ? "#ffe87e" : "#adb7b2", 6);
-    circle(e.x, e.y, 24, "#155c4c");
-    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "39px system-ui";
-    ctx.fillText(state.keyCollected ? "🚪" : "🔒", e.x, e.y + 2);
-    ctx.font = "900 18px system-ui"; ctx.fillStyle = "#102f29";
-    ctx.fillText(state.keyCollected ? "탈출!" : "열쇠 필요", e.x, e.y + 69);
-  }
-  function drawStar(x, y, time) {
-    const r = 14 + Math.sin(time * 4 + x * 0.1) * 2.4;
-    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(time * 2) * 0.1);
-    ctx.beginPath();
-    for (let i = 0; i < 10; i++) {
-      const a = (i * Math.PI / 5) - Math.PI / 2;
-      const rad = i % 2 === 0 ? r : r / 2;
-      const px = Math.cos(a) * rad, py = Math.sin(a) * rad;
-      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-    }
-    ctx.closePath(); ctx.fillStyle = "#ffe475"; ctx.strokeStyle = "#886422";
-    ctx.lineWidth = 3; ctx.fill(); ctx.stroke(); ctx.restore();
-  }
-
-  function drawKey(time) {
-    if (state.keyCollected) return;
-    const k = L.KEY;
-    circle(k.x, k.y, 38 + Math.sin(time * 4) * 4, "#ffed8999", "#fff1a7", 3);
-    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "41px system-ui";
-    ctx.fillText("🔑", k.x, k.y);
-    ctx.font = "900 17px system-ui"; ctx.fillStyle = "#132a25";
-    ctx.fillText("열쇠", k.x, k.y + 54);
   }
   function drawHazards(time) {
-    L.HAZARDS.forEach((h) => {
-      if (!onScreen(h.x, h.y, 100)) return;
-      const phase = L.dangerPhase(time, h.phase, state.mode);
-      if (phase === "idle") {
-        circle(h.x, h.y, h.radius + 6, "#4f8a5040", "#e9cd8c", 2);
-      } else {
-        const pulse = Math.sin(time * 15) * 4;
-        circle(h.x, h.y, h.radius + pulse, phase === "active" ? "#ef463f91" : "#ffc24763",
-          phase === "active" ? "#ff413c" : "#ffdc56", 7);
-        ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "36px system-ui";
-        ctx.fillText(phase === "active" ? "💥" : "⚠️", h.x, h.y);
-      }
+    for (const h of L.HAZARDS) {
+      if (!onScreen(h.x,h.y,110)) continue;
+      R.drawHazard(ctx, h, L.dangerPhase(time,h.phase,state.mode), time);
+    }
+  }
+  function drawWorldActors(time) {
+    // All actors and tree canopies share a single painter's order by foot position.
+    // A sprite higher up is drawn first; things in front naturally occlude it.
+    const objects = [];
+    L.OBSTACLES.forEach((rect,i) => {
+      if (!onScreen(rect.x + rect.w/2, rect.y + rect.h/2, Math.max(rect.w,rect.h)+150)) return;
+      objects.push({ y: rect.y + rect.h, order: 0,
+        paint: () => R.drawObstacle(ctx,rect,i) });
     });
-  }
-  function drawEnemy(enemy, time) {
-    const isMonkey = enemy.kind === "monkey";
-    const isJaguar = enemy.kind === "jaguar";
-    circle(enemy.x, enemy.y + 6, enemy.radius + 5, "#193a2788");
-    if (isJaguar) circle(enemy.x, enemy.y, enemy.radius + 14 + Math.sin(time * 8) * 3, "#e33a5377", "#f86b59", 3);
-    circle(enemy.x, enemy.y, enemy.radius + 1, isJaguar ? "#c44745" : isMonkey ? "#d68b55" : "#6ebc52", "#2b5138", 4);
-    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "39px system-ui";
-    ctx.fillText(isJaguar ? "🐆" : isMonkey ? "🐵" : "🐍", enemy.x, enemy.y - 3 + Math.sin(time * 6 + enemy.x) * 2);
-  }
-  function drawPlayer(time) {
-    if (!state) return;
-    const p = state.player;
-    const flicker = !state.hiding && state.invulnerable > 0 && Math.floor(time * 10) % 2 === 0;
-    ctx.save();
-    if (flicker) ctx.globalAlpha = 0.43;
-    if (state.dashRemaining > 0 || state.escapeBoost > 0) {
-      circle(p.x, p.y + 8, 45, "#9cefff70", "#fff3ac", 3);
+    for (const shelter of state.shelters) {
+      if (shelter.status === "used" || !onScreen(shelter.x,shelter.y,150)) continue;
+      const occupied=state.hiding?.shelterId===shelter.id;
+      objects.push({ y: shelter.y, order: 1,
+        paint: () => R.drawShelter(ctx,shelter,occupied,
+          occupied ? state.hiding.remaining : 0,time) });
     }
-    circle(p.x, p.y + 8, 23, "#214d3999");
-    circle(p.x, p.y, p.radius + 3, state.character === "explorer" ? "#ffe6a2" : "#f1e6ff", "#153b34", 4);
-    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "42px system-ui";
-    ctx.fillText(state.hiding ? "🙈" : state.character === "explorer" ? "🧒" : "🐰", p.x, p.y - 5);
-    ctx.restore();
-    if (state.invulnerable > 0 && !state.hiding) {
-      circle(p.x, p.y, 33, null, "#e9fff0", 3);
+    if (onScreen(L.EXIT.x,L.EXIT.y,155))
+      objects.push({ y: L.EXIT.y, order: 1, paint: () => R.drawExit(ctx,L.EXIT,state.keyCollected,time) });
+    if (!state.keyCollected && onScreen(L.KEY.x,L.KEY.y,100))
+      objects.push({ y: L.KEY.y, order: 1, paint: () => R.drawKey(ctx,L.KEY,time) });
+    for (const star of state.stars) {
+      if (!star.collected && onScreen(star.x,star.y,80))
+        objects.push({ y: star.y, order: 1, paint: () => R.drawStar(ctx,star.x,star.y,time) });
     }
+    for (const enemy of [...state.enemies,...(state.jaguar?[state.jaguar]:[])]) {
+      if(onScreen(enemy.x,enemy.y,140))
+        objects.push({y:enemy.y,order:2,paint:()=>R.drawEnemy(ctx,enemy,time)});
+    }
+    if (!state.hiding && onScreen(state.player.x,state.player.y,130)) {
+      objects.push({ y: state.player.y, order: 3, paint: () => {
+        ctx.save();
+        if (state.invulnerable > 0 && Math.floor(time*10)%2===0) ctx.globalAlpha=.58;
+        R.drawPlayer(ctx,state.player,{
+          facing:state.facing,walk:state.walkPhase,moving:state.moving,
+          bunny:state.character==="bunny",dash:state.dashRemaining>0||state.escapeBoost>0,
+          invulnerable:state.invulnerable>0,
+        });
+        ctx.restore();
+      }});
+    }
+    objects.sort((a,b)=>a.y-b.y||a.order-b.order);
+    for(const object of objects) object.paint();
   }
   function drawMiniMap() {
     const mx = L.SIZE - 185, my = 16, mw = 169, mh = 126;
@@ -627,15 +576,9 @@
     ctx.save();
     ctx.translate(-state.camera.x, -state.camera.y);
     drawGround();
-    drawObstacles();
-    drawShelters(time);
+    drawObstaclesBase();
     drawHazards(time);
-    drawExit(time);
-    drawKey(time);
-    for (const star of state.stars) if (!star.collected) drawStar(star.x, star.y, time);
-    for (const enemy of state.enemies) drawEnemy(enemy, time);
-    if (state.jaguar) drawEnemy(state.jaguar, time);
-    drawPlayer(time);
+    drawWorldActors(time);
     ctx.restore(); // World space ends; HUD and effects stay fixed to the viewport.
     drawMiniMap();
     if (L.remainingTime(time, state.mode) <= 20) {
@@ -657,6 +600,18 @@
     }
     requestAnimationFrame(frame);
   }
+  function paintAvatarPreviews() {
+    for (const [id, bunny] of [["explorerPreview", false], ["bunnyPreview", true]]) {
+      const preview = $(id);
+      const previewCtx = preview?.getContext("2d");
+      if (!previewCtx) continue;
+      previewCtx.clearRect(0, 0, 98, 112);
+      R.drawPlayer(previewCtx, { x: 49, y: 108 }, {
+        facing: "down", moving: false, walk: 0, bunny,
+      });
+    }
+  }
   updateLifeChoice();
+  paintAvatarPreviews();
   requestAnimationFrame(frame);
 })();

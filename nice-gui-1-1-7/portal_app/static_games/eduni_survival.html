@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#10352f">
-  <title>마주치지 마! | 넓은 정글 탐험 v0.4.1</title>
+  <title>마주치지 마! | 2.5D 정글 탐험 v0.5</title>
   <style>
     :root { color-scheme: dark; --ink:#f4fff7; --muted:#bed6cb; --green:#45e0a3; --paper:#163b34; --line:#396456; --gold:#ffe47b; }
     * { box-sizing:border-box; }
@@ -28,7 +28,9 @@
     .setting-title { display:flex; gap:7px; align-items:center; font-weight:900; margin-bottom:11px; }
     .choice-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:11px; }
     .avatar { min-height:130px; color:var(--ink); background:#153e34; border:2px solid #568b70; border-radius:18px; display:flex; flex-direction:column; gap:7px; align-items:center; justify-content:center; font-size:17px; font-weight:900; }
-    .avatar span { font-size:51px; filter:drop-shadow(0 7px 0 #0b231f); line-height:1.2; }
+    .avatar-preview { display:block; width:98px; height:112px; aspect-ratio:auto; margin:0 auto 3px;
+      background:radial-gradient(ellipse at 50% 72%, #549c65 0%, #28664f 68%, #174433 100%);
+      border:1px solid #5fa77f; border-radius:15px; box-shadow:inset 0 -8px 19px #0b352f66; }
     .avatar[aria-pressed="true"] { background:#237554; border-color:var(--gold); box-shadow:inset 0 0 0 2px var(--gold); }
     .life-box { border-radius:18px; border:1px solid #5b957a; background:#153e34; padding:18px; }
     .life-row { display:flex; justify-content:space-between; align-items:center; }
@@ -112,15 +114,15 @@
   <div class="topline"><span class="brand">EDUNI × 의준의 첫 게임</span><a class="navlink" href="/portal">← 포털 홈</a></div>
 
   <section id="setupScreen" class="card" aria-labelledby="mainTitle">
-    <div class="eyebrow">정글 대탐험 × 서바이벌 · BETA v0.4.1</div>
+    <div class="eyebrow">정글 대탐험 × 서바이벌 · 2.5D BETA v0.5</div>
     <h1 id="mainTitle">마주치지 마!<br>서바이벌 대모험 🌴</h1>
-    <p class="intro">🗺️ 기존 정글탐험처럼 넓은 정글을 돌아다녀요! 나비 숲과 폭포, 고대 유적을 지나 🔑 열쇠를 찾고 🚪 탈출하세요. 악당들에게 쫓기면 🌿 쉼터 안으로 들어가세요! 버튼 없이 바로 자동으로 숨어요.</p>
+    <p class="intro">🌴 입체감 있는 정글을 탐험해요! 씩씩한 탐험가와 동물 친구들이 생동감 있게 움직이고, 나무가 앞뒤로 자연스럽게 겹쳐 보여요. 나비 숲·폭포·고대 유적을 지나 🔑 열쇠를 찾아요. 악당들에게 쫓기면 🌿 쉼터 안으로 들어가세요! 버튼 없이 바로 자동으로 숨어요.</p>
     <div class="setupgrid">
       <div class="setting">
         <div class="setting-title">① 캐릭터를 골라요</div>
         <div class="choice-grid" role="group" aria-label="캐릭터 선택">
-          <button type="button" class="avatar" data-character="explorer" aria-pressed="true"><span aria-hidden="true">🧒</span>씩씩한 탐험가</button>
-          <button type="button" class="avatar" data-character="bunny" aria-pressed="false"><span aria-hidden="true">🐰</span>깡총 토끼</button>
+          <button type="button" class="avatar" data-character="explorer" aria-pressed="true"><canvas class="avatar-preview" id="explorerPreview" width="98" height="112" aria-hidden="true"></canvas>씩씩한 탐험가</button>
+          <button type="button" class="avatar" data-character="bunny" aria-pressed="false"><canvas class="avatar-preview" id="bunnyPreview" width="98" height="112" aria-hidden="true"></canvas>깡총 토끼</button>
         </div>
         <p class="hint">두 캐릭터의 속도는 같아요. 마음에 드는 친구를 골라요.</p>
       </div>
@@ -141,7 +143,7 @@
     </div>
     <div class="map-card" aria-label="베타 맵: 정글">
       <span class="map-icon" aria-hidden="true">🌴</span>
-      <div><strong>③ 2048 × 1536 정글 대탐험</strong><p>정글 야영지 → 나비 숲 · 폭포 계곡 → 고대 유적 → 열쇠 → 탈출! 카메라가 캐릭터를 따라 움직여요.</p></div>
+      <div><strong>③ 2.5D 정글 대탐험</strong><p>파란 모자 탐험가 · 입체 동물 · 나무 그림자 · 앞뒤로 겹치는 숲! 기존 2048 × 1536 월드와 추격·자동 숨기는 그대로예요.</p></div>
     </div>
     <div class="setting" style="margin-top:18px">
       <div class="setting-title">④ 모험 강도</div>
@@ -199,7 +201,7 @@
       <aside class="side" aria-label="게임 설명과 조작">
         <div>
           <h2>🧭 모험 안내</h2>
-          <p class="instruction"><strong>미션:</strong> 🗺️ 넓은 정글 곳곳을 탐험해요! 화면 오른쪽 위 미니맵에서 하얀 점은 내 위치, 노란 점은 열쇠 또는 출구예요. 🐵🐍 악당들이 계속 쫓아와요! 🌿 덤불 4초 · 🪵 통나무 5초 · 🕳️ 동굴 6초만 숨을 수 있어요.<br><strong>은신:</strong> 쉼터 원 안으로 들어가면 자동으로 숨어요! 숨으면 악당들이 다른 곳으로 이동해요. 나와도 잠깐 그곳을 수색해요. 시간이 끝나면 장소가 사라지고 1.3초 보호 + 잠깐 속도 증가.<br><strong>목표:</strong> 🔑 열쇠 → 🐆 추가 추격 → 🚪 출구!</p>
+          <p class="instruction"><strong>미션:</strong> 🌲 그림자와 입체감 있는 정글 곳곳을 탐험해요! 화면 오른쪽 위 미니맵에서 하얀 점은 내 위치, 노란 점은 열쇠 또는 출구예요. 🐵🐍 악당들이 계속 쫓아와요! 🌿 덤불 4초 · 🪵 통나무 5초 · 🕳️ 동굴 6초만 숨을 수 있어요.<br><strong>은신:</strong> 쉼터 원 안으로 들어가면 자동으로 숨어요! 숨으면 악당들이 다른 곳으로 이동해요. 나와도 잠깐 그곳을 수색해요. 시간이 끝나면 장소가 사라지고 1.3초 보호 + 잠깐 속도 증가.<br><strong>목표:</strong> 🔑 열쇠 → 🐆 추가 추격 → 🚪 출구!</p>
           <p class="instruction">PC: 방향키/WASD로 쉼터 안에 들어가면 <strong>자동 숨기</strong> · E로 먼저 나오기 · 스페이스/Shift 질주<br>모바일: 방향 버튼으로 쉼터 안에 들어가면 즉시 숨어요. 버튼을 누를 필요 없어요.</p>
         </div>
         <div class="controls" aria-label="방향 조작">
@@ -216,7 +218,8 @@
     <p id="liveStatus" class="game-footer" role="status" aria-live="polite">👹 추격! 🌿 은신처에서 잠깐 숨고 도망쳐요!</p>
   </section>
 </main>
-<script src="/survival-static/logic.js?v=41"></script>
-<script src="/survival-static/game.js?v=41"></script>
+<script src="/survival-static/logic.js?v=5"></script>
+<script src="/survival-static/render25d.js?v=5"></script>
+<script src="/survival-static/game.js?v=5"></script>
 </body>
 </html>

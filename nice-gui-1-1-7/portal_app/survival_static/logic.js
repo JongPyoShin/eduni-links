@@ -5,7 +5,15 @@
   if (root) root.SurvivalLogic = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
-  const SIZE = 720;
+  const SIZE = 720; // Visible viewport; world geometry is much larger.
+  const WORLD_WIDTH = 2048;
+  const WORLD_HEIGHT = 1536;
+  const WORLD_AREAS = Object.freeze([
+    Object.freeze({ name: "이끼길 입구", x: 0, y: 1000, w: 650, h: 536 }),
+    Object.freeze({ name: "나비 숲", x: 0, y: 0, w: 1010, h: 1000 }),
+    Object.freeze({ name: "폭포 계곡", x: 650, y: 850, w: 1398, h: 686 }),
+    Object.freeze({ name: "고대 유적", x: 1010, y: 0, w: 1038, h: 850 }),
+  ]);
   const PADDING = 26;
   const PLAYER_RADIUS = 20;
   const ENEMY_COOLDOWN_SECONDS = 1.5;
@@ -13,54 +21,72 @@
   const DASH_BOOST = 2.05;
   const DASH_SECONDS = 0.5;
   const DASH_COOLDOWN = 5;
-  const TIME_LIMITS = Object.freeze({ thrill: 45, explore: 90 });
-  const START = Object.freeze({ x: 78, y: 637 });
-  const EXIT = Object.freeze({ x: 635, y: 83, radius: 38 });
+  const TIME_LIMITS = Object.freeze({ thrill: 105, explore: 180 });
+  const START = Object.freeze({ x: 124, y: 1325 });
+  const EXIT = Object.freeze({ x: 1890, y: 144, radius: 38 });
+  // World-scale trees and thickets leave multiple routes between clearings.
   const OBSTACLES = Object.freeze([
-    Object.freeze({ x: 155, y: 480, w: 153, h: 52 }),
-    Object.freeze({ x: 272, y: 299, w: 64, h: 159 }),
-    Object.freeze({ x: 424, y: 149, w: 55, h: 160 }),
-    Object.freeze({ x: 437, y: 486, w: 143, h: 50 }),
+    Object.freeze({ x: 232, y: 1110, w: 156, h: 56 }),
+    Object.freeze({ x: 492, y: 1238, w: 74, h: 165 }),
+    Object.freeze({ x: 395, y: 834, w: 160, h: 77 }),
+    Object.freeze({ x: 695, y: 667, w: 81, h: 183 }),
+    Object.freeze({ x: 925, y: 1105, w: 206, h: 65 }),
+    Object.freeze({ x: 1045, y: 374, w: 77, h: 236 }),
+    Object.freeze({ x: 1250, y: 785, w: 174, h: 65 }),
+    Object.freeze({ x: 1472, y: 1120, w: 100, h: 226 }),
+    Object.freeze({ x: 1710, y: 515, w: 190, h: 72 }),
+    Object.freeze({ x: 1730, y: 240, w: 64, h: 185 }),
+    Object.freeze({ x: 310, y: 295, w: 190, h: 78 }),
+    Object.freeze({ x: 631, y: 161, w: 75, h: 193 }),
+    Object.freeze({ x: 1350, y: 302, w: 162, h: 71 }),
+    Object.freeze({ x: 835, y: 1320, w: 123, h: 95 }),
   ]);
   const ENEMIES = Object.freeze([
-    Object.freeze({ id: "monkey-south", kind: "monkey", x: 93, y: 405, radius: 22, axis: "x", min: 70, max: 246, speed: 94, direction: 1 }),
-    Object.freeze({ id: "snake-middle", kind: "snake", x: 386, y: 360, radius: 19, axis: "y", min: 344, max: 627, speed: 107, direction: 1 }),
-    Object.freeze({ id: "monkey-north", kind: "monkey", x: 558, y: 220, radius: 22, axis: "x", min: 508, max: 659, speed: 110, direction: 1 }),
+    Object.freeze({ id: "monkey-south", kind: "monkey", x: 310, y: 1040, radius: 22, axis: "x", min: 270, max: 430, speed: 104, direction: 1 }),
+    Object.freeze({ id: "snake-middle", kind: "snake", x: 980, y: 825, radius: 19, axis: "y", min: 750, max: 1040, speed: 113, direction: 1 }),
+    Object.freeze({ id: "monkey-north", kind: "monkey", x: 1525, y: 525, radius: 22, axis: "x", min: 1480, max: 1670, speed: 115, direction: 1 }),
   ]);
-  // The key is reachable without entering a hazard; taking it wakes the jaguar.
-  const KEY = Object.freeze({ x: 611, y: 367, radius: 19 });
-  const JAGUAR = Object.freeze({ x: 597, y: 199, radius: 22, speed: 174, kind: "jaguar" });
-  // A shelter is a one-use hiding place. Hiding has a fixed limit, then it vanishes.
+  const KEY = Object.freeze({ x: 1685, y: 938, radius: 19 });
+  const JAGUAR = Object.freeze({ x: 1838, y: 365, radius: 22, speed: 174, kind: "jaguar" });
+  // One-use hideouts distributed across the journey, not stacked near spawn.
   const HIDE_EXIT_GRACE = 1.3;
   const HIDE_EXIT_BOOST = 0.8;
-  const SEARCH_SAFE_RADIUS = 210;
+  const SEARCH_SAFE_RADIUS = 255;
   const SEARCH_AFTER_HIDE_SECONDS = 2.8;
-  // Search areas far from shelter entrances, rather than waiting beside the child.
   const SEARCH_LOCATIONS = Object.freeze([
-    Object.freeze({ x: 95, y: 100 }),
-    Object.freeze({ x: 620, y: 105 }),
-    Object.freeze({ x: 90, y: 620 }),
-    Object.freeze({ x: 620, y: 620 }),
-    Object.freeze({ x: 344, y: 94 }),
-    Object.freeze({ x: 350, y: 625 }),
-    Object.freeze({ x: 95, y: 340 }),
-    Object.freeze({ x: 622, y: 340 }),
+    Object.freeze({ x: 115, y: 110 }),
+    Object.freeze({ x: 1900, y: 110 }),
+    Object.freeze({ x: 115, y: 1410 }),
+    Object.freeze({ x: 1900, y: 1410 }),
+    Object.freeze({ x: 590, y: 410 }),
+    Object.freeze({ x: 1185, y: 180 }),
+    Object.freeze({ x: 1150, y: 1435 }),
+    Object.freeze({ x: 520, y: 1450 }),
+    Object.freeze({ x: 1930, y: 810 }),
+    Object.freeze({ x: 170, y: 795 }),
   ]);
   const SHELTERS = Object.freeze([
-    Object.freeze({ id: "bush-south", kind: "bush", name: "덤불", x: 112, y: 576, radius: 32, hideSeconds: 4 }),
-    Object.freeze({ id: "log-middle", kind: "log", name: "통나무", x: 380, y: 571, radius: 33, hideSeconds: 5 }),
-    Object.freeze({ id: "cave-north", kind: "cave", name: "동굴", x: 367, y: 238, radius: 35, hideSeconds: 6 }),
-    Object.freeze({ id: "bush-east", kind: "bush", name: "덤불", x: 588, y: 300, radius: 31, hideSeconds: 4 }),
+    Object.freeze({ id: "bush-start", kind: "bush", name: "덤불", x: 190, y: 1235, radius: 32, hideSeconds: 4 }),
+    Object.freeze({ id: "log-grove", kind: "log", name: "통나무", x: 590, y: 1055, radius: 33, hideSeconds: 5 }),
+    Object.freeze({ id: "cave-butterfly", kind: "cave", name: "동굴", x: 585, y: 580, radius: 35, hideSeconds: 6 }),
+    Object.freeze({ id: "bush-mid", kind: "bush", name: "덤불", x: 1005, y: 930, radius: 31, hideSeconds: 4 }),
+    Object.freeze({ id: "log-waterfall", kind: "log", name: "통나무", x: 1260, y: 1220, radius: 33, hideSeconds: 5 }),
+    Object.freeze({ id: "cave-ruins", kind: "cave", name: "동굴", x: 1455, y: 540, radius: 35, hideSeconds: 6 }),
+    Object.freeze({ id: "bush-key", kind: "bush", name: "덤불", x: 1800, y: 1055, radius: 32, hideSeconds: 4 }),
+    Object.freeze({ id: "log-gate", kind: "log", name: "통나무", x: 1645, y: 140, radius: 33, hideSeconds: 5 }),
   ]);
-  // Fruit fall warning (orange ring) → short dangerous pulse (red ring).
   const HAZARDS = Object.freeze([
-    Object.freeze({ x: 205, y: 252, radius: 41, phase: 0 }),
-    Object.freeze({ x: 548, y: 390, radius: 41, phase: 2.7 }),
+    Object.freeze({ x: 435, y: 725, radius: 41, phase: 0 }),
+    Object.freeze({ x: 890, y: 985, radius: 41, phase: 2.7 }),
+    Object.freeze({ x: 1400, y: 990, radius: 41, phase: 4.4 }),
+    Object.freeze({ x: 1790, y: 660, radius: 41, phase: 1.2 }),
   ]);
   const STARS = Object.freeze([
-    Object.freeze({ x: 102, y: 213 }),
-    Object.freeze({ x: 392, y: 101 }),
-    Object.freeze({ x: 632, y: 404 }),
+    Object.freeze({ x: 230, y: 850 }),
+    Object.freeze({ x: 745, y: 425 }),
+    Object.freeze({ x: 1160, y: 1290 }),
+    Object.freeze({ x: 1555, y: 210 }),
+    Object.freeze({ x: 1920, y: 850 }),
   ]);
   function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
   function selectLives(value) {
@@ -77,8 +103,8 @@
     return (x - nearX) ** 2 + (y - nearY) ** 2 < radius ** 2;
   }
   function canOccupy(x, y, radius = PLAYER_RADIUS, obstacles = OBSTACLES) {
-    if (x - radius < PADDING || x + radius > SIZE - PADDING ||
-        y - radius < PADDING || y + radius > SIZE - PADDING) return false;
+    if (x - radius < PADDING || x + radius > WORLD_WIDTH - PADDING ||
+        y - radius < PADDING || y + radius > WORLD_HEIGHT - PADDING) return false;
     return !obstacles.some((rect) => circleHitsRect(x, y, radius, rect));
   }
   function movePlayer(pos, dx, dy, elapsed, obstacles = OBSTACLES, speedMultiplier = 1) {
@@ -121,16 +147,19 @@
   // Small deterministic walkability grid. Recompute at most once per second in the game loop.
   // 24 px cells keep the chase smart around tree trunks with no third-party pathfinder.
   function findChasePath(from, to) {
-    const step = 24, origin = PADDING + PLAYER_RADIUS, side = 27, size = side * side;
+    const step = 24, origin = PADDING + PLAYER_RADIUS;
+    const cols = Math.floor((WORLD_WIDTH - 2 * origin) / step) + 1;
+    const rows = Math.floor((WORLD_HEIGHT - 2 * origin) / step) + 1;
+    const size = cols * rows;
     const passable = new Uint8Array(size);
-    for (let y = 0; y < side; y++) for (let x = 0; x < side; x++) {
-      passable[y * side + x] = canOccupy(origin + x * step, origin + y * step, 22) ? 1 : 0;
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      passable[y * cols + x] = canOccupy(origin + x * step, origin + y * step, 22) ? 1 : 0;
     }
     function closest(point) {
       let best = -1, bestDist = Infinity;
       for (let i = 0; i < size; i++) if (passable[i]) {
-        const x = origin + (i % side) * step;
-        const y = origin + Math.floor(i / side) * step;
+        const x = origin + (i % cols) * step;
+        const y = origin + Math.floor(i / cols) * step;
         const d = (x - point.x) ** 2 + (y - point.y) ** 2;
         if (d < bestDist) { bestDist = d; best = i; }
       }
@@ -145,9 +174,9 @@
     queue[tail++] = start; previous[start] = start;
     while (head < tail && previous[goal] < 0) {
       const here = queue[head++];
-      const x = here % side, y = Math.floor(here / side);
-      const neighbors = [x + 1 < side ? here + 1 : -1, x > 0 ? here - 1 : -1,
-        y + 1 < side ? here + side : -1, y > 0 ? here - side : -1];
+      const x = here % cols, y = Math.floor(here / cols);
+      const neighbors = [x + 1 < cols ? here + 1 : -1, x > 0 ? here - 1 : -1,
+        y + 1 < rows ? here + cols : -1, y > 0 ? here - cols : -1];
       for (const next of neighbors) {
         if (next < 0 || !passable[next] || previous[next] !== -1) continue;
         previous[next] = here;
@@ -162,8 +191,8 @@
     }
     indices.reverse();
     return indices.slice(1).map(i => ({
-      x: origin + (i % side) * step,
-      y: origin + Math.floor(i / side) * step,
+      x: origin + (i % cols) * step,
+      y: origin + Math.floor(i / cols) * step,
     }));
   }
 
@@ -175,6 +204,15 @@
   function hideCountdown(current, elapsed) {
     const next = Math.max(0, current - clamp(Number.isFinite(elapsed) ? elapsed : 0, 0, 0.05));
     return { remaining: next, expired: next <= 0 };
+  }
+  function cameraFor(player) {
+    return { x: clamp(player.x - SIZE / 2, 0, WORLD_WIDTH - SIZE),
+      y: clamp(player.y - SIZE / 2, 0, WORLD_HEIGHT - SIZE) };
+  }
+  function areaFor(point) {
+    const area = WORLD_AREAS.find(a =>
+      point.x >= a.x && point.x < a.x + a.w && point.y >= a.y && point.y < a.y + a.h);
+    return area ? area.name : "깊은 정글";
   }
   function searchTarget(shelter, round, enemyIndex) {
     // Deliberately scatter enemies to distant, traversable map regions.
@@ -242,7 +280,7 @@
     return Math.round((100 + remaining * 20 + safeStars * 50 + timeBonus) * scoreMultiplier(startingLives));
   }
   return Object.freeze({
-    SIZE, PADDING, PLAYER_RADIUS, PLAYER_SPEED, START, EXIT, OBSTACLES, ENEMIES, STARS,
+    SIZE, WORLD_WIDTH, WORLD_HEIGHT, WORLD_AREAS, cameraFor, areaFor, PADDING, PLAYER_RADIUS, PLAYER_SPEED, START, EXIT, OBSTACLES, ENEMIES, STARS,
     ENEMY_COOLDOWN_SECONDS, DASH_BOOST, DASH_SECONDS, DASH_COOLDOWN, TIME_LIMITS, KEY, JAGUAR, HAZARDS,
     SHELTERS, HIDE_EXIT_GRACE, HIDE_EXIT_BOOST, SEARCH_SAFE_RADIUS, SEARCH_AFTER_HIDE_SECONDS,
     SEARCH_LOCATIONS, nearbyShelter, hideCountdown, hideStateStart, hideStateEnd, searchTarget,

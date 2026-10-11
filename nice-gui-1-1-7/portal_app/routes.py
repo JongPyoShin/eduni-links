@@ -26,6 +26,7 @@ EDUNI_LINK_URL = "/link"
 EDUNI_OMOK_URL = "/omok"
 EDUNI_JUNGLE_URL = "/jungle"
 EDUNI_SURVIVAL_URL = "/survival"
+EDUNI_GAME_PORTAL_URL = "/portal/games"
 GAME_STATIC_DIR = Path(__file__).resolve().parent / "static_games"
 JUNGLE_STATIC_DIR = Path(__file__).resolve().parent / "jungle_static"
 SURVIVAL_STATIC_DIR = Path(__file__).resolve().parent / "survival_static"
@@ -279,7 +280,7 @@ def register_pages() -> None:
                         ui.link("수학 바로가기", "/portal/world/math").classes("portal-action q-btn q-btn-item q-btn--standard bg-dark text-white q-px-md")
                         ui.link("의준 링크", EDUNI_LINK_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-positive text-white q-px-md")
                         ui.link("AI 오목", EDUNI_OMOK_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-deep-purple text-white q-px-md")
-                        ui.link("정글 새탐험", EDUNI_JUNGLE_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-teal text-white q-px-md")
+                        ui.link("🎮 게임포털", EDUNI_GAME_PORTAL_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-teal text-white q-px-md")
                         ui.link("부모 화면", "/portal/parent").classes("portal-action q-btn q-btn-item q-btn--outline q-px-md")
                 with ui.element("div").classes("portal-console"):
                     with ui.element("div").classes("portal-tiles"):
@@ -291,15 +292,12 @@ def register_pages() -> None:
 
             ui.label("외부에서 바로 접속하려면 해당 기기에 Tailscale이 연결되어 있어야 합니다. 같은 Wi-Fi 여부와는 별개로, Tailscale 가족망 안이면 이 서버 주소가 통합니다.").classes("portal-notice q-mt-md")
 
-            _section_title("빠른 시작", "자주 쓰는 학습과 게임으로 바로 이동합니다.")
+            _section_title("빠른 시작", "게임은 전용 게임포털에서 한 번에 선택할 수 있어요.")
             with ui.element("section").classes("portal-quick"):
-                _portal_card(EDUNI_JUNGLE_URL, "정글 새탐험", "정글 맵을 탐험하며 새를 채집하는 모험", "탐험", "portal-game-jungle")
-                _portal_card(EDUNI_SURVIVAL_URL, "마주치지 마! 서바이벌", "의준이가 만든 정글 생존 게임 · 2.5D 탐험·추격", "베타", "portal-game-green")
-                _portal_card(EDUNI_OMOK_URL, "AI 오목", "AI 친구와 오목을 두는 두뇌 게임", "신규", "portal-game-violet")
-                _portal_card(EDUNI_LINK_URL, "의준 링크", "의준 얼굴 블럭을 연결하는 모바일 퍼즐", "신규", "portal-game-pink")
-                _portal_card("/bubble-shooter", "한자 슈터", "목표 한자를 맞히는 버블 슈터 게임", "게임", "portal-game-blue")
-                _portal_card("/bubble", "버블 게임", "짧게 집중해서 푸는 한자 게임", "게임", "portal-game-amber")
-                _portal_card("/", "블록 퍼즐", "가볍게 머리를 깨우는 퍼즐", "게임", "portal-game-green")
+                _portal_card(EDUNI_GAME_PORTAL_URL, "🎮 의준이 게임포털",
+                             "정글·북극·피라미드 서바이벌과 모든 게임을 한곳에서 선택", "게임 모음", "portal-game-green")
+                _portal_card("/portal/world/math", "수학탐험대", "수학 학습 활동 바로가기", "학습", "portal-game-violet")
+                _portal_card(HANJA_URL, "한자마을", "한자 시험과 학습", "학습", "portal-game-amber")
 
             _section_title("학습 세계", "동적 포털의 실제 학습 경로와 맞췄습니다.")
             with ui.element("section").classes("portal-worlds"):
@@ -307,6 +305,34 @@ def register_pages() -> None:
                 _portal_card("/portal/world/math", "수학탐험대", "패턴 기차와 정글 탐험 활동", "포털", icon="+", accent="#7c3aed")
                 _portal_card("/portal", "영어", "다음 단계에서 확장 예정", "준비 중", icon="A", accent="#2563eb")
                 _portal_card("/portal", "과학", "다음 단계에서 확장 예정", "준비 중", icon="S", accent="#14b8a6")
+
+    @ui.page(EDUNI_GAME_PORTAL_URL)
+    def games_portal() -> None:
+        _head()
+        with ui.element("main").classes("portal-shell"):
+            ui.link("← 가족 포털로 돌아가기", "/portal").classes("muted")
+            with ui.element("section").classes("portal-hero q-mt-md"):
+                with ui.element("div"):
+                    ui.label("EDUNI GAME PORTAL").classes("portal-eyebrow")
+                    ui.label("🎮 의준이 게임포털").classes("portal-title")
+                    ui.label("하고 싶은 게임을 골라 시작해요. 마주치지 마! 서바이벌은 정글·북극·피라미드 3개 월드로 즐길 수 있어요.").classes("portal-copy")
+                with ui.element("div").classes("portal-console"):
+                    with ui.element("div").classes("portal-tiles"):
+                        for emoji in ("🌴", "❄️", "🏺", "🎮"):
+                            ui.label(emoji).classes("portal-tile")
+                    ui.label("3개 서바이벌 월드 · 기존 게임 모두 유지").classes("text-center text-weight-bold")
+            _section_title("서바이벌 대모험", "월드를 고르면 악당과 쉼터도 함께 바뀌어요.")
+            with ui.element("section").classes("portal-grid"):
+                _portal_card(EDUNI_SURVIVAL_URL, "마주치지 마! 서바이벌",
+                             "🌴 정글 · ❄️ 북극 · 🏺 피라미드 · 자동 숨기 · 열쇠 탈출", "3개 월드", "portal-game-green")
+            _section_title("다른 게임", "다른 게임도 모두 이곳에서 시작할 수 있어요.")
+            with ui.element("section").classes("portal-grid"):
+                _portal_card(EDUNI_JUNGLE_URL, "정글 새탐험", "정글을 탐험하며 새를 모아요", "탐험", "portal-game-jungle")
+                _portal_card(EDUNI_LINK_URL, "의준 링크", "얼굴 블록을 잇는 모바일 퍼즐", "퍼즐", "portal-game-pink")
+                _portal_card(EDUNI_OMOK_URL, "AI 오목", "AI 친구와 오목 대결", "전략", "portal-game-violet")
+                _portal_card("/bubble-shooter", "한자 슈터", "한자를 맞히는 버블 슈터", "게임", "portal-game-blue")
+                _portal_card("/bubble", "버블 게임", "한자 퍼즐 연습", "게임", "portal-game-amber")
+                _portal_card("/", "블록 퍼즐", "가볍게 머리를 깨우는 퍼즐", "게임", "portal-game-green")
 
     @ui.page("/portal/world/{world_id}")
     def world_page(world_id: str) -> None:

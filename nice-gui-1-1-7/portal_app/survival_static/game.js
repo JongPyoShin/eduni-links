@@ -1,9 +1,11 @@
-/* 마주치지 마! v0.5 — painter-sorted jungle explorer 2.5D art; offline/browser-only */
+/* 마주치지 마! v0.6 — three-world survival adventure; offline/browser-only */
 (() => {
   "use strict";
   const L = window.SurvivalLogic;
   const R = window.SurvivalArt25D;
-  if (!L || !R) {
+  const Worlds = window.SurvivalWorlds;
+  const ThemeArt = window.SurvivalWorldArt25D;
+  if (!L || !R || !Worlds || !ThemeArt) {
     document.body.textContent = "게임 그래픽을 불러올 수 없습니다. 다시 접속해 주세요.";
     return;
   }
@@ -18,6 +20,7 @@
   const pointerDirections = new Map();
   let character = "explorer";
   let selectedMode = "thrill";
+  let selectedWorld = "jungle";
   let state = null;
   let lastFrame = 0;
 
@@ -53,13 +56,22 @@
   }));
 
 
+  document.querySelectorAll("[data-world]").forEach(button => button.addEventListener("click", () => {
+    selectedWorld = Worlds.getWorld(button.dataset.world).id;
+    document.querySelectorAll("[data-world]").forEach(candidate =>
+      candidate.setAttribute("aria-pressed", String(candidate.dataset.world === selectedWorld)));
+    const world = Worlds.getWorld(selectedWorld);
+    $("worldHint").textContent = world.icon + " " + world.subtitle + " · " +
+      world.enemies.map(enemy => ThemeArt.enemyName(enemy.kind)).join(" · ") +
+      " · 보스: " + world.bossName;
+  }));
   document.querySelectorAll("[data-mode]").forEach((button) => button.addEventListener("click", () => {
     selectedMode = button.dataset.mode === "explore" ? "explore" : "thrill";
     document.querySelectorAll("[data-mode]").forEach((candidate) =>
       candidate.setAttribute("aria-pressed", String(candidate.dataset.mode === selectedMode)));
     $("modeHint").textContent = selectedMode === "thrill"
-      ? "⏱ 105초 · 큰 정글 · 빠른 재규어 · 보너스 점수"
-      : "🌿 180초 · 느긋한 정글 탐험 · 연습에 좋아요";
+      ? "⏱ 105초 · 빠른 보스 · 보너스 점수"
+      : "🌿 180초 · 느긋한 월드 탐험 · 연습에 좋아요";
   }));
   function updateDash() {
     if (!state) return;
@@ -75,7 +87,7 @@
     if (!input.dx && !input.dy) { setStatus("방향 버튼을 누른 채 ⚡ 긴급 질주를 눌러요!"); return; }
     state.dashRemaining = L.DASH_SECONDS;
     state.dashCooldown = L.DASH_COOLDOWN;
-    setStatus("⚡ 질주! 재규어와 위험 지역에서 멀어져요!");
+    setStatus("⚡ 질주! 몬스터와 위험 지역에서 멀어져요!");
     updateDash();
   }
   $("dashButton").addEventListener("click", triggerDash);
@@ -128,18 +140,18 @@
     const track = state.chaseRoutes[key] ||= { waypoints: [], age: 0.7 };
     const distracted = Boolean(state.hiding) || state.seconds < state.disperseUntil;
     const target = distracted && state.disperseAnchor
-      ? L.searchTarget(state.disperseAnchor, state.disperseRound, index)
+      ? L.searchTarget(state.disperseAnchor, state.disperseRound, index, state.world.searchLocations, state.world.obstacles)
       : state.player;
     track.age += dt;
     if (track.age >= 0.7) {
-      track.waypoints = L.findChasePath(enemy, target);
+      track.waypoints = L.findChasePath(enemy, target, state.world.obstacles);
       track.age = 0;
     }
     while (track.waypoints.length &&
       Math.hypot(enemy.x - track.waypoints[0].x, enemy.y - track.waypoints[0].y) < 13) {
       track.waypoints.shift();
     }
-    return L.chaseJaguar(enemy, track.waypoints[0] || target, dt, state.mode);
+    return L.chaseJaguar(enemy, track.waypoints[0] || target, dt, state.mode, state.world.obstacles);
   }
   function updateHideControls() {
     if (!state) return;
@@ -160,9 +172,9 @@
   function updateHud() {
     if (!state) return;
     $("hudLives").textContent = state.lives + " / " + state.startingLives;
-    $("hudStars").textContent = state.stars.filter((star) => star.collected).length + " / " + L.STARS.length;
-    $("hudArea").textContent = "📍 " + L.areaFor(state.player);
-    const goal = state.keyCollected ? L.EXIT : L.KEY;
+    $("hudStars").textContent = state.stars.filter((star) => star.collected).length + " / " + state.world.stars.length;
+    $("hudArea").textContent = state.world.icon + " " + L.areaFor(state.player, state.world.areas);
+    const goal = state.keyCollected ? state.world.exit : state.world.key;
     $("hudGoal").textContent = (state.keyCollected ? "🚪 출구" : "🔑 열쇠") + " " +
       Math.ceil(Math.hypot(goal.x - state.player.x, goal.y - state.player.y) / 20) + "걸음";
     $("hudTime").textContent = L.remainingTime(state.seconds, state.mode) + "초 남음";
@@ -181,16 +193,16 @@
   function begin() {
     clearInput();
     state = {
-      phase: "playing", character, mode: selectedMode, startingLives: L.selectLives(range.value),
-      lives: L.selectLives(range.value), player: { ...L.START, radius: L.PLAYER_RADIUS },
-      enemies: L.ENEMIES.map((enemy) => ({ ...enemy, speed: enemy.speed * 1.22 })),
+      phase: "playing", character, mode: selectedMode, world: Worlds.getWorld(selectedWorld), startingLives: L.selectLives(range.value),
+      lives: L.selectLives(range.value), player: { ...Worlds.getWorld(selectedWorld).start, radius: L.PLAYER_RADIUS },
+      enemies: Worlds.getWorld(selectedWorld).enemies.map((enemy) => ({ ...enemy, speed: enemy.speed * 1.22 })),
       chaseRoutes: {}, disperseAnchor: null, disperseRound: 0, disperseUntil: 0,
-      stars: L.STARS.map((star) => ({ ...star, collected: false })),
-      shelters: L.SHELTERS.map(shelter => ({ ...shelter, status: "available" })),
+      stars: Worlds.getWorld(selectedWorld).stars.map((star) => ({ ...star, collected: false })),
+      shelters: Worlds.getWorld(selectedWorld).shelters.map(shelter => ({ ...shelter, status: "available" })),
       hiding: null, escapeBoost: 0,
       invulnerable: 0, seconds: 0, flash: 0,
       keyCollected: false, jaguar: null, dashCooldown: 0, dashRemaining: 0, bannerUntil: 0,
-      camera: L.cameraFor(L.START),
+      camera: L.cameraFor(Worlds.getWorld(selectedWorld).start),
       facing: "down", moving: false, walkPhase: 0,
     };
     setup.hidden = true;
@@ -199,7 +211,7 @@
     resultOverlay.hidden = true;
     $("eventBanner").hidden = true;
     $("pauseButton").textContent = "⏸ 일시정지";
-    setStatus("🗺️ 정글 대탐험 시작! 넓은 숲을 돌아다니며 🔑 열쇠를 찾으세요. 미니맵을 보면 길을 찾기 쉬워요!");
+    setStatus(state.world.icon + " " + state.world.name + " 대모험! 🔑 열쇠를 찾아 " + state.world.goalName + "으로 탈출하세요!");
     updateHud();
     lastFrame = performance.now();
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -239,7 +251,7 @@
       reason === "time" ? "⏰ 해가 졌어요! 이번엔 열쇠를 먼저 찾아 빠르게 탈출해 봐요." :
       "목숨을 모두 사용했어요. 위험 예고를 보고 ⚡ 긴급 질주로 피해 보세요!";
     resultOverlay.hidden = false;
-    setStatus(won ? "정글 탈출 성공! 다음 도전에서는 더 많은 별을 찾아보세요." : "게임 종료. 다시 도전 버튼으로 재시작할 수 있어요.");
+    setStatus(won ? state.world.name + " 탈출 성공! 다음 세계에도 도전해 보세요." : "게임 종료. 다시 도전 버튼으로 재시작할 수 있어요.");
   }
   function returnToSetup() {
     state = null;
@@ -329,7 +341,7 @@
     } else {
       const previous = state.player;
       state.player = {
-        ...L.movePlayer(state.player, dx, dy, seconds, L.OBSTACLES,
+        ...L.movePlayer(state.player, dx, dy, seconds, state.world.obstacles,
           state.dashRemaining > 0 ? L.DASH_BOOST : state.escapeBoost > 0 ? 1.55 : 1),
         radius: L.PLAYER_RADIUS,
       };
@@ -351,23 +363,24 @@
         setStatus("⭐ 반짝이는 별을 찾았어요!");
       }
     }
-    if (!state.hiding && !state.keyCollected && Math.hypot(state.player.x - L.KEY.x, state.player.y - L.KEY.y) < 36) {
+    if (!state.hiding && !state.keyCollected && Math.hypot(state.player.x - state.world.key.x, state.player.y - state.world.key.y) < 36) {
       state.keyCollected = true;
-      state.jaguar = { ...L.JAGUAR };
+      state.jaguar = { ...state.world.boss };
       state.bannerUntil = state.seconds + 2.4;
+      $("eventBanner").textContent = "⚠️ " + state.world.bossName + " 등장! 탈출문으로 달려요!";
       $("eventBanner").hidden = false;
-      setStatus("🔑 열쇠 획득! 🐆 재규어가 깨어났어요! 이제 출구로 달려요!");
+      setStatus("🔑 열쇠 획득! " + state.world.bossName + "이 깨어났어요! 이제 출구로 달려요!");
     }
     if (state.jaguar) {
       state.jaguar = followChaser(state.jaguar, "jaguar", 3, seconds);
     }
     // Gate only opens after the key; arriving at a locked gate never silently wins.
-    if (!state.hiding && L.hasEscaped(state.player) && state.keyCollected) { finish(true); return; }
-    if (L.hasEscaped(state.player) && !state.keyCollected && !state.nearGateWarned) {
+    if (!state.hiding && L.hasEscaped(state.player, state.world.exit) && state.keyCollected) { finish(true); return; }
+    if (L.hasEscaped(state.player, state.world.exit) && !state.keyCollected && !state.nearGateWarned) {
       state.nearGateWarned = true;
-      setStatus("🔒 출구가 잠겼어요. 정글 오른쪽의 🔑 열쇠가 필요해요!");
+      setStatus("🔒 출구가 잠겼어요. 이 월드의 🔑 열쇠가 필요해요!");
     }
-    const fallingFruit = !state.hiding && L.HAZARDS.some((h) =>
+    const fallingFruit = !state.hiding && state.world.hazards.some((h) =>
       L.dangerPhase(state.seconds, h.phase, state.mode) === "active" &&
       L.circlesTouch(state.player, h));
     const touching = !state.hiding && (fallingFruit ||
@@ -378,7 +391,7 @@
       state.lives = hit.lives;
       state.invulnerable = hit.invulnerableSeconds;
       state.flash = 0.35;
-      setStatus("앗! " + (fallingFruit ? "나무 열매가 떨어졌어요!" : "적과 마주쳤어요!") +
+      setStatus("앗! " + (fallingFruit ? state.world.hazardName + "에 맞았어요!" : "적과 마주쳤어요!") +
         " 목숨 -1 · 잠시 무적!");
 
       if (hit.dead) { finish(false); return; }
@@ -406,6 +419,10 @@
       y >= state.camera.y - pad && y <= state.camera.y + L.SIZE + pad;
   }
   function drawGround() {
+    if (state.world.id !== "jungle") {
+      ThemeArt.drawGround(ctx,state.world,state.camera,state.seconds);
+      return;
+    }
     const ground = ctx.createLinearGradient(0, 0, L.WORLD_WIDTH, L.WORLD_HEIGHT);
     ground.addColorStop(0, "#6aaf66");
     ground.addColorStop(.55, "#81b971");
@@ -485,44 +502,47 @@
     }
   }
   function drawObstaclesBase() {
-    L.OBSTACLES.forEach((rect) => {
+    const A = state.world.id === "jungle" ? R : ThemeArt;
+    state.world.obstacles.forEach((rect) => {
       if (onScreen(rect.x + rect.w/2, rect.y + rect.h/2, Math.max(rect.w,rect.h)+140))
-        R.drawObstacleBase(ctx, rect);
+        A.drawObstacleBase(ctx, rect);
     });
   }
   function drawHazards(time) {
-    for (const h of L.HAZARDS) {
+    const A = state.world.id === "jungle" ? R : ThemeArt;
+    for (const h of state.world.hazards) {
       if (!onScreen(h.x,h.y,110)) continue;
-      R.drawHazard(ctx, h, L.dangerPhase(time,h.phase,state.mode), time);
+      A.drawHazard(ctx, h, L.dangerPhase(time,h.phase,state.mode), time);
     }
   }
   function drawWorldActors(time) {
+    const A = state.world.id === "jungle" ? R : ThemeArt;
     // All actors and tree canopies share a single painter's order by foot position.
     // A sprite higher up is drawn first; things in front naturally occlude it.
     const objects = [];
-    L.OBSTACLES.forEach((rect,i) => {
+    state.world.obstacles.forEach((rect,i) => {
       if (!onScreen(rect.x + rect.w/2, rect.y + rect.h/2, Math.max(rect.w,rect.h)+150)) return;
       objects.push({ y: rect.y + rect.h, order: 0,
-        paint: () => R.drawObstacle(ctx,rect,i) });
+        paint: () => A.drawObstacle(ctx,rect,i) });
     });
     for (const shelter of state.shelters) {
       if (shelter.status === "used" || !onScreen(shelter.x,shelter.y,150)) continue;
       const occupied=state.hiding?.shelterId===shelter.id;
       objects.push({ y: shelter.y, order: 1,
-        paint: () => R.drawShelter(ctx,shelter,occupied,
+        paint: () => A.drawShelter(ctx,shelter,occupied,
           occupied ? state.hiding.remaining : 0,time) });
     }
-    if (onScreen(L.EXIT.x,L.EXIT.y,155))
-      objects.push({ y: L.EXIT.y, order: 1, paint: () => R.drawExit(ctx,L.EXIT,state.keyCollected,time) });
-    if (!state.keyCollected && onScreen(L.KEY.x,L.KEY.y,100))
-      objects.push({ y: L.KEY.y, order: 1, paint: () => R.drawKey(ctx,L.KEY,time) });
+    if (onScreen(state.world.exit.x,state.world.exit.y,155))
+      objects.push({ y: state.world.exit.y, order: 1, paint: () => A.drawExit(ctx,state.world.exit,state.keyCollected,time) });
+    if (!state.keyCollected && onScreen(state.world.key.x,state.world.key.y,100))
+      objects.push({ y: state.world.key.y, order: 1, paint: () => A.drawKey(ctx,state.world.key,time) });
     for (const star of state.stars) {
       if (!star.collected && onScreen(star.x,star.y,80))
-        objects.push({ y: star.y, order: 1, paint: () => R.drawStar(ctx,star.x,star.y,time) });
+        objects.push({ y: star.y, order: 1, paint: () => A.drawStar(ctx,star.x,star.y,time) });
     }
     for (const enemy of [...state.enemies,...(state.jaguar?[state.jaguar]:[])]) {
       if(onScreen(enemy.x,enemy.y,140))
-        objects.push({y:enemy.y,order:2,paint:()=>R.drawEnemy(ctx,enemy,time)});
+        objects.push({y:enemy.y,order:2,paint:()=>A.drawEnemy(ctx,enemy,time)});
     }
     if (!state.hiding && onScreen(state.player.x,state.player.y,130)) {
       objects.push({ y: state.player.y, order: 3, paint: () => {
@@ -544,15 +564,15 @@
     const sx = mw / L.WORLD_WIDTH, sy = mh / L.WORLD_HEIGHT;
     ctx.save();
     rounded(mx - 5, my - 5, mw + 10, mh + 28, 14, "#0a332be8", "#d4ebba", 3);
-    ctx.fillStyle = "#78aa6f"; ctx.fillRect(mx, my, mw, mh);
-    ctx.fillStyle = "#3d7452";
-    for (const zone of L.WORLD_AREAS) {
+    ctx.fillStyle = state.world.id === "arctic" ? "#cbeaf3" : state.world.id === "pyramid" ? "#e6c887" : "#78aa6f"; ctx.fillRect(mx, my, mw, mh);
+    ctx.fillStyle = state.world.id === "arctic" ? "#85bfd4" : state.world.id === "pyramid" ? "#b28b59" : "#3d7452";
+    for (const zone of state.world.areas) {
       ctx.fillRect(mx + zone.x * sx, my + zone.y * sy, zone.w * sx, zone.h * sy);
     }
     for (const shelter of state.shelters) if (shelter.status === "available") {
       circle(mx + shelter.x * sx, my + shelter.y * sy, 2.8, "#fff1a2");
     }
-    const goal = state.keyCollected ? L.EXIT : L.KEY;
+    const goal = state.keyCollected ? state.world.exit : state.world.key;
     circle(mx + goal.x * sx, my + goal.y * sy, 5, "#ffe889", "#744c10", 2);
     for (const enemy of [...state.enemies, ...(state.jaguar ? [state.jaguar] : [])])
       circle(mx + enemy.x * sx, my + enemy.y * sy, 3.4, "#e95453");
@@ -561,7 +581,7 @@
     circle(mx + state.player.x * sx, my + state.player.y * sy, 5.5, "#fffef1", "#163d35", 2);
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillStyle = "#f3ffdf"; ctx.font = "900 16px system-ui";
-    ctx.fillText("🗺️ 정글 전체 지도", mx + mw / 2, my + mh + 16);
+    ctx.fillText("🗺️ " + state.world.name + " 전체 지도", mx + mw / 2, my + mh + 16);
     ctx.restore();
   }
   function draw() {

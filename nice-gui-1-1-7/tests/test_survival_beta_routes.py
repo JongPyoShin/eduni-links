@@ -6,7 +6,7 @@ from pathlib import Path
 from nicegui import app
 from starlette.routing import Match
 
-from portal_app.routes import EDUNI_SURVIVAL_URL, eduni_survival_game, register_pages
+from portal_app.routes import EDUNI_GAME_PORTAL_URL, EDUNI_SURVIVAL_URL, eduni_survival_game, register_pages
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,9 +30,13 @@ class SurvivalBetaRouteTests(unittest.TestCase):
         self.assertEqual("/survival", EDUNI_SURVIVAL_URL)
         self.assertIsNotNone(route_for("/survival"))
         self.assertIsNotNone(route_for("/survival/"))
+        self.assertEqual("/portal/games", EDUNI_GAME_PORTAL_URL)
+        self.assertIsNotNone(route_for(EDUNI_GAME_PORTAL_URL))
         self.assertIsNotNone(route_for("/survival-static/logic.js"))
         self.assertIsNotNone(route_for("/survival-static/game.js"))
         self.assertIsNotNone(route_for("/survival-static/render25d.js"))
+        self.assertIsNotNone(route_for("/survival-static/worlds.js"))
+        self.assertIsNotNone(route_for("/survival-static/worldart25d.js"))
 
     def test_beta_html_includes_original_child_rules(self) -> None:
         response = eduni_survival_game()
@@ -42,7 +46,8 @@ class SurvivalBetaRouteTests(unittest.TestCase):
             'id="livesRange"', 'max="35"', 'min="1"',
             'data-character="explorer"', 'data-character="bunny"',
             'data-dir="up"', 'data-dir="down"',
-            '/survival-static/logic.js', '/survival-static/render25d.js', '/survival-static/game.js',
+            '/survival-static/logic.js', '/survival-static/render25d.js',
+            '/survival-static/worlds.js', '/survival-static/worldart25d.js', '/survival-static/game.js',
             'viewport-fit=cover',
         ):
             with self.subTest(expected=expected):
@@ -53,6 +58,13 @@ class SurvivalBetaRouteTests(unittest.TestCase):
             self.assertIsNotNone(route_for(path), path)
         portal_source = (ROOT / "portal_app" / "routes.py").read_text(encoding="utf-8")
         self.assertIn('_portal_card(EDUNI_SURVIVAL_URL, "마주치지 마! 서바이벌"', portal_source)
+        self.assertIn('ui.link("🎮 게임포털", EDUNI_GAME_PORTAL_URL)', portal_source)
+        self.assertIn('_portal_card(EDUNI_GAME_PORTAL_URL, "🎮 의준이 게임포털"', portal_source)
+        game_hub = (ROOT.parent / "games" / "index.html").read_text(encoding="utf-8")
+        landing = (ROOT.parent / "index.html").read_text(encoding="utf-8")
+        self.assertIn('href="../survival/?v=6"', game_hub)
+        self.assertIn('href="./games/"', landing)
+        self.assertNotIn('class="survival" href="./survival/"', landing)
         app_source = (ROOT / "app.py").read_text(encoding="utf-8")
         for game_path in ("@ui.page('/')", "@ui.page('/bubble')", "@ui.page('/bubble-shooter')"):
             self.assertIn(game_path, app_source)

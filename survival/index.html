@@ -53,6 +53,8 @@
     .canvas-wrap { position:relative; overflow:hidden; border:5px solid #7aaf75; border-radius:20px; background:#5c9b61; box-shadow:0 12px 0 #0e3025; touch-action:none; }
     canvas { width:100%; aspect-ratio:1/1; height:auto; display:block; }
     .overlay { position:absolute; inset:0; background:#09291edc; display:flex; align-items:center; justify-content:center; padding:18px; z-index:5; }
+    .chase-alert { position:absolute; z-index:4; top:12%; left:5%; right:5%; pointer-events:none; text-align:center; padding:12px; border:4px solid #ffe6a3; border-radius:16px; background:#9e2939ed; color:#fff; font-weight:1000; font-size:clamp(17px,4vw,29px); text-shadow:0 2px 0 #512331; box-shadow:0 6px 28px #521724aa; }
+    .urgent { color:#ff9494!important; text-shadow:0 0 10px #ff273699; }
     .overlay-card { width:min(94%,450px); padding:22px; border-radius:22px; background:#185442; border:2px solid var(--gold); text-align:center; box-shadow:0 16px 45px #031811aa; }
     .overlay-card h2 { font-size:30px; margin-bottom:10px; }
     .overlay-card p { margin-bottom:18px; }
@@ -167,6 +169,7 @@
     <div class="game-layout">
       <div class="canvas-wrap">
         <canvas id="gameCanvas" width="720" height="720" role="img" aria-label="정글 맵. 왼쪽 아래에서 출발해 오른쪽 위의 반짝이는 출구로 이동하세요."></canvas>
+        <div id="eventBanner" class="chase-alert" hidden role="status" aria-live="polite">🔑 열쇠 획득! 🐆 재규어 추격 시작!</div>
         <div id="pauseOverlay" class="overlay" hidden>
           <div class="overlay-card">
             <h2>⏸ 잠깐 쉬어요!</h2>

@@ -71,7 +71,7 @@
       candidate.setAttribute("aria-pressed", String(candidate.dataset.mode === selectedMode)));
     $("modeHint").textContent = selectedMode === "thrill"
       ? "⏱ 105초 · 빠른 보스 · 보너스 점수"
-      : "🌿 180초 · 느긋한 정글 탐험 · 연습에 좋아요";
+      : "🌿 180초 · 느긋한 월드 탐험 · 연습에 좋아요";
   }));
   function updateDash() {
     if (!state) return;
@@ -87,7 +87,7 @@
     if (!input.dx && !input.dy) { setStatus("방향 버튼을 누른 채 ⚡ 긴급 질주를 눌러요!"); return; }
     state.dashRemaining = L.DASH_SECONDS;
     state.dashCooldown = L.DASH_COOLDOWN;
-    setStatus("⚡ 질주! 재규어와 위험 지역에서 멀어져요!");
+    setStatus("⚡ 질주! 몬스터와 위험 지역에서 멀어져요!");
     updateDash();
   }
   $("dashButton").addEventListener("click", triggerDash);

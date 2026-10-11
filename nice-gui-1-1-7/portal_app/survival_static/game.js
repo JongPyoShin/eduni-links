@@ -1,4 +1,4 @@
-/* 마주치지 마! v0.3.1 — monsters disperse when the child hides; offline/browser-only */
+/* 마주치지 마! v0.4 — scrolling jungle expedition world; offline/browser-only */
 (() => {
   "use strict";
   const L = window.SurvivalLogic;
@@ -57,8 +57,8 @@
     document.querySelectorAll("[data-mode]").forEach((candidate) =>
       candidate.setAttribute("aria-pressed", String(candidate.dataset.mode === selectedMode)));
     $("modeHint").textContent = selectedMode === "thrill"
-      ? "⏱ 45초 · 빠른 재규어 · 보너스 점수"
-      : "🌿 90초 · 느린 재규어 · 연습에 좋아요";
+      ? "⏱ 105초 · 큰 정글 · 빠른 재규어 · 보너스 점수"
+      : "🌿 180초 · 느긋한 정글 탐험 · 연습에 좋아요";
   }));
   function updateDash() {
     if (!state) return;
@@ -150,6 +150,10 @@
     if (!state) return;
     $("hudLives").textContent = state.lives + " / " + state.startingLives;
     $("hudStars").textContent = state.stars.filter((star) => star.collected).length + " / " + L.STARS.length;
+    $("hudArea").textContent = "📍 " + L.areaFor(state.player);
+    const goal = state.keyCollected ? L.EXIT : L.KEY;
+    $("hudGoal").textContent = (state.keyCollected ? "🚪 출구" : "🔑 열쇠") + " " +
+      Math.ceil(Math.hypot(goal.x - state.player.x, goal.y - state.player.y) / 20) + "걸음";
     $("hudTime").textContent = L.remainingTime(state.seconds, state.mode) + "초 남음";
     $("hudTime").classList.remove("urgent");
     if (L.remainingTime(state.seconds, state.mode) <= 15) $("hudTime").classList.add("urgent");
@@ -175,6 +179,7 @@
       hiding: null, escapeBoost: 0,
       invulnerable: 0, seconds: 0, flash: 0,
       keyCollected: false, jaguar: null, dashCooldown: 0, dashRemaining: 0, bannerUntil: 0,
+      camera: L.cameraFor(L.START),
     };
     setup.hidden = true;
     game.hidden = false;
@@ -182,7 +187,7 @@
     resultOverlay.hidden = true;
     $("eventBanner").hidden = true;
     $("pauseButton").textContent = "⏸ 일시정지";
-    setStatus("👹 악당들이 계속 쫓아와요! 🌿 은신처에 가까이 가서 숨으세요. 🔑 열쇠도 찾아요!");
+    setStatus("🗺️ 정글 대탐험 시작! 넓은 숲을 돌아다니며 🔑 열쇠를 찾으세요. 미니맵을 보면 길을 찾기 쉬워요!");
     updateHud();
     lastFrame = performance.now();
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -355,6 +360,10 @@
 
       if (hit.dead) { finish(false); return; }
     }
+    const nextCamera = L.cameraFor(state.player);
+    // Camera follows the hero instead of shrinking the 2048 × 1536 map to 720 pixels.
+    state.camera.x += (nextCamera.x - state.camera.x) * Math.min(1, seconds * 8);
+    state.camera.y += (nextCamera.y - state.camera.y) * Math.min(1, seconds * 8);
     updateHud();
   }
 
@@ -369,37 +378,93 @@
     if (fill) { ctx.fillStyle = fill; ctx.fill(); }
     if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.stroke(); }
   }
+  function onScreen(x, y, pad = 80) {
+    return x >= state.camera.x - pad && x <= state.camera.x + L.SIZE + pad &&
+      y >= state.camera.y - pad && y <= state.camera.y + L.SIZE + pad;
+  }
   function drawGround() {
-    const ground = ctx.createLinearGradient(0, 0, L.SIZE, L.SIZE);
-    ground.addColorStop(0, "#84bb72"); ground.addColorStop(1, "#438d61");
-    ctx.fillStyle = ground; ctx.fillRect(0, 0, L.SIZE, L.SIZE);
-    // Fixed deterministic undergrowth (no frame-to-frame random animation).
-    for (let yi = 0; yi < 21; yi++) {
-      for (let xi = 0; xi < 21; xi++) {
-        const px = xi * 35 + 14 + (yi * 17 % 16);
-        const py = yi * 35 + 12 + (xi * 11 % 13);
-        ctx.fillStyle = ((xi * 7 + yi * 11) % 4 === 0) ? "#8dca79" : "#70ad66";
-        ctx.fillRect(px, py, 7, 4);
+    const ground = ctx.createLinearGradient(0, 0, L.WORLD_WIDTH, L.WORLD_HEIGHT);
+    ground.addColorStop(0, "#6aaf66");
+    ground.addColorStop(.55, "#81b971");
+    ground.addColorStop(1, "#468b5b");
+    ctx.fillStyle = ground;
+    ctx.fillRect(0, 0, L.WORLD_WIDTH, L.WORLD_HEIGHT);
+    // Different regions give an expedition feel like EDUNI's existing jungle exploration.
+    for (const zone of [
+      { x: 0, y: 0, w: 950, h: 780, color: "#497e4d80" },
+      { x: 1070, y: 0, w: 978, h: 830, color: "#356d4e66" },
+      { x: 780, y: 950, w: 1268, h: 586, color: "#acc67855" },
+      { x: 0, y: 1000, w: 620, h: 536, color: "#b0c78355" },
+    ]) {
+      ctx.fillStyle = zone.color; ctx.fillRect(zone.x, zone.y, zone.w, zone.h);
+    }
+    // Exploration trail: two meandering jungle paths, not hard rails.
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.beginPath(); ctx.moveTo(124, 1325);
+    ctx.bezierCurveTo(360, 1170, 335, 965, 650, 895);
+    ctx.bezierCurveTo(885, 800, 1010, 1110, 1290, 1060);
+    ctx.bezierCurveTo(1470, 990, 1490, 805, 1685, 938);
+    ctx.strokeStyle = "#6e633f"; ctx.lineWidth = 101; ctx.stroke();
+    ctx.strokeStyle = "#d7ba7d"; ctx.lineWidth = 85; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(1685, 938);
+    ctx.bezierCurveTo(1560, 660, 1820, 445, 1750, 350);
+    ctx.bezierCurveTo(1700, 235, 1785, 155, 1890, 144);
+    ctx.strokeStyle = "#6e633f"; ctx.lineWidth = 102; ctx.stroke();
+    ctx.strokeStyle = "#dec78d"; ctx.lineWidth = 86; ctx.stroke();
+    // A small waterfall and rock-ringed pond serve as a recognizable landmark.
+    circle(1165, 240, 158, "#327d8199", "#b3e7b0", 16);
+    circle(1165, 240, 112, "#48aabd", "#89e2e7", 10);
+    circle(1160, 211, 64, "#d1f8e6a9");
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = "54px system-ui"; ctx.fillText("💦", 1165, 226);
+    ctx.font = "900 26px system-ui"; ctx.fillStyle = "#f3ffde";
+    ctx.fillText("폭포 계곡", 1165, 352);
+    // Deterministic undergrowth and canopy provide depth while limiting draw calls to the viewport.
+    const minXi = Math.max(0, Math.floor((state.camera.x - 45) / 52));
+    const maxXi = Math.min(Math.ceil(L.WORLD_WIDTH / 52), Math.ceil((state.camera.x + L.SIZE + 45) / 52));
+    const minYi = Math.max(0, Math.floor((state.camera.y - 45) / 52));
+    const maxYi = Math.min(Math.ceil(L.WORLD_HEIGHT / 52), Math.ceil((state.camera.y + L.SIZE + 45) / 52));
+    for (let yi = minYi; yi <= maxYi; yi++) {
+      for (let xi = minXi; xi <= maxXi; xi++) {
+        const px = xi * 52 + 15 + (yi * 17 % 23), py = yi * 52 + 16 + (xi * 11 % 21);
+        if ((xi * 17 + yi * 13) % 5 === 0) {
+          circle(px, py, 8, "#316d4299");
+          circle(px - 4, py - 4, 4, "#b5db7c");
+        } else {
+          ctx.fillStyle = (xi * 7 + yi * 11) % 3 === 0 ? "#aad18488" : "#5d995588";
+          ctx.fillRect(px, py, 11, 5);
+        }
       }
     }
-    // Helpful visual route; movement remains free on the grass.
-    ctx.beginPath(); ctx.moveTo(78, 637);
-    ctx.bezierCurveTo(80, 500, 70, 390, 117, 345);
-    ctx.bezierCurveTo(154, 277, 223, 236, 365, 236);
-    ctx.bezierCurveTo(368, 180, 354, 95, 447, 90);
-    ctx.lineTo(635, 83);
-    ctx.strokeStyle = "#b99b6b"; ctx.lineWidth = 64; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.stroke();
-    ctx.strokeStyle = "#dcc492"; ctx.lineWidth = 51; ctx.stroke();
-    // Leaf borders show world edge.
-    ctx.strokeStyle = "#244e34"; ctx.lineWidth = 30; ctx.strokeRect(11, 11, 698, 698);
-    for (let i = 0; i < 22; i++) {
-      const t = i * 30 + 20;
-      circle(t, 12, 19, "#2c7648"); circle(t, 708, 19, "#347f4b");
-      circle(12, t, 19, "#35814b"); circle(708, t, 19, "#2e7347");
+    // Major landmarks help children recognize where they are, even with the map hidden.
+    for (const marker of [
+      { x: 175, y: 1370, icon: "⛺", label: "정글 야영지" },
+      { x: 540, y: 480, icon: "🦋", label: "나비 숲" },
+      { x: 1055, y: 1355, icon: "🌼", label: "꽃밭 쉼터" },
+      { x: 1450, y: 425, icon: "🗿", label: "고대 유적" },
+      { x: 1750, y: 810, icon: "🌴", label: "신비한 숲길" },
+    ]) {
+      if (!onScreen(marker.x, marker.y, 140)) continue;
+      circle(marker.x, marker.y, 55, "#2f6f4599", "#d6eec1", 4);
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = "47px system-ui"; ctx.fillText(marker.icon, marker.x, marker.y);
+      ctx.font = "900 21px system-ui"; ctx.fillStyle = "#fff7d6";
+      ctx.fillText(marker.label, marker.x, marker.y + 76);
+    }
+    ctx.strokeStyle = "#244e34"; ctx.lineWidth = 30;
+    ctx.strokeRect(11, 11, L.WORLD_WIDTH - 22, L.WORLD_HEIGHT - 22);
+    for (let x = 30; x < L.WORLD_WIDTH; x += 43) {
+      if (onScreen(x, 12, 40)) circle(x, 12, 21, "#2c7648");
+      if (onScreen(x, L.WORLD_HEIGHT - 12, 40)) circle(x, L.WORLD_HEIGHT - 12, 21, "#347f4b");
+    }
+    for (let y = 35; y < L.WORLD_HEIGHT; y += 43) {
+      if (onScreen(12, y, 40)) circle(12, y, 21, "#35814b");
+      if (onScreen(L.WORLD_WIDTH - 12, y, 40)) circle(L.WORLD_WIDTH - 12, y, 21, "#2e7347");
     }
   }
   function drawObstacles() {
     L.OBSTACLES.forEach((rect, idx) => {
+      if (!onScreen(rect.x + rect.w / 2, rect.y + rect.h / 2, Math.max(rect.w, rect.h))) return;
       rounded(rect.x, rect.y, rect.w, rect.h, 13, "#69442a", "#392f20", 5);
       ctx.save();
       ctx.beginPath(); ctx.roundRect(rect.x + 3, rect.y + 3, rect.w - 6, rect.h - 6, 10); ctx.clip();
@@ -414,6 +479,7 @@
   }
   function drawShelters(time) {
     for (const shelter of state.shelters) {
+      if (!onScreen(shelter.x, shelter.y, 125)) continue;
       if (shelter.status === "used") continue; // disappears permanently this round
       const occupied = state.hiding?.shelterId === shelter.id;
       const pulse = 2 * Math.sin(time * 5);
@@ -471,6 +537,7 @@
   }
   function drawHazards(time) {
     L.HAZARDS.forEach((h) => {
+      if (!onScreen(h.x, h.y, 100)) return;
       const phase = L.dangerPhase(time, h.phase, state.mode);
       if (phase === "idle") {
         circle(h.x, h.y, h.radius + 6, "#4f8a5040", "#e9cd8c", 2);
@@ -510,6 +577,31 @@
       circle(p.x, p.y, 33, null, "#e9fff0", 3);
     }
   }
+  function drawMiniMap() {
+    const mx = L.SIZE - 185, my = 16, mw = 169, mh = 126;
+    const sx = mw / L.WORLD_WIDTH, sy = mh / L.WORLD_HEIGHT;
+    ctx.save();
+    rounded(mx - 5, my - 5, mw + 10, mh + 28, 14, "#0a332be8", "#d4ebba", 3);
+    ctx.fillStyle = "#78aa6f"; ctx.fillRect(mx, my, mw, mh);
+    ctx.fillStyle = "#3d7452";
+    for (const zone of L.WORLD_AREAS) {
+      ctx.fillRect(mx + zone.x * sx, my + zone.y * sy, zone.w * sx, zone.h * sy);
+    }
+    for (const shelter of state.shelters) if (shelter.status === "available") {
+      circle(mx + shelter.x * sx, my + shelter.y * sy, 2.8, "#fff1a2");
+    }
+    const goal = state.keyCollected ? L.EXIT : L.KEY;
+    circle(mx + goal.x * sx, my + goal.y * sy, 5, "#ffe889", "#744c10", 2);
+    for (const enemy of [...state.enemies, ...(state.jaguar ? [state.jaguar] : [])])
+      circle(mx + enemy.x * sx, my + enemy.y * sy, 3.4, "#e95453");
+    ctx.strokeStyle = "#e5ffee"; ctx.lineWidth = 1.7;
+    ctx.strokeRect(mx + state.camera.x * sx, my + state.camera.y * sy, L.SIZE * sx, L.SIZE * sy);
+    circle(mx + state.player.x * sx, my + state.player.y * sy, 5.5, "#fffef1", "#163d35", 2);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "#f3ffdf"; ctx.font = "900 16px system-ui";
+    ctx.fillText("🗺️ 정글 전체 지도", mx + mw / 2, my + mh + 16);
+    ctx.restore();
+  }
   function draw() {
     if (!state) return;
     const time = state.seconds;
@@ -519,6 +611,8 @@
     if (state.flash > 0 && !reduced) {
       ctx.translate(Math.sin(time * 150) * 4 * state.flash, Math.cos(time * 110) * 4 * state.flash);
     }
+    ctx.save();
+    ctx.translate(-state.camera.x, -state.camera.y);
     drawGround();
     drawObstacles();
     drawShelters(time);
@@ -529,6 +623,8 @@
     for (const enemy of state.enemies) drawEnemy(enemy, time);
     if (state.jaguar) drawEnemy(state.jaguar, time);
     drawPlayer(time);
+    ctx.restore(); // World space ends; HUD and effects stay fixed to the viewport.
+    drawMiniMap();
     if (L.remainingTime(time, state.mode) <= 20) {
       ctx.fillStyle = "rgba(180,20,45," + (0.09 + Math.max(0,Math.sin(time * 5)) * 0.11) + ")";
       ctx.fillRect(0, 0, L.SIZE, 18);

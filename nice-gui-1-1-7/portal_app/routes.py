@@ -25,10 +25,13 @@ HANJA_URL = "http://100.75.214.95:8080/hanja"
 EDUNI_LINK_URL = "/link"
 EDUNI_OMOK_URL = "/omok"
 EDUNI_JUNGLE_URL = "/jungle"
+EDUNI_SURVIVAL_URL = "/survival"
 GAME_STATIC_DIR = Path(__file__).resolve().parent / "static_games"
 JUNGLE_STATIC_DIR = Path(__file__).resolve().parent / "jungle_static"
+SURVIVAL_STATIC_DIR = Path(__file__).resolve().parent / "survival_static"
 app.add_static_files("/jungle-static", JUNGLE_STATIC_DIR)
 app.add_static_files("/jungle-assets", GAME_STATIC_DIR / "assets")
+app.add_static_files("/survival-static", SURVIVAL_STATIC_DIR)
 
 
 def _game_html_response(filename: str) -> HTMLResponse:
@@ -99,6 +102,12 @@ def eduni_jungle_3d_game() -> HTMLResponse:
 @app.get("/games/eduni-jungle/", response_class=HTMLResponse)
 def eduni_jungle_redirect() -> HTMLResponse:
     return _redirect_html("정글 새탐험으로 이동", EDUNI_JUNGLE_URL)
+
+
+@app.get("/survival", response_class=HTMLResponse)
+@app.get("/survival/", response_class=HTMLResponse)
+def eduni_survival_game() -> HTMLResponse:
+    return _game_html_response("eduni_survival.html")
 
 
 @app.get("/jungle/api/birds/catalog")
@@ -277,7 +286,7 @@ def register_pages() -> None:
                         for text in ("漢", "A", "오목", "정글"):
                             ui.label(text).classes("portal-tile")
                     with ui.element("div").classes("portal-stats"):
-                        for value, label in (("8", "학습 세계"), ("6", "게임 링크"), ("1", "서버 포털")):
+                        for value, label in (("8", "학습 세계"), ("7", "게임 링크"), ("1", "서버 포털")):
                             ui.html(f"<div class='portal-stat'><b>{value}</b><span>{label}</span></div>")
 
             ui.label("외부에서 바로 접속하려면 해당 기기에 Tailscale이 연결되어 있어야 합니다. 같은 Wi-Fi 여부와는 별개로, Tailscale 가족망 안이면 이 서버 주소가 통합니다.").classes("portal-notice q-mt-md")
@@ -285,6 +294,7 @@ def register_pages() -> None:
             _section_title("빠른 시작", "자주 쓰는 학습과 게임으로 바로 이동합니다.")
             with ui.element("section").classes("portal-quick"):
                 _portal_card(EDUNI_JUNGLE_URL, "정글 새탐험", "정글 맵을 탐험하며 새를 채집하는 모험", "탐험", "portal-game-jungle")
+                _portal_card(EDUNI_SURVIVAL_URL, "마주치지 마! 서바이벌", "의준이가 만든 정글 생존 게임 · 2D 자유 이동", "베타", "portal-game-green")
                 _portal_card(EDUNI_OMOK_URL, "AI 오목", "AI 친구와 오목을 두는 두뇌 게임", "신규", "portal-game-violet")
                 _portal_card(EDUNI_LINK_URL, "의준 링크", "의준 얼굴 블럭을 연결하는 모바일 퍼즐", "신규", "portal-game-pink")
                 _portal_card("/bubble-shooter", "한자 슈터", "목표 한자를 맞히는 버블 슈터 게임", "게임", "portal-game-blue")

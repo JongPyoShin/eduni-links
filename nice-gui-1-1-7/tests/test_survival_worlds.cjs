@@ -93,7 +93,7 @@ test("world-specific obstacles matter to player and monster collision and routin
 test("arctic and pyramid have distinct area names and shelter shapes", () => {
   const a=Worlds.getWorld("arctic"),p=Worlds.getWorld("pyramid");
   assert.ok(L.areaFor(a.start,a.areas).includes("탐험기지"));
-  assert.ok(L.areaFor(p.exit,p.areas).includes("유적"));
+  assert.ok(L.areaFor(p.exit,p.areas).includes("출구"));
   assert.deepEqual(new Set(a.shelters.map(s=>s.kind)),new Set(["snowbank","igloo","ice_cave"]));
   assert.deepEqual(new Set(p.shelters.map(s=>s.kind)),new Set(["jar","sarcophagus","secret_room"]));
 });
@@ -122,4 +122,29 @@ test("no remote dependencies added to world art or data", () => {
   assert.ok(["북극여우","북극늑대","바다표범 도둑","북극곰","스카라베",
     "미라 전사","아누비스 수호병","파라오의 혼령"].every(name=>name.length>1));
   for(const id of ids)assert.ok(Worlds.getWorld(id).areas.length>=4);
+});
+
+test("three adventures have genuinely separate keys, gates and starting positions", () => {
+  const points = ids.map(id => Worlds.getWorld(id));
+  for (let i=0;i<points.length;i++)for (let j=i+1;j<points.length;j++) {
+    for (const field of ["start","key","exit"]) {
+      const a=points[i][field],b=points[j][field];
+      assert.ok(Math.hypot(a.x-b.x,a.y-b.y)>450,
+        points[i].id+" and "+points[j].id+" must not share "+field);
+    }
+    assert.notDeepEqual(points[i].obstacles,points[j].obstacles);
+  }
+});
+test("the polar coast and pyramid tomb have different multi-leg trails", () => {
+  const arctic=Worlds.getWorld("arctic"),pyramid=Worlds.getWorld("pyramid");
+  for (const w of [arctic,pyramid]) {
+    assert.ok(w.trails.length>=3);
+    assert.deepEqual(w.trails[0].points[0],[w.start.x,w.start.y]);
+    assert.deepEqual(w.trails[0].points.at(-1),[w.key.x,w.key.y]);
+    assert.deepEqual(w.trails[1].points[0],[w.key.x,w.key.y]);
+    assert.deepEqual(w.trails[1].points.at(-1),[w.exit.x,w.exit.y]);
+  }
+  assert.notDeepEqual(arctic.trails[0].points,pyramid.trails[0].points);
+  assert.ok(arctic.start.y>arctic.key.y);
+  assert.ok(pyramid.start.y<pyramid.key.y);
 });

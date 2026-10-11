@@ -96,10 +96,10 @@ test("dash is faster but still obeys boundaries", () => {
   for (let t = 0; t < 100; t++) blocked = L.movePlayer(blocked, 0, -1, .05, L.OBSTACLES, L.DASH_BOOST);
   assert.ok(blocked.y >= 552, "dash may not tunnel through trees");
 });
-test("the 110s chase and 190s relaxed timers expire exactly", () => {
-  assert.equal(L.remainingTime(0, "thrill"), 110);
-  assert.equal(L.remainingTime(109.9, "thrill"), 1);
-  assert.equal(L.remainingTime(110, "thrill"), 0);
-  assert.equal(L.remainingTime(0, "explore"), 190);
-  assert.equal(L.remainingTime(190, "explore"), 0);
+test("the 45s chase and 90s relaxed timers expire exactly", () => {
+  assert.equal(L.remainingTime(0, "thrill"), 45);
+  assert.equal(L.remainingTime(44.9, "thrill"), 1);
+  assert.equal(L.remainingTime(45, "thrill"), 0);
+  assert.equal(L.remainingTime(0, "explore"), 90);
+  assert.equal(L.remainingTime(90, "explore"), 0);
 });

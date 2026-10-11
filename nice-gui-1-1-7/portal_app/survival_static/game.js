@@ -57,8 +57,8 @@
     document.querySelectorAll("[data-mode]").forEach((candidate) =>
       candidate.setAttribute("aria-pressed", String(candidate.dataset.mode === selectedMode)));
     $("modeHint").textContent = selectedMode === "thrill"
-      ? "⏱ 110초 · 빠른 재규어 · 보너스 점수"
-      : "🌿 190초 · 느린 재규어 · 연습에 좋아요";
+      ? "⏱ 45초 · 빠른 재규어 · 보너스 점수"
+      : "🌿 90초 · 느린 재규어 · 연습에 좋아요";
   }));
   function updateDash() {
     if (!state) return;

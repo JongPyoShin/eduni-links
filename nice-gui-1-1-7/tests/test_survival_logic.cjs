@@ -168,17 +168,40 @@ test("leaving a shelter gives brief safety and a speed boost", () => {
   assert.ok(boosted.x > normal.x);
   assert.equal(L.hideStateEnd(3, 2).invulnerable, 3);
 });
-test("searchers investigate last seen position, not live hidden player", () => {
-  const origin = { x: 380, y: 571 };
-  for (let n = 0; n < 3; n++) {
-    for (let time = 0; time < 12; time += .9) {
-      const target = L.searchTarget(origin, time, n);
-      assert.ok(L.canOccupy(target.x, target.y, 22), "search target walkable");
-      assert.ok(Math.hypot(target.x - origin.x, target.y - origin.y) <= 70);
+test("all monsters disperse to distinct safe areas when child hides", () => {
+  for (const shelter of L.SHELTERS) {
+    for (let round = 1; round <= 4; round++) {
+      const targets = [0, 1, 2, 3].map(index => L.searchTarget(shelter, round, index));
+      assert.equal(new Set(targets.map(t => t.x + "," + t.y)).size, 4);
+      for (const target of targets) {
+        assert.ok(L.canOccupy(target.x, target.y, 22), "search destination walkable");
+        assert.ok(Math.hypot(target.x - shelter.x, target.y - shelter.y) >= L.SEARCH_SAFE_RADIUS,
+          "monster must leave the hideout vicinity");
+      }
     }
   }
-  const paths = L.findChasePath(L.ENEMIES[0], origin);
-  assert.ok(paths.length > 0);
-  const first = paths[0];
-  assert.ok(L.canOccupy(first.x, first.y, 22));
+});
+test("after shelter timeout the enemies are away, not camping at its entrance", () => {
+  for (const shelter of L.SHELTERS) {
+    const activeEnemies = [...L.ENEMIES, L.JAGUAR];
+    for (let index = 0; index < activeEnemies.length; index++) {
+      const source = activeEnemies[index];
+      let enemy = { ...source, speed: source.speed * (source.kind === "jaguar" ? 1 : 1.22) };
+      const target = L.searchTarget(shelter, 1, index);
+      let path = [], pathAge = .7;
+      for (let tick = 0; tick < shelter.hideSeconds / .05; tick++) {
+        pathAge += .05;
+        if (pathAge >= .7) {
+          path = L.findChasePath(enemy, target);
+          pathAge = 0;
+        }
+        while (path.length && Math.hypot(enemy.x - path[0].x, enemy.y - path[0].y) < 13) path.shift();
+        enemy = L.chaseJaguar(enemy, path[0] || target, .05);
+        assert.ok(L.canOccupy(enemy.x, enemy.y, enemy.radius), "monster cannot phase through trees");
+      }
+      assert.ok(Math.hypot(enemy.x - shelter.x, enemy.y - shelter.y) > 160,
+        source.id + " remains too close to " + shelter.id);
+    }
+  }
+  assert.ok(L.SEARCH_AFTER_HIDE_SECONDS >= 2.5, "monsters stay distracted after hide expires");
 });

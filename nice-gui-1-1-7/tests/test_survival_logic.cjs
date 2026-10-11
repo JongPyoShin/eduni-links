@@ -120,3 +120,65 @@ test("tree-aware pursuit takes a detour instead of sticking at a wall", () => {
   }
   assert.ok(Math.hypot(enemy.x - L.KEY.x, enemy.y - L.KEY.y) < 35, "chaser reaches the target by navigating around obstacles");
 });
+
+test("all shelters have reachable locations, distinct ids and one-use capacity", () => {
+  assert.equal(L.SHELTERS.length, 4);
+  assert.equal(new Set(L.SHELTERS.map(s => s.id)).size, L.SHELTERS.length);
+  const kindTimes = Object.fromEntries(L.SHELTERS.map(s => [s.kind, s.hideSeconds]));
+  assert.equal(kindTimes.bush, 4);
+  assert.equal(kindTimes.log, 5);
+  assert.equal(kindTimes.cave, 6);
+  for (const shelter of L.SHELTERS) {
+    assert.ok(L.canOccupy(shelter.x, shelter.y), shelter.id);
+    assert.ok(shelter.hideSeconds >= 4 && shelter.hideSeconds <= 6);
+    assert.ok(shelter.x > 50 && shelter.y > 50);
+  }
+});
+test("shelter proximity only finds available spots and prevents reuse", () => {
+  const spots = L.SHELTERS.map(s => ({ ...s, status: "available" }));
+  for (const place of spots) {
+    assert.equal(L.nearbyShelter(place, spots)?.id, place.id);
+    const isolated = [place];
+    assert.equal(L.nearbyShelter({ x: place.x + 47, y: place.y }, isolated), null);
+    place.status = "occupied";
+    assert.equal(L.nearbyShelter(place, isolated), null);
+    place.status = "used";
+    assert.equal(L.nearbyShelter(place, isolated), null);
+  }
+});
+test("hide countdown expires once, does not go negative, and can be paused", () => {
+  const hide = L.hideStateStart(L.SHELTERS[0]);
+  assert.equal(hide.remaining, 4);
+  let remaining = hide.remaining;
+  for (let i = 0; i < 80; i++) remaining = L.hideCountdown(remaining, .05).remaining;
+  assert.ok(remaining < 0.01);
+  assert.equal(L.hideCountdown(remaining, .05).remaining, 0);
+  assert.equal(L.hideCountdown(0, .05).expired, true);
+  assert.equal(L.hideCountdown(3, 0).remaining, 3);
+  assert.equal(L.hideCountdown(3, -100).remaining, 3);
+  assert.equal(L.hideCountdown(3, Infinity).remaining, 3);
+});
+test("leaving a shelter gives brief safety and a speed boost", () => {
+  const exit = L.hideStateEnd(0, 0);
+  assert.equal(exit.invulnerable, L.HIDE_EXIT_GRACE);
+  assert.equal(exit.boost, L.HIDE_EXIT_BOOST);
+  assert.equal(L.resolveEnemyHit(5, exit.invulnerable, true).lives, 5);
+  const normal = L.movePlayer({ x: 95, y: 630 }, 1, 0, .05);
+  const boosted = L.movePlayer({ x: 95, y: 630 }, 1, 0, .05, L.OBSTACLES, 1.55);
+  assert.ok(boosted.x > normal.x);
+  assert.equal(L.hideStateEnd(3, 2).invulnerable, 3);
+});
+test("searchers investigate last seen position, not live hidden player", () => {
+  const origin = { x: 380, y: 571 };
+  for (let n = 0; n < 3; n++) {
+    for (let time = 0; time < 12; time += .9) {
+      const target = L.searchTarget(origin, time, n);
+      assert.ok(L.canOccupy(target.x, target.y, 22), "search target walkable");
+      assert.ok(Math.hypot(target.x - origin.x, target.y - origin.y) <= 70);
+    }
+  }
+  const paths = L.findChasePath(L.ENEMIES[0], origin);
+  assert.ok(paths.length > 0);
+  const first = paths[0];
+  assert.ok(L.canOccupy(first.x, first.y, 22));
+});

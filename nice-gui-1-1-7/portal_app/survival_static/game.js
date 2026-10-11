@@ -235,10 +235,25 @@
     if (!state.keyCollected && Math.hypot(state.player.x - L.KEY.x, state.player.y - L.KEY.y) < 36) {
       state.keyCollected = true;
       state.jaguar = { ...L.JAGUAR };
+      state.jaguarWaypoints = [];
+      state.jaguarPathAge = 0;
       setStatus("🔑 열쇠 획득! 🐆 재규어가 깨어났어요! 이제 출구로 달려요!");
     }
     if (state.jaguar) {
-      state.jaguar = L.chaseJaguar(state.jaguar, state.player, seconds, state.mode);
+      state.jaguarPathAge += seconds;
+      if (!state.jaguarWaypoints.length || state.jaguarPathAge >= 0.85) {
+        state.jaguarWaypoints = L.findChasePath(state.jaguar, state.player);
+        state.jaguarPathAge = 0;
+      }
+      while (state.jaguarWaypoints.length &&
+        Math.hypot(state.jaguar.x - state.jaguarWaypoints[0].x,
+          state.jaguar.y - state.jaguarWaypoints[0].y) < 13) {
+        state.jaguarWaypoints.shift();
+      }
+      state.jaguar = L.chaseJaguar(
+        state.jaguar,
+        state.jaguarWaypoints[0] || state.player,
+        seconds, state.mode);
     }
     // Gate only opens after the key; arriving at a locked gate never silently wins.
     if (L.hasEscaped(state.player) && state.keyCollected) { finish(true); return; }

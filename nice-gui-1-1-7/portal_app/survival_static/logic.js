@@ -95,6 +95,55 @@
     return Math.hypot(player.x - EXIT.x, player.y - EXIT.y) <= EXIT.radius + PLAYER_RADIUS - 7;
   }
 
+
+  // Small deterministic walkability grid. Recompute at most once per second in the game loop.
+  // 24 px cells keep the chase smart around tree trunks with no third-party pathfinder.
+  function findChasePath(from, to) {
+    const step = 24, origin = PADDING + PLAYER_RADIUS, side = 27, size = side * side;
+    const passable = new Uint8Array(size);
+    for (let y = 0; y < side; y++) for (let x = 0; x < side; x++) {
+      passable[y * side + x] = canOccupy(origin + x * step, origin + y * step, 22) ? 1 : 0;
+    }
+    function closest(point) {
+      let best = -1, bestDist = Infinity;
+      for (let i = 0; i < size; i++) if (passable[i]) {
+        const x = origin + (i % side) * step;
+        const y = origin + Math.floor(i / side) * step;
+        const d = (x - point.x) ** 2 + (y - point.y) ** 2;
+        if (d < bestDist) { bestDist = d; best = i; }
+      }
+      return best;
+    }
+    const start = closest(from), goal = closest(to);
+    if (start < 0 || goal < 0) return [];
+    const previous = new Int16Array(size);
+    previous.fill(-1);
+    const queue = new Int16Array(size);
+    let head = 0, tail = 0;
+    queue[tail++] = start; previous[start] = start;
+    while (head < tail && previous[goal] < 0) {
+      const here = queue[head++];
+      const x = here % side, y = Math.floor(here / side);
+      const neighbors = [x + 1 < side ? here + 1 : -1, x > 0 ? here - 1 : -1,
+        y + 1 < side ? here + side : -1, y > 0 ? here - side : -1];
+      for (const next of neighbors) {
+        if (next < 0 || !passable[next] || previous[next] !== -1) continue;
+        previous[next] = here;
+        queue[tail++] = next;
+      }
+    }
+    if (previous[goal] < 0) return [];
+    const indices = [goal];
+    for (let i = goal; i !== start; ) {
+      i = previous[i];
+      indices.push(i);
+    }
+    indices.reverse();
+    return indices.slice(1).map(i => ({
+      x: origin + (i % side) * step,
+      y: origin + Math.floor(i / side) * step,
+    }));
+  }
   function dangerPhase(seconds, offset = 0, mode = "thrill") {
     const duration = mode === "explore" ? 7.0 : 5.8;
     const t = ((seconds + offset) % duration + duration) % duration;
@@ -140,7 +189,7 @@
   return Object.freeze({
     SIZE, PADDING, PLAYER_RADIUS, PLAYER_SPEED, START, EXIT, OBSTACLES, ENEMIES, STARS,
     ENEMY_COOLDOWN_SECONDS, DASH_BOOST, DASH_SECONDS, DASH_COOLDOWN, TIME_LIMITS, KEY, JAGUAR, HAZARDS,
-    dangerPhase, chaseJaguar, remainingTime, clamp, selectLives, scoreMultiplier, circleHitsRect,
+    dangerPhase, chaseJaguar, findChasePath, remainingTime, clamp, selectLives, scoreMultiplier, circleHitsRect,
     canOccupy, movePlayer, patrol, circlesTouch, resolveEnemyHit, hasEscaped, calculateScore,
   });
 });

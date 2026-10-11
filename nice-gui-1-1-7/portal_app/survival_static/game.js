@@ -1,4 +1,4 @@
-/* 마주치지 마! v0.2 — jungle chase adventure; offline/browser-only */
+/* 마주치지 마! v0.3 — hide-and-seek pursuit; offline/browser-only */
 (() => {
   "use strict";
   const L = window.SurvivalLogic;
@@ -63,13 +63,13 @@
   function updateDash() {
     if (!state) return;
     const dash = $("dashButton");
-    const ready = state.phase === "playing" && state.dashCooldown <= 0;
+    const ready = state.phase === "playing" && !state.hiding && state.dashCooldown <= 0;
     dash.disabled = !ready;
     dash.textContent = state.dashRemaining > 0 ? "⚡ 질주 중!" :
       ready ? "⚡ 긴급 질주" : "⚡ " + Math.ceil(state.dashCooldown) + "초 뒤";
   }
   function triggerDash() {
-    if (!state || state.phase !== "playing" || state.dashCooldown > 0) return;
+    if (!state || state.phase !== "playing" || state.hiding || state.dashCooldown > 0) return;
     const input = getInput();
     if (!input.dx && !input.dy) { setStatus("방향 버튼을 누른 채 ⚡ 긴급 질주를 눌러요!"); return; }
     state.dashRemaining = L.DASH_SECONDS;
@@ -79,6 +79,69 @@
   }
   $("dashButton").addEventListener("click", triggerDash);
 
+  function endHiding(expired) {
+    if (!state?.hiding) return;
+    const shelter = state.shelters.find(s => s.id === state.hiding.shelterId);
+    if (shelter) shelter.status = "used";
+    state.hiding = null;
+    const escape = L.hideStateEnd(state.invulnerable, state.escapeBoost);
+    state.invulnerable = escape.invulnerable;
+    state.escapeBoost = escape.boost;
+    state.chaseRoutes = {};
+    setStatus(expired
+      ? "💨 은신처가 사라졌어요! 잠깐 보호받는 동안 다음 곳으로 도망쳐요!"
+      : "🏃 은신처에서 나왔어요! 여기는 다시 숨을 수 없어요.");
+    updateHud();
+  }
+  function toggleHide() {
+    if (!state || state.phase !== "playing") return;
+    if (state.hiding) { endHiding(false); return; }
+    const shelter = L.nearbyShelter(state.player, state.shelters);
+    if (!shelter) { setStatus("🌿 은신처의 동그란 표시 안에 들어가서 숨기를 눌러요."); return; }
+    state.hiding = L.hideStateStart(shelter);
+    shelter.status = "occupied";
+    state.lastSeen = { x: state.player.x, y: state.player.y };
+    state.dashRemaining = 0;
+    state.escapeBoost = 0;
+    state.chaseRoutes = {};
+    clearInput();
+    setStatus("🙈 " + shelter.name + "에 숨었어요! " + shelter.hideSeconds + "초 뒤 은신처가 사라져요.");
+    updateHud();
+  }
+  $("hideButton").addEventListener("click", toggleHide);
+
+  function followChaser(enemy, key, index, dt) {
+    const track = state.chaseRoutes[key] ||= { waypoints: [], age: 0 };
+    const target = state.hiding
+      ? L.searchTarget(state.lastSeen, state.seconds, index)
+      : state.player;
+    track.age += dt;
+    if (track.age >= 0.7 || !track.waypoints.length) {
+      track.waypoints = L.findChasePath(enemy, target);
+      track.age = 0;
+    }
+    while (track.waypoints.length &&
+      Math.hypot(enemy.x - track.waypoints[0].x, enemy.y - track.waypoints[0].y) < 13) {
+      track.waypoints.shift();
+    }
+    return L.chaseJaguar(enemy, track.waypoints[0] || target, dt, state.mode);
+  }
+  function updateHideControls() {
+    if (!state) return;
+    const button = $("hideButton");
+    if (state.hiding) {
+      button.disabled = state.phase !== "playing";
+      button.textContent = "🚪 지금 나오기";
+      $("hudHide").textContent = "🙈 " + state.hiding.remaining.toFixed(1) + "초";
+    } else {
+      const shelter = L.nearbyShelter(state.player, state.shelters);
+      button.disabled = state.phase !== "playing" || !shelter;
+      button.textContent = shelter ? "🙈 " + shelter.name + " 숨기" : "🌿 가까이 가서 숨기";
+      $("hudHide").textContent = shelter ? "🌿 " + shelter.hideSeconds + "초 은신 가능" :
+        "🌿 남은 은신처 " + state.shelters.filter(s => s.status === "available").length + "곳";
+    }
+  }
+
   function updateHud() {
     if (!state) return;
     $("hudLives").textContent = state.lives + " / " + state.startingLives;
@@ -87,19 +150,24 @@
     $("hudTime").classList.remove("urgent");
     if (L.remainingTime(state.seconds, state.mode) <= 15) $("hudTime").classList.add("urgent");
     $("hudKey").textContent = state.keyCollected ? "🔑 획득" : "🔒 열쇠 찾기";
-    if (state.jaguar) {
-      const distance = Math.round(Math.hypot(state.jaguar.x - state.player.x, state.jaguar.y - state.player.y));
-      $("hudDanger").textContent = distance < 160 ? "🚨 재규어 근접!" : "🐆 재규어 추격 중";
-    } else { $("hudDanger").textContent = "🌴 탐험 중"; }
+    const allEnemies = [...state.enemies, ...(state.jaguar ? [state.jaguar] : [])];
+    const nearest = Math.min(...allEnemies.map(enemy =>
+      Math.hypot(enemy.x - state.player.x, enemy.y - state.player.y)));
+    $("hudDanger").textContent = state.hiding ? "🔍 악당들이 찾는 중" :
+      nearest < 150 ? "🚨 악당이 가까워요!" : "👹 계속 추격 중";
     updateDash();
+    updateHideControls();
   }
   function begin() {
     clearInput();
     state = {
       phase: "playing", character, mode: selectedMode, startingLives: L.selectLives(range.value),
       lives: L.selectLives(range.value), player: { ...L.START, radius: L.PLAYER_RADIUS },
-      enemies: L.ENEMIES.map((enemy) => ({ ...enemy })),
+      enemies: L.ENEMIES.map((enemy) => ({ ...enemy, speed: enemy.speed * 1.22 })),
+      chaseRoutes: {}, lastSeen: { ...L.START },
       stars: L.STARS.map((star) => ({ ...star, collected: false })),
+      shelters: L.SHELTERS.map(shelter => ({ ...shelter, status: "available" })),
+      hiding: null, escapeBoost: 0,
       invulnerable: 0, seconds: 0, flash: 0,
       keyCollected: false, jaguar: null, dashCooldown: 0, dashRemaining: 0, bannerUntil: 0,
     };
@@ -109,7 +177,7 @@
     resultOverlay.hidden = true;
     $("eventBanner").hidden = true;
     $("pauseButton").textContent = "⏸ 일시정지";
-    setStatus("🔑 먼저 정글 오른쪽의 열쇠를 찾아요. 출구는 잠겨 있어요!");
+    setStatus("👹 악당들이 계속 쫓아와요! 🌿 은신처에 가까이 가서 숨으세요. 🔑 열쇠도 찾아요!");
     updateHud();
     lastFrame = performance.now();
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -122,6 +190,7 @@
     $("pauseButton").textContent = "▶ 계속";
     setStatus("일시정지했어요.");
     updateDash();
+    updateHideControls();
   }
   function resume() {
     if (!state || state.phase !== "paused") return;
@@ -131,6 +200,7 @@
     lastFrame = performance.now();
     setStatus("다시 출발! 열쇠를 찾고 출구로 가요.");
     updateDash();
+    updateHideControls();
   }
   function finish(won, reason = "life") {
     if (!state || state.phase !== "playing") return;
@@ -174,6 +244,10 @@
         event.preventDefault();
         state.phase === "playing" ? pause() : resume();
       }
+      return;
+    }
+    if (event.key.toLowerCase() === "e" && !event.repeat) {
+      if (state.phase === "playing") { event.preventDefault(); toggleHide(); }
       return;
     }
     if (event.code === "Space" || event.key === "Shift") {
@@ -224,55 +298,49 @@
     state.invulnerable = Math.max(0, state.invulnerable - seconds);
     state.flash = Math.max(0, state.flash - seconds);
     const { dx, dy } = getInput();
-    state.player = {
-      ...L.movePlayer(state.player, dx, dy, seconds, L.OBSTACLES,
-        state.dashRemaining > 0 ? L.DASH_BOOST : 1),
-      radius: L.PLAYER_RADIUS,
-    };
-    state.enemies = state.enemies.map((enemy) => L.patrol(enemy, seconds));
+    state.escapeBoost = Math.max(0, state.escapeBoost - seconds);
+    if (state.hiding) {
+      const countdown = L.hideCountdown(state.hiding.remaining, seconds);
+      state.hiding.remaining = countdown.remaining;
+      if (countdown.expired) endHiding(true);
+    } else {
+      state.player = {
+        ...L.movePlayer(state.player, dx, dy, seconds, L.OBSTACLES,
+          state.dashRemaining > 0 ? L.DASH_BOOST : state.escapeBoost > 0 ? 1.55 : 1),
+        radius: L.PLAYER_RADIUS,
+      };
+      state.lastSeen = { x: state.player.x, y: state.player.y };
+    }
+    state.enemies = state.enemies.map((enemy, index) =>
+      followChaser(enemy, enemy.id, index, seconds));
     for (const star of state.stars) {
-      if (!star.collected && Math.hypot(star.x - state.player.x, star.y - state.player.y) < 34) {
+      if (!state.hiding && !star.collected && Math.hypot(star.x - state.player.x, star.y - state.player.y) < 34) {
         star.collected = true;
         setStatus("⭐ 반짝이는 별을 찾았어요!");
       }
     }
-    if (!state.keyCollected && Math.hypot(state.player.x - L.KEY.x, state.player.y - L.KEY.y) < 36) {
+    if (!state.hiding && !state.keyCollected && Math.hypot(state.player.x - L.KEY.x, state.player.y - L.KEY.y) < 36) {
       state.keyCollected = true;
       state.jaguar = { ...L.JAGUAR };
-      state.jaguarWaypoints = [];
-      state.jaguarPathAge = 0;
       state.bannerUntil = state.seconds + 2.4;
       $("eventBanner").hidden = false;
       setStatus("🔑 열쇠 획득! 🐆 재규어가 깨어났어요! 이제 출구로 달려요!");
     }
     if (state.jaguar) {
-      state.jaguarPathAge += seconds;
-      if (!state.jaguarWaypoints.length || state.jaguarPathAge >= 0.85) {
-        state.jaguarWaypoints = L.findChasePath(state.jaguar, state.player);
-        state.jaguarPathAge = 0;
-      }
-      while (state.jaguarWaypoints.length &&
-        Math.hypot(state.jaguar.x - state.jaguarWaypoints[0].x,
-          state.jaguar.y - state.jaguarWaypoints[0].y) < 13) {
-        state.jaguarWaypoints.shift();
-      }
-      state.jaguar = L.chaseJaguar(
-        state.jaguar,
-        state.jaguarWaypoints[0] || state.player,
-        seconds, state.mode);
+      state.jaguar = followChaser(state.jaguar, "jaguar", 3, seconds);
     }
     // Gate only opens after the key; arriving at a locked gate never silently wins.
-    if (L.hasEscaped(state.player) && state.keyCollected) { finish(true); return; }
+    if (!state.hiding && L.hasEscaped(state.player) && state.keyCollected) { finish(true); return; }
     if (L.hasEscaped(state.player) && !state.keyCollected && !state.nearGateWarned) {
       state.nearGateWarned = true;
       setStatus("🔒 출구가 잠겼어요. 정글 오른쪽의 🔑 열쇠가 필요해요!");
     }
-    const fallingFruit = L.HAZARDS.some((h) =>
+    const fallingFruit = !state.hiding && L.HAZARDS.some((h) =>
       L.dangerPhase(state.seconds, h.phase, state.mode) === "active" &&
       L.circlesTouch(state.player, h));
-    const touching = fallingFruit ||
+    const touching = !state.hiding && (fallingFruit ||
       state.enemies.some((enemy) => L.circlesTouch(state.player, enemy)) ||
-      (state.jaguar && L.circlesTouch(state.player, state.jaguar));
+      (state.jaguar && L.circlesTouch(state.player, state.jaguar)));
     const hit = L.resolveEnemyHit(state.lives, state.invulnerable, touching);
     if (hit.hit) {
       state.lives = hit.lives;
@@ -340,6 +408,29 @@
       ctx.restore();
     });
   }
+  function drawShelters(time) {
+    for (const shelter of state.shelters) {
+      if (shelter.status === "used") continue; // disappears permanently this round
+      const occupied = state.hiding?.shelterId === shelter.id;
+      const pulse = 2 * Math.sin(time * 5);
+      const radius = shelter.radius + (occupied ? 7 : pulse);
+      circle(shelter.x, shelter.y, radius + 7,
+        occupied ? "#55e6bbaf" : "#d0ec9b72", occupied ? "#e0ffef" : "#f8efa9", 4);
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = "38px system-ui";
+      ctx.fillText(shelter.kind === "bush" ? "🌿" : shelter.kind === "cave" ? "🕳️" : "🪵", shelter.x, shelter.y);
+      if (occupied) {
+        const progress = Math.max(0, state.hiding.remaining / state.hiding.max);
+        ctx.beginPath(); ctx.arc(shelter.x, shelter.y, shelter.radius + 15,
+          -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * progress);
+        ctx.strokeStyle = progress < .25 ? "#ff7385" : "#fce68a";
+        ctx.lineWidth = 9; ctx.stroke();
+      }
+      ctx.fillStyle = "#11342a"; ctx.font = "900 17px system-ui";
+      ctx.fillText(occupied ? state.hiding.remaining.toFixed(1) + "초" :
+        shelter.hideSeconds + "초 숨기", shelter.x, shelter.y + radius + 25);
+    }
+  }
   function drawExit(time) {
     const e = L.EXIT;
     const pulse = Math.sin(time * 3) * 4;
@@ -400,18 +491,18 @@
   function drawPlayer(time) {
     if (!state) return;
     const p = state.player;
-    const flicker = state.invulnerable > 0 && Math.floor(time * 10) % 2 === 0;
+    const flicker = !state.hiding && state.invulnerable > 0 && Math.floor(time * 10) % 2 === 0;
     ctx.save();
     if (flicker) ctx.globalAlpha = 0.43;
-    if (state.dashRemaining > 0) {
+    if (state.dashRemaining > 0 || state.escapeBoost > 0) {
       circle(p.x, p.y + 8, 45, "#9cefff70", "#fff3ac", 3);
     }
     circle(p.x, p.y + 8, 23, "#214d3999");
     circle(p.x, p.y, p.radius + 3, state.character === "explorer" ? "#ffe6a2" : "#f1e6ff", "#153b34", 4);
     ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "42px system-ui";
-    ctx.fillText(state.character === "explorer" ? "🧒" : "🐰", p.x, p.y - 5);
+    ctx.fillText(state.hiding ? "🙈" : state.character === "explorer" ? "🧒" : "🐰", p.x, p.y - 5);
     ctx.restore();
-    if (state.invulnerable > 0) {
+    if (state.invulnerable > 0 && !state.hiding) {
       circle(p.x, p.y, 33, null, "#e9fff0", 3);
     }
   }
@@ -426,6 +517,7 @@
     }
     drawGround();
     drawObstacles();
+    drawShelters(time);
     drawHazards(time);
     drawExit(time);
     drawKey(time);

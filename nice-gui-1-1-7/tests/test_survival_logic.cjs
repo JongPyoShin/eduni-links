@@ -54,3 +54,69 @@ test("all three optional stars are reachable and cannot block escape", () => {
   assert.equal(L.hasEscaped(L.START), false);
   assert.ok(L.calculateScore(1, 1, 3, 30) > L.calculateScore(35, 35, 3, 30));
 });
+
+test("the key unlocks a reachable gate, and hazards leave room to dodge", () => {
+  assert.ok(L.canOccupy(L.KEY.x, L.KEY.y));
+  assert.ok(L.canOccupy(L.JAGUAR.x, L.JAGUAR.y, L.JAGUAR.radius));
+  for (const h of L.HAZARDS) {
+    assert.ok(L.canOccupy(h.x, h.y, 13), "hazard should be on traversable ground");
+    assert.ok(h.radius >= 30, "warning area visible");
+  }
+});
+test("hazard warns before impact in both modes", () => {
+  for (const mode of ["thrill", "explore"]) {
+    for (const hazard of L.HAZARDS) {
+      const phases = [];
+      for (let t = 0; t < 16; t += .05) phases.push(L.dangerPhase(t, hazard.phase, mode));
+      const firstDanger = phases.indexOf("active");
+      assert.ok(firstDanger > 0, mode);
+      assert.ok(phases.slice(Math.max(0, firstDanger - 28), firstDanger).includes("warning"));
+    }
+  }
+});
+test("the jaguar pursues but cannot walk through tree hitboxes", () => {
+  for (const mode of ["thrill", "explore"]) {
+    let jaguar = { ...L.JAGUAR };
+    const original = Math.hypot(jaguar.x - L.KEY.x, jaguar.y - L.KEY.y);
+    for (let t = 0; t < 600; t++) {
+      jaguar = L.chaseJaguar(jaguar, L.KEY, .05, mode);
+      assert.ok(L.canOccupy(jaguar.x, jaguar.y, jaguar.radius), "jaguar blocked by trees");
+    }
+    assert.ok(Math.hypot(jaguar.x - L.KEY.x, jaguar.y - L.KEY.y) < original);
+  }
+});
+test("dash is faster but still obeys boundaries", () => {
+  const pos = { x: 120, y: 585 };
+  const walk = L.movePlayer(pos, 1, 0, .05);
+  const dash = L.movePlayer(pos, 1, 0, .05, L.OBSTACLES, L.DASH_BOOST);
+  assert.ok(dash.x > walk.x);
+  assert.equal(L.DASH_COOLDOWN, 5);
+  assert.equal(L.DASH_SECONDS, .5);
+  let blocked = { x: 200, y: 575 };
+  for (let t = 0; t < 100; t++) blocked = L.movePlayer(blocked, 0, -1, .05, L.OBSTACLES, L.DASH_BOOST);
+  assert.ok(blocked.y >= 552, "dash may not tunnel through trees");
+});
+test("the 45s chase and 90s relaxed timers expire exactly", () => {
+  assert.equal(L.remainingTime(0, "thrill"), 45);
+  assert.equal(L.remainingTime(44.9, "thrill"), 1);
+  assert.equal(L.remainingTime(45, "thrill"), 0);
+  assert.equal(L.remainingTime(0, "explore"), 90);
+  assert.equal(L.remainingTime(90, "explore"), 0);
+});
+
+test("tree-aware pursuit takes a detour instead of sticking at a wall", () => {
+  let enemy = { ...L.JAGUAR, x: 95, y: 264 };
+  let route = [], routeAge = 0;
+  for (let i = 0; i < 400; i++) {
+    routeAge += .05;
+    if (!route.length || routeAge >= .85) {
+      route = L.findChasePath(enemy, L.KEY);
+      routeAge = 0;
+    }
+    while (route.length && Math.hypot(enemy.x - route[0].x, enemy.y - route[0].y) < 13) route.shift();
+    enemy = L.chaseJaguar(enemy, route[0] || L.KEY, .05, "thrill");
+    assert.ok(L.canOccupy(enemy.x, enemy.y, enemy.radius), "enemy may not cross trees");
+    if (Math.hypot(enemy.x - L.KEY.x, enemy.y - L.KEY.y) < 35) break;
+  }
+  assert.ok(Math.hypot(enemy.x - L.KEY.x, enemy.y - L.KEY.y) < 35, "chaser reaches the target by navigating around obstacles");
+});

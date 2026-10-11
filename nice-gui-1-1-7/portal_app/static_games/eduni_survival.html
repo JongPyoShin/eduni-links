@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#10352f">
-  <title>마주치지 마! | 의준 서바이벌 베타</title>
+  <title>마주치지 마! | 정글 대추격 v0.2</title>
   <style>
     :root { color-scheme: dark; --ink:#f4fff7; --muted:#bed6cb; --green:#45e0a3; --paper:#163b34; --line:#396456; --gold:#ffe47b; }
     * { box-sizing:border-box; }
@@ -53,6 +53,8 @@
     .canvas-wrap { position:relative; overflow:hidden; border:5px solid #7aaf75; border-radius:20px; background:#5c9b61; box-shadow:0 12px 0 #0e3025; touch-action:none; }
     canvas { width:100%; aspect-ratio:1/1; height:auto; display:block; }
     .overlay { position:absolute; inset:0; background:#09291edc; display:flex; align-items:center; justify-content:center; padding:18px; z-index:5; }
+    .chase-alert { position:absolute; z-index:4; top:12%; left:5%; right:5%; pointer-events:none; text-align:center; padding:12px; border:4px solid #ffe6a3; border-radius:16px; background:#9e2939ed; color:#fff; font-weight:1000; font-size:clamp(17px,4vw,29px); text-shadow:0 2px 0 #512331; box-shadow:0 6px 28px #521724aa; }
+    .urgent { color:#ff9494!important; text-shadow:0 0 10px #ff273699; }
     .overlay-card { width:min(94%,450px); padding:22px; border-radius:22px; background:#185442; border:2px solid var(--gold); text-align:center; box-shadow:0 16px 45px #031811aa; }
     .overlay-card h2 { font-size:30px; margin-bottom:10px; }
     .overlay-card p { margin-bottom:18px; }
@@ -63,6 +65,13 @@
     .controls { margin-top:20px; display:grid; grid-template-columns:repeat(3,68px); grid-template-rows:repeat(3,65px); gap:6px; justify-content:center; touch-action:none; user-select:none; }
     .dir { border:2px solid #b4dea0; background:#295e49; color:#fff; font-weight:1000; font-size:29px; border-radius:14px; touch-action:none; -webkit-user-select:none; }
     .dir:active,.dir.active { background:#ffe47b; color:#173a31; transform:scale(.97); }
+    .dash-btn { grid-column:3; grid-row:1; color:#342813; background:linear-gradient(#ffe18d,#ffae49); border:3px solid #fff3ba; border-radius:16px; font-size:14px; line-height:1.2; font-weight:1000; touch-action:manipulation; }
+    .dash-btn:disabled { filter:grayscale(.75); opacity:.75; cursor:default; }
+    .modes { display:flex; gap:9px; flex-wrap:wrap; margin-top:12px; }
+    .mode-choice { border:2px solid #74a486; background:#214d40; color:#fff; border-radius:14px; padding:11px 16px; font-weight:900; min-height:48px; }
+    .mode-choice[aria-pressed="true"] { border-color:#ffe47b; background:#fcecb2; color:#173a31; }
+    .countdown { font-variant-numeric:tabular-nums; }
+    .danger-pill { background:#632f34; border-color:#f48978; }
     .up { grid-column:2; grid-row:1; } .left { grid-column:1; grid-row:2; } .down { grid-column:2; grid-row:2; } .right { grid-column:3; grid-row:2; }
     .retry-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:20px; }
     .instruction { font-size:14px; }
@@ -80,8 +89,13 @@
       .card { border-radius:18px; padding:15px; }
       .avatar { min-height:115px; }
       .avatar span { font-size:43px; }
-      .side { display:block; }
-      .controls { margin:8px auto 0; grid-template-columns:repeat(3,65px); grid-template-rows:repeat(2,62px); }
+      .side { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:9px; position:sticky; bottom:0; z-index:9; border-radius:12px; background:#173e33f5; }
+      .side > div:first-child { display:none; }
+      .retry-row { margin:0; }
+      .retry-row .small-button { font-size:12px; padding:5px 9px; min-height:45px; }
+      .controls { margin:0; grid-template-columns:repeat(3,52px); grid-template-rows:repeat(2,51px); gap:4px; }
+      .dir { font-size:22px; }
+      .dash-btn { font-size:11px; }
       .up { grid-row:1; } .left,.down,.right { grid-row:2; }
       .canvas-wrap { border-width:3px; border-radius:14px; }
       .footerline { align-items:stretch; }
@@ -95,9 +109,9 @@
   <div class="topline"><span class="brand">EDUNI × 의준의 첫 게임</span><a class="navlink" href="/portal">← 포털 홈</a></div>
 
   <section id="setupScreen" class="card" aria-labelledby="mainTitle">
-    <div class="eyebrow">정글 스테이지 · PLAYABLE BETA</div>
+    <div class="eyebrow">정글 대추격 · BETA v0.2</div>
     <h1 id="mainTitle">마주치지 마!<br>서바이벌 대모험 🌴</h1>
-    <p class="intro">내 캐릭터와 목숨을 정해요. 원숭이와 뱀에게 마주치지 않고 숲속 출구까지 도착하면 성공!</p>
+    <p class="intro">🔑 열쇠를 찾으면 🐆 재규어가 뒤쫓아 와요! 떨어지는 열매를 피하고 ⚡ 질주해서 제한시간 안에 탈출해요.</p>
     <div class="setupgrid">
       <div class="setting">
         <div class="setting-title">① 캐릭터를 골라요</div>
@@ -124,10 +138,18 @@
     </div>
     <div class="map-card" aria-label="베타 맵: 정글">
       <span class="map-icon" aria-hidden="true">🌴</span>
-      <div><strong>③ 정글 맵</strong><p>첫 번째 모험 세계! 사막·북극·화산은 다음 버전에서 만나요.</p></div>
+      <div><strong>③ 정글 탈출</strong><p>열쇠 → 재규어 추격 → 출구! 사막·북극·화산은 다음 버전에서 만나요.</p></div>
+    </div>
+    <div class="setting" style="margin-top:18px">
+      <div class="setting-title">④ 모험 강도</div>
+      <div class="modes" role="group" aria-label="모험 강도">
+        <button type="button" class="mode-choice" data-mode="thrill" aria-pressed="true">🔥 스릴 모드</button>
+        <button type="button" class="mode-choice" data-mode="explore" aria-pressed="false">🌿 여유 모드</button>
+      </div>
+      <p id="modeHint" class="hint" aria-live="polite">⏱ 45초 · 빠른 재규어 · 보너스 점수</p>
     </div>
     <div class="footerline">
-      <p>✅ 1번 부딪히면 목숨 -1 · ⭐ 별은 모아도 되고 안 모아도 돼요</p>
+      <p>⚠️ 주황색 경고 원에서 벗어나요 · 🔑 열쇠는 필수 · ⭐ 별은 선택!</p>
       <button id="startButton" type="button" class="primary">모험 시작! ▶</button>
     </div>
   </section>
@@ -138,13 +160,16 @@
         <span class="pill">🌴 정글</span>
         <span class="pill">❤️ <b id="hudLives">5 / 5</b></span>
         <span class="pill">⭐ <b id="hudStars">0 / 3</b></span>
-        <span class="pill">⏱ <b id="hudTime">0초</b></span>
+        <span class="pill countdown">⏱ <b id="hudTime">45초 남음</b></span>
+        <span class="pill"><b id="hudKey">🔒 열쇠 찾기</b></span>
+        <span class="pill danger-pill"><b id="hudDanger">🌴 탐험 중</b></span>
       </div>
       <button id="pauseButton" type="button" class="small-button" aria-keyshortcuts="Escape">⏸ 일시정지</button>
     </div>
     <div class="game-layout">
       <div class="canvas-wrap">
         <canvas id="gameCanvas" width="720" height="720" role="img" aria-label="정글 맵. 왼쪽 아래에서 출발해 오른쪽 위의 반짝이는 출구로 이동하세요."></canvas>
+        <div id="eventBanner" class="chase-alert" hidden role="status" aria-live="polite">🔑 열쇠 획득! 🐆 재규어 추격 시작!</div>
         <div id="pauseOverlay" class="overlay" hidden>
           <div class="overlay-card">
             <h2>⏸ 잠깐 쉬어요!</h2>
@@ -169,22 +194,23 @@
       <aside class="side" aria-label="게임 설명과 조작">
         <div>
           <h2>🧭 모험 안내</h2>
-          <p class="instruction"><strong>목표:</strong> 오른쪽 위의 빛나는 문 🚪에 도착해요.<br><strong>조심:</strong> 원숭이 🐵, 뱀 🐍, 나무 장애물.<br><strong>도움:</strong> 부딪힌 뒤 잠깐은 다시 다치지 않아요.</p>
-          <p class="instruction">PC: 방향키 / WASD<br>모바일: 아래 방향 버튼을 길게 누르세요.</p>
+          <p class="instruction"><strong>미션:</strong> 오른쪽의 🔑 열쇠 획득 → 왼쪽에서 나타나는 🐆 재규어를 피해 오른쪽 위 🚪 출구까지!<br><strong>위험:</strong> 🐵 원숭이 · 🐍 뱀 · ⚠️ 떨어지는 열매.<br><strong>도움:</strong> 피격 후 1.5초 무적, ⚡ 긴급 질주로 탈출!</p>
+          <p class="instruction">PC: 방향키 / WASD + 스페이스·Shift 질주<br>모바일: 방향 버튼을 누른 채 ⚡ 질주 버튼!</p>
         </div>
         <div class="controls" aria-label="방향 조작">
           <button type="button" class="dir up" data-dir="up" aria-label="위로 이동">▲</button>
           <button type="button" class="dir left" data-dir="left" aria-label="왼쪽으로 이동">◀</button>
           <button type="button" class="dir down" data-dir="down" aria-label="아래로 이동">▼</button>
           <button type="button" class="dir right" data-dir="right" aria-label="오른쪽으로 이동">▶</button>
+          <button id="dashButton" type="button" class="dash-btn" aria-label="긴급 질주">⚡ 긴급 질주</button>
         </div>
         <div class="retry-row"><button id="restartButton" type="button" class="small-button">↻ 다시 시작</button></div>
       </aside>
     </div>
-    <p id="liveStatus" class="game-footer" role="status" aria-live="polite">원숭이와 뱀을 피해서 출구까지 달려요!</p>
+    <p id="liveStatus" class="game-footer" role="status" aria-live="polite">🔑 열쇠를 찾아 재규어를 피해 탈출해요!</p>
   </section>
 </main>
-<script src="/survival-static/logic.js"></script>
-<script src="/survival-static/game.js"></script>
+<script src="/survival-static/logic.js?v=2"></script>
+<script src="/survival-static/game.js?v=2"></script>
 </body>
 </html>

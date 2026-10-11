@@ -131,12 +131,12 @@
     const button = $("hideButton");
     if (state.hiding) {
       button.disabled = state.phase !== "playing";
-      button.textContent = "🚪 지금 나오기";
+      button.textContent = "🚪 나오기";
       $("hudHide").textContent = "🙈 " + state.hiding.remaining.toFixed(1) + "초";
     } else {
       const shelter = L.nearbyShelter(state.player, state.shelters);
       button.disabled = state.phase !== "playing" || !shelter;
-      button.textContent = shelter ? "🙈 " + shelter.name + " 숨기" : "🌿 가까이 가서 숨기";
+      button.textContent = shelter ? "🙈 숨기" : "🌿 숨기";
       $("hudHide").textContent = shelter ? "🌿 " + shelter.hideSeconds + "초 은신 가능" :
         "🌿 남은 은신처 " + state.shelters.filter(s => s.status === "available").length + "곳";
     }

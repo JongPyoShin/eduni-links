@@ -40,3 +40,13 @@ v0.5의 2.5D 정글 생존 게임에 **북극과 피라미드**를 추가하고,
 ## 미검증 / 배포
 - 실제 모바일 Chrome/Android 성능·터치, 실제 Python 단위/콘텐츠 검사 및 전체 Node CLI, 실제 서버/배포 HTTP 응답은 미검증
 - 사용자의 별도 배포 지시 전까지 **Draft PR로 유지**하고 `main` 병합·GitHub Pages 배포를 하지 않는다.
+
+
+## 게임포털로 진입 이동
+- GitHub Pages 진입: `/eduni-links/games/` — 새 `games/index.html`에서 서바이벌·한자 슈터·버블·의준 링크·AI 오목 등 게임 선택
+- `/eduni-links/` 메인 화면은 기존 서바이벌 단독 카드 대신 **게임포털** 카드를 표시
+- 가족 서버 진입: `/portal/games` — 새 게임포털 전용 NiceGUI 페이지에서 서바이벌 3개 월드와 기존 게임 선택
+- `/portal` 빠른 시작에서 개별 게임 카드들을 전용 게임포털 진입 카드로 묶음
+- 서바이벌 내부 **← 게임포털** 링크가 가족 서버 및 GitHub Pages에서 각각 해당 게임포털로 복귀
+- 기존 `/survival`, `/survival/`, Pages `/survival/`, `/jungle`, `/bubble`, `/bubble-shooter`, `/link`, `/omok` 는 그대로 동작하도록 원래 라우트 및 파일 유지
+- 가족 서버는 별도 git pull/서버 재시작이 필요하며, **Pages의 정상 배포가 NiceGUI 서버 자동 업데이트를 의미하지는 않음**

@@ -201,6 +201,13 @@
       shelter.status === "available" &&
       Math.hypot(player.x - shelter.x, player.y - shelter.y) <= maxDistance) || null;
   }
+  function enteredShelter(player, shelters) {
+    // Only crossing into the actual hideout (not its nearby control area) auto-hides.
+    // Consumed hideouts never trigger again.
+    return shelters.find(shelter =>
+      shelter.status === "available" &&
+      Math.hypot(player.x - shelter.x, player.y - shelter.y) <= shelter.radius) || null;
+  }
   function hideCountdown(current, elapsed) {
     const next = Math.max(0, current - clamp(Number.isFinite(elapsed) ? elapsed : 0, 0, 0.05));
     return { remaining: next, expired: next <= 0 };
@@ -283,7 +290,7 @@
     SIZE, WORLD_WIDTH, WORLD_HEIGHT, WORLD_AREAS, cameraFor, areaFor, PADDING, PLAYER_RADIUS, PLAYER_SPEED, START, EXIT, OBSTACLES, ENEMIES, STARS,
     ENEMY_COOLDOWN_SECONDS, DASH_BOOST, DASH_SECONDS, DASH_COOLDOWN, TIME_LIMITS, KEY, JAGUAR, HAZARDS,
     SHELTERS, HIDE_EXIT_GRACE, HIDE_EXIT_BOOST, SEARCH_SAFE_RADIUS, SEARCH_AFTER_HIDE_SECONDS,
-    SEARCH_LOCATIONS, nearbyShelter, hideCountdown, hideStateStart, hideStateEnd, searchTarget,
+    SEARCH_LOCATIONS, nearbyShelter, enteredShelter, hideCountdown, hideStateStart, hideStateEnd, searchTarget,
     dangerPhase, chaseJaguar, findChasePath, remainingTime, clamp, selectLives, scoreMultiplier, circleHitsRect,
     canOccupy, movePlayer, patrol, circlesTouch, resolveEnemyHit, hasEscaped, calculateScore,
   });

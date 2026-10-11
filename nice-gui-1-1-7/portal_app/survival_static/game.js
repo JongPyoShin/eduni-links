@@ -1,4 +1,4 @@
-/* 마주치지 마! v0.4 — scrolling jungle expedition world; offline/browser-only */
+/* 마주치지 마! v0.4.1 — automatic shelter hiding; offline/browser-only */
 (() => {
   "use strict";
   const L = window.SurvivalLogic;
@@ -94,11 +94,9 @@
       : "🏃 은신처에서 나왔어요! 몬스터들은 잠깐 다른 곳을 수색해요.");
     updateHud();
   }
-  function toggleHide() {
-    if (!state || state.phase !== "playing") return;
-    if (state.hiding) { endHiding(false); return; }
-    const shelter = L.nearbyShelter(state.player, state.shelters);
-    if (!shelter) { setStatus("🌿 은신처의 동그란 표시 안에 들어가서 숨기를 눌러요."); return; }
+  function enterHiding(shelter, automatic = false) {
+    if (!state || state.phase !== "playing" || state.hiding ||
+        !shelter || shelter.status !== "available") return false;
     state.hiding = L.hideStateStart(shelter);
     shelter.status = "occupied";
     state.disperseAnchor = { x: shelter.x, y: shelter.y };
@@ -108,8 +106,20 @@
     state.escapeBoost = 0;
     state.chaseRoutes = {};
     clearInput();
-    setStatus("🙈 " + shelter.name + "에 숨었어요! 몬스터들이 다른 곳으로 가요. " + shelter.hideSeconds + "초 후 다시 도망쳐요!");
+    setStatus("🙈 " + shelter.name + (automatic ? " 안으로 들어가 자동으로 숨었어요!" : "에 숨었어요!") +
+      " 몬스터들이 멀리 가요. " + shelter.hideSeconds + "초 후 다시 도망쳐요!");
     updateHud();
+    return true;
+  }
+  function toggleHide() {
+    if (!state || state.phase !== "playing") return;
+    if (state.hiding) { endHiding(false); return; }
+    const shelter = L.nearbyShelter(state.player, state.shelters);
+    if (!shelter) {
+      setStatus("🌿 쉼터 안으로 걸어 들어가면 자동으로 숨어요!");
+      return;
+    }
+    enterHiding(shelter);
   }
   $("hideButton").addEventListener("click", toggleHide);
 
@@ -140,8 +150,8 @@
     } else {
       const shelter = L.nearbyShelter(state.player, state.shelters);
       button.disabled = state.phase !== "playing" || !shelter;
-      button.textContent = shelter ? "🙈 숨기" : "🌿 숨기";
-      $("hudHide").textContent = shelter ? "🌿 " + shelter.hideSeconds + "초 은신 가능" :
+      button.textContent = shelter ? "🙈 숨기" : "🌿 자동 숨기";
+      $("hudHide").textContent = shelter ? "🌿 안으로 들어가면 자동 은신" :
         "🌿 남은 은신처 " + state.shelters.filter(s => s.status === "available").length + "곳";
     }
   }
@@ -319,6 +329,9 @@
           state.dashRemaining > 0 ? L.DASH_BOOST : state.escapeBoost > 0 ? 1.55 : 1),
         radius: L.PLAYER_RADIUS,
       };
+      // Handle entry before enemies move or inflict damage on this frame.
+      const entered = L.enteredShelter(state.player, state.shelters);
+      if (entered) enterHiding(entered, true);
     }
     state.enemies = state.enemies.map((enemy, index) =>
       followChaser(enemy, enemy.id, index, seconds));

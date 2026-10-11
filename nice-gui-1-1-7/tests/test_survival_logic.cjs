@@ -241,3 +241,21 @@ test("tree-aware path finder travels across the large jungle", () => {
   assert.ok(pathToKey.every(p => L.canOccupy(p.x, p.y, 22)));
   assert.ok(pathToExit.every(p => L.canOccupy(p.x, p.y, 22)));
 });
+
+test("walking into a shelter circle triggers auto-hide; nearby is not enough", () => {
+  for (const shelter of L.SHELTERS) {
+    const spots = L.SHELTERS.map(s => ({ ...s, status: "available" }));
+    const place = spots.find(s => s.id === shelter.id);
+    const outside = { x: place.x + place.radius + 2, y: place.y };
+    const boundary = { x: place.x + place.radius, y: place.y };
+    assert.equal(L.enteredShelter(outside, [place]), null, place.id + " outside");
+    assert.equal(L.enteredShelter(boundary, [place])?.id, place.id);
+    assert.equal(L.enteredShelter({ x: place.x, y: place.y }, [place])?.id, place.id);
+    // Manual control stays available slightly outside the automatic trigger zone.
+    assert.equal(L.nearbyShelter(outside, [place])?.id, place.id);
+    place.status = "occupied";
+    assert.equal(L.enteredShelter(boundary, [place]), null);
+    place.status = "used";
+    assert.equal(L.enteredShelter({ x: place.x, y: place.y }, [place]), null);
+  }
+});

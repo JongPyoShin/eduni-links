@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#10352f">
-  <title>마주치지 마! | 넓은 정글 탐험 v0.4</title>
+  <title>마주치지 마! | 넓은 정글 탐험 v0.4.1</title>
   <style>
     :root { color-scheme: dark; --ink:#f4fff7; --muted:#bed6cb; --green:#45e0a3; --paper:#163b34; --line:#396456; --gold:#ffe47b; }
     * { box-sizing:border-box; }
@@ -112,9 +112,9 @@
   <div class="topline"><span class="brand">EDUNI × 의준의 첫 게임</span><a class="navlink" href="/portal">← 포털 홈</a></div>
 
   <section id="setupScreen" class="card" aria-labelledby="mainTitle">
-    <div class="eyebrow">정글 대탐험 × 서바이벌 · BETA v0.4</div>
+    <div class="eyebrow">정글 대탐험 × 서바이벌 · BETA v0.4.1</div>
     <h1 id="mainTitle">마주치지 마!<br>서바이벌 대모험 🌴</h1>
-    <p class="intro">🗺️ 기존 정글탐험처럼 넓은 정글을 돌아다녀요! 나비 숲과 폭포, 고대 유적을 지나 🔑 열쇠를 찾고 🚪 탈출하세요. 악당들에게 쫓기면 🌿 은신처에 숨을 수 있어요.</p>
+    <p class="intro">🗺️ 기존 정글탐험처럼 넓은 정글을 돌아다녀요! 나비 숲과 폭포, 고대 유적을 지나 🔑 열쇠를 찾고 🚪 탈출하세요. 악당들에게 쫓기면 🌿 쉼터 안으로 들어가세요! 버튼 없이 바로 자동으로 숨어요.</p>
     <div class="setupgrid">
       <div class="setting">
         <div class="setting-title">① 캐릭터를 골라요</div>
@@ -152,7 +152,7 @@
       <p id="modeHint" class="hint" aria-live="polite">⏱ 105초 · 큰 정글 · 빠른 재규어 · 보너스 점수</p>
     </div>
     <div class="footerline">
-      <p>🗺️ 미니맵의 하얀 점은 나, 노란 점은 목표예요. 🌿 은신처는 한 번만 사용 가능!</p>
+      <p>🗺️ 미니맵의 하얀 점은 나, 노란 점은 목표예요. 🌿 쉼터 안으로 들어가면 자동으로 숨고, 한 번 사용하면 사라져요!</p>
       <button id="startButton" type="button" class="primary">모험 시작! ▶</button>
     </div>
   </section>
@@ -199,15 +199,15 @@
       <aside class="side" aria-label="게임 설명과 조작">
         <div>
           <h2>🧭 모험 안내</h2>
-          <p class="instruction"><strong>미션:</strong> 🗺️ 넓은 정글 곳곳을 탐험해요! 화면 오른쪽 위 미니맵에서 하얀 점은 내 위치, 노란 점은 열쇠 또는 출구예요. 🐵🐍 악당들이 계속 쫓아와요! 🌿 덤불 4초 · 🪵 통나무 5초 · 🕳️ 동굴 6초만 숨을 수 있어요.<br><strong>은신:</strong> 가까이 가서 숨기! 숨으면 악당들이 다른 곳으로 이동해요. 나와도 잠깐 그곳을 수색해요. 시간이 끝나면 장소가 사라지고 1.3초 보호 + 잠깐 속도 증가.<br><strong>목표:</strong> 🔑 열쇠 → 🐆 추가 추격 → 🚪 출구!</p>
-          <p class="instruction">PC: 방향키/WASD로 넓은 정글 이동 · <strong>E 숨기/나오기</strong> · 스페이스/Shift 질주<br>모바일: 은신처 주변에서 🙈 숨기 버튼을 누르세요.</p>
+          <p class="instruction"><strong>미션:</strong> 🗺️ 넓은 정글 곳곳을 탐험해요! 화면 오른쪽 위 미니맵에서 하얀 점은 내 위치, 노란 점은 열쇠 또는 출구예요. 🐵🐍 악당들이 계속 쫓아와요! 🌿 덤불 4초 · 🪵 통나무 5초 · 🕳️ 동굴 6초만 숨을 수 있어요.<br><strong>은신:</strong> 쉼터 원 안으로 들어가면 자동으로 숨어요! 숨으면 악당들이 다른 곳으로 이동해요. 나와도 잠깐 그곳을 수색해요. 시간이 끝나면 장소가 사라지고 1.3초 보호 + 잠깐 속도 증가.<br><strong>목표:</strong> 🔑 열쇠 → 🐆 추가 추격 → 🚪 출구!</p>
+          <p class="instruction">PC: 방향키/WASD로 쉼터 안에 들어가면 <strong>자동 숨기</strong> · E로 먼저 나오기 · 스페이스/Shift 질주<br>모바일: 방향 버튼으로 쉼터 안에 들어가면 즉시 숨어요. 버튼을 누를 필요 없어요.</p>
         </div>
         <div class="controls" aria-label="방향 조작">
           <button type="button" class="dir up" data-dir="up" aria-label="위로 이동">▲</button>
           <button type="button" class="dir left" data-dir="left" aria-label="왼쪽으로 이동">◀</button>
           <button type="button" class="dir down" data-dir="down" aria-label="아래로 이동">▼</button>
           <button type="button" class="dir right" data-dir="right" aria-label="오른쪽으로 이동">▶</button>
-          <button id="hideButton" type="button" class="hide-btn" disabled aria-label="은신처에 숨기 또는 나오기" aria-keyshortcuts="E">🌿 가까이 가서 숨기</button>
+          <button id="hideButton" type="button" class="hide-btn" disabled aria-label="자동 은신 중 먼저 나오기 또는 수동으로 숨기" aria-keyshortcuts="E">🌿 자동 숨기</button>
           <button id="dashButton" type="button" class="dash-btn" aria-label="긴급 질주">⚡ 긴급 질주</button>
         </div>
         <div class="retry-row"><button id="restartButton" type="button" class="small-button">↻ 다시 시작</button></div>
@@ -216,7 +216,7 @@
     <p id="liveStatus" class="game-footer" role="status" aria-live="polite">👹 추격! 🌿 은신처에서 잠깐 숨고 도망쳐요!</p>
   </section>
 </main>
-<script src="/survival-static/logic.js?v=4"></script>
-<script src="/survival-static/game.js?v=4"></script>
+<script src="/survival-static/logic.js?v=41"></script>
+<script src="/survival-static/game.js?v=41"></script>
 </body>
 </html>

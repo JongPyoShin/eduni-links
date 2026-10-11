@@ -56,7 +56,7 @@
       enemy("snow-wolf","wolf",960,855,123,22),
       enemy("seal-thief","seal",1550,490,98,22),
     ]),
-    boss:Object.freeze({id:"polar-bear",kind:"polar_bear",x:1800,y:380,speed:178,radius:26}),
+    boss:Object.freeze({id:"polar-bear",kind:"polar_bear",x:1800,y:462,speed:178,radius:26}),
     shelters:freeze([
       shelter("snow-start","snowbank","눈더미",184,1215,4),
       shelter("igloo-west","igloo","이글루",604,1037,5),
@@ -105,7 +105,7 @@
       enemy("mummy-guard","mummy",960,805,105,22),
       enemy("anubis-watch","anubis",1525,485,120,23),
     ]),
-    boss:Object.freeze({id:"pharaoh-spirit",kind:"pharaoh",x:1800,y:390,speed:179,radius:23}),
+    boss:Object.freeze({id:"pharaoh-spirit",kind:"pharaoh",x:1800,y:455,speed:179,radius:23}),
     shelters:freeze([
       shelter("jar-start","jar","거대 항아리",190,1220,4),
       shelter("sarc-west","sarcophagus","석관 뒤",615,1050,5),

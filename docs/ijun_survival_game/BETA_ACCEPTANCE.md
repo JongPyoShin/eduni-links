@@ -15,8 +15,15 @@
 
 ## 중요: 개발 브랜치 상태
 
-이 코드는 기능 브랜치에만 있습니다. **main 병합 또는 실서버 배포는 실행하지 않았으며, 지금 라이브 주소에서 플레이 가능하다고 보증할 수 없습니다.**
+배포 방식은 두 갈래입니다. **GitHub Pages 정적 베타**는 `survival/index.html`과 기존 게임 로직 JS를 통해 바로 실행할 수 있고, **가족 서버 NiceGUI 포털**은 해당 PC가 최신 코드를 가져와 앱을 재시작해야 `/survival` 경로가 실제로 활성화됩니다. GitHub main 병합만으로 가족 PC의 자동 배포가 이루어진다고 가정하지 않습니다.
 `/jungle`, `/link`, `/omok`, `/bubble`, `/bubble-shooter`, `/` 등 기존 게임 경로와 구현은 그대로 유지했습니다.
+
+## GitHub Pages 배포 경로
+
+- `https://jongpyoshin.github.io/eduni-links/survival/` (Pages가 main 루트에서 게시 중일 경우)
+- `index.html`의 EDUNI Links 시작 메뉴에서 바로가기
+- 공개 저장소에 있는 게임이며 플레이 데이터 전송은 없지만 주소를 아는 누구나 접근 가능
+- Pages 실제 HTTP 접속 및 가족 서버 배포 여부는 각각 확인할 것
 
 ## 변경 파일
 

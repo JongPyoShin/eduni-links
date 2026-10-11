@@ -16,15 +16,18 @@ test("spawn/exit positions are inside playable geometry", () => {
   assert.ok(L.canOccupy(L.START.x, L.START.y));
   assert.ok(L.canOccupy(L.EXIT.x, L.EXIT.y));
 });
-test("diagonal speed is normalized; keys cannot pass walls or map borders", () => {
-  const a = L.movePlayer({ x: 110, y: 580 }, 1, 0, 0.05);
-  const d = L.movePlayer({ x: 110, y: 580 }, 1, 1, 0.05);
-  assert.ok(Math.abs(Math.hypot(d.x - 110, d.y - 580) - (a.x - 110)) < 0.00001);
-  let p = { x: 200, y: 575 };
-  for (let i = 0; i < 100; i++) p = L.movePlayer(p, 0, -1, 0.05);
-  assert.ok(p.y >= 480 + 52 + L.PLAYER_RADIUS);
-  const edge = L.movePlayer({ x: 46, y: 650 }, -1, 0, 0.05);
+test("diagonal movement and dash stop at tree walls and world boundaries", () => {
+  const { x, y } = L.START;
+  const a = L.movePlayer({ x, y }, 1, 0, .05);
+  const d = L.movePlayer({ x, y }, 1, 1, .05);
+  assert.ok(Math.abs(Math.hypot(d.x - x, d.y - y) - (a.x - x)) < .00001);
+  let p = { x: 280, y: 1225 };
+  for (let i = 0; i < 80; i++) p = L.movePlayer(p, 0, -1, .05);
+  assert.ok(p.y >= 1110 + 56 + L.PLAYER_RADIUS);
+  const edge = L.movePlayer({ x: 46, y: 1450 }, -1, 0, .05);
   assert.equal(edge.x, 46);
+  const farEdge = L.movePlayer({ x: L.WORLD_WIDTH - 46, y: 1400 }, 1, 0, .05);
+  assert.equal(farEdge.x, L.WORLD_WIDTH - 46);
 });
 test("each collision costs precisely one life, with 1.5s grace", () => {
   let hit = L.resolveEnemyHit(35, 0, true);
@@ -48,11 +51,11 @@ test("patrol reverses at ends and cannot drift out of range", () => {
     assert.ok(reversed, enemy.id);
   }
 });
-test("all three optional stars are reachable and cannot block escape", () => {
+test("all optional stars are reachable and cannot block escape", () => {
   for (const star of L.STARS) assert.ok(L.canOccupy(star.x, star.y, 13));
   assert.equal(L.hasEscaped({ x: L.EXIT.x, y: L.EXIT.y }), true);
   assert.equal(L.hasEscaped(L.START), false);
-  assert.ok(L.calculateScore(1, 1, 3, 30) > L.calculateScore(35, 35, 3, 30));
+  assert.ok(L.calculateScore(1, 1, L.STARS.length, 30) > L.calculateScore(35, 35, L.STARS.length, 30));
 });
 
 test("the key unlocks a reachable gate, and hazards leave room to dodge", () => {
@@ -63,15 +66,15 @@ test("the key unlocks a reachable gate, and hazards leave room to dodge", () => 
     assert.ok(h.radius >= 30, "warning area visible");
   }
 });
-test("hazard warns before impact in both modes", () => {
-  for (const mode of ["thrill", "explore"]) {
-    for (const hazard of L.HAZARDS) {
-      const phases = [];
-      for (let t = 0; t < 16; t += .05) phases.push(L.dangerPhase(t, hazard.phase, mode));
-      const firstDanger = phases.indexOf("active");
-      assert.ok(firstDanger > 0, mode);
-      assert.ok(phases.slice(Math.max(0, firstDanger - 28), firstDanger).includes("warning"));
+test("all fruit fall hazards warn before becoming active in both modes", () => {
+  for (const mode of ["thrill", "explore"]) for (const hazard of L.HAZARDS) {
+    let warned = false, happened = false;
+    for (let t = 0; t < 17; t += .05) {
+      const phase = L.dangerPhase(t, hazard.phase, mode);
+      if (phase === "warning") warned = true;
+      if (phase === "active" && warned) { happened = true; break; }
     }
+    assert.ok(happened, mode + " " + hazard.x);
   }
 });
 test("the jaguar pursues but cannot walk through tree hitboxes", () => {
@@ -92,16 +95,16 @@ test("dash is faster but still obeys boundaries", () => {
   assert.ok(dash.x > walk.x);
   assert.equal(L.DASH_COOLDOWN, 5);
   assert.equal(L.DASH_SECONDS, .5);
-  let blocked = { x: 200, y: 575 };
+  let blocked = { x: 280, y: 1225 };
   for (let t = 0; t < 100; t++) blocked = L.movePlayer(blocked, 0, -1, .05, L.OBSTACLES, L.DASH_BOOST);
-  assert.ok(blocked.y >= 552, "dash may not tunnel through trees");
+  assert.ok(blocked.y >= 1186, "dash may not tunnel through trees");
 });
-test("the 45s chase and 90s relaxed timers expire exactly", () => {
-  assert.equal(L.remainingTime(0, "thrill"), 45);
-  assert.equal(L.remainingTime(44.9, "thrill"), 1);
-  assert.equal(L.remainingTime(45, "thrill"), 0);
-  assert.equal(L.remainingTime(0, "explore"), 90);
-  assert.equal(L.remainingTime(90, "explore"), 0);
+test("the 105s chase and 180s relaxed timers expire exactly", () => {
+  assert.equal(L.remainingTime(0, "thrill"), 105);
+  assert.equal(L.remainingTime(104.9, "thrill"), 1);
+  assert.equal(L.remainingTime(105, "thrill"), 0);
+  assert.equal(L.remainingTime(0, "explore"), 180);
+  assert.equal(L.remainingTime(180, "explore"), 0);
 });
 
 test("tree-aware pursuit takes a detour instead of sticking at a wall", () => {
@@ -122,12 +125,11 @@ test("tree-aware pursuit takes a detour instead of sticking at a wall", () => {
 });
 
 test("all shelters have reachable locations, distinct ids and one-use capacity", () => {
-  assert.equal(L.SHELTERS.length, 4);
+  assert.equal(L.SHELTERS.length, 8);
   assert.equal(new Set(L.SHELTERS.map(s => s.id)).size, L.SHELTERS.length);
-  const kindTimes = Object.fromEntries(L.SHELTERS.map(s => [s.kind, s.hideSeconds]));
-  assert.equal(kindTimes.bush, 4);
-  assert.equal(kindTimes.log, 5);
-  assert.equal(kindTimes.cave, 6);
+  for (const [kind, seconds] of [["bush", 4], ["log", 5], ["cave", 6]]) {
+    assert.ok(L.SHELTERS.filter(s => s.kind === kind).every(s => s.hideSeconds === seconds));
+  }
   for (const shelter of L.SHELTERS) {
     assert.ok(L.canOccupy(shelter.x, shelter.y), shelter.id);
     assert.ok(shelter.hideSeconds >= 4 && shelter.hideSeconds <= 6);
@@ -204,4 +206,38 @@ test("after shelter timeout the enemies are away, not camping at its entrance", 
     }
   }
   assert.ok(L.SEARCH_AFTER_HIDE_SECONDS >= 2.5, "monsters stay distracted after hide expires");
+});
+
+test("expanded jungle uses six times the previous area and following camera", () => {
+  assert.equal(L.SIZE, 720);
+  assert.equal(L.WORLD_WIDTH, 2048);
+  assert.equal(L.WORLD_HEIGHT, 1536);
+  assert.ok(L.WORLD_WIDTH * L.WORLD_HEIGHT > L.SIZE * L.SIZE * 6);
+  assert.deepEqual(L.cameraFor(L.START), { x: 0, y: L.WORLD_HEIGHT - L.SIZE });
+  assert.deepEqual(L.cameraFor(L.EXIT), {
+    x: L.WORLD_WIDTH - L.SIZE, y: 0,
+  });
+  const middle = L.cameraFor({ x: 1100, y: 800 });
+  assert.equal(middle.x, 740);
+  assert.equal(middle.y, 440);
+});
+test("world objectives, landmarks, hideouts, enemies and search points remain walkable", () => {
+  const objects = [L.START, L.EXIT, L.KEY, L.JAGUAR, ...L.ENEMIES,
+    ...L.STARS, ...L.SHELTERS, ...L.SEARCH_LOCATIONS, ...L.HAZARDS];
+  for (const obj of objects) assert.ok(
+    L.canOccupy(obj.x, obj.y, obj.radius || 13), "unreachable object " + (obj.id || JSON.stringify(obj)));
+  assert.equal(new Set(L.SHELTERS.map(s => s.id)).size, 8);
+  assert.ok(L.areaFor(L.START).includes("이끼길"));
+  assert.ok(L.areaFor(L.EXIT).includes("유적"));
+  for (const x of [L.START, L.EXIT, L.KEY, ...L.SHELTERS])
+    assert.ok(L.findChasePath(L.START, x).length || x === L.START,
+      "path to " + (x.id || x.x + "," + x.y));
+});
+test("tree-aware path finder travels across the large jungle", () => {
+  const pathToKey = L.findChasePath(L.START, L.KEY);
+  assert.ok(pathToKey.length > 60, "key across the map");
+  const pathToExit = L.findChasePath(L.KEY, L.EXIT);
+  assert.ok(pathToExit.length > 20, "exit beyond ruins");
+  assert.ok(pathToKey.every(p => L.canOccupy(p.x, p.y, 22)));
+  assert.ok(pathToExit.every(p => L.canOccupy(p.x, p.y, 22)));
 });

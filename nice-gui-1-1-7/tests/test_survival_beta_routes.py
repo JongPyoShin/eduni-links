@@ -33,6 +33,8 @@ class SurvivalBetaRouteTests(unittest.TestCase):
         self.assertIsNotNone(route_for("/survival-static/logic.js"))
         self.assertIsNotNone(route_for("/survival-static/game.js"))
         self.assertIsNotNone(route_for("/survival-static/render25d.js"))
+        self.assertIsNotNone(route_for("/survival-static/worlds.js"))
+        self.assertIsNotNone(route_for("/survival-static/worldart25d.js"))
 
     def test_beta_html_includes_original_child_rules(self) -> None:
         response = eduni_survival_game()
@@ -42,7 +44,8 @@ class SurvivalBetaRouteTests(unittest.TestCase):
             'id="livesRange"', 'max="35"', 'min="1"',
             'data-character="explorer"', 'data-character="bunny"',
             'data-dir="up"', 'data-dir="down"',
-            '/survival-static/logic.js', '/survival-static/render25d.js', '/survival-static/game.js',
+            '/survival-static/logic.js', '/survival-static/render25d.js',
+            '/survival-static/worlds.js', '/survival-static/worldart25d.js', '/survival-static/game.js',
             'viewport-fit=cover',
         ):
             with self.subTest(expected=expected):

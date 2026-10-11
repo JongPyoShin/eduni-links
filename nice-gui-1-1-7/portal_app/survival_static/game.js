@@ -84,6 +84,8 @@
     $("hudLives").textContent = state.lives + " / " + state.startingLives;
     $("hudStars").textContent = state.stars.filter((star) => star.collected).length + " / " + L.STARS.length;
     $("hudTime").textContent = L.remainingTime(state.seconds, state.mode) + "초 남음";
+    $("hudTime").classList.remove("urgent");
+    if (L.remainingTime(state.seconds, state.mode) <= 15) $("hudTime").classList.add("urgent");
     $("hudKey").textContent = state.keyCollected ? "🔑 획득" : "🔒 열쇠 찾기";
     if (state.jaguar) {
       const distance = Math.round(Math.hypot(state.jaguar.x - state.player.x, state.jaguar.y - state.player.y));
@@ -99,12 +101,13 @@
       enemies: L.ENEMIES.map((enemy) => ({ ...enemy })),
       stars: L.STARS.map((star) => ({ ...star, collected: false })),
       invulnerable: 0, seconds: 0, flash: 0,
-      keyCollected: false, jaguar: null, dashCooldown: 0, dashRemaining: 0,
+      keyCollected: false, jaguar: null, dashCooldown: 0, dashRemaining: 0, bannerUntil: 0,
     };
     setup.hidden = true;
     game.hidden = false;
     pauseOverlay.hidden = true;
     resultOverlay.hidden = true;
+    $("eventBanner").hidden = true;
     $("pauseButton").textContent = "⏸ 일시정지";
     setStatus("🔑 먼저 정글 오른쪽의 열쇠를 찾아요. 출구는 잠겨 있어요!");
     updateHud();
@@ -215,6 +218,7 @@
     const seconds = L.clamp(dt, 0, 0.05);
     state.seconds += seconds;
     if (L.remainingTime(state.seconds, state.mode) === 0) { finish(false, "time"); return; }
+    $("eventBanner").hidden = state.seconds >= state.bannerUntil;
     state.dashCooldown = Math.max(0, state.dashCooldown - seconds);
     state.dashRemaining = Math.max(0, state.dashRemaining - seconds);
     state.invulnerable = Math.max(0, state.invulnerable - seconds);
@@ -237,6 +241,8 @@
       state.jaguar = { ...L.JAGUAR };
       state.jaguarWaypoints = [];
       state.jaguarPathAge = 0;
+      state.bannerUntil = state.seconds + 2.4;
+      $("eventBanner").hidden = false;
       setStatus("🔑 열쇠 획득! 🐆 재규어가 깨어났어요! 이제 출구로 달려요!");
     }
     if (state.jaguar) {
@@ -397,6 +403,9 @@
     const flicker = state.invulnerable > 0 && Math.floor(time * 10) % 2 === 0;
     ctx.save();
     if (flicker) ctx.globalAlpha = 0.43;
+    if (state.dashRemaining > 0) {
+      circle(p.x, p.y + 8, 45, "#9cefff70", "#fff3ac", 3);
+    }
     circle(p.x, p.y + 8, 23, "#214d3999");
     circle(p.x, p.y, p.radius + 3, state.character === "explorer" ? "#ffe6a2" : "#f1e6ff", "#153b34", 4);
     ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "42px system-ui";
@@ -410,6 +419,11 @@
     if (!state) return;
     const time = state.seconds;
     ctx.clearRect(0, 0, L.SIZE, L.SIZE);
+    ctx.save();
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+    if (state.flash > 0 && !reduced) {
+      ctx.translate(Math.sin(time * 150) * 4 * state.flash, Math.cos(time * 110) * 4 * state.flash);
+    }
     drawGround();
     drawObstacles();
     drawHazards(time);
@@ -427,6 +441,7 @@
       ctx.fillStyle = "rgba(255,100,90," + (state.flash * 0.28) + ")";
       ctx.fillRect(0, 0, L.SIZE, L.SIZE);
     }
+    ctx.restore();
   }
   function frame(now) {
     const dt = lastFrame ? (now - lastFrame) / 1000 : 0;

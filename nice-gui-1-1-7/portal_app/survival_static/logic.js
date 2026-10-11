@@ -139,21 +139,21 @@
     const next = Math.max(0, lives - 1);
     return { lives: next, invulnerableSeconds: ENEMY_COOLDOWN_SECONDS, hit: true, dead: next === 0 };
   }
-  function hasEscaped(player) {
-    return Math.hypot(player.x - EXIT.x, player.y - EXIT.y) <= EXIT.radius + PLAYER_RADIUS - 7;
+  function hasEscaped(player, exit = EXIT) {
+    return Math.hypot(player.x - exit.x, player.y - exit.y) <= exit.radius + PLAYER_RADIUS - 7;
   }
 
 
   // Small deterministic walkability grid. Recompute at most once per second in the game loop.
   // 24 px cells keep the chase smart around tree trunks with no third-party pathfinder.
-  function findChasePath(from, to) {
+  function findChasePath(from, to, obstacles = OBSTACLES) {
     const step = 24, origin = PADDING + PLAYER_RADIUS;
     const cols = Math.floor((WORLD_WIDTH - 2 * origin) / step) + 1;
     const rows = Math.floor((WORLD_HEIGHT - 2 * origin) / step) + 1;
     const size = cols * rows;
     const passable = new Uint8Array(size);
     for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
-      passable[y * cols + x] = canOccupy(origin + x * step, origin + y * step, 22) ? 1 : 0;
+      passable[y * cols + x] = canOccupy(origin + x * step, origin + y * step, 22, obstacles) ? 1 : 0;
     }
     function closest(point) {
       let best = -1, bestDist = Infinity;
@@ -216,21 +216,21 @@
     return { x: clamp(player.x - SIZE / 2, 0, WORLD_WIDTH - SIZE),
       y: clamp(player.y - SIZE / 2, 0, WORLD_HEIGHT - SIZE) };
   }
-  function areaFor(point) {
-    const area = WORLD_AREAS.find(a =>
+  function areaFor(point, areas = WORLD_AREAS) {
+    const area = areas.find(a =>
       point.x >= a.x && point.x < a.x + a.w && point.y >= a.y && point.y < a.y + a.h);
     return area ? area.name : "깊은 정글";
   }
-  function searchTarget(shelter, round, enemyIndex) {
+  function searchTarget(shelter, round, enemyIndex, locations = SEARCH_LOCATIONS, obstacles = OBSTACLES) {
     // Deliberately scatter enemies to distant, traversable map regions.
     // Keep the destination stable for the whole hiding round, including the
     // post-hide grace period; enemies may not instantly re-acquire the player.
     const distance = point => Math.hypot(point.x - shelter.x, point.y - shelter.y);
-    const choices = SEARCH_LOCATIONS.filter(point =>
-      canOccupy(point.x, point.y, 22) && distance(point) >= SEARCH_SAFE_RADIUS)
+    const choices = locations.filter(point =>
+      canOccupy(point.x, point.y, 22, obstacles) && distance(point) >= SEARCH_SAFE_RADIUS)
       .sort((a, b) => distance(b) - distance(a));
     if (!choices.length) {
-      return SEARCH_LOCATIONS.filter(point => canOccupy(point.x, point.y, 22))
+      return locations.filter(point => canOccupy(point.x, point.y, 22, obstacles))
         .sort((a, b) => distance(b) - distance(a))[0] || { ...shelter };
     }
     const sector = Math.max(0, Math.floor(Number.isFinite(enemyIndex) ? enemyIndex : 0));
@@ -253,7 +253,7 @@
     if (t < warning + 2.2) return "active";
     return "idle";
   }
-  function chaseJaguar(jaguar, player, dt, mode = "thrill") {
+  function chaseJaguar(jaguar, player, dt, mode = "thrill", obstacles = OBSTACLES) {
     const seconds = clamp(Number.isFinite(dt) ? dt : 0, 0, 0.05);
     const dx = player.x - jaguar.x, dy = player.y - jaguar.y;
     const distance = Math.hypot(dx, dy);
@@ -262,12 +262,12 @@
     const nx = dx / distance, ny = dy / distance;
     let x = jaguar.x, y = jaguar.y;
     // Enemies obey the same tree collision as the child character.
-    if (canOccupy(x + nx * stride, y, jaguar.radius)) x += nx * stride;
-    if (canOccupy(x, y + ny * stride, jaguar.radius)) y += ny * stride;
+    if (canOccupy(x + nx * stride, y, jaguar.radius, obstacles)) x += nx * stride;
+    if (canOccupy(x, y + ny * stride, jaguar.radius, obstacles)) y += ny * stride;
     // Predictable sidestep if the jaguar gets stuck behind a tree.
     if (Math.abs(x - jaguar.x) < .01 && Math.abs(y - jaguar.y) < .01) {
       for (const [sideX, sideY] of [[-ny, nx], [ny, -nx]]) {
-        if (canOccupy(x + sideX * stride, y + sideY * stride, jaguar.radius)) {
+        if (canOccupy(x + sideX * stride, y + sideY * stride, jaguar.radius, obstacles)) {
           x += sideX * stride;
           y += sideY * stride;
           break;

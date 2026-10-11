@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#10352f">
+  <title>마주치지 마! | 의준 서바이벌 베타</title>
+  <style>
+    :root { color-scheme: dark; --ink:#f4fff7; --muted:#bed6cb; --green:#45e0a3; --paper:#163b34; --line:#396456; --gold:#ffe47b; }
+    * { box-sizing:border-box; }
+    [hidden] { display:none !important; }
+    body { margin:0; min-height:100vh; background:radial-gradient(circle at 16% 3%,#2c6f55 0,transparent 38%),linear-gradient(155deg,#123c30,#091c20 70%); color:var(--ink); font-family:system-ui,"Malgun Gothic","Apple SD Gothic Neo",sans-serif; line-height:1.45; }
+    button,input { font:inherit; }
+    button { cursor:pointer; }
+    button:focus-visible, input:focus-visible, a:focus-visible { outline:3px solid #ffe47b; outline-offset:3px; }
+    .shell { max-width:1030px; margin:auto; padding:clamp(12px,3vw,28px); }
+    .topline { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+    .brand { font-size:12px; letter-spacing:.13em; font-weight:900; color:var(--green); }
+    .navlink { color:var(--muted); font-size:14px; font-weight:800; text-decoration:none; padding:9px 12px; border:1px solid var(--line); border-radius:12px; }
+    .card { border:1px solid #5a8c6b; border-radius:24px; background:linear-gradient(160deg,rgba(33,93,67,.95),rgba(17,55,53,.96)); box-shadow:0 18px 55px #05180c77; padding:clamp(18px,4vw,32px); }
+    h1 { margin:4px 0 6px; font-size:clamp(32px,7vw,53px); letter-spacing:-.045em; line-height:1.08; }
+    h2 { margin:0; font-size:21px; }
+    p { margin:7px 0; color:var(--muted); }
+    .eyebrow { color:var(--gold); font-weight:900; letter-spacing:.07em; font-size:13px; }
+    .intro { font-size:clamp(15px,2vw,18px); max-width:690px; }
+    .setupgrid { margin:22px 0 0; display:grid; gap:20px; grid-template-columns:1fr 1fr; }
+    .setting { min-width:0; }
+    .setting-title { display:flex; gap:7px; align-items:center; font-weight:900; margin-bottom:11px; }
+    .choice-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:11px; }
+    .avatar { min-height:130px; color:var(--ink); background:#153e34; border:2px solid #568b70; border-radius:18px; display:flex; flex-direction:column; gap:7px; align-items:center; justify-content:center; font-size:17px; font-weight:900; }
+    .avatar span { font-size:51px; filter:drop-shadow(0 7px 0 #0b231f); line-height:1.2; }
+    .avatar[aria-pressed="true"] { background:#237554; border-color:var(--gold); box-shadow:inset 0 0 0 2px var(--gold); }
+    .life-box { border-radius:18px; border:1px solid #5b957a; background:#153e34; padding:18px; }
+    .life-row { display:flex; justify-content:space-between; align-items:center; }
+    .life-big { font-size:32px; font-weight:1000; color:#ffb3b6; font-variant-numeric:tabular-nums; }
+    input[type=range] { width:100%; accent-color:#ff818d; margin:14px 0; height:30px; cursor:pointer; }
+    .life-presets { display:flex; gap:8px; flex-wrap:wrap; }
+    .chip { background:#214d40; color:var(--ink); border:1px solid #7bac89; border-radius:12px; min-width:49px; min-height:44px; font-weight:900; }
+    .chip[aria-pressed="true"] { background:#fbeaa7; color:#14382d; }
+    .hint { font-size:13px; color:#cfe3d7; }
+    .map-card { margin-top:18px; padding:15px; border:1px solid #74a486; border-radius:17px; background:#214d40; display:flex; align-items:center; gap:15px; }
+    .map-icon { font-size:46px; }
+    .map-card strong { font-size:18px; }
+    .primary { min-height:58px; color:#092b1f; font-size:20px; font-weight:1000; background:linear-gradient(180deg,#fff49e,#ffc957); border:0; border-radius:17px; box-shadow:0 5px 0 #b06c26; padding:10px 24px; }
+    .primary:active { transform:translateY(3px); box-shadow:0 2px 0 #b06c26; }
+    .footerline { margin-top:24px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+    .hud { display:flex; align-items:center; flex-wrap:wrap; gap:8px; justify-content:space-between; padding:9px 0 15px; }
+    .hud-group { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+    .pill { background:#1d5743; border:1px solid #42765b; padding:7px 11px; border-radius:12px; white-space:nowrap; font-size:15px; font-weight:900; }
+    .pill b { color:var(--gold); font-variant-numeric:tabular-nums; }
+    .small-button { color:#fff; background:#28634b; border:1px solid #67a47c; border-radius:12px; font-weight:900; padding:10px 15px; min-height:43px; }
+    .game-layout { display:grid; grid-template-columns:minmax(0,720px) minmax(175px,1fr); align-items:start; gap:17px; }
+    .canvas-wrap { position:relative; overflow:hidden; border:5px solid #7aaf75; border-radius:20px; background:#5c9b61; box-shadow:0 12px 0 #0e3025; touch-action:none; }
+    canvas { width:100%; aspect-ratio:1/1; height:auto; display:block; }
+    .overlay { position:absolute; inset:0; background:#09291edc; display:flex; align-items:center; justify-content:center; padding:18px; z-index:5; }
+    .overlay-card { width:min(94%,450px); padding:22px; border-radius:22px; background:#185442; border:2px solid var(--gold); text-align:center; box-shadow:0 16px 45px #031811aa; }
+    .overlay-card h2 { font-size:30px; margin-bottom:10px; }
+    .overlay-card p { margin-bottom:18px; }
+    .overlay-buttons { display:flex; flex-wrap:wrap; justify-content:center; gap:11px; }
+    .side { padding:16px; background:#173e33; border:1px solid #3f7255; border-radius:18px; }
+    .side strong { color:var(--gold); }
+    .side p { line-height:1.7; }
+    .controls { margin-top:20px; display:grid; grid-template-columns:repeat(3,68px); grid-template-rows:repeat(3,65px); gap:6px; justify-content:center; touch-action:none; user-select:none; }
+    .dir { border:2px solid #b4dea0; background:#295e49; color:#fff; font-weight:1000; font-size:29px; border-radius:14px; touch-action:none; -webkit-user-select:none; }
+    .dir:active,.dir.active { background:#ffe47b; color:#173a31; transform:scale(.97); }
+    .up { grid-column:2; grid-row:1; } .left { grid-column:1; grid-row:2; } .down { grid-column:2; grid-row:2; } .right { grid-column:3; grid-row:2; }
+    .retry-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:20px; }
+    .instruction { font-size:14px; }
+    .game-footer { font-size:13px; color:#a5cbb8; margin-top:20px; text-align:center; }
+    @media(max-width:770px) {
+      .setupgrid,.game-layout { grid-template-columns:1fr; }
+      .hud { padding-top:4px; }
+      .side { display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:center; }
+      .side .controls { margin:0; }
+      .retry-row { margin:0; }
+      .instruction { max-width:240px; }
+    }
+    @media(max-width:480px) {
+      .shell { padding:9px; }
+      .card { border-radius:18px; padding:15px; }
+      .avatar { min-height:115px; }
+      .avatar span { font-size:43px; }
+      .side { display:block; }
+      .controls { margin:8px auto 0; grid-template-columns:repeat(3,65px); grid-template-rows:repeat(2,62px); }
+      .up { grid-row:1; } .left,.down,.right { grid-row:2; }
+      .canvas-wrap { border-width:3px; border-radius:14px; }
+      .footerline { align-items:stretch; }
+      .footerline .primary { width:100%; }
+    }
+    @media(prefers-reduced-motion:reduce) { *, *::before,*::after { scroll-behavior:auto!important; transition:none!important; } }
+  </style>
+</head>
+<body>
+<main class="shell">
+  <div class="topline"><span class="brand">EDUNI × 의준의 첫 게임</span><a class="navlink" href="../">← 포털 홈</a></div>
+
+  <section id="setupScreen" class="card" aria-labelledby="mainTitle">
+    <div class="eyebrow">정글 스테이지 · PLAYABLE BETA</div>
+    <h1 id="mainTitle">마주치지 마!<br>서바이벌 대모험 🌴</h1>
+    <p class="intro">내 캐릭터와 목숨을 정해요. 원숭이와 뱀에게 마주치지 않고 숲속 출구까지 도착하면 성공!</p>
+    <div class="setupgrid">
+      <div class="setting">
+        <div class="setting-title">① 캐릭터를 골라요</div>
+        <div class="choice-grid" role="group" aria-label="캐릭터 선택">
+          <button type="button" class="avatar" data-character="explorer" aria-pressed="true"><span aria-hidden="true">🧒</span>씩씩한 탐험가</button>
+          <button type="button" class="avatar" data-character="bunny" aria-pressed="false"><span aria-hidden="true">🐰</span>깡총 토끼</button>
+        </div>
+        <p class="hint">두 캐릭터의 속도는 같아요. 마음에 드는 친구를 골라요.</p>
+      </div>
+      <div class="setting">
+        <label class="setting-title" for="livesRange">② 목숨을 골라요 (1~35개)</label>
+        <div class="life-box">
+          <div class="life-row"><span>내 목숨</span><span id="livesPreview" class="life-big" aria-live="polite">❤️ × 5</span></div>
+          <input id="livesRange" type="range" min="1" max="35" value="5" step="1">
+          <div class="life-presets" role="group" aria-label="목숨 빠른 선택">
+            <button type="button" class="chip" data-lives="1">1개</button>
+            <button type="button" class="chip" data-lives="5" aria-pressed="true">5개</button>
+            <button type="button" class="chip" data-lives="15">15개</button>
+            <button type="button" class="chip" data-lives="35">35개</button>
+          </div>
+          <p id="difficultyPreview" class="hint" aria-live="polite">점수 ×2 · 기본 모험</p>
+        </div>
+      </div>
+    </div>
+    <div class="map-card" aria-label="베타 맵: 정글">
+      <span class="map-icon" aria-hidden="true">🌴</span>
+      <div><strong>③ 정글 맵</strong><p>첫 번째 모험 세계! 사막·북극·화산은 다음 버전에서 만나요.</p></div>
+    </div>
+    <div class="footerline">
+      <p>✅ 1번 부딪히면 목숨 -1 · ⭐ 별은 모아도 되고 안 모아도 돼요</p>
+      <button id="startButton" type="button" class="primary">모험 시작! ▶</button>
+    </div>
+  </section>
+
+  <section id="gameScreen" hidden aria-label="정글 서바이벌 게임">
+    <div class="hud">
+      <div class="hud-group">
+        <span class="pill">🌴 정글</span>
+        <span class="pill">❤️ <b id="hudLives">5 / 5</b></span>
+        <span class="pill">⭐ <b id="hudStars">0 / 3</b></span>
+        <span class="pill">⏱ <b id="hudTime">0초</b></span>
+      </div>
+      <button id="pauseButton" type="button" class="small-button" aria-keyshortcuts="Escape">⏸ 일시정지</button>
+    </div>
+    <div class="game-layout">
+      <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="720" height="720" role="img" aria-label="정글 맵. 왼쪽 아래에서 출발해 오른쪽 위의 반짝이는 출구로 이동하세요."></canvas>
+        <div id="pauseOverlay" class="overlay" hidden>
+          <div class="overlay-card">
+            <h2>⏸ 잠깐 쉬어요!</h2>
+            <p>준비가 되면 다시 시작해요.</p>
+            <div class="overlay-buttons">
+              <button id="resumeButton" class="primary" type="button">계속하기 ▶</button>
+              <button id="pauseRestartButton" class="small-button" type="button">처음부터</button>
+            </div>
+          </div>
+        </div>
+        <div id="resultOverlay" class="overlay" hidden aria-live="polite">
+          <div class="overlay-card">
+            <h2 id="resultTitle">성공!</h2>
+            <p id="resultText"></p>
+            <div class="overlay-buttons">
+              <button id="retryButton" type="button" class="primary">다시 도전 ↻</button>
+              <button id="settingsButton" type="button" class="small-button">캐릭터·목숨 바꾸기</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <aside class="side" aria-label="게임 설명과 조작">
+        <div>
+          <h2>🧭 모험 안내</h2>
+          <p class="instruction"><strong>목표:</strong> 오른쪽 위의 빛나는 문 🚪에 도착해요.<br><strong>조심:</strong> 원숭이 🐵, 뱀 🐍, 나무 장애물.<br><strong>도움:</strong> 부딪힌 뒤 잠깐은 다시 다치지 않아요.</p>
+          <p class="instruction">PC: 방향키 / WASD<br>모바일: 아래 방향 버튼을 길게 누르세요.</p>
+        </div>
+        <div class="controls" aria-label="방향 조작">
+          <button type="button" class="dir up" data-dir="up" aria-label="위로 이동">▲</button>
+          <button type="button" class="dir left" data-dir="left" aria-label="왼쪽으로 이동">◀</button>
+          <button type="button" class="dir down" data-dir="down" aria-label="아래로 이동">▼</button>
+          <button type="button" class="dir right" data-dir="right" aria-label="오른쪽으로 이동">▶</button>
+        </div>
+        <div class="retry-row"><button id="restartButton" type="button" class="small-button">↻ 다시 시작</button></div>
+      </aside>
+    </div>
+    <p id="liveStatus" class="game-footer" role="status" aria-live="polite">원숭이와 뱀을 피해서 출구까지 달려요!</p>
+  </section>
+</main>
+<script src="../nice-gui-1-1-7/portal_app/survival_static/logic.js"></script>
+<script src="../nice-gui-1-1-7/portal_app/survival_static/game.js"></script>
+</body>
+</html>

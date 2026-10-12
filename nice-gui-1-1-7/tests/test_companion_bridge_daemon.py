@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import json
 from pathlib import Path
 import logging
 import tempfile
@@ -95,12 +96,58 @@ class CompanionBridgeDaemonTests(unittest.TestCase):
                 file = daemon.registration_path()
                 file.parent.mkdir(parents=True)
                 file.write_bytes(b"encrypted-placeholder")
-                with patch.object(daemon.bridge, "credentials", return_value={"scopes": []}) as mocked:
-                    self.assertTrue(daemon.registration_ready())
-                    mocked.assert_called_once_with(file)
-                with patch.object(daemon.bridge, "credentials", side_effect=ValueError("sensitive")):
-                    with self.assertRaisesRegex(RuntimeError, "could not be opened"):
+                record = {
+                    "issuer": "https://auth.openai.com", "refresh_token": "refresh",
+                    "client_id": "client", "scopes": ["resource.invoke", "chatgpt.tokens.use.direct"],
+                    "saved_at": 0, "expires_in": 0,
+                }
+                with patch.object(daemon.bridge, "_unprotect", return_value=json.dumps(record).encode()):
+                    with patch.object(daemon.bridge, "_post_form") as refresh, patch.object(daemon.bridge, "_atomic_store") as store:
+                        self.assertTrue(daemon.registration_ready())
+                        refresh.assert_not_called()
+                        store.assert_not_called()
+                with patch.object(daemon.bridge, "_unprotect", return_value=b"not-json"):
+                    with self.assertRaisesRegex(RuntimeError, "could not be decrypted"):
                         daemon.registration_ready()
+
+    def test_registration_reader_rejects_missing_refresh_fields(self):
+        required = {
+            "issuer": "https://auth.openai.com", "refresh_token": "refresh",
+            "client_id": "client", "scopes": ["resource.invoke", "chatgpt.tokens.use.direct"],
+        }
+        for field in ("issuer", "refresh_token", "client_id", "scopes"):
+            invalid = dict(required)
+            del invalid[field]
+            with self.subTest(field=field), patch.object(
+                daemon.bridge, "_unprotect", return_value=json.dumps(invalid).encode()
+            ), tempfile.TemporaryDirectory() as temp:
+                path = Path(temp) / "registration.dpapi"
+                path.write_bytes(b"encrypted")
+                with self.assertRaisesRegex(ValueError, "registration unavailable"):
+                    daemon.bridge._read_registration(path)
+
+    def test_expired_credentials_refresh_only_when_bridge_requests_them(self):
+        record = {
+            "issuer": "https://auth.openai.com", "refresh_token": "refresh",
+            "client_id": "client", "scopes": ["resource.invoke", "chatgpt.tokens.use.direct"],
+            "saved_at": 0, "expires_in": 0,
+        }
+        renewed = {
+            "access_token": "access", "refresh_token": "new-refresh", "expires_in": 3600,
+            "scope": "resource.invoke chatgpt.tokens.use.direct",
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "registration.dpapi"
+            path.write_bytes(b"encrypted")
+            with (
+                patch.object(daemon.bridge, "_unprotect", return_value=json.dumps(record).encode()),
+                patch.object(daemon.bridge, "_post_form", return_value=renewed) as refresh,
+                patch.object(daemon.bridge, "_atomic_store") as store,
+            ):
+                creds = daemon.bridge.credentials(path)
+        self.assertEqual("access", creds["access_token"])
+        refresh.assert_called_once()
+        store.assert_called_once_with(path, creds)
 
     def test_existing_bridge_is_observed_not_killed(self):
         class EndLoop(Exception):

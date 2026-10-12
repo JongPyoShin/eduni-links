@@ -146,7 +146,7 @@ try {
     }
     & $python -m scripts.companion_bridge_daemon --config-path "$configPath" --check-registration
     if ($LASTEXITCODE -ne 0) {
-        throw 'The current Windows user cannot read or refresh the ChatGPT registration. Task was not installed.'
+        throw 'The current Windows user cannot decrypt the ChatGPT registration. Task was not installed.'
     }
 }
 finally {
@@ -165,7 +165,20 @@ $settings = New-ScheduledTaskSettingsSet `
     -AllowStartIfOnBatteries `
     -DontStopIfGoingOnBatteries
 
-Register-ScheduledTask -TaskName $taskName -Action $taskAction -Trigger $trigger -Principal $principal -Settings $settings -Description 'EDUNI loopback ChatGPT bridge for current interactive DPAPI user; restart supervisor after failure.' -Force | Out-Null
+$taskRegistration = @{
+    TaskName = $taskName
+    Action = $taskAction
+    Trigger = $trigger
+    Principal = $principal
+    Settings = $settings
+    Description = 'EDUNI loopback ChatGPT bridge for current interactive DPAPI user; restart supervisor after failure.'
+}
+if ($existingTask) {
+    Register-ScheduledTask @taskRegistration -Force | Out-Null
+}
+else {
+    Register-ScheduledTask @taskRegistration | Out-Null
+}
 Write-Output "Installed $taskName for $($identity.Name), Interactive logon only."
 Write-Output "Python: $python"
 Write-Output 'Bridge binds only to Windows loopback port 8765; existing Docker services are not changed.'

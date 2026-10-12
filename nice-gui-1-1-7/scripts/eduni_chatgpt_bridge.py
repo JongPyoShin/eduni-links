@@ -4,6 +4,7 @@ from __future__ import annotations
 import ctypes
 from ctypes import wintypes
 import json
+import math
 import os
 from pathlib import Path
 import secrets
@@ -106,15 +107,37 @@ def _post_form(url: str, payload: dict) -> dict:
     return result
 
 
+def _read_registration(path: Path) -> dict:
+    """Decrypt and validate the current registration without refreshing or writing it."""
+    try:
+        record = json.loads(_unprotect(path.read_bytes()))
+    except Exception:
+        raise ValueError("registration unavailable") from None
+    if (not isinstance(record, dict) or record.get("issuer") != "https://auth.openai.com"
+            or not isinstance(record.get("refresh_token"), str) or not record["refresh_token"]
+            or not isinstance(record.get("client_id"), str) or not record["client_id"]
+            or not isinstance(record.get("scopes"), list)
+            or any(not isinstance(scope, str) for scope in record["scopes"])
+            or not {"resource.invoke", "chatgpt.tokens.use.direct"}.issubset(record["scopes"])
+            or ("access_token" in record and not isinstance(record["access_token"], str))
+            or isinstance(record.get("saved_at", 0), bool)
+            or not isinstance(record.get("saved_at", 0), (int, float))
+            or not math.isfinite(record.get("saved_at", 0))
+            or isinstance(record.get("expires_in", 0), bool)
+            or not isinstance(record.get("expires_in", 0), (int, float))
+            or not math.isfinite(record.get("expires_in", 0))
+            or record.get("expires_in", 0) < 0):
+        raise ValueError("registration unavailable")
+    return record
+
+
 def credentials(path: Path | None = None) -> dict:
     record_path = path or Path(os.environ["LOCALAPPDATA"]) / "EDUNI" / "ChatGPT" / "registration.dpapi"
-    record = json.loads(_unprotect(record_path.read_bytes()))
-    if not isinstance(record, dict) or record.get("issuer") != "https://auth.openai.com" or not record.get("refresh_token") or not {"resource.invoke", "chatgpt.tokens.use.direct"}.issubset(record.get("scopes", [])):
-        raise ValueError("registration unavailable")
+    record = _read_registration(record_path)
     if time.time() < record.get("saved_at", 0) + record.get("expires_in", 0) - 60 and record.get("access_token"):
         return record
     with _refresh_lock:
-        record = json.loads(_unprotect(record_path.read_bytes()))
+        record = _read_registration(record_path)
         if time.time() < record.get("saved_at", 0) + record.get("expires_in", 0) - 60 and record.get("access_token"):
             return record
         renewed = _post_form(AUTH, {"grant_type": "refresh_token", "client_id": record["client_id"],

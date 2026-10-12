@@ -113,10 +113,10 @@ def registration_ready() -> bool:
     if not path.is_file():
         raise RuntimeError("ChatGPT registration not found for this Windows user")
     try:
-        bridge.credentials(path)
+        bridge._read_registration(path)
     except Exception as exc:
         raise RuntimeError(
-            "ChatGPT registration could not be opened/refreshed in this user session"
+            "ChatGPT registration could not be decrypted in this user session"
         ) from exc
     return True
 

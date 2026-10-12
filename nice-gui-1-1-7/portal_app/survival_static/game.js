@@ -1,4 +1,4 @@
-/* 마주치지 마! v0.7 — distinct maps, phone-first view and separate minimap; offline/browser-only */
+/* 마주치지 마! v0.8 — fullscreen mobile play, floating mini-map and compact status HUD */
 (() => {
   "use strict";
   const L = window.SurvivalLogic;
@@ -29,6 +29,28 @@
     arrowup: "up", w: "up", arrowleft: "left", a: "left",
     arrowdown: "down", s: "down", arrowright: "right", d: "right",
   };
+  // In portrait fullscreen the square canvas is CSS object-fit:cover.
+  // Expand camera bounds by the cropped margins so the hero remains visible
+  // even at the extreme west/east edges of a world.
+  function visibleViewport() {
+    const mobile = window.matchMedia?.("(max-width: 770px), (pointer: coarse) and (max-height: 600px)")?.matches;
+    const width = Number(canvas.clientWidth) || L.SIZE;
+    const height = Number(canvas.clientHeight) || L.SIZE;
+    if (!mobile || width <= 0 || height <= 0) {
+      return { cropX: 0, cropY: 0, viewW: L.SIZE, viewH: L.SIZE };
+    }
+    const ratio = Math.max(width, height) / L.SIZE;
+    const viewW = Math.min(L.SIZE, width / ratio), viewH = Math.min(L.SIZE, height / ratio);
+    return { cropX: (L.SIZE-viewW)/2, cropY: (L.SIZE-viewH)/2, viewW, viewH };
+  }
+  function cameraForScreen(player) {
+    const view = visibleViewport();
+    const x = L.clamp(player.x - L.SIZE/2, -view.cropX,
+      L.WORLD_WIDTH - L.SIZE + view.cropX);
+    const y = L.clamp(player.y - L.SIZE/2, -view.cropY,
+      L.WORLD_HEIGHT - L.SIZE + view.cropY);
+    return { x, y };
+  }
 
   function setStatus(message) { $("liveStatus").textContent = message; }
   function clearInput() {
@@ -188,8 +210,49 @@
     $("hudDanger").textContent = state.hiding ? "🌿 악당들이 멀리 이동 중" :
       state.seconds < state.disperseUntil ? "🔍 악당들이 다른 곳 수색 중" :
       nearest < 150 ? "🚨 악당이 가까워요!" : "👹 계속 추격 중";
+    // Compact in-game icon HUD for one-screen mobile play. Desktop keeps the detailed pills.
+    const remaining = L.remainingTime(state.seconds, state.mode);
+    const distance = Math.ceil(Math.hypot(goal.x - state.player.x, goal.y - state.player.y) / 20);
+    const nearbyDanger = !state.hiding && state.seconds >= state.disperseUntil && nearest < 150;
+    $("mobileLives").textContent = String(state.lives);
+    $("mobileTime").textContent = String(remaining);
+    const timePill = $("mobileTime").parentElement;
+    if (timePill) {
+      if (remaining <= 15) timePill.classList.add("urgent");
+      else timePill.classList.remove("urgent");
+    }
+    $("mobileGoalSymbol").textContent = state.keyCollected ? "🚪" : "🔑";
+    $("mobileGoal").textContent = String(distance);
+    $("mobileGoal").parentElement?.setAttribute("aria-label",
+      (state.keyCollected ? "출구" : "열쇠") + "까지 " + distance + "걸음");
+    $("mobileStars").textContent = String(state.stars.filter(star => star.collected).length);
+    $("mobileArea").textContent = state.world.icon;
+    $("mobileArea").parentElement?.setAttribute("aria-label",
+      "현재 세계: " + L.areaFor(state.player,state.world.areas));
+    $("mobileKey").textContent = state.keyCollected ? "🔓" : "🔒";
+    $("mobileKey").parentElement?.setAttribute("aria-label", state.keyCollected ? "열쇠 획득" : "열쇠 미획득");
+    $("mobileHide").textContent = state.hiding ?
+      "🙈" + state.hiding.remaining.toFixed(1) :
+      "🌿" + state.shelters.filter(s => s.status === "available").length;
+    $("mobileHide").parentElement?.setAttribute("aria-label", state.hiding ?
+      "자동 은신 남은 시간 " + state.hiding.remaining.toFixed(1) + "초" :
+      "남은 은신처 " + state.shelters.filter(s => s.status === "available").length + "개");
+    $("mobileDanger").textContent = state.hiding ? "🙈" :
+      state.seconds < state.disperseUntil ? "🔍" : nearbyDanger ? "🚨" : "👹";
+    if (nearbyDanger) $("mobileDanger").classList.add("danger-near");
+    else $("mobileDanger").classList.remove("danger-near");
+    $("mobileDanger").setAttribute("aria-label", state.hiding ? "은신 중" :
+      nearbyDanger ? "악당이 가까움" : "악당을 주의하세요");
     updateDash();
     updateHideControls();
+  }
+  function setPauseButton(paused) {
+    const button = $("pauseButton");
+    // Keep the floating phone button icon-only even after pause/resume updates.
+    button.innerHTML = paused ?
+      '▶<span class="pause-label"> 계속</span>' :
+      '⏸<span class="pause-label"> 일시정지</span>';
+    button.setAttribute("aria-label", paused ? "계속하기" : "일시정지");
   }
   function begin() {
     clearInput();
@@ -203,16 +266,18 @@
       hiding: null, escapeBoost: 0,
       invulnerable: 0, seconds: 0, flash: 0,
       keyCollected: false, jaguar: null, dashCooldown: 0, dashRemaining: 0, bannerUntil: 0,
-      camera: L.cameraFor(Worlds.getWorld(selectedWorld).start),
+      camera: cameraForScreen(Worlds.getWorld(selectedWorld).start),
       facing: "down", moving: false, walkPhase: 0,
     };
     setup.hidden = true;
     game.hidden = false;
+    // Recompute after the full-screen stage becomes measurable on mobile.
+    state.camera = cameraForScreen(state.player);
     $("miniMapTitle").textContent = state.world.name;
     pauseOverlay.hidden = true;
     resultOverlay.hidden = true;
     $("eventBanner").hidden = true;
-    $("pauseButton").textContent = "⏸ 일시정지";
+    setPauseButton(false);
     setStatus(state.world.icon + " " + state.world.name + " 대모험! 🔑 열쇠를 찾아 " + state.world.goalName + "으로 탈출하세요!");
     updateHud();
     lastFrame = performance.now();
@@ -223,7 +288,7 @@
     state.phase = "paused";
     clearInput();
     pauseOverlay.hidden = false;
-    $("pauseButton").textContent = "▶ 계속";
+    setPauseButton(true);
     setStatus("일시정지했어요.");
     updateDash();
     updateHideControls();
@@ -232,7 +297,7 @@
     if (!state || state.phase !== "paused") return;
     state.phase = "playing";
     pauseOverlay.hidden = true;
-    $("pauseButton").textContent = "⏸ 일시정지";
+    setPauseButton(false);
     lastFrame = performance.now();
     setStatus("다시 출발! 열쇠를 찾고 출구로 가요.");
     updateDash();
@@ -398,7 +463,7 @@
 
       if (hit.dead) { finish(false); return; }
     }
-    const nextCamera = L.cameraFor(state.player);
+    const nextCamera = cameraForScreen(state.player);
     // Camera follows the hero instead of shrinking the 2048 × 1536 map to 720 pixels.
     state.camera.x += (nextCamera.x - state.camera.x) * Math.min(1, seconds * 8);
     state.camera.y += (nextCamera.y - state.camera.y) * Math.min(1, seconds * 8);
@@ -610,7 +675,9 @@
     for (const enemy of [...state.enemies,...(state.jaguar?[state.jaguar]:[])])
       dot(enemy.x,enemy.y,3.1,"#e95156");
     m.strokeStyle="#ffffff";m.lineWidth=1.8;
-    m.strokeRect(mx+state.camera.x*sx,my+state.camera.y*sy,L.SIZE*sx,L.SIZE*sy);
+    const view = visibleViewport();
+    m.strokeRect(mx+(state.camera.x+view.cropX)*sx,
+      my+(state.camera.y+view.cropY)*sy,view.viewW*sx,view.viewH*sy);
     dot(state.player.x,state.player.y,5.8,"#ffffff","#1a4640");
     m.strokeStyle="#c7e4d3";m.lineWidth=2;m.strokeRect(mx,my,mw,mh);
   }
@@ -662,7 +729,11 @@
     }
   }
   updateLifeChoice();
-  if (window.matchMedia?.("(min-width: 771px)")?.matches) $("miniMapPanel").open = true;
+  if (window.matchMedia?.("(min-width: 771px) and (pointer: fine)")?.matches)
+    $("miniMapPanel").open = true;
+  $("miniMapPanel").addEventListener("toggle", () => {
+    if ($("miniMapPanel").open) clearInput();
+  });
   paintAvatarPreviews();
   requestAnimationFrame(frame);
 })();

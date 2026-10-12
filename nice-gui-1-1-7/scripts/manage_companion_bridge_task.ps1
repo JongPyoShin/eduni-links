@@ -11,6 +11,7 @@ param(
     [string]$ConfigPath = '',
     [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$')]
     [string]$TaskName = 'EDUNI-ChatGPT-Bridge',
+    [switch]$ReplaceExistingManagedTask,
     [switch]$NoStart
 )
 
@@ -129,6 +130,9 @@ if (-not (Test-Path -LiteralPath $registration -PathType Leaf)) {
 $python = Resolve-Python
 $existingTask = Get-ExistingTask
 if ($existingTask) {
+    if (-not $ReplaceExistingManagedTask) {
+        throw 'Scheduled task already exists. Choose a new -TaskName or explicitly request replacement after verification.'
+    }
     Assert-ManagedTask $existingTask
     if ($existingTask.State -eq 'Running') {
         throw 'Stop the existing managed bridge task before upgrading its running action.'

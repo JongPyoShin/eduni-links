@@ -20,13 +20,14 @@ Open normal (non-admin) PowerShell in the same logged-in Windows account that re
 
 ```powershell
 cd D:\Codex\Worktrees\eduni-ai-companion\nice-gui-1-1-7
-python -m scripts.companion_bridge_daemon --check-config
-python -m scripts.companion_bridge_daemon --check-registration
-.\scripts\manage_companion_bridge_task.ps1 -Action Install
-.\scripts\manage_companion_bridge_task.ps1 -Action Status
+$companionConfig = 'D:\path\to\existing\.env.companion'
+python -m scripts.companion_bridge_daemon --config-path $companionConfig --check-config
+python -m scripts.companion_bridge_daemon --config-path $companionConfig --check-registration
+.\scripts\manage_companion_bridge_task.ps1 -Action Install -ConfigPath $companionConfig
+.\scripts\manage_companion_bridge_task.ps1 -Action Status -ConfigPath $companionConfig
 ```
 
-If `python` resolves to an unexpected interpreter, supply `-PythonPath 'C:\path\to\python.exe'` to the PowerShell management script. Installer resolves the actual Python executable and stores an absolute path in the task.
+`-ConfigPath` points to the existing settings file; it is read in place, never copied or linked. If the canonical task name already exists, installation refuses to replace it. Use a new `-TaskName` for a parallel task; only pass `-ReplaceExistingManagedTask` after verifying that replacing the same user's managed task is intended. If `python` resolves to an unexpected interpreter, supply `-PythonPath 'C:\path\to\python.exe'` to the PowerShell management script. Installer resolves the actual Python executable and stores an absolute path in the task.
 
 If the companion settings do not exist, use the existing **manual** setup from the correct Windows user first:
 

@@ -91,8 +91,8 @@
     // World-authored routes replace the old shared start→key→exit silhouette.
     (world.trails||[]).forEach((route,i)=>drawTrail(c,route.points,ice,i>0));
     // Sparse deterministic close-range texture rather than heavy full-world paint.
-    const x0=Math.max(0,Math.floor((camera.x-65)/82)),x1=Math.min(26,Math.ceil((camera.x+790)/82));
-    const y0=Math.max(0,Math.floor((camera.y-65)/82)),y1=Math.min(20,Math.ceil((camera.y+790)/82));
+    const x0=Math.max(0,Math.floor((camera.x-65)/82)),x1=Math.min(26,Math.ceil((camera.x+(camera.viewW||720)+70)/82));
+    const y0=Math.max(0,Math.floor((camera.y-65)/82)),y1=Math.min(20,Math.ceil((camera.y+(camera.viewH||720)+70)/82));
     for(let yi=y0;yi<=y1;yi++)for(let xi=x0;xi<=x1;xi++){
       const x=xi*82+((yi*23+xi*7)%41),y=yi*82+((xi*17+yi*3)%29);
       if(ice){
@@ -108,7 +108,7 @@
       }
     }
     for(const mark of world.landmarks){
-      if(mark.x<camera.x-165||mark.x>camera.x+880||mark.y<camera.y-180||mark.y>camera.y+880)continue;
+      if(mark.x<camera.x-165||mark.x>camera.x+(camera.viewW||720)+160||mark.y<camera.y-180||mark.y>camera.y+(camera.viewH||720)+160)continue;
       drawLandmark(c,mark,time);
       c.font="900 22px system-ui";c.textAlign="center";c.textBaseline="middle";
       c.fillStyle=ice?"#22566c":"#6b4023";

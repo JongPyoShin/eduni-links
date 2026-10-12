@@ -59,7 +59,7 @@ To unregister the task, use `.\scripts\manage_companion_bridge_task.ps1 -Action 
 4. Reboot/re-login and verify the real HTTPS portal can still receive a supervised, **synthetic** question reply through the existing Docker portal. Check portal and unrelated routes remain stable, including no host 8080 operations.
 5. Check task log, rotation, repeated process failure backoff, wrong-Windows-account rejection, no credential disclosures, and no Docker or PostgreSQL mutations.
 
-The supervisor cannot repair an expired/revoked ChatGPT registration, a network outage, or a removed `.env.companion`; it logs the condition and retries every 30 seconds. `--check-registration` may refresh tokens using the existing authorized account.
+The supervisor cannot repair an expired/revoked ChatGPT registration or a network outage. When the supervisor has loaded its configuration but cannot access DPAPI registration, it logs the condition and retries every 30 seconds. A missing or incomplete `.env.companion` makes startup exit before that loop; Task Scheduler then applies its bounded one-minute restart policy (up to 99 restarts), after which user action is required. `--check-registration` may refresh tokens using the existing authorized account.
 
 ## Scope and limitations
 

@@ -257,9 +257,10 @@ def main(argv: list[str] | None = None) -> int:
     operation.add_argument("--status", action="store_true", help="Test existing bridge without using GPT")
     operation.add_argument("--check-config", action="store_true", help="Validate existing .env.companion")
     operation.add_argument("--check-registration", action="store_true", help="Check current-user DPAPI registration")
+    parser.add_argument("--config-path", type=Path, default=ENV_FILE, help="Existing companion settings file")
     args = parser.parse_args(argv)
     try:
-        config = load_config()
+        config = load_config(args.config_path)
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
         return 2

@@ -12,6 +12,15 @@ from scripts import companion_bridge_daemon as daemon
 
 
 class CompanionBridgeDaemonTests(unittest.TestCase):
+    def test_cli_uses_explicit_config_path_without_displaying_settings(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "existing.env"
+            with patch.object(daemon, "load_config", return_value=daemon.Config("a" * 64, "https://portal.example:8443")) as load:
+                with patch("builtins.print") as output:
+                    self.assertEqual(0, daemon.main(["--check-config", "--config-path", str(path)]))
+            load.assert_called_once_with(path)
+            self.assertNotIn("a" * 64, str(output.call_args_list))
+
     def test_reads_ignored_companion_settings_and_preserves_file(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / ".env.companion"

@@ -246,6 +246,14 @@
     updateDash();
     updateHideControls();
   }
+  function setPauseButton(paused) {
+    const button = $("pauseButton");
+    // Keep the floating phone button icon-only even after pause/resume updates.
+    button.innerHTML = paused ?
+      '▶<span class="pause-label"> 계속</span>' :
+      '⏸<span class="pause-label"> 일시정지</span>';
+    button.setAttribute("aria-label", paused ? "계속하기" : "일시정지");
+  }
   function begin() {
     clearInput();
     state = {
@@ -267,7 +275,7 @@
     pauseOverlay.hidden = true;
     resultOverlay.hidden = true;
     $("eventBanner").hidden = true;
-    $("pauseButton").textContent = "⏸ 일시정지";
+    setPauseButton(false);
     setStatus(state.world.icon + " " + state.world.name + " 대모험! 🔑 열쇠를 찾아 " + state.world.goalName + "으로 탈출하세요!");
     updateHud();
     lastFrame = performance.now();
@@ -278,7 +286,7 @@
     state.phase = "paused";
     clearInput();
     pauseOverlay.hidden = false;
-    $("pauseButton").textContent = "▶ 계속";
+    setPauseButton(true);
     setStatus("일시정지했어요.");
     updateDash();
     updateHideControls();
@@ -287,7 +295,7 @@
     if (!state || state.phase !== "paused") return;
     state.phase = "playing";
     pauseOverlay.hidden = true;
-    $("pauseButton").textContent = "⏸ 일시정지";
+    setPauseButton(false);
     lastFrame = performance.now();
     setStatus("다시 출발! 열쇠를 찾고 출구로 가요.");
     updateDash();

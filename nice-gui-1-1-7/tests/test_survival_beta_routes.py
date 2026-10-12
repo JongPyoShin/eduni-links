@@ -82,6 +82,30 @@ class SurvivalBetaRouteTests(unittest.TestCase):
         self.assertNotIn('href="../survival/?v=7"', html)
         self.assertIn('/survival-static/game.js?v=9', html)
 
+    def test_mobile_camera_fits_without_cover_crop(self) -> None:
+        html = eduni_survival_game().body.decode("utf-8")
+        script = (ROOT / "portal_app" / "survival_static" / "game.js").read_text(encoding="utf-8")
+        world_art = (ROOT / "portal_app" / "survival_static" / "worldart25d.js").read_text(encoding="utf-8")
+        for marker in (
+            "object-fit:fill", "--control-dock-height:clamp(108px,19dvh,142px)",
+            "width:min(156px,42vw)", "height:100dvh; overflow:hidden;",
+            "id=\"miniMapPanel\"", "id=\"miniMapCanvas\"",
+            "mini-map-drawer .map-legend { display:none; }",
+            "/survival-static/game.js?v=9",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, html)
+        self.assertNotIn("object-fit:cover", html)
+        for marker in (
+            "function fitCanvasToStage()", "function visibleViewport()",
+            "function cameraForScreen(player)", "canvas.width = viewW",
+            "canvas.height = viewH", "visibleViewport().viewH",
+            "if (fitCanvasToStage()) state.camera = cameraForScreen(state.player)",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, script)
+        self.assertIn("camera.viewH||720", world_art)
+
     def test_sandboxed_beta_does_not_change_existing_game_routes(self) -> None:
         for path in ("/jungle", "/jungle-3d", "/link", "/omok", "/portal"):
             self.assertIsNotNone(route_for(path), path)

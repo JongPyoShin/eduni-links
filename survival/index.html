@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#10352f">
-  <title>마주치지 마! | 3개 월드 서바이벌 v0.8</title>
+  <title>마주치지 마! | 3개 월드 서바이벌 v0.9</title>
   <style>
     :root { color-scheme: dark; --ink:#f4fff7; --muted:#bed6cb; --green:#45e0a3; --paper:#163b34; --line:#396456; --gold:#ffe47b; }
     * { box-sizing:border-box; }
@@ -155,6 +155,7 @@
       }
       .shell:has(#gameScreen:not([hidden])) .topline { display:none; }
       #gameScreen {
+        --control-dock-height:clamp(108px,19dvh,142px);
         position:fixed; inset:0; width:100%; height:100dvh;
         overflow:hidden; isolation:isolate; background:#173e33;
       }
@@ -162,14 +163,17 @@
         display:block; position:absolute; inset:0; width:100%; height:100%;
         overflow:hidden;
       }
-      #gameScreen .arena { position:absolute; inset:0; width:100%; height:100%; }
+      #gameScreen .arena {
+        position:absolute; inset:0 0 var(--control-dock-height) 0;
+        width:100%; height:auto;
+      }
       #gameScreen .canvas-wrap {
         position:absolute; inset:0; width:100%; height:100%; margin:0; overflow:hidden;
         border:0; border-radius:0; box-shadow:none;
       }
       #gameCanvas {
         display:block; width:100%; height:100%; max-width:none;
-        aspect-ratio:auto; object-fit:cover; object-position:center center;
+        aspect-ratio:auto; object-fit:fill; object-position:center center;
       }
       #gameScreen .hud {
         position:absolute; z-index:9;
@@ -182,20 +186,20 @@
       #gameScreen .hud { display:grid; grid-template-columns:minmax(0,1fr) auto auto; }
       #gameScreen .portal-icon-link {
         display:inline-flex; align-items:center; justify-content:center;
-        min-width:37px; min-height:37px; padding:4px; border-radius:12px;
+        min-width:34px; min-height:34px; padding:4px; border-radius:12px;
         border:1px solid #67a47c; background:#10372de0; color:#fff;
         font-size:25px; font-weight:900; line-height:1; text-decoration:none;
         pointer-events:auto; touch-action:manipulation;
       }
       #gameScreen .mobile-hud {
         display:grid; grid-template-columns:repeat(4,max-content);
-        grid-auto-rows:minmax(28px,auto); gap:4px;
+        grid-auto-rows:minmax(22px,auto); gap:3px;
         align-items:start; pointer-events:none; max-width:100%; min-width:0;
       }
       #gameScreen .status-icon {
         display:inline-flex; align-items:center; gap:3px; justify-content:center;
-        padding:4px 6px; min-height:28px; white-space:nowrap;
-        font-size:12px; line-height:1; font-weight:900;
+        padding:3px 4px; min-height:22px; white-space:nowrap;
+        font-size:11px; line-height:1; font-weight:900;
         color:#f8ffe9; font-variant-numeric:tabular-nums;
         border:1px solid #b6e6c45a; border-radius:11px;
         background:#0c362ddc; text-shadow:0 1px 1px #092519;
@@ -206,47 +210,48 @@
         background:#862b35ef; border-color:#ffae9d; color:#fff5e9;
       }
       #gameScreen .pause-icon {
-        flex:none; min-width:37px; min-height:37px;
+        flex:none; min-width:34px; min-height:34px;
         padding:5px; font-size:21px; line-height:1; border-radius:12px;
         background:#10372de0; pointer-events:auto;
       }
       #gameScreen .pause-label { display:none; }
       #gameScreen .mini-map-drawer {
         position:absolute; z-index:10;
-        top:calc(env(safe-area-inset-top,0px) + 78px); right:7px;
-        width:48px; max-width:calc(100% - 14px); margin:0; padding:0;
+        top:calc(env(safe-area-inset-top,0px) + 66px); right:7px;
+        width:40px; max-width:calc(100% - 14px); margin:0; padding:0;
         overflow:hidden; color:#eaffdf; border:0; border-radius:16px;
         background:#103c33e8; box-shadow:0 3px 14px #092b26a8;
         pointer-events:auto;
       }
       #gameScreen .mini-map-drawer[open] {
-        width:min(342px,calc(100vw - 14px));
+        width:min(182px,48vw);
         border:2px solid #9edbb7;
       }
       #gameScreen .mini-map-drawer summary {
         display:flex; align-items:center; justify-content:center;
-        list-style:none; width:100%; min-width:0; min-height:48px;
-        padding:6px 10px; border-radius:14px;
-        text-align:center; font-size:27px; cursor:pointer;
+        list-style:none; width:100%; min-width:0; min-height:39px;
+        padding:3px 5px; border-radius:11px;
+        text-align:center; font-size:22px; cursor:pointer;
         touch-action:manipulation;
       }
       #gameScreen .mini-map-drawer summary::-webkit-details-marker { display:none; }
       #gameScreen .mini-map-drawer summary::marker { content:""; }
       #gameScreen .mini-map-drawer .map-summary-text { display:none; }
-      #gameScreen .mini-map-drawer[open] .map-summary-text {
-        display:inline; color:#eaffdf; font-size:13px; font-weight:900;
-      }
-      #gameScreen .mini-map-drawer .map-sheet { padding:0 8px 8px; }
+      #gameScreen .mini-map-drawer[open] .map-summary-text { display:none; }
+      #gameScreen .mini-map-drawer .map-sheet { padding:0 4px 5px; }
+      #gameScreen .mini-map-drawer .map-legend { display:none; }
       #gameScreen .mini-map-drawer canvas {
-        width:100%; max-width:320px; height:auto; aspect-ratio:320/246;
-        display:block; margin:4px auto; border:1px solid #9ad1af;
+        width:100%; max-width:170px; height:auto; aspect-ratio:320/246;
+        display:block; margin:2px auto; border:1px solid #9ad1af;
       }
       #gameScreen .side {
         position:absolute; z-index:8; inset:auto 0 0;
+        min-height:var(--control-dock-height);
+        background:linear-gradient(180deg,#12352fee,#103d33fc);
         display:flex; align-items:end; justify-content:flex-start;
         width:100%; gap:0;
-        padding:0 9px calc(env(safe-area-inset-bottom,0px) + 9px);
-        background:transparent; border:0; border-radius:0;
+        padding:9px 9px calc(env(safe-area-inset-bottom,0px) + 7px);
+        border:0; border-radius:0;
         box-shadow:none; pointer-events:none;
       }
       #gameScreen .side > div:first-child { display:none; }
@@ -264,7 +269,7 @@
       #gameScreen .hide-btn { font-size:10px; background:#c2efd5dc; border-width:2px; }
       #gameScreen .dash-btn { font-size:11px; border-width:2px; }
       #gameScreen .retry-row {
-        position:absolute; right:10px; bottom:calc(env(safe-area-inset-bottom,0px) + 12px);
+        position:absolute; right:10px; bottom:calc(env(safe-area-inset-bottom,0px) + 17px);
         pointer-events:auto; margin:0; display:flex;
       }
       #gameScreen .retry-row .small-button {
@@ -273,7 +278,7 @@
       }
       #gameScreen .restart-label { display:none; }
       #gameScreen .game-footer {
-        position:absolute; z-index:7; bottom:calc(env(safe-area-inset-bottom,0px) + 150px);
+        position:absolute; z-index:7; bottom:calc(var(--control-dock-height) + 6px);
         left:12px; right:12px; margin:0;
         color:#fffce3; font-size:11px; text-align:center;
         pointer-events:none; text-shadow:0 2px 5px #0b201ae6;
@@ -283,7 +288,8 @@
       #gameScreen:has(.overlay:not([hidden])) .hud,
       #gameScreen:has(.overlay:not([hidden])) .side,
       #gameScreen:has(.overlay:not([hidden])) .mini-map-drawer { pointer-events:none; }
-      #gameScreen .chase-alert { top:32%; }
+      #gameScreen .chase-alert { top:24%; }
+      #gameScreen .canvas-wrap { background:#5c9b61; }
     }
     @media (max-height:550px) and (orientation:landscape) {
       #gameScreen .game-footer { display:none; }
@@ -300,7 +306,7 @@
   <div class="topline"><span class="brand">EDUNI × 의준의 첫 게임</span><a class="navlink" href="../games/">← 게임포털</a></div>
 
   <section id="setupScreen" class="card" aria-labelledby="mainTitle">
-    <div class="eyebrow">정글 · 북극 · 피라미드 · 2.5D BETA v0.8</div>
+    <div class="eyebrow">정글 · 북극 · 피라미드 · 2.5D BETA v0.9</div>
     <h1 id="mainTitle">마주치지 마!<br>서바이벌 대모험 🌴</h1>
     <p class="intro">🌍 세 가지 모험 세계를 골라요! 🌴 정글 · ❄️ 북극 · 🏺 피라미드. 각 세계의 악당을 피해 자동으로 숨고, 🔑 열쇠를 찾아 탈출하세요. 악당들에게 쫓기면 🌿 쉼터 안으로 들어가세요! 버튼 없이 바로 자동으로 숨어요.</p>
     <div class="setupgrid">
@@ -433,10 +439,10 @@
     <p id="liveStatus" class="game-footer" role="status" aria-live="polite">👹 추격! 🌿 은신처에서 잠깐 숨고 도망쳐요!</p>
   </section>
 </main>
-<script src="../nice-gui-1-1-7/portal_app/survival_static/logic.js?v=8"></script>
-<script src="../nice-gui-1-1-7/portal_app/survival_static/render25d.js?v=8"></script>
-<script src="../nice-gui-1-1-7/portal_app/survival_static/worlds.js?v=8"></script>
-<script src="../nice-gui-1-1-7/portal_app/survival_static/worldart25d.js?v=8"></script>
-<script src="../nice-gui-1-1-7/portal_app/survival_static/game.js?v=8"></script>
+<script src="../nice-gui-1-1-7/portal_app/survival_static/logic.js?v=9"></script>
+<script src="../nice-gui-1-1-7/portal_app/survival_static/render25d.js?v=9"></script>
+<script src="../nice-gui-1-1-7/portal_app/survival_static/worlds.js?v=9"></script>
+<script src="../nice-gui-1-1-7/portal_app/survival_static/worldart25d.js?v=9"></script>
+<script src="../nice-gui-1-1-7/portal_app/survival_static/game.js?v=9"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-/* 마주치지 마! v0.6 — three-world survival adventure; offline/browser-only */
+/* 마주치지 마! v0.7 — distinct maps, phone-first view and separate minimap; offline/browser-only */
 (() => {
   "use strict";
   const L = window.SurvivalLogic;
@@ -12,6 +12,7 @@
   const $ = (id) => document.getElementById(id);
   const canvas = $("gameCanvas");
   const ctx = canvas.getContext("2d");
+  const miniCtx = $("miniMapCanvas")?.getContext("2d");
   if (!ctx) { $("setupScreen").insertAdjacentText("beforeend", "이 브라우저는 Canvas를 지원하지 않습니다."); return; }
   const setup = $("setupScreen"), game = $("gameScreen");
   const range = $("livesRange"), preview = $("livesPreview"), difficulty = $("difficultyPreview");
@@ -207,6 +208,7 @@
     };
     setup.hidden = true;
     game.hidden = false;
+    $("miniMapTitle").textContent = state.world.name;
     pauseOverlay.hidden = true;
     resultOverlay.hidden = true;
     $("eventBanner").hidden = true;
@@ -559,30 +561,58 @@
     objects.sort((a,b)=>a.y-b.y||a.order-b.order);
     for(const object of objects) object.paint();
   }
+  // The map has its own canvas below the playfield, so it can never hide a
+  // key, monster, doorway or character. On small screens it stays folded away.
   function drawMiniMap() {
-    const mx = L.SIZE - 185, my = 16, mw = 169, mh = 126;
-    const sx = mw / L.WORLD_WIDTH, sy = mh / L.WORLD_HEIGHT;
-    ctx.save();
-    rounded(mx - 5, my - 5, mw + 10, mh + 28, 14, "#0a332be8", "#d4ebba", 3);
-    ctx.fillStyle = state.world.id === "arctic" ? "#cbeaf3" : state.world.id === "pyramid" ? "#e6c887" : "#78aa6f"; ctx.fillRect(mx, my, mw, mh);
-    ctx.fillStyle = state.world.id === "arctic" ? "#85bfd4" : state.world.id === "pyramid" ? "#b28b59" : "#3d7452";
-    for (const zone of state.world.areas) {
-      ctx.fillRect(mx + zone.x * sx, my + zone.y * sy, zone.w * sx, zone.h * sy);
+    if (!miniCtx || !$("miniMapPanel").open) return;
+    const m = miniCtx, mx=11, my=11, mw=298, mh=224;
+    const sx=mw/L.WORLD_WIDTH, sy=mh/L.WORLD_HEIGHT;
+    const arctic=state.world.id==="arctic", desert=state.world.id==="pyramid";
+    const palette=arctic
+      ? {base:"#a9dce9",zone:"#d8f4f9",wall:"#528da8",path:"#f9ffff"}
+      : desert
+      ? {base:"#e7be7d",zone:"#f5dfad",wall:"#a5794c",path:"#ffe7b6"}
+      : {base:"#7cab69",zone:"#a6c98a",wall:"#37684d",path:"#dec68b"};
+    m.clearRect(0,0,320,246);
+    m.fillStyle="#143c36";m.fillRect(0,0,320,246);
+    m.fillStyle=palette.base;m.fillRect(mx,my,mw,mh);
+    for (const [i,area] of state.world.areas.entries()) {
+      m.fillStyle=i%2?"#ffffff18":"#172b4113";
+      m.fillRect(mx+area.x*sx,my+area.y*sy,area.w*sx,area.h*sy);
     }
-    for (const shelter of state.shelters) if (shelter.status === "available") {
-      circle(mx + shelter.x * sx, my + shelter.y * sy, 2.8, "#fff1a2");
+    if (state.world.trails) {
+      m.strokeStyle=palette.path;m.lineWidth=4;m.lineJoin="round";
+      for (const trail of state.world.trails) {
+        m.beginPath();
+        trail.points.forEach(([x,y],i)=>{
+          if(!i)m.moveTo(mx+x*sx,my+y*sy);
+          else m.lineTo(mx+x*sx,my+y*sy);
+        });
+        m.stroke();
+      }
     }
-    const goal = state.keyCollected ? state.world.exit : state.world.key;
-    circle(mx + goal.x * sx, my + goal.y * sy, 5, "#ffe889", "#744c10", 2);
-    for (const enemy of [...state.enemies, ...(state.jaguar ? [state.jaguar] : [])])
-      circle(mx + enemy.x * sx, my + enemy.y * sy, 3.4, "#e95453");
-    ctx.strokeStyle = "#e5ffee"; ctx.lineWidth = 1.7;
-    ctx.strokeRect(mx + state.camera.x * sx, my + state.camera.y * sy, L.SIZE * sx, L.SIZE * sy);
-    circle(mx + state.player.x * sx, my + state.player.y * sy, 5.5, "#fffef1", "#163d35", 2);
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillStyle = "#f3ffdf"; ctx.font = "900 16px system-ui";
-    ctx.fillText("🗺️ " + state.world.name + " 전체 지도", mx + mw / 2, my + mh + 16);
-    ctx.restore();
+    m.fillStyle=palette.wall;
+    for (const obstacle of state.world.obstacles) {
+      m.fillRect(mx+obstacle.x*sx,my+obstacle.y*sy,
+        Math.max(1.5,obstacle.w*sx),Math.max(1.5,obstacle.h*sy));
+    }
+    const dot=(x,y,r,fill,stroke)=>{
+      m.beginPath();m.arc(mx+x*sx,my+y*sy,r,0,2*Math.PI);
+      m.fillStyle=fill;m.fill();
+      if(stroke){m.strokeStyle=stroke;m.lineWidth=1.4;m.stroke();}
+    };
+    for (const shelter of state.shelters)
+      if (shelter.status==="available") dot(shelter.x,shelter.y,2.8,"#fff3a2");
+    // Distinct icons remain on the map even while the key is still locked.
+    const ex=state.world.exit, k=state.world.key;
+    dot(ex.x,ex.y,6,state.keyCollected?"#38f5dd":"#58b6ac","#163a3d");
+    if(!state.keyCollected)dot(k.x,k.y,5.5,"#ffdf4f","#7b5427");
+    for (const enemy of [...state.enemies,...(state.jaguar?[state.jaguar]:[])])
+      dot(enemy.x,enemy.y,3.1,"#e95156");
+    m.strokeStyle="#ffffff";m.lineWidth=1.8;
+    m.strokeRect(mx+state.camera.x*sx,my+state.camera.y*sy,L.SIZE*sx,L.SIZE*sy);
+    dot(state.player.x,state.player.y,5.8,"#ffffff","#1a4640");
+    m.strokeStyle="#c7e4d3";m.lineWidth=2;m.strokeRect(mx,my,mw,mh);
   }
   function draw() {
     if (!state) return;
@@ -600,7 +630,6 @@
     drawHazards(time);
     drawWorldActors(time);
     ctx.restore(); // World space ends; HUD and effects stay fixed to the viewport.
-    drawMiniMap();
     if (L.remainingTime(time, state.mode) <= 20) {
       ctx.fillStyle = "rgba(180,20,45," + (0.09 + Math.max(0,Math.sin(time * 5)) * 0.11) + ")";
       ctx.fillRect(0, 0, L.SIZE, 18);
@@ -610,6 +639,7 @@
       ctx.fillRect(0, 0, L.SIZE, L.SIZE);
     }
     ctx.restore();
+    drawMiniMap();
   }
   function frame(now) {
     const dt = lastFrame ? (now - lastFrame) / 1000 : 0;
@@ -632,6 +662,7 @@
     }
   }
   updateLifeChoice();
+  if (window.matchMedia?.("(min-width: 771px)")?.matches) $("miniMapPanel").open = true;
   paintAvatarPreviews();
   requestAnimationFrame(frame);
 })();

@@ -51,22 +51,35 @@ class SurvivalBetaRouteTests(unittest.TestCase):
             'viewport-fit=cover',
             'id="miniMapCanvas"', 'id="miniMapPanel"', 'id="miniMapTitle"',
             'hud-extra', '.shell:has(#gameScreen:not([hidden]))',
-            '게임 화면 아래 미니맵을 펼쳐',
+            '게임 화면의 🗺️ 버튼을 눌러 지도를 펼쳐',
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, html)
 
-    def test_mobile_hud_and_map_do_not_cover_exit(self) -> None:
+    def test_fullscreen_mobile_hud_and_floating_minimap(self) -> None:
         html = eduni_survival_game().body.decode("utf-8")
-        main_start = html.index('<canvas id="gameCanvas"')
+        main_canvas = html.index('<canvas id="gameCanvas"')
         main_end = html.index('id="resultOverlay"')
         mini_map = html.index('<canvas id="miniMapCanvas"')
         controls = html.index('<aside class="side"')
-        self.assertLess(main_start, main_end)
+        self.assertLess(main_canvas, main_end)
         self.assertLess(main_end, mini_map)
         self.assertLess(mini_map, controls)
-        self.assertIn('.hud-extra { display:none; }', html)
-        self.assertIn('width:100%;max-width:none;', html)
+        for marker in (
+            'body:has(#gameScreen:not([hidden]))',
+            'height:100dvh; overflow:hidden;',
+            'position:fixed; inset:0; width:100%; height:100dvh;',
+            'object-fit:cover; object-position:center center;',
+            'id="mobileLives"', 'id="mobileTime"', 'id="mobileGoal"',
+            'id="mobileArea"', 'id="mobileStars"', 'id="mobileKey"',
+            'id="mobileHide"', 'id="mobileDanger"',
+            'mini-map-drawer[open]', 'mini-map-drawer summary',
+            'aria-label="미니맵 열기 또는 닫기"',
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, html)
+        self.assertNotIn('href="../survival/?v=7"', html)
+        self.assertIn('/survival-static/game.js?v=8', html)
 
     def test_sandboxed_beta_does_not_change_existing_game_routes(self) -> None:
         for path in ("/jungle", "/jungle-3d", "/link", "/omok", "/portal"):

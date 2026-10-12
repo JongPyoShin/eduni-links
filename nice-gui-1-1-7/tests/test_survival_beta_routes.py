@@ -80,7 +80,7 @@ class SurvivalBetaRouteTests(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, html)
         self.assertNotIn('href="../survival/?v=7"', html)
-        self.assertIn('/survival-static/game.js?v=8', html)
+        self.assertIn('/survival-static/game.js?v=9', html)
 
     def test_sandboxed_beta_does_not_change_existing_game_routes(self) -> None:
         for path in ("/jungle", "/jungle-3d", "/link", "/omok", "/portal"):
@@ -91,7 +91,7 @@ class SurvivalBetaRouteTests(unittest.TestCase):
         self.assertIn('_portal_card(EDUNI_GAME_PORTAL_URL, "🎮 의준이 게임포털"', portal_source)
         game_hub = (ROOT.parent / "games" / "index.html").read_text(encoding="utf-8")
         landing = (ROOT.parent / "index.html").read_text(encoding="utf-8")
-        self.assertIn('href="../survival/?v=8"', game_hub)
+        self.assertIn('href="../survival/?v=9"', game_hub)
         self.assertIn('href="./games/"', landing)
         self.assertNotIn('class="survival" href="./survival/"', landing)
         app_source = (ROOT / "app.py").read_text(encoding="utf-8")

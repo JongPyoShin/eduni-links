@@ -1,4 +1,4 @@
-/* 마주치지 마! v0.7 — distinct maps, phone-first view and separate minimap; offline/browser-only */
+/* 마주치지 마! v0.8 — fullscreen mobile play, floating mini-map and compact status HUD */
 (() => {
   "use strict";
   const L = window.SurvivalLogic;
@@ -188,6 +188,39 @@
     $("hudDanger").textContent = state.hiding ? "🌿 악당들이 멀리 이동 중" :
       state.seconds < state.disperseUntil ? "🔍 악당들이 다른 곳 수색 중" :
       nearest < 150 ? "🚨 악당이 가까워요!" : "👹 계속 추격 중";
+    // Compact in-game icon HUD for one-screen mobile play. Desktop keeps the detailed pills.
+    const remaining = L.remainingTime(state.seconds, state.mode);
+    const distance = Math.ceil(Math.hypot(goal.x - state.player.x, goal.y - state.player.y) / 20);
+    const nearbyDanger = !state.hiding && state.seconds >= state.disperseUntil && nearest < 150;
+    $("mobileLives").textContent = String(state.lives);
+    $("mobileTime").textContent = String(remaining);
+    const timePill = $("mobileTime").parentElement;
+    if (timePill) {
+      if (remaining <= 15) timePill.classList.add("urgent");
+      else timePill.classList.remove("urgent");
+    }
+    $("mobileGoalSymbol").textContent = state.keyCollected ? "🚪" : "🔑";
+    $("mobileGoal").textContent = String(distance);
+    $("mobileGoal").parentElement?.setAttribute("aria-label",
+      (state.keyCollected ? "출구" : "열쇠") + "까지 " + distance + "걸음");
+    $("mobileStars").textContent = String(state.stars.filter(star => star.collected).length);
+    $("mobileArea").textContent = state.world.icon;
+    $("mobileArea").parentElement?.setAttribute("aria-label",
+      "현재 세계: " + L.areaFor(state.player,state.world.areas));
+    $("mobileKey").textContent = state.keyCollected ? "🔓" : "🔒";
+    $("mobileKey").parentElement?.setAttribute("aria-label", state.keyCollected ? "열쇠 획득" : "열쇠 미획득");
+    $("mobileHide").textContent = state.hiding ?
+      "🙈" + state.hiding.remaining.toFixed(1) :
+      "🌿" + state.shelters.filter(s => s.status === "available").length;
+    $("mobileHide").parentElement?.setAttribute("aria-label", state.hiding ?
+      "자동 은신 남은 시간 " + state.hiding.remaining.toFixed(1) + "초" :
+      "남은 은신처 " + state.shelters.filter(s => s.status === "available").length + "개");
+    $("mobileDanger").textContent = state.hiding ? "🙈" :
+      state.seconds < state.disperseUntil ? "🔍" : nearbyDanger ? "🚨" : "👹";
+    if (nearbyDanger) $("mobileDanger").classList.add("danger-near");
+    else $("mobileDanger").classList.remove("danger-near");
+    $("mobileDanger").setAttribute("aria-label", state.hiding ? "은신 중" :
+      nearbyDanger ? "악당이 가까움" : "악당을 주의하세요");
     updateDash();
     updateHideControls();
   }
@@ -662,7 +695,11 @@
     }
   }
   updateLifeChoice();
-  if (window.matchMedia?.("(min-width: 771px)")?.matches) $("miniMapPanel").open = true;
+  if (window.matchMedia?.("(min-width: 771px) and (pointer: fine)")?.matches)
+    $("miniMapPanel").open = true;
+  $("miniMapPanel").addEventListener("toggle", () => {
+    if ($("miniMapPanel").open) clearInput();
+  });
   paintAvatarPreviews();
   requestAnimationFrame(frame);
 })();

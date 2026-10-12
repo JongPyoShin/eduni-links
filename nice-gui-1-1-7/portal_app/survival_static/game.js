@@ -29,6 +29,28 @@
     arrowup: "up", w: "up", arrowleft: "left", a: "left",
     arrowdown: "down", s: "down", arrowright: "right", d: "right",
   };
+  // In portrait fullscreen the square canvas is CSS object-fit:cover.
+  // Expand camera bounds by the cropped margins so the hero remains visible
+  // even at the extreme west/east edges of a world.
+  function visibleViewport() {
+    const mobile = window.matchMedia?.("(max-width: 770px), (pointer: coarse) and (max-height: 600px)")?.matches;
+    const width = Number(canvas.clientWidth) || L.SIZE;
+    const height = Number(canvas.clientHeight) || L.SIZE;
+    if (!mobile || width <= 0 || height <= 0) {
+      return { cropX: 0, cropY: 0, viewW: L.SIZE, viewH: L.SIZE };
+    }
+    const ratio = Math.max(width, height) / L.SIZE;
+    const viewW = Math.min(L.SIZE, width / ratio), viewH = Math.min(L.SIZE, height / ratio);
+    return { cropX: (L.SIZE-viewW)/2, cropY: (L.SIZE-viewH)/2, viewW, viewH };
+  }
+  function cameraForScreen(player) {
+    const view = visibleViewport();
+    const x = L.clamp(player.x - L.SIZE/2, -view.cropX,
+      L.WORLD_WIDTH - L.SIZE + view.cropX);
+    const y = L.clamp(player.y - L.SIZE/2, -view.cropY,
+      L.WORLD_HEIGHT - L.SIZE + view.cropY);
+    return { x, y };
+  }
 
   function setStatus(message) { $("liveStatus").textContent = message; }
   function clearInput() {
@@ -236,7 +258,7 @@
       hiding: null, escapeBoost: 0,
       invulnerable: 0, seconds: 0, flash: 0,
       keyCollected: false, jaguar: null, dashCooldown: 0, dashRemaining: 0, bannerUntil: 0,
-      camera: L.cameraFor(Worlds.getWorld(selectedWorld).start),
+      camera: cameraForScreen(Worlds.getWorld(selectedWorld).start),
       facing: "down", moving: false, walkPhase: 0,
     };
     setup.hidden = true;
@@ -431,7 +453,7 @@
 
       if (hit.dead) { finish(false); return; }
     }
-    const nextCamera = L.cameraFor(state.player);
+    const nextCamera = cameraForScreen(state.player);
     // Camera follows the hero instead of shrinking the 2048 × 1536 map to 720 pixels.
     state.camera.x += (nextCamera.x - state.camera.x) * Math.min(1, seconds * 8);
     state.camera.y += (nextCamera.y - state.camera.y) * Math.min(1, seconds * 8);
@@ -643,7 +665,9 @@
     for (const enemy of [...state.enemies,...(state.jaguar?[state.jaguar]:[])])
       dot(enemy.x,enemy.y,3.1,"#e95156");
     m.strokeStyle="#ffffff";m.lineWidth=1.8;
-    m.strokeRect(mx+state.camera.x*sx,my+state.camera.y*sy,L.SIZE*sx,L.SIZE*sy);
+    const view = visibleViewport();
+    m.strokeRect(mx+(state.camera.x+view.cropX)*sx,
+      my+(state.camera.y+view.cropY)*sy,view.viewW*sx,view.viewH*sy);
     dot(state.player.x,state.player.y,5.8,"#ffffff","#1a4640");
     m.strokeStyle="#c7e4d3";m.lineWidth=2;m.strokeRect(mx,my,mw,mh);
   }

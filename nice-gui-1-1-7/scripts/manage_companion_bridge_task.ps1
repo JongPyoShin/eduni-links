@@ -27,8 +27,10 @@ function Resolve-Python {
     else {
         $commandPath = (Get-Command 'python.exe' -CommandType Application -ErrorAction Stop).Source
     }
-    $resolved = (& $commandPath -c 'import sys; print(sys.executable)' 2>$null | Select-Object -First 1)
-    if ($LASTEXITCODE -ne 0 -or -not $resolved -or -not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
+    $output = & $commandPath -c 'import sys; print(sys.executable)' 2>$null
+    $pythonExitCode = $LASTEXITCODE
+    $resolved = $output | Select-Object -First 1
+    if ($pythonExitCode -ne 0 -or -not $resolved -or -not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
         throw 'A working local Python interpreter is required; use -PythonPath for a specific interpreter.'
     }
     return $resolved.Trim()

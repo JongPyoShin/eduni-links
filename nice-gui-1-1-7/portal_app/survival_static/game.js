@@ -29,27 +29,45 @@
     arrowup: "up", w: "up", arrowleft: "left", a: "left",
     arrowdown: "down", s: "down", arrowright: "right", d: "right",
   };
-  // In portrait fullscreen the square canvas is CSS object-fit:cover.
-  // Expand camera bounds by the cropped margins so the hero remains visible
-  // even at the extreme west/east edges of a world.
-  function visibleViewport() {
-    const mobile = window.matchMedia?.("(max-width: 770px), (pointer: coarse) and (max-height: 600px)")?.matches;
-    const width = Number(canvas.clientWidth) || L.SIZE;
-    const height = Number(canvas.clientHeight) || L.SIZE;
-    if (!mobile || width <= 0 || height <= 0) {
-      return { cropX: 0, cropY: 0, viewW: L.SIZE, viewH: L.SIZE };
+  // Responsive virtual camera: fit the game to the *actual* playfield shape.
+  // CSS 'object-fit:cover' previously enlarged a 720x720 frame on portrait
+  // phones, cropping ~55% of its width. Expand the logical viewport instead.
+  // Use a bounded internal resolution to avoid oversized GPU surfaces.
+  function isCompactScreen() {
+    return !!window.matchMedia?.("(max-width: 770px), (pointer: coarse) and (max-height: 600px)")?.matches;
+  }
+  function fitCanvasToStage() {
+    const width = Number(canvas.clientWidth) || 0;
+    const height = Number(canvas.clientHeight) || 0;
+    let viewW = L.SIZE, viewH = L.SIZE;
+    if (isCompactScreen() && width > 0 && height > 0) {
+      // Typical portrait gameplay: around 850x1320 world pixels instead of
+      // the old ~350x720 cropped view. Landscape gets a wider field of view.
+      const limit = height >= width ? 1300 : 1120;
+      const pixelsPerCss = Math.min(
+        L.WORLD_WIDTH / width,
+        L.WORLD_HEIGHT / height,
+        limit / (height >= width ? height : width)
+      );
+      viewW = Math.max(1, Math.round(width * pixelsPerCss));
+      viewH = Math.max(1, Math.round(height * pixelsPerCss));
     }
-    const ratio = Math.max(width, height) / L.SIZE;
-    const viewW = Math.min(L.SIZE, width / ratio), viewH = Math.min(L.SIZE, height / ratio);
-    return { cropX: (L.SIZE-viewW)/2, cropY: (L.SIZE-viewH)/2, viewW, viewH };
+    if (canvas.width !== viewW || canvas.height !== viewH) {
+      canvas.width = viewW;
+      canvas.height = viewH;
+      return true;
+    }
+    return false;
+  }
+  function visibleViewport() {
+    return { viewW: Number(canvas.width) || L.SIZE, viewH: Number(canvas.height) || L.SIZE };
   }
   function cameraForScreen(player) {
-    const view = visibleViewport();
-    const x = L.clamp(player.x - L.SIZE/2, -view.cropX,
-      L.WORLD_WIDTH - L.SIZE + view.cropX);
-    const y = L.clamp(player.y - L.SIZE/2, -view.cropY,
-      L.WORLD_HEIGHT - L.SIZE + view.cropY);
-    return { x, y };
+    const { viewW, viewH } = visibleViewport();
+    return {
+      x: L.clamp(player.x - viewW / 2, 0, Math.max(0, L.WORLD_WIDTH - viewW)),
+      y: L.clamp(player.y - viewH / 2, 0, Math.max(0, L.WORLD_HEIGHT - viewH)),
+    };
   }
 
   function setStatus(message) { $("liveStatus").textContent = message; }
@@ -271,7 +289,8 @@
     };
     setup.hidden = true;
     game.hidden = false;
-    // Recompute after the full-screen stage becomes measurable on mobile.
+    // The mobile stage has dimensions only after becoming visible.
+    fitCanvasToStage();
     state.camera = cameraForScreen(state.player);
     $("miniMapTitle").textContent = state.world.name;
     pauseOverlay.hidden = true;
@@ -482,12 +501,13 @@
     if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.stroke(); }
   }
   function onScreen(x, y, pad = 80) {
-    return x >= state.camera.x - pad && x <= state.camera.x + L.SIZE + pad &&
-      y >= state.camera.y - pad && y <= state.camera.y + L.SIZE + pad;
+    const view = visibleViewport();
+    return x >= state.camera.x - pad && x <= state.camera.x + view.viewW + pad &&
+      y >= state.camera.y - pad && y <= state.camera.y + view.viewH + pad;
   }
   function drawGround() {
     if (state.world.id !== "jungle") {
-      ThemeArt.drawGround(ctx,state.world,state.camera,state.seconds);
+      ThemeArt.drawGround(ctx,state.world,{ ...state.camera, ...visibleViewport() },state.seconds);
       return;
     }
     const ground = ctx.createLinearGradient(0, 0, L.WORLD_WIDTH, L.WORLD_HEIGHT);
@@ -528,9 +548,9 @@
     ctx.fillText("폭포 계곡", 1165, 390);
     // Deterministic undergrowth and canopy provide depth while limiting draw calls to the viewport.
     const minXi = Math.max(0, Math.floor((state.camera.x - 45) / 52));
-    const maxXi = Math.min(Math.ceil(L.WORLD_WIDTH / 52), Math.ceil((state.camera.x + L.SIZE + 45) / 52));
+    const maxXi = Math.min(Math.ceil(L.WORLD_WIDTH / 52), Math.ceil((state.camera.x + visibleViewport().viewW + 45) / 52));
     const minYi = Math.max(0, Math.floor((state.camera.y - 45) / 52));
-    const maxYi = Math.min(Math.ceil(L.WORLD_HEIGHT / 52), Math.ceil((state.camera.y + L.SIZE + 45) / 52));
+    const maxYi = Math.min(Math.ceil(L.WORLD_HEIGHT / 52), Math.ceil((state.camera.y + visibleViewport().viewH + 45) / 52));
     for (let yi = minYi; yi <= maxYi; yi++) {
       for (let xi = minXi; xi <= maxXi; xi++) {
         const px = xi * 52 + 15 + (yi * 17 % 23), py = yi * 52 + 16 + (xi * 11 % 21);
@@ -676,15 +696,16 @@
       dot(enemy.x,enemy.y,3.1,"#e95156");
     m.strokeStyle="#ffffff";m.lineWidth=1.8;
     const view = visibleViewport();
-    m.strokeRect(mx+(state.camera.x+view.cropX)*sx,
-      my+(state.camera.y+view.cropY)*sy,view.viewW*sx,view.viewH*sy);
+    m.strokeRect(mx+state.camera.x*sx,
+      my+state.camera.y*sy,view.viewW*sx,view.viewH*sy);
     dot(state.player.x,state.player.y,5.8,"#ffffff","#1a4640");
     m.strokeStyle="#c7e4d3";m.lineWidth=2;m.strokeRect(mx,my,mw,mh);
   }
   function draw() {
     if (!state) return;
     const time = state.seconds;
-    ctx.clearRect(0, 0, L.SIZE, L.SIZE);
+    const view = visibleViewport();
+    ctx.clearRect(0, 0, view.viewW, view.viewH);
     ctx.save();
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
     if (state.flash > 0 && !reduced) {
@@ -699,11 +720,11 @@
     ctx.restore(); // World space ends; HUD and effects stay fixed to the viewport.
     if (L.remainingTime(time, state.mode) <= 20) {
       ctx.fillStyle = "rgba(180,20,45," + (0.09 + Math.max(0,Math.sin(time * 5)) * 0.11) + ")";
-      ctx.fillRect(0, 0, L.SIZE, 18);
+      ctx.fillRect(0, 0, view.viewW, 18);
     }
     if (state.flash > 0) {
       ctx.fillStyle = "rgba(255,100,90," + (state.flash * 0.28) + ")";
-      ctx.fillRect(0, 0, L.SIZE, L.SIZE);
+      ctx.fillRect(0, 0, view.viewW, view.viewH);
     }
     ctx.restore();
     drawMiniMap();
@@ -712,6 +733,7 @@
     const dt = lastFrame ? (now - lastFrame) / 1000 : 0;
     lastFrame = now;
     if (state) {
+      if (fitCanvasToStage()) state.camera = cameraForScreen(state.player);
       tick(dt);
       draw();
     }

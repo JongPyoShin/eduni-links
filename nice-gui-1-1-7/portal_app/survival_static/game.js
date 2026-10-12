@@ -271,6 +271,8 @@
     };
     setup.hidden = true;
     game.hidden = false;
+    // Recompute after the full-screen stage becomes measurable on mobile.
+    state.camera = cameraForScreen(state.player);
     $("miniMapTitle").textContent = state.world.name;
     pauseOverlay.hidden = true;
     resultOverlay.hidden = true;

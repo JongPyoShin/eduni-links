@@ -75,6 +75,7 @@ class SurvivalBetaRouteTests(unittest.TestCase):
             'id="mobileHide"', 'id="mobileDanger"',
             'mini-map-drawer[open]', 'mini-map-drawer summary',
             'aria-label="미니맵 열기 또는 닫기"',
+            'class="portal-icon-link"', 'href="/portal/games"',
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, html)
@@ -90,7 +91,7 @@ class SurvivalBetaRouteTests(unittest.TestCase):
         self.assertIn('_portal_card(EDUNI_GAME_PORTAL_URL, "🎮 의준이 게임포털"', portal_source)
         game_hub = (ROOT.parent / "games" / "index.html").read_text(encoding="utf-8")
         landing = (ROOT.parent / "index.html").read_text(encoding="utf-8")
-        self.assertIn('href="../survival/?v=7"', game_hub)
+        self.assertIn('href="../survival/?v=8"', game_hub)
         self.assertIn('href="./games/"', landing)
         self.assertNotIn('class="survival" href="./survival/"', landing)
         app_source = (ROOT / "app.py").read_text(encoding="utf-8")

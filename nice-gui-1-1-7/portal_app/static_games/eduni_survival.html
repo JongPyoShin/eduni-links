@@ -140,6 +140,7 @@
 
     /* v0.8: HUD stays readable on desktop; mobile runs as a self-contained game viewport. */
     .mobile-hud { display:none; }
+    .portal-icon-link { display:none; }
     .map-sheet { padding:4px 8px 9px; }
     .map-legend { text-align:center; color:#efffd8; font-size:12px; font-weight:800; }
     .map-summary-text { font-size:13px; }
@@ -178,10 +179,18 @@
         pointer-events:none;
       }
       #gameScreen .hud-group { display:none; }
+      #gameScreen .hud { display:grid; grid-template-columns:minmax(0,1fr) auto auto; }
+      #gameScreen .portal-icon-link {
+        display:inline-flex; align-items:center; justify-content:center;
+        min-width:37px; min-height:37px; padding:4px; border-radius:12px;
+        border:1px solid #67a47c; background:#10372de0; color:#fff;
+        font-size:25px; font-weight:900; line-height:1; text-decoration:none;
+        pointer-events:auto; touch-action:manipulation;
+      }
       #gameScreen .mobile-hud {
         display:grid; grid-template-columns:repeat(4,max-content);
         grid-auto-rows:minmax(28px,auto); gap:4px;
-        align-items:start; pointer-events:none; max-width:calc(100% - 46px);
+        align-items:start; pointer-events:none; max-width:100%; min-width:0;
       }
       #gameScreen .status-icon {
         display:inline-flex; align-items:center; gap:3px; justify-content:center;
@@ -368,6 +377,7 @@
         <span class="status-icon danger-icon" id="mobileDanger" title="악당 경고" aria-label="악당 상태">👹</span>
       </div>
       <button id="pauseButton" type="button" class="small-button pause-icon" aria-label="일시정지" aria-keyshortcuts="Escape">⏸<span class="pause-label"> 일시정지</span></button>
+      <a class="portal-icon-link" href="/portal/games" aria-label="게임포털로 돌아가기" title="게임포털로 돌아가기">⌂</a>
     </div>
     <div class="game-layout">
       <div class="arena">

@@ -1,6 +1,6 @@
 package com.eduni.portal;
 
-/** Owns the small Camp bird encounter state machine; it has no rendering dependency. */
+/** Owns the small authored-stage bird encounter state machine; it has no rendering dependency. */
 public final class EncounterDirector {
     public enum State { EXPLORE, NOTICE, READY, LEARNING, CELEBRATE, COMPLETE }
     private State state = State.EXPLORE;

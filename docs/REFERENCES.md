@@ -39,7 +39,108 @@ Use only the sections relevant to the assigned task. Project-specific constraint
   - preserve scene continuity and provide fallbacks
 - Do not copy Pokémon IP, characters, assets, or art style.
 
-## 2. Game UI / Visual / Presentation
+## 2. Web Product Design and UI References
+
+Use these references to study layout patterns, component behavior, visual systems, prompts, motion, or assets. For the implementation workflow and EDUNI-specific rules, read `docs/EDUNI_WEB_DESIGN_GUIDE.md`.
+
+### Website and product UI inspiration
+
+#### Minimal Gallery
+- URL: https://minimal.gallery
+- Category: curated website design inspiration.
+- EDUNI use: study restrained typography, whitespace, visual hierarchy, and page composition.
+- Constraint: treat screenshots, site text, and layouts as copyrighted reference material; do not republish or reproduce them without permission.
+
+#### Kage
+- URL: https://kage.design
+- Category: real-product UI inspection and AI-assisted design prompts.
+- EDUNI use: extract broad layout and interaction ideas, then adapt them to the EDUNI task.
+- Constraint: prompts may be adapted, but screenshots, product names, logos, and brand identities remain their owners' property. AI-generated analysis may be inaccurate or stale; do not clone a product.
+
+#### Refero Styles
+- URL: https://styles.refero.design
+- Category: design-style library and AI-readable design-system examples.
+- EDUNI use: compare typography, color, spacing, and component patterns; use DESIGN.md/Tailwind examples as translation input where relevant.
+- Constraint: examples are interpreted/reconstructed and may be approximate; they are not necessarily original source code or exact design tokens.
+
+#### Component Gallery
+- URL: https://component.gallery
+- Category: cross-system component catalogue and pattern explanations.
+- EDUNI use: understand common component roles, states, terminology, and accessibility expectations before implementing an equivalent in the existing stack.
+- Constraint: follow the originating design system's license for any copied code or assets; catalogue inclusion is not a blanket reuse grant.
+
+#### AppShot Gallery
+- URL: https://appshot.gallery
+- Category: curated mobile-app screenshot inspiration.
+- EDUNI use: study mobile information hierarchy, navigation, and compact-screen composition.
+- Constraint: screenshots show presentation, not necessarily interaction behavior; do not reuse screenshots, app icons, or branding without permission.
+
+### AI coding and component references
+
+#### DESIGN.md
+- URL: https://designmd.ai
+- Category: community-authored, AI-readable design-system files.
+- EDUNI use: inspect token and component documentation formats; adapt useful system-level ideas into EDUNI's existing conventions.
+- Constraint: content is community-authored and the format is evolving; inspect the selected entry's license and provenance. Do not assume all entries share one license.
+
+#### VibePrompts
+- URL: https://vibeprompts.dev
+- Category: UI-generation prompts and implementation snippets, often Tailwind-oriented.
+- EDUNI use: use prompts as a starting checklist for page structure and states; translate examples into the target project's actual stack.
+- Constraint: no blanket reuse license was confirmed; treat code as inspiration unless its specific license grants reuse.
+
+#### 21st.dev
+- URL: https://21st.dev
+- Category: React component, template, and theme registry.
+- EDUNI use: study component composition or use a component only when the target project already supports React and the selected item is compatible.
+- Constraint: inspect the individual item's license and dependencies. Do not introduce React, Tailwind, or registry dependencies into a non-React EDUNI project just to copy an example. Free-copy limits and site terms can change.
+
+### Motion and interaction references
+
+#### Kinetics
+- URL: https://kinetics.colorion.co
+- Category: CSS/React motion examples and prompts.
+- EDUNI use: inspect motion timing and state transitions; prefer a small CSS implementation for simple feedback.
+- Constraint: a copy button is not a license. Use as inspiration unless the exact snippet's reuse terms are clear; honor reduced-motion preferences.
+
+#### Circle Loaders
+- URL: https://circleloaders.dominikakissi.com
+- Category: standalone SVG loading indicators.
+- EDUNI use: choose a calm, brief loading pattern when the wait itself needs feedback.
+- Constraint: verify the specific asset's license before copying; use a static or reduced-motion alternative where appropriate.
+
+#### Gradient Buttons
+- URL: https://gradientbuttons.colorion.co
+- Category: gradient button appearance and CSS examples.
+- EDUNI use: inspiration for restrained color treatments, not a default button system.
+- Constraint: verify the exact snippet's reuse terms; preserve readable contrast and EDUNI's visual consistency.
+
+#### Anime.js
+- URL: https://animejs.com
+- Category: JavaScript animation engine.
+- EDUNI use: consider only for coordinated SVG/DOM animation that is awkward in CSS and justified by the feature.
+- Constraint: check current API/version and repository license before adoption, pin the version, retain required notices, and provide a reduced-motion path. Prefer CSS for simple hover, press, and reveal effects.
+
+### Illustration and icon references
+
+#### Kitbitz
+- URL: https://kitbitz.art
+- Category: hand-drawn illustration library.
+- EDUNI use: candidate source for friendly, lightweight illustration assets.
+- Constraint: the site's CC0 statement applies to its published illustrations, not automatically to website code or every contribution. Record the exact asset URL and confirm the item is part of the covered collection before committing it.
+
+#### 3dicons
+- URL: https://3dicons.co
+- Category: 3D icon collections, including free and premium content.
+- EDUNI use: candidate for occasional 3D iconography when it fits the page and mobile performance budget.
+- Constraint: verify the exact collection and item. The v1 collection is identified as CC0; do not infer that premium items or every site asset share that license. Record item URL and format.
+
+### Common rule for all references
+- Inspiration does not grant permission to copy a screenshot, brand, illustration, or code sample.
+- Record the exact source and license for any external asset or code included in the repository; re-check terms before redistribution.
+- Prefer EDUNI-owned tokens/components and the target project's existing framework. Do not add a library for a visual effect that can be delivered simply with existing CSS/HTML.
+
+## 3. Game UI / Visual / Presentation
 
 For game visual work, start with the common references above, then read the target project's own `AGENTS.md` and reference docs.
 
@@ -49,7 +150,7 @@ Current Jungle-specific detail:
 - `jungle-web-canvas-poc/ASSET_SOURCES.md`
 - `jungle-web-canvas-poc/THREEJSASSETS.md`
 
-## 3. Learning UX / Education
+## 4. Learning UX / Education
 
 The current repository contains product and child-learning guidance primarily as repository-local design rules rather than consolidated external benchmark URLs.
 
@@ -58,7 +159,7 @@ Start with:
 
 Do not invent or add external education references merely to fill this section. Add them only when they are intentionally selected and their purpose is documented.
 
-## 4. AI / Generative
+## 5. AI / Generative
 
 ### fal H3 Max — image-to-video
 - URL: https://fal.ai/models/minimax/h3-max/image-to-video
@@ -77,7 +178,7 @@ Do not invent or add external education references merely to fill this section. 
 
 Repository guidance also mentions DeepSeek conceptually for a future AI cinematic path, but no external DeepSeek reference URL is currently consolidated here. Do not add one without an explicit source and purpose.
 
-## 5. Asset Sources
+## 6. Asset Sources
 
 Asset sources require license and redistribution checks before acquisition or commit.
 
@@ -139,7 +240,7 @@ Asset sources require license and redistribution checks before acquisition or co
 - Use only exact verified asset paths after binary/LFS and loader/render verification; do not copy branded UI.
 - Status: branch-specific source discovered during cross-branch inventory; not present in `main`'s current `ASSET_SOURCES.md`.
 
-## 6. Project-specific Reference Rules
+## 7. Project-specific Reference Rules
 
 ### Jungle
 Read all applicable shared sections above, then:
@@ -150,7 +251,7 @@ Read all applicable shared sections above, then:
 
 Project-specific rules override generic suggestions where they are more restrictive.
 
-## 7. Reference Provenance
+## 8. Reference Provenance
 
 | Reference | Category | Existing source files | Scope/status |
 | --- | --- | --- | --- |
@@ -164,8 +265,22 @@ Project-specific rules override generic suggestions where they are more restrict
 | threejsassets Free | asset source | Jungle AGENTS, THREEJSASSETS | local-only; redistribution constraints |
 | Pirate Nation game archive | gameplay reference | `feature/jungle-web-canvas-luna` at `95a6e1b194290f6e002c61874d20a2cd74ad536b`; introduced in `cf855cb950092ee361981ebebbf3704a58add4b0`; `jungle-web-canvas-poc/ASSET_SOURCES.md` | reference only; no Unity/runtime copying |
 | Pirate Nation art | asset/reference source | `feature/jungle-web-canvas-luna` at `95a6e1b194290f6e002c61874d20a2cd74ad536b`; introduced in `cf855cb950092ee361981ebebbf3704a58add4b0`; `jungle-web-canvas-poc/ASSET_SOURCES.md` | branch-discovered CC0 source; exact-path verification required |
+| Minimal Gallery | web design inspiration | user-provided reference list, 2026-10-15 | inspiration only; screenshots/layouts are copyrighted |
+| Kage | product UI / prompt reference | user-provided reference list, 2026-10-15 | adapt patterns; do not copy brand or screenshots |
+| Refero Styles | design-system reference | user-provided reference list, 2026-10-15 | reconstructed examples may be approximate |
+| Component Gallery | component patterns | user-provided reference list, 2026-10-15 | follow source system license for copied material |
+| AppShot Gallery | mobile UI inspiration | user-provided reference list, 2026-10-15 | screenshots are reference only |
+| DESIGN.md | AI-readable design systems | user-provided reference list, 2026-10-15 | inspect per-entry license and provenance |
+| VibePrompts | UI prompts/snippets | user-provided reference list, 2026-10-15 | inspiration unless specific reuse license is confirmed |
+| 21st.dev | React components | user-provided reference list, 2026-10-15 | per-item license; only for compatible React targets |
+| Kinetics | animation inspiration | user-provided reference list, 2026-10-15 | verify snippet license before reuse |
+| Circle Loaders | loader inspiration | user-provided reference list, 2026-10-15 | verify specific asset license before reuse |
+| Gradient Buttons | button styling inspiration | user-provided reference list, 2026-10-15 | verify snippet license before reuse |
+| Anime.js | animation library | user-provided reference list, 2026-10-15 | verify current version/license before adoption |
+| Kitbitz | illustration assets | user-provided reference list, 2026-10-15 | published illustrations stated CC0; verify item scope |
+| 3dicons | icon assets | user-provided reference list, 2026-10-15 | exact collection license; v1 identified as CC0 |
 
-## 8. Maintenance
+## 9. Maintenance
 
 When a new external reference is intentionally adopted:
 1. record the canonical URL and why it is useful;

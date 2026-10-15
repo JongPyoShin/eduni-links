@@ -11,6 +11,7 @@ Keep repository exploration and output minimal. Follow only the rules relevant t
 
 ## Shared references
 - For design, gameplay, UI/UX, asset, or AI-generation work, read `docs/REFERENCES.md` and use only the sections relevant to the assigned task.
+- For any EDUNI portal web feature that changes visible UI or interaction, also read `docs/EDUNI_WEB_DESIGN_GUIDE.md` before designing or implementing. For backend-only work, read it only if the change affects user-facing behavior.
 - If the target project contains its own `AGENTS.md` or reference document, read that in addition to the shared references.
 - Shared references do not override project-specific constraints, licensing rules, privacy rules, or task-specific requirements.
 - Do not scan every external reference by default; preserve the targeted, token-efficient workflow below.

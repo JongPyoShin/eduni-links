@@ -40,7 +40,7 @@ main{flex:1;min-width:0;position:relative;background:radial-gradient(ellipse at 
 <div class="move" id="move"><button data-move="left" aria-label="왼쪽 회전">↶</button><button data-move="forward" aria-label="앞으로">↑</button><button data-move="backward" aria-label="뒤로">↓</button><button data-move="right" aria-label="오른쪽 회전">↷</button></div>
 <div class="panel"><b id="place">평면 전체보기</b><span id="detail">도면의 방 배치와 3D를 같은 좌표로 표현합니다.</span></div>
 <div class="toolbar"><button id="finish" aria-label="밝은 마루로 변경" title="마루 색상 바꾸기">▧</button><button id="minus" aria-label="축소">−</button><button id="plus" aria-label="확대">＋</button><button id="reset" aria-label="초기화">⟲</button></div>
-<div class="mapmodal" id="mapmodal" role="dialog" aria-modal="true" aria-labelledby="mapTitle"><div class="mapsheet"><button class="close" id="close" aria-label="닫기">✕</button><h2 id="mapTitle">평면도 — 공간을 누르면 3D로 이동합니다</h2><svg id="mapSvg" viewBox="-440 -300 1690 1410" role="img" aria-label="세대 평면과 참고 이미지 기반 공용 계단·엘리베이터를 함께 표시한 구조도"></svg><p>세대 내부는 제공된 도면 배치를 따릅니다. 왼쪽 계단·엘리베이터·복도는 참고 이미지의 분위기를 반영한 개략 표현이며, 실제 공용부 치수나 시공도면을 나타내지 않습니다.</p></div></div>
+<div class="mapmodal" id="mapmodal" role="dialog" aria-modal="true" aria-labelledby="mapTitle"><div class="mapsheet"><button class="close" id="close" aria-label="닫기">✕</button><h2 id="mapTitle">평면도 — 공간을 누르면 3D로 이동합니다</h2><svg id="mapSvg" viewBox="-440 -300 1690 1410" role="img" aria-label="세대 평면과 참고 이미지 기반 공용 계단·엘리베이터를 함께 표시한 구조도"></svg><p>3D 좌표 1단위는 1m, 평면도는 100px/m입니다. 원본은 치수 표기가 있는 래스터 이미지(비CAD)입니다. 세대의 불규칙 외곽은 12.0×10.9m 범위이며, 가로 12.0m는 3.0+4.8+4.2m 체인에 맞췄습니다. 세로 체인은 10.9m지만 별도 10,000mm 표기와 맞지 않아 총 길이가 모호합니다. 13.4m·13.9m 전체 체인은 공용 계단·코어 돌출부를 포함하므로 세대 크기에 더하지 않았습니다. 방 경계·가구는 근사치이며 시공이나 구매 기준이 아닙니다. 10번 뒤 발코니 출입구는 문설주 중심 간격 약 1.2m(문틀 안쪽 약 1.07m)로 임시 추정했습니다. 걷기 모드의 충돌 여유를 적용한 보행 중심선 폭은 약 0.76m입니다. 왼쪽 계단·엘리베이터·복도는 참고 이미지 기반 개략 표현이며 실제 공용부 치수나 시공도면이 아닙니다.</p></div></div>
 <div id="error"><h2>3D 그래픽을 불러오지 못했습니다</h2><p>네트워크 연결 또는 기기의 WebGL 설정을 확인하세요.<br>2D 구조도는 정상 이용 가능합니다.</p><button id="fallbackMap">2D 구조도 열기</button></div>
 </main></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.149.0/three.min.js"></script>
@@ -62,27 +62,29 @@ var rooms=[
  ['뒷 발코니','주방 뒤 발코니',8,0.75,0]
 ];
 var floor=[
- [0,6.05,3.05,8.92,0xf2debf],[0,8.92,3.05,10.5,0xc5d7d4],
- [3.05,5.65,7.9,9.20,0xe1c29b],[3.05,9.20,7.9,10.9,0xc5d7d4],
- [7.9,5.65,12,9.20,0xf2debf],[7.9,9.20,12,10.50,0xc5d7d4],
- [3.05,4.85,10,5.65,0xe1c29b],[4.85,2.40,8.7,4.85,0xe1c29b],
- [4.85,1.25,7.0,2.40,0xe1c29b],[7,2.40,8.7,4.85,0xe1c29b],
+ [0,6.05,3.0,8.92,0xf2debf],[0,8.92,3.0,10.5,0xc5d7d4],
+ [3.0,5.65,7.8,9.20,0xe1c29b],[3.0,9.20,7.8,10.9,0xc5d7d4],
+ [7.8,5.65,12,9.20,0xf2debf],[7.8,9.20,12,10.50,0xc5d7d4],
+ [4.85,4.85,10,4.95,0xe1c29b],[4.85,2.40,8.7,4.85,0xe1c29b],
+ [4.85,1.25,7.0,2.40,0xe1c29b],
  [8.7,1.25,12,4.45,0xf2debf],[10,4.45,12,5.65,0xcdd9d8],
  [1.5,2.5,3.3,4.95,0xcdd9d8],[3.3,2.5,4.85,4.95,0xdad8cf],
- [2.45,.20,4.85,2.5,0xdad8cf],[1.5,4.95,3.3,6.05,0xe1c29b],
- [4.85,0,12,1.25,0xc5d7d4],[7,1.25,8.7,2.4,0xc5d7d4]
+ [2.45,.20,4.85,2.5,0xdad8cf],[1.5,4.95,3.0,6.05,0xe1c29b],
+ [4.85,0,12,1.25,0xc5d7d4],[7,1.25,8.7,2.4,0xc5d7d4],
+ [3.0,4.95,10,5.65,0xe1c29b]
 ];
 var W=[
 // outside edge and staggered front balconies
-[0,6.05,0,10.5,'s'],[0,10.5,3.05,10.5,'p'],[3.05,10.5,3.05,10.9,'p'],[3.05,10.9,7.9,10.9,'p'],[7.9,10.9,7.9,10.5,'p'],[7.9,10.5,12,10.5,'p'],[12,0,12,10.5,'s'],
+[0,6.05,0,10.5,'s'],[0,10.5,3.0,10.5,'p'],[3.0,10.5,3.0,10.9,'p'],[3.0,10.9,7.8,10.9,'p'],[7.8,10.9,7.8,10.5,'p'],[7.8,10.5,12,10.5,'p'],[12,0,12,10.5,'s'],
 [4.85,0,12,0,'p'],[4.85,0,4.85,1.25,'p'],
-[0,8.92,3.05,8.92,'g'],[3.05,9.20,7.9,9.20,'g'],[7.9,9.20,12,9.20,'g'],
+[0,8.92,3.0,8.92,'g'],[3.0,9.20,7.8,9.20,'g'],[7.8,9.20,12,9.20,'g'],
 // recessed rear balcony: the notch is on the kitchen side, not straight
-[4.85,1.25,7,1.25,'g'],[7,1.25,7,2.4,'g'],[7,2.4,8.7,2.4,'g'],[8.7,2.4,8.7,1.25,'g'],
+// Estimated 1.2m between jamb centerlines (~1.07m clear); confirm against the raster plan.
+[4.85,1.25,7,1.25,'g'],[7,1.25,7,2.4,'g'],[7,2.4,7.25,2.4,'g'],[8.45,2.4,8.7,2.4,'g'],[7.25,2.34,7.25,2.46,'i'],[8.45,2.34,8.45,2.46,'i'],[8.7,2.4,8.7,1.25,'g'],
 [8.7,1.25,12,1.25,'g'],
 // separated bedrooms along the front (top-edge door openings)
-[0,6.05,2.1,6.05,'i'],[2.95,6.05,3.05,6.05,'i'],[3.05,6.05,3.05,8.92,'i'],
-[7.9,5.65,8.03,5.65,'i'],[8.87,5.65,12,5.65,'i'],[7.9,5.65,7.9,9.2,'i'],
+[0,6.05,2.1,6.05,'i'],[2.95,6.05,3.0,6.05,'i'],[3.0,6.05,3.0,8.92,'i'],
+[7.8,5.65,8.03,5.65,'i'],[8.87,5.65,12,5.65,'i'],[7.8,5.65,7.8,9.2,'i'],
 // back bedroom, actual door is on its left side near bottom
 [8.7,1.25,8.7,3.50,'i'],[8.7,4.22,8.7,4.45,'i'],[8.7,4.45,12,4.45,'i'],
 // compact right-side bathroom between two bedrooms
@@ -133,12 +135,11 @@ function tileTexture(){var c=document.createElement('canvas');c.width=512;c.heig
 var oak=oakTexture(false),lightOak=oakTexture(true),porcelain=tileTexture();
 function material(col,glass,texture){var id=String(col)+(glass?'g':'')+(texture?'t':'');if(!mat[id])mat[id]=new THREE.MeshStandardMaterial({color:col,map:texture||null,transparent:!!glass,opacity:glass?.22:1,depthWrite:!glass,side:THREE.DoubleSide,roughness:.84,metalness:0});return mat[id]}
 function box(x1,y1,z1,x2,y2,z2,col,group,glass){var mesh=new THREE.Mesh(new THREE.BoxGeometry(x2-x1,y2-y1,z2-z1),material(col,glass));mesh.position.set((x1+x2)/2,(y1+y2)/2,(z1+z2)/2);mesh.castShadow=true;mesh.receiveShadow=true;(group||scene).add(mesh);return mesh}
-var tileFloors={1:1,3:1,5:1,11:1,12:1,13:1,14:1,16:1,17:1};
-floor.forEach(function(f,i){var tile=!!tileFloors[i]||f[4]===0xc5d7d4||f[4]===0xcdd9d8,m=box(f[0],-.09,f[1],f[2],0,f[3],tile?0xe7e7e1:0xffffff);m.material=material(tile?0xe7e7e1:0xffffff,false,tile?porcelain:oak).clone();m.material.map=(tile?porcelain:oak).clone();if(tile)m.material.map.repeat.set((f[2]-f[0])/1.18,(f[3]-f[1])/1.18);floorMaps.push({mesh:m,tile:tile})});
+floor.forEach(function(f){var tile=f[4]===0xc5d7d4||f[4]===0xcdd9d8||f[4]===0xdad8cf,m=box(f[0],-.09,f[1],f[2],0,f[3],tile?0xe7e7e1:0xffffff);m.material=material(tile?0xe7e7e1:0xffffff,false,tile?porcelain:oak).clone();m.material.map=(tile?porcelain:oak).clone();if(tile)m.material.map.repeat.set((f[2]-f[0])/1.18,(f[3]-f[1])/1.18);floorMaps.push({mesh:m,tile:tile})});
 // Baked-looking ceiling fill avoids an expensive real-time indirect-light pass.
 floor.forEach(function(f){if(f[4]===0xc5d7d4)return;var ceiling=new THREE.Mesh(new THREE.BoxGeometry(f[2]-f[0],.045,f[3]-f[1]),new THREE.MeshBasicMaterial({color:0xe2ddd3,side:THREE.DoubleSide}));ceiling.position.set((f[0]+f[2])/2,2.57,(f[1]+f[3])/2);ceiling.visible=false;scene.add(ceiling);ceilings.push(ceiling)});
 // Door openings retain their original walkable gaps; only the lintels above eye level are added.
-[[2.1,6.05,2.95,6.05],[8.03,5.65,8.87,5.65],[8.7,3.5,8.7,4.22],[10,4.77,10,5.52],[2.15,4.95,2.98,4.95],[2.45,.65,2.45,1.52],[4.85,2.18,4.85,2.95],[3.9,4.25,4.72,4.25]].forEach(function(d){var beam=new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(d[2]-d[0],d[3]-d[1]),.4,.13),material(0xf3eee5));beam.position.set((d[0]+d[2])/2,2.35,(d[1]+d[3])/2);beam.rotation.y=-Math.atan2(d[3]-d[1],d[2]-d[0]);beam.visible=false;scene.add(beam);ceilings.push(beam)});
+[[2.1,6.05,2.95,6.05],[8.03,5.65,8.87,5.65],[8.7,3.5,8.7,4.22],[10,4.77,10,5.52],[2.15,4.95,2.98,4.95],[2.45,.65,2.45,1.52],[4.85,2.18,4.85,2.95],[3.9,4.25,4.72,4.25],[7.25,2.4,8.45,2.4]].forEach(function(d){var beam=new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(d[2]-d[0],d[3]-d[1]),.4,.13),material(0xf3eee5));beam.position.set((d[0]+d[2])/2,2.35,(d[1]+d[3])/2);beam.rotation.y=-Math.atan2(d[3]-d[1],d[2]-d[0]);beam.visible=false;scene.add(beam);ceilings.push(beam)});
 W.forEach(function(w){var dx=w[2]-w[0],dz=w[3]-w[1],l=Math.hypot(dx,dz),t=w[4],th=t==='p'?.09:.13,h=t==='p'?0.95:2.55;
 var m=new THREE.Mesh(new THREE.BoxGeometry(l,h,th),material(t==='g'?0x91c5cc:t==='p'?0xa9a197:t==='s'?0xd6cfc2:0xf3eee5,t==='g'));
 m.position.set((w[0]+w[2])/2,h/2,(w[1]+w[3])/2);m.rotation.y=-Math.atan2(dz,dx);m.userData.height=h;m.castShadow=true;m.receiveShadow=true;scene.add(m);wallObjects.push(m);
@@ -160,23 +161,27 @@ function bed(x,z,w,d){box(x-.14,.005,z-.16,x+w+.14,.03,z+d+.11,0xe4dfd6);box(x,.
 function table(x,z,w,d){box(x,.68,z,x+w,.78,z+d,0xb28f68);[[x+.12,z+.12],[x+w-.17,z+.12],[x+.12,z+d-.17],[x+w-.17,z+d-.17]].forEach(function(p){box(p[0],.07,p[1],p[0]+.07,.68,p[1]+.07,0x75583e)})}
 function chair(x,z){box(x,.43,z,x+.43,.49,z+.42,0xb69b7e);box(x+.035,.49,z+.34,x+.395,.94,z+.41,0xa78b6e);[[x+.04,z+.04],[x+.34,z+.04],[x+.04,z+.32],[x+.34,z+.32]].forEach(function(p){box(p[0],.06,p[1],p[0]+.055,.43,p[1]+.055,0x79634c)})}
 function smallCylinder(x,y,z,r,height,col){var m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,height,16),material(col));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
+// Stacked washer/dryer at the left end of map room 10 (rear balcony).
+box(5.05,.02,.12,5.73,.86,.80,0xf3f3f0);box(5.05,.90,.12,5.73,1.74,.80,0xf3f3f0);box(5.73,.71,.20,5.76,.82,.72,0x555e62);box(5.73,1.59,.20,5.76,1.70,.72,0x555e62);
+[.43,1.29].forEach(function(y){var rim=smallCylinder(5.75,y,.46,.22,.025,0x879398);rim.rotation.z=Math.PI/2;var glass=smallCylinder(5.76,y,.46,.17,.025,0x41484d);glass.rotation.z=Math.PI/2});
 function ellipsoid(x,y,z,sx,sy,sz,col){var m=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),material(col));m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
 function bedside(x,z){box(x,.05,z,x+.38,.55,z+.38,0x9c7958);box(x-.025,.55,z-.025,x+.405,.61,z+.405,0xc8ad8c);box(x+.06,.32,z-.015,x+.32,.35,z+.005,0x765d49);smallCylinder(x+.19,.65,z+.19,.065,.07,0xb9ad98);smallCylinder(x+.19,.75,z+.19,.022,.15,0xb9ad98);var shade=new THREE.Mesh(new THREE.ConeGeometry(.115,.17,12),material(0xf4ead7));shade.position.set(x+.19,.88,z+.19);shade.castShadow=true;scene.add(shade)}
 function toilet(x,z){box(x-.17,.28,z-.30,x+.17,.70,z-.13,0xf5f3ed);var bowl=ellipsoid(x,.29,z,.205,.16,.27,0xf8f7f2);bowl.rotation.x=0;ellipsoid(x,.405,z+.045,.145,.035,.18,0xdbe7e6)}
 function vanity(x,z,w){box(x,.07,z,x+w,.62,z+.38,0x9b8267);box(x-.025,.62,z-.025,x+w+.025,.69,z+.405,0xf2f0e9);ellipsoid(x+w/2,.705,z+.18,w*.30,.065,.13,0xd9e2df);smallCylinder(x+w/2,.82,z+.045,.022,.20,0x9ca8a7);box(x+.11,.39,z-.012,x+w-.11,.405,z+.01,0xddd8ce)}
 function bedsideDecoration(x,z){ellipsoid(x,.78,z,.08,.025,.08,0x6e7b68)}
 function plant(x,z){smallCylinder(x,.19,z,.18,.36,0xc7b8a2);var soil=smallCylinder(x,.38,z,.15,.025,0x554737);for(var i=0;i<5;i++){var leaf=new THREE.Mesh(new THREE.SphereGeometry(.19,10,8),material(i%2?0x617b68:0x75896e));leaf.scale.set(.65,1.55,.65);leaf.position.set(x+Math.cos(i*1.25)*.11,.64+(i%2)*.06,z+Math.sin(i*1.25)*.11);leaf.rotation.z=Math.cos(i*1.25)*.3;leaf.castShadow=true;scene.add(leaf)}}
-bed(.55,6.62,1.66,1.90);bed(8.88,6.55,2.0,2.12);bed(9.5,2.0,1.63,1.95);
-bedside(2.35,7.32);bedside(8.24,7.32);bedside(11.3,2.77);
-box(.16,.01,6.45,.53,1.75,8.4,0xcdbfac);box(10.93,.01,7.0,11.65,1.73,8.55,0xcabfac);box(11.4,.01,1.35,11.8,1.6,2.45,0xcdbfac);
-box(3.72,.005,6.55,6.55,.03,8.46,0xe3d9ca);box(4.0,.02,7.45,6.18,.48,8.07,0xd6c9ba);box(4.0,.45,7.88,6.18,.87,8.08,0xbba895);box(3.94,.40,7.48,4.16,.82,8.05,0xbba895);box(6.02,.40,7.48,6.24,.82,8.05,0xbba895);box(4.14,.46,7.78,5.04,.75,7.91,0xd8cbbc);box(5.14,.46,7.78,6.04,.75,7.91,0xd8cbbc);table(5.1,6.9,.94,.55);plant(3.52,8.35);
-box(7.2,.02,6.55,7.53,.48,8.0,0x986f5a);box(7.23,.5,6.62,7.52,1.29,7.9,0x313b44);
+bed(.44,6.62,1.40,1.90);bed(9.11,6.55,1.70,2.0);bed(9.21,2.0,1.63,1.95);
+bedside(.95,6.08);bedside(9.77,5.99);bedside(9.84,1.40);
+box(2.53,.01,7.0,2.93,1.75,8.4,0xcdbfac);box(11.5,.01,6.45,11.90,1.73,8.55,0xcabfac);box(11.6,.01,1.35,11.90,1.6,2.45,0xcdbfac);
+var sofa=new THREE.Group();sofa.position.set(5.9,0,7.5);sofa.rotation.y=-Math.PI/2;scene.add(sofa);
+box(4.75,.005,6.2,7.30,.03,8.8,0xe3d9ca);
+box(-1.09,.02,-.275,1.09,.48,.275,0xd6c9ba,sofa);box(-1.09,.45,.075,1.09,.87,.275,0xbba895,sofa);box(-1.09,.40,-.26,-.87,.82,.26,0xbba895,sofa);box(.87,.40,-.26,1.09,.82,.26,0xbba895,sofa);box(-.96,.46,-.225,-.11,.75,.045,0xd8cbbc,sofa);box(.11,.46,-.225,.96,.75,.045,0xd8cbbc,sofa);table(6.425,7.15,.40,.70);plant(3.52,8.35);
+box(7.38,.02,6.8,7.71,.48,8.25,0x986f5a);box(7.41,.5,6.87,7.70,1.29,8.15,0x313b44);
 box(5.1,.02,1.43,6.95,.91,1.91,0xdbd5c8);box(5.1,.91,1.43,6.95,.99,1.91,0xfff6e7);box(5.2,.995,1.49,6.12,1.015,1.85,0x454c4c);[[5.42,1.58],[5.8,1.58],[5.42,1.77],[5.8,1.77]].forEach(function(p){smallCylinder(p[0],1.03,p[1],.085,.025,0x45494a)});
 box(5.06,.02,1.98,5.55,.91,3.42,0xf5f5f1);box(5.06,.91,1.98,5.55,.99,3.42,0xfffefa);box(5.13,.995,2.25,5.48,1.015,2.65,0xf7f8f5);box(5.17,1.016,2.29,5.44,1.022,2.61,0xe7ecea);smallCylinder(5.19,1.12,2.29,.025,.20,0xd5dbd8);
-box(5.57,.02,3.1,6.11,1.75,3.83,0xc5cbca);table(6.38,3.28,1.44,.84);chair(6.45,2.76);chair(7.1,2.76);chair(6.45,4.17);chair(7.1,4.17);
+table(6.26,3.28,1.44,.84);chair(6.33,2.76);chair(6.98,2.76);chair(6.33,4.17);chair(6.98,4.17);
 box(1.70,.07,2.76,2.99,.49,3.55,0xc9cecb);box(1.79,.44,2.84,2.90,.49,3.46,0xf7f8f5);box(1.84,.50,2.89,2.85,.525,3.40,0xd0e0df);toilet(3.02,4.0);toilet(10.55,4.96);vanity(1.62,3.93,.78);vanity(10.92,5.03,.72);
 box(5.22,.98,2.83,5.57,1.015,3.10,0xbac3c1);ellipsoid(5.40,1.06,2.96,.09,.045,.08,0xe9e4d7);
-box(3.39,.02,3.30,4.2,1.71,3.72,0xc6b7a5);
 var yaw=.45,pitch=.84,dist=19,orbitTarget=new THREE.Vector3(3.98,-1,4.18);var walkPos=new THREE.Vector3(5.9,1.56,7.2),walkYaw=Math.PI,walkPitch=0;
 function fitOverview(){var fov=THREE.MathUtils.degToRad(camera.fov),t=2*Math.tan(fov/2),width=16.05,depth=13.45,height=2.55,padding=camera.aspect<.85?.98:.90,sx=width*Math.abs(Math.cos(yaw))+depth*Math.abs(Math.sin(yaw)),sy=Math.cos(pitch)*(width*Math.abs(Math.sin(yaw))+depth*Math.abs(Math.cos(yaw)))+Math.sin(pitch)*height;return Math.max(sx/(t*camera.aspect*padding),sy/(t*padding))}
 function resize(){var r=mount.getBoundingClientRect(),w=Math.max(1,r.width),h=Math.max(1,r.height);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();if(mode==='orbit')dist=fitOverview()}

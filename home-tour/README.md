@@ -3,7 +3,9 @@
 - Public route: `/home-tour/`; portal cards: root EDUNI Links and the Tailscale NiceGUI Portal.
 - No apartment address, building or unit number is embedded in the published page.
 - Shared arrays `floor` and `W` drive both 2D comparison map and 3D geometry.
-- Source plan was provided as a raster image, not dimensioned CAD. All coordinates and furniture placements are **approximate**; do not use for construction, measurement, or furniture ordering.
+- Source plan is a dimensioned raster image, not CAD. The 12.0m private-unit width follows the 3,000 + 4,800 + 4,200mm chain. The right-side depth chain totals 10.9m, but a separate 10,000mm mark conflicts; room dividers and furniture remain approximate. Do not use for construction, measurement, or ordering.
+- 3D coordinates use 1 unit per meter and the SVG map uses 100px per meter; the private irregular footprint has a 12.0 × 10.9m bounding envelope.
+- The 13.4m and 13.9m overall chains include shared stair/core projections and are not added to the private unit. The rear-balcony opening is estimated at 1.2m between jamb centerlines (about 1.07m clear between wall faces); with the walkthrough collision margin, the modeled walkable centerline band is about 0.76m. These are model estimates; the raster does not clearly resolve the opening's exact location/width.
 - The shared stair, elevator and corridor context is a separate illustrative group based on the reference image; it is shown only in the overview, not as part of the unit's walkable floor or collision map.
 - Front left, central and right balconies have different depths; the rear balcony has a notch beside the kitchen.
 - The previously generated AI concept renders are deliberately not reused, because they do not match the source plan.
@@ -14,10 +16,11 @@
   - [Planner 5D: Free Floor Plan Creator](https://planner5d.com/use/free-floor-plan-creator)
   - [Three.js examples](https://threejs.org/examples/)
   - [Threads interior reference](https://www.threads.com/@2s.nyo/post/DYTEV2MgZSt)
-- Run `node check-home-tour.cjs` for the focused syntax, geometry-count, wall-collision and wall-cut-height check.
+- Run `node check-home-tour.cjs` for syntax, dimensions, floor overlap, furniture clearances, wall-collision and navigation checks.
 - 2026-10-18 showroom update: fixed walls sinking below the floor in overview, added charcoal cut edges, oak/neutral finishes, framed glazing, ceiling/lintels in walkthrough, furnished rooms and day/evening lighting. Original `floor` and `W` coordinate arrays are unchanged; furniture is illustrative.
 - Reference-image refinement: added a shared stair/elevator core to the dollhouse and 2D map, tiled wet/entry/balcony areas, dark chocolate plank flooring through the kitchen/dining and other dry rooms, open light-gray doors, balcony balusters, and richer bedroom/bath details. The kitchen sink is white. The shared core remains overview-only and does not change unit navigation.
-- Chrome visual check: 1152×810 desktop overview, 360×800 mobile overview/map, kitchen, bathroom 2 entry, and day→evening→day lighting. The common elevator appears once in both views and the complete exterior remains in frame.
-- Focused Node check passes: JavaScript syntax, geometry counts, shared-core isolation and 2D/3D lift parity, wall collision, day-light restoration, no-WebGL navigation, and all ten entry positions. `git diff --check` passes.
-- **Remaining limits:** approximate dimensions, illustrative furniture/materials and common-area dimensions, no furniture collision, no real-world lighting simulation or photographic scan. Actual touch-device gestures and WebGL context-loss recovery are not browser-tested. The existing CDN dependency remains.
+- 2026-10-19 dimension/furniture pass: aligned the private x stations to 3.0/7.8/12.0m, partitioned overlapping floor slabs without changing their visible coverage, removed the entry cabinet and sink-to-dining barrier, shifted the dining set for clearance, and placed a stacked washer/dryer at the left of room 10. The 1.2m jamb-center opening is a disclosed estimate.
+- Earlier Chrome visual check of the #90 layout: 1152×810 desktop overview, 360×800 mobile overview/map, kitchen, bathroom 2 entry, and day→evening→day lighting. The common elevator appears once in both views and the complete exterior remains in frame.
+- Earlier focused Node and Chrome checks cover the #90 showroom/core. They predate the 2026-10-19 dimension/furniture pass; current changes have static geometry tests but no fresh browser/WebGL visual QA. `git diff --check` is run before delivery.
+- **Remaining limits:** ambiguous source depth, approximate internal dividers/furniture and common-area dimensions, no furniture collision, no real-world lighting simulation or photographic scan. Actual touch-device gestures and WebGL context-loss recovery are not browser-tested. The existing CDN dependency remains.
 - Home-tour is a static page in the public portal; it does not require restarting the family server.

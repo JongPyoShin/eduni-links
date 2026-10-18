@@ -297,6 +297,8 @@ def register_pages() -> None:
                 _portal_card(EDUNI_GAME_PORTAL_URL, "🎮 의준이 게임포털",
                              "정글·북극·피라미드 서바이벌과 모든 게임을 한곳에서 선택", "게임 모음", "portal-game-green")
                 _portal_card("/portal/world/math", "수학탐험대", "수학 학습 활동 바로가기", "학습", "portal-game-violet")
+                _portal_card("https://jongpyoshin.github.io/eduni-links/home-tour/", "🏠 우리 집 3D 공간 투어",
+                             "평면도 기준 3D 전체보기 · 직접 걷기 · 2D 구조도 대조", "공간 투어", "portal-game-blue")
                 _portal_card(HANJA_URL, "한자마을", "한자 시험과 학습", "학습", "portal-game-amber")
 
             _section_title("학습 세계", "동적 포털의 실제 학습 경로와 맞췄습니다.")

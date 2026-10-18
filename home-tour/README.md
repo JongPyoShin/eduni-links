@@ -4,7 +4,7 @@
 - No apartment address, building or unit number is embedded in the published page.
 - Shared arrays `floor` and `W` drive both 2D comparison map and 3D geometry.
 - Source plan was provided as a raster image, not dimensioned CAD. All coordinates and furniture placements are **approximate**; do not use for construction, measurement, or furniture ordering.
-- Exterior stairs and elevators in the source plan are intentionally excluded from the apartment scene.
+- The shared stair, elevator and corridor context is a separate illustrative group based on the reference image; it is shown only in the overview, not as part of the unit's walkable floor or collision map.
 - Front left, central and right balconies have different depths; the rear balcony has a notch beside the kitchen.
 - The previously generated AI concept renders are deliberately not reused, because they do not match the source plan.
 - Three.js 0.149.0 is loaded from its CDN. If WebGL or the CDN is unavailable, room selection and the 2D layout remain accessible.
@@ -16,8 +16,8 @@
   - [Threads interior reference](https://www.threads.com/@2s.nyo/post/DYTEV2MgZSt)
 - Run `node check-home-tour.cjs` for the focused syntax, geometry-count, wall-collision and wall-cut-height check.
 - 2026-10-18 showroom update: fixed walls sinking below the floor in overview, added charcoal cut edges, oak/neutral finishes, framed glazing, ceiling/lintels in walkthrough, furnished rooms and day/evening lighting. Original `floor` and `W` coordinate arrays are unchanged; furniture is illustrative.
-- Chrome verification: desktop overview and furnished living-room rendering; 390×844 and 360×800 CSS viewports; 360px horizontal overflow 0; mobile controls approximately 44–46px; next-room navigation, 2D-to-bedroom selection, Escape/focus restoration, lighting and finish toggles. No captured browser JavaScript errors. Browser viewport overrides reset after testing.
-- Focused Node check passes: JavaScript syntax, geometry counts, wall collision, no-WebGL navigation and all ten entry positions clear of walls. `git diff --check` passes.
-- Screenshots from this local run: `D:/Codex/artifacts/home-tour-showroom/overview.jpg`, `living-room.jpg`, `mobile-360.jpg`. Preview: `http://127.0.0.1:18797/home-tour/` while the local preview process is running.
-- **Remaining limits:** approximate dimensions, illustrative furniture/materials, no furniture collision, no real-world lighting simulation or photographic scan. Actual touch-device gestures and WebGL context-loss recovery are not browser-tested. The existing CDN dependency remains. This working-tree update has not been committed, pushed or published.
-- Server Portal code is updated in Git, but actual server deployment/restart must be performed separately.
+- Reference-image refinement: added a shared stair/elevator core to the dollhouse and 2D map, tiled wet/entry/balcony areas, dark chocolate plank flooring through the kitchen/dining and other dry rooms, open light-gray doors, balcony balusters, and richer bedroom/bath details. The kitchen sink is white. The shared core remains overview-only and does not change unit navigation.
+- Chrome visual check: 1152×810 desktop overview, 360×800 mobile overview/map, kitchen, bathroom 2 entry, and day→evening→day lighting. The common elevator appears once in both views and the complete exterior remains in frame.
+- Focused Node check passes: JavaScript syntax, geometry counts, shared-core isolation and 2D/3D lift parity, wall collision, day-light restoration, no-WebGL navigation, and all ten entry positions. `git diff --check` passes.
+- **Remaining limits:** approximate dimensions, illustrative furniture/materials and common-area dimensions, no furniture collision, no real-world lighting simulation or photographic scan. Actual touch-device gestures and WebGL context-loss recovery are not browser-tested. The existing CDN dependency remains.
+- Home-tour is a static page in the public portal; it does not require restarting the family server.

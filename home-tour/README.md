@@ -1,4 +1,4 @@
-# Home Tour — plan-aligned prototype
+# Home Tour — plan-aligned walkthrough
 
 - Public route: `/home-tour/`; portal cards: root EDUNI Links and the Tailscale NiceGUI Portal.
 - No apartment address, building or unit number is embedded in the published page.
@@ -7,7 +7,17 @@
 - Exterior stairs and elevators in the source plan are intentionally excluded from the apartment scene.
 - Front left, central and right balconies have different depths; the rear balcony has a notch beside the kitchen.
 - The previously generated AI concept renders are deliberately not reused, because they do not match the source plan.
-- Works via Three.js 0.149.0 CDN; if WebGL/CDN is unavailable the 2D layout remains accessible.
-- Static checks: JavaScript syntax PASS; 11 navigation points including overview, 18 floor patches, 42 wall sections, all room positions within floor patches, no exact unit identifiers.
-- **Not verified:** real browser interaction, phone rotation/pinch, dimensions against on-site measurements, building entry door or exact wall/door thickness.
+- Three.js 0.149.0 is loaded from its CDN. If WebGL or the CDN is unavailable, room selection and the 2D layout remain accessible.
+- The finish and furniture treatment takes cues from these examples; their layouts and images are not used as the home plan:
+  - [Matterport: Guided Tour Best Practices](https://support.matterport.com/s/article/Guided-Tour-Best-Practices)
+  - [Floorplanner: 3D floor plan examples](https://floorplanner.com/3d-floorplan-examples)
+  - [Planner 5D: Free Floor Plan Creator](https://planner5d.com/use/free-floor-plan-creator)
+  - [Three.js examples](https://threejs.org/examples/)
+  - [Threads interior reference](https://www.threads.com/@2s.nyo/post/DYTEV2MgZSt)
+- Run `node check-home-tour.cjs` for the focused syntax, geometry-count, wall-collision and wall-cut-height check.
+- 2026-10-18 showroom update: fixed walls sinking below the floor in overview, added charcoal cut edges, oak/neutral finishes, framed glazing, ceiling/lintels in walkthrough, furnished rooms and day/evening lighting. Original `floor` and `W` coordinate arrays are unchanged; furniture is illustrative.
+- Chrome verification: desktop overview and furnished living-room rendering; 390×844 and 360×800 CSS viewports; 360px horizontal overflow 0; mobile controls approximately 44–46px; next-room navigation, 2D-to-bedroom selection, Escape/focus restoration, lighting and finish toggles. No captured browser JavaScript errors. Browser viewport overrides reset after testing.
+- Focused Node check passes: JavaScript syntax, geometry counts, wall collision, no-WebGL navigation and all ten entry positions clear of walls. `git diff --check` passes.
+- Screenshots from this local run: `D:/Codex/artifacts/home-tour-showroom/overview.jpg`, `living-room.jpg`, `mobile-360.jpg`. Preview: `http://127.0.0.1:18797/home-tour/` while the local preview process is running.
+- **Remaining limits:** approximate dimensions, illustrative furniture/materials, no furniture collision, no real-world lighting simulation or photographic scan. Actual touch-device gestures and WebGL context-loss recovery are not browser-tested. The existing CDN dependency remains. This working-tree update has not been committed, pushed or published.
 - Server Portal code is updated in Git, but actual server deployment/restart must be performed separately.

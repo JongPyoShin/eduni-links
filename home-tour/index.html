@@ -148,7 +148,7 @@ mount.addEventListener('pointermove',function(e){if(!down)return;var dx=e.client
 mount.addEventListener('wheel',function(e){e.preventDefault();dist=Math.max(10,Math.min(32,dist+e.deltaY*.015))},{passive:false});
 var keys={};window.addEventListener('keydown',function(e){keys[e.key.toLowerCase()]=true});window.addEventListener('keyup',function(e){keys[e.key.toLowerCase()]=false});
 document.querySelectorAll('[data-move]').forEach(function(b){var k=b.dataset.move;b.addEventListener('pointerdown',function(e){keys[k]=true;e.preventDefault();b.setPointerCapture(e.pointerId)});['pointerup','pointercancel','lostpointercapture'].forEach(function(ev){b.addEventListener(ev,function(){keys[k]=false})})});
-function inFloor(x,z){return floor.some(function(f){return x>f[0]+.17&&x<f[2]-.17&&z>f[1]+.17&&z<f[3]-.17})}
+function inFloor(x,z){return floor.some(function(f){return x>f[0]-.02&&x<f[2]+.02&&z>f[1]-.02&&z<f[3]+.02})}
 function blocked(x,z){if(!inFloor(x,z))return true;return W.some(function(w){if(w[4]==='p')return false;var ax=w[0],az=w[1],bx=w[2],bz=w[3],dx=bx-ax,dz=bz-az,t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/(dx*dx+dz*dz)));return Math.hypot(x-(ax+t*dx),z-(az+t*dz))<.22})}
 var last=performance.now();
 function tick(now){requestAnimationFrame(tick);var dt=Math.min(.04,(now-last)/1000);last=now;

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><meta name="theme-color" content="#101f2b">
+<title>우리 집 · 평면도 기반 3D 투어</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;color:#eef6f1;background:#091822}
+*{box-sizing:border-box}body{margin:0}.app{display:flex;height:100dvh;overflow:hidden}
+aside{width:258px;flex-shrink:0;background:#101f2b;border-right:1px solid #344b57;padding:24px 16px;display:flex;flex-direction:column;gap:15px}
+h1{font-size:24px;line-height:1.25;letter-spacing:-.04em;margin:7px 0}.sub{font-size:12px;line-height:1.7;color:#a2b9c1}.eyebrow{font-size:11px;color:#9ce9c6;font-weight:800;letter-spacing:.12em}
+.rooms{display:flex;flex-direction:column;gap:5px;overflow:auto;min-height:0}
+button{cursor:pointer;font:inherit}.rooms button{background:#1b2e3b;color:#e1ebe9;border:1px solid #314a57;border-radius:11px;padding:11px;text-align:left;font-weight:700;font-size:13px}
+.rooms button.on{border-color:#a0e3c9;background:#28534f;color:#f1fff8}.rooms button small{display:block;color:#a6c2c2;font-weight:400;margin-top:3px}
+.foot{margin-top:auto;font-size:11px;color:#abc1c2;line-height:1.65;border-top:1px solid #3c5360;padding-top:12px}
+main{flex:1;min-width:0;position:relative;background:radial-gradient(ellipse at 45% 28%,#45616b,#182b36 55%,#07151e)}
+#scene{display:block;width:100%;height:100%;touch-action:none}
+.bar{position:absolute;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none;z-index:3}
+.bar>*{pointer-events:auto}.chip{padding:9px 11px;background:#102b34df;border:1px solid #65808866;border-radius:10px;color:#c7e1df;font-size:11px}
+.buttons{display:flex;gap:5px;background:#10232ddf;border:1px solid #5e757d66;border-radius:12px;padding:5px}
+.buttons button{border:0;border-radius:8px;background:transparent;color:#bcd1d7;padding:10px 12px;font-size:12px;font-weight:750;white-space:nowrap}
+.buttons button.on{background:#acead2;color:#0d3230}
+.hint{position:absolute;top:77px;left:15px;background:#152d36da;border:1px solid #536e775c;border-radius:9px;padding:8px 11px;font-size:11px;color:#cee6e3;z-index:2;max-width:min(85vw,380px)}
+.toolbar{position:absolute;bottom:17px;right:17px;display:flex;gap:7px;z-index:3}
+.toolbar button,.move button{width:43px;height:43px;border-radius:11px;background:#19353fdc;color:#fff;border:1px solid #6c8a8d99;font-size:19px}
+.move{position:absolute;bottom:75px;left:50%;transform:translateX(-50%);display:none;gap:6px;z-index:4;background:#102a33e0;padding:7px;border-radius:14px}
+.panel{position:absolute;left:15px;bottom:18px;background:#102a33e8;border:1px solid #63848a99;border-radius:11px;padding:10px 13px;font-size:11px;max-width:270px;z-index:2;color:#c7dbd9}
+.panel b{display:block;font-size:13px;color:white;margin-bottom:5px}
+.mapmodal{display:none;position:absolute;inset:0;z-index:8;background:#071118ed;padding:12px;align-items:center;justify-content:center}
+.mapmodal.show{display:flex}.mapsheet{position:relative;width:min(93vw,670px);max-height:94dvh;overflow:auto;background:#f7f6f0;border-radius:16px;padding:18px;color:#20343c;box-shadow:0 20px 60px #0009}
+.mapsheet h2{font-size:17px;margin:0 42px 12px 0}.mapsheet p{font-size:12px;line-height:1.55;color:#596e78}
+.close{position:absolute;right:12px;top:12px;background:#173a43;color:white;border:0;border-radius:8px;width:34px;height:34px}
+#mapSvg{width:100%;height:auto;display:block;background:#fff;border-radius:12px;border:1px solid #dae3e2}
+#mapSvg .roomspot{cursor:pointer}#mapSvg .roomspot:hover{filter:brightness(.92)}
+#error{display:none;position:absolute;inset:0;background:#112b35;align-items:center;justify-content:center;flex-direction:column;padding:25px;color:#fff;text-align:center;gap:15px}#error button{padding:12px 20px;background:#a2e5d1;border:0;border-radius:10px;font-weight:800;color:#103b38}
+@media(max-width:700px){.app{display:block}main{height:calc(100dvh - 116px)}aside{position:absolute;left:0;right:0;bottom:0;z-index:5;width:100%;height:116px;padding:10px 10px 7px;gap:4px;border-top:1px solid #46616c}aside h1,aside .eyebrow,aside .sub,aside .foot{display:none}.rooms{flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:6px;align-items:center}.rooms button{flex:0 0 114px;padding:10px 7px;white-space:nowrap;font-size:12px}.rooms button small{font-size:10px}.bar{left:9px;right:9px;top:9px;flex-direction:column;gap:5px}.chip{font-size:10px;padding:6px 9px}.buttons button{padding:8px 10px;font-size:11px}.hint{left:9px;top:83px;max-width:87%;font-size:10px}.toolbar{right:10px;bottom:9px}.toolbar button{width:35px;height:35px}.panel{left:9px;bottom:9px;max-width:185px;font-size:10px}.panel b{font-size:11px}.move{bottom:55px}.move button{width:37px;height:37px}}
+</style></head><body>
+<div class="app">
+<aside><div><div class="eyebrow">HOME · SPATIAL TOUR</div><h1>우리 집 3D 투어</h1><div class="sub">제공된 33평형 원본 평면도 기준으로 방·욕실·현관·발코니의 위치를 재구성했습니다.</div></div><div class="rooms" id="rooms"></div><div class="foot">정확한 실측 BIM이 아닌 도면 기반 근사 모델입니다. 마감재·가구는 임시 배치이며, 동·호수와 주소는 공개하지 않습니다.</div></aside>
+<main><canvas id="scene" aria-label="3D 실내 모델"></canvas>
+<div class="bar"><div class="chip" id="status">● 평면 구조 기준 · 실내 모델</div><div class="buttons"><button class="on" id="orbit">3D 전체</button><button id="walk">직접 걷기</button><button id="map">2D 대조</button></div></div>
+<div class="hint" id="hint">드래그해 회전 · 두 손가락/휠로 확대 · 아래 방을 선택해 이동</div>
+<div class="move" id="move"><button data-move="left" aria-label="왼쪽 회전">↶</button><button data-move="forward" aria-label="앞으로">↑</button><button data-move="backward" aria-label="뒤로">↓</button><button data-move="right" aria-label="오른쪽 회전">↷</button></div>
+<div class="panel"><b id="place">평면 전체보기</b><span id="detail">도면의 방 배치와 3D를 같은 좌표로 표현합니다.</span></div>
+<div class="toolbar"><button id="minus" aria-label="축소">−</button><button id="plus" aria-label="확대">＋</button><button id="reset" aria-label="초기화">⟲</button></div>
+<div class="mapmodal" id="mapmodal"><div class="mapsheet"><button class="close" id="close" aria-label="닫기">✕</button><h2>2D 구조도 — 공간을 누르면 3D로 이동합니다</h2><svg id="mapSvg" viewBox="-60 -40 1320 1190" role="img" aria-label="원본 평면도의 공간 배치를 따르는 2D 구조도"></svg><p>동일한 벽 좌표를 2D와 3D에 함께 사용합니다. 외부 계단·엘리베이터는 세대 내부가 아니므로 생략했습니다. 세부 벽 두께, 창호와 마감은 실측 후 조정이 필요합니다.</p></div></div>
+<div id="error"><h2>3D 그래픽을 불러오지 못했습니다</h2><p>네트워크 연결 또는 기기의 WebGL 설정을 확인하세요.<br>2D 구조도는 정상 이용 가능합니다.</p><button id="fallbackMap">2D 구조도 열기</button></div>
+</main></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.149.0/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+var $=function(x){return document.getElementById(x)}, orbit=$('orbit'),walk=$('walk'),map=$('map');
+var rooms=[
+ ['전체','평면 전체보기',6,6.3,0],
+ ['현관','현관과 전실',3.75,3.15,3.14],
+ ['거실','중앙 전면 거실',5.65,7.2,3.14],
+ ['주방','후면 주방·식당',6.2,3.5,0],
+ ['안방','전면 오른쪽 침실',9.95,7.3,3.14],
+ ['침실 2','전면 왼쪽 침실',1.55,7.5,3.14],
+ ['침실 3','주방 옆 침실',10.25,2.75,0],
+ ['욕실 1','현관 옆 욕실',2.35,3.6,0],
+ ['욕실 2','침실 사이 욕실',11.05,5.03,0],
+ ['앞 발코니','전면 발코니',6.6,9.8,3.14],
+ ['뒷 발코니','주방 뒤 발코니',8,0.75,0]
+];
+var floor=[
+ [0,6.05,3.05,8.92,0xf2debf],[0,8.92,3.05,10.5,0xc5d7d4],
+ [3.05,5.65,7.9,9.20,0xe1c29b],[3.05,9.20,7.9,10.9,0xc5d7d4],
+ [7.9,5.65,12,9.20,0xf2debf],[7.9,9.20,12,10.50,0xc5d7d4],
+ [3.05,4.85,10,5.65,0xe1c29b],[4.85,2.40,8.7,4.85,0xe1c29b],
+ [4.85,1.25,7.0,2.40,0xe1c29b],[7,2.40,8.7,4.85,0xe1c29b],
+ [8.7,1.25,12,4.45,0xf2debf],[10,4.45,12,5.65,0xcdd9d8],
+ [1.5,2.5,3.3,4.95,0xcdd9d8],[3.3,2.5,4.85,4.95,0xdad8cf],
+ [2.45,.20,4.85,2.5,0xdad8cf],[1.5,4.95,3.3,6.05,0xe1c29b],
+ [4.85,0,12,1.25,0xc5d7d4],[7,1.25,8.7,2.4,0xc5d7d4]
+];
+var W=[
+// outside edge and staggered front balconies
+[0,6.05,0,10.5,'s'],[0,10.5,3.05,10.5,'p'],[3.05,10.5,3.05,10.9,'p'],[3.05,10.9,7.9,10.9,'p'],[7.9,10.9,7.9,10.5,'p'],[7.9,10.5,12,10.5,'p'],[12,0,12,10.5,'s'],
+[4.85,0,12,0,'p'],[4.85,0,4.85,1.25,'p'],
+[0,8.92,3.05,8.92,'g'],[3.05,9.20,7.9,9.20,'g'],[7.9,9.20,12,9.20,'g'],
+// recessed rear balcony: the notch is on the kitchen side, not straight
+[4.85,1.25,7,1.25,'g'],[7,1.25,7,2.4,'g'],[7,2.4,8.7,2.4,'g'],[8.7,2.4,8.7,1.25,'g'],
+[8.7,1.25,12,1.25,'g'],
+// separated bedrooms along the front (top-edge door openings)
+[0,6.05,2.1,6.05,'i'],[2.95,6.05,3.05,6.05,'i'],[3.05,6.05,3.05,8.92,'i'],
+[7.9,5.65,8.03,5.65,'i'],[8.87,5.65,12,5.65,'i'],[7.9,5.65,7.9,9.2,'i'],
+// back bedroom, actual door is on its left side near bottom
+[8.7,1.25,8.7,3.50,'i'],[8.7,4.22,8.7,4.45,'i'],[8.7,4.45,12,4.45,'i'],
+// compact right-side bathroom between two bedrooms
+[10,4.45,10,4.77,'i'],[10,5.52,10,5.65,'i'],[10,5.65,12,5.65,'i'],
+// bath beside entry / separating hall
+[1.5,2.5,3.3,2.5,'i'],[1.5,2.5,1.5,4.95,'i'],[1.5,4.95,2.15,4.95,'i'],[2.98,4.95,3.3,4.95,'i'],
+[3.3,2.5,3.3,4.95,'i'],
+// entry and inner vestibule, door opening at left
+[2.45,.20,4.85,.20,'s'],[2.45,.2,2.45,.65,'s'],[2.45,1.52,2.45,2.5,'s'],[2.45,2.5,3.3,2.5,'i'],
+[4.85,.20,4.85,2.18,'i'],[4.85,2.95,4.85,4.25,'i'],[3.3,4.25,3.9,4.25,'i'],[4.72,4.25,4.85,4.25,'i']
+];
+var colors=['#f2debf','#c5d7d4','#e1c29b','#dad8cf','#cdd9d8'];var mode='orbit',selected=0;
+var svg=$('mapSvg'),NS='http://www.w3.org/2000/svg';
+function svgEl(name,attrs,text){var el=document.createElementNS(NS,name);Object.keys(attrs).forEach(function(k){el.setAttribute(k,attrs[k])});if(text)el.textContent=text;svg.appendChild(el);return el}
+floor.forEach(function(f){svgEl('rect',{x:f[0]*100,y:f[1]*100,width:(f[2]-f[0])*100,height:(f[3]-f[1])*100,fill:'#'+f[4].toString(16).padStart(6,'0')})});
+W.forEach(function(w){svgEl('line',{x1:w[0]*100,y1:w[1]*100,x2:w[2]*100,y2:w[3]*100,stroke:w[4]==='g'?'#3aa3b2':w[4]==='p'?'#90a7a7':'#222e36','stroke-width':w[4]==='i'?9:12,'stroke-linecap':'square'})});
+rooms.slice(1).forEach(function(r,i){var p=svgEl('g',{'class':'roomspot',role:'button',tabindex:0});var c=document.createElementNS(NS,'circle');c.setAttribute('cx',r[2]*100);c.setAttribute('cy',r[3]*100);c.setAttribute('r',34);c.setAttribute('fill','#1a6062');c.setAttribute('stroke','white');c.setAttribute('stroke-width','5');p.appendChild(c);var t=document.createElementNS(NS,'text');t.setAttribute('x',r[2]*100);t.setAttribute('y',r[3]*100+8);t.setAttribute('text-anchor','middle');t.setAttribute('fill','white');t.setAttribute('font-size','25');t.setAttribute('font-weight','800');t.textContent=i+1;p.appendChild(t);p.addEventListener('click',function(){showRoom(i+1)});p.addEventListener('keydown',function(e){if(e.key==='Enter')showRoom(i+1)});svg.appendChild(p)});
+var ul=$('rooms');rooms.forEach(function(r,i){var b=document.createElement('button');b.innerHTML=r[0]+'<small>'+r[1]+'</small>';b.dataset.room=i;b.addEventListener('click',function(){showRoom(i)});ul.appendChild(b)});
+function selectUI(){Array.from(ul.children).forEach(function(b,i){b.classList.toggle('on',selected===i)});$('place').textContent=selected?rooms[selected][0]:'평면 전체보기';$('detail').textContent=selected?rooms[selected][1]+' · 실제 실내 사진이 아닌 구조 재현입니다.':'방과 발코니 위치는 원본 도면을 따라 배치했습니다.'}
+function showRoom(i){selected=i;selectUI();$('mapmodal').classList.remove('show');if(i){mode='walk';cameraMode();walkPos.set(rooms[i][2],1.56,rooms[i][3]);walkYaw=rooms[i][4];walkPitch=0}else{mode='orbit';cameraMode();yaw=.45;pitch=.95;dist=window.innerWidth<700?25:19}}
+function cameraMode(){orbit.classList.toggle('on',mode==='orbit');walk.classList.toggle('on',mode==='walk');$('move').style.display=mode==='walk'?'flex':'none';$('hint').textContent=mode==='orbit'?'드래그로 회전 · 손가락으로 확대 · 공간 선택으로 내부 이동':'드래그로 시선 이동 · WASD·방향 버튼으로 걷기';if(typeof wallObjects!=='undefined')wallObjects.forEach(function(o){o.scale.y=mode==='orbit'?.49:1;o.position.y=mode==='orbit'?-0.64:0})}
+function showMap(){$('mapmodal').classList.add('show')}
+map.addEventListener('click',showMap);$('close').onclick=function(){$('mapmodal').classList.remove('show')};$('fallbackMap').onclick=showMap;
+$('mapmodal').addEventListener('click',function(e){if(e.target.id==='mapmodal')$('mapmodal').classList.remove('show')});
+window.addEventListener('keydown',function(e){if(e.key==='Escape')$('mapmodal').classList.remove('show')});
+selectUI();
+if(!window.THREE){$('error').style.display='flex';return}
+var scene=new THREE.Scene();scene.background=new THREE.Color(0x172733);scene.fog=new THREE.Fog(0x172733,24,50);
+var mount=$('scene'),renderer,camera;
+try{renderer=new THREE.WebGLRenderer({canvas:mount,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.6));camera=new THREE.PerspectiveCamera(62,1,.06,90)}catch(e){$('error').style.display='flex';return}
+scene.add(new THREE.HemisphereLight(0xffffff,0x768690,1.32));var light=new THREE.DirectionalLight(0xffe8c9,.85);light.position.set(-4,13,6);scene.add(light);
+var mat={};
+function material(col,glass){var id=String(col)+(glass?'g':'');if(!mat[id])mat[id]=new THREE.MeshLambertMaterial({color:col,transparent:!!glass,opacity:glass?.36:1,depthWrite:!glass,side:THREE.DoubleSide});return mat[id]}
+function box(x1,y1,z1,x2,y2,z2,col,group,glass){var mesh=new THREE.Mesh(new THREE.BoxGeometry(x2-x1,y2-y1,z2-z1),material(col,glass));mesh.position.set((x1+x2)/2,(y1+y2)/2,(z1+z2)/2);(group||scene).add(mesh);return mesh}
+floor.forEach(function(f){box(f[0],-.09,f[1],f[2],0,f[3],f[4])});
+var wallObjects=[];
+W.forEach(function(w){var dx=w[2]-w[0],dz=w[3]-w[1],l=Math.hypot(dx,dz),t=w[4],th=t==='p'?.09:.13,h=t==='p'?0.95:2.55;
+var m=new THREE.Mesh(new THREE.BoxGeometry(l,h,th),material(t==='g'?0x74b9c8:t==='p'?0xabb8b4:t==='s'?0xe0ddcf:0xf4eee2,t==='g'));
+m.position.set((w[0]+w[2])/2,h/2,(w[1]+w[3])/2);m.rotation.y=-Math.atan2(dz,dx);scene.add(m);wallObjects.push(m)});
+function bed(x,z,w,d){box(x,.08,z,x+w,.25,z+d,0xb29073);box(x+.08,.26,z+.12,x+w-.08,.42,z+d-.11,0xf8f1e6);box(x+.15,.43,z+.15,x+w-.15,.52,z+.53,0xffffff);box(x,.20,z-.09,x+w,.9,z,0xc5ae94)}
+function table(x,z,w,d){box(x,.68,z,x+w,.78,z+d,0xbda083);[[x+.12,z+.12],[x+w-.17,z+.12],[x+.12,z+d-.17],[x+w-.17,z+d-.17]].forEach(function(p){box(p[0],.07,p[1],p[0]+.07,.68,p[1]+.07,0x997658)})}
+bed(.55,6.62,1.66,1.90);bed(8.88,6.55,2.0,2.12);bed(9.5,2.0,1.63,1.95);
+box(1.0,.01,7.9,2.55,1.48,8.22,0xcdbfac);box(10.93,.01,7.0,11.65,1.73,8.55,0xcabfac);box(11.4,.01,1.35,11.8,1.6,2.45,0xcdbfac);
+box(4.0,.02,7.45,6.18,.48,8.07,0xeee3d4);box(4.0,.45,7.88,6.18,.87,8.08,0xe3d3c2);table(5.1,6.9,.94,.55);
+box(7.2,.02,6.55,7.53,.48,8.0,0x986f5a);box(7.23,.5,6.62,7.52,1.29,7.9,0x313b44);
+box(5.1,.02,1.43,6.95,.91,1.91,0xdbd5c8);box(5.1,.91,1.43,6.95,.99,1.91,0xfff6e7);
+box(5.06,.02,1.98,5.55,.91,3.42,0xdbd5c8);box(5.06,.91,1.98,5.55,.99,3.42,0xfff6e7);
+box(5.57,.02,3.1,6.11,1.75,3.83,0xc5cbca);table(6.38,3.28,1.44,.84);
+box(1.73,.07,2.78,2.96,.55,3.53,0xffffff);box(2.8,.02,3.75,3.12,.67,4.27,0xffffff);box(10.35,.02,4.58,10.8,.67,5.04,0xffffff);
+box(3.39,.02,3.30,4.2,1.71,3.72,0xc6b7a5);
+var yaw=.45,pitch=.95,dist=19;var walkPos=new THREE.Vector3(5.9,1.56,7.2),walkYaw=Math.PI,walkPitch=0;
+function resize(){var r=mount.getBoundingClientRect(),w=Math.max(1,r.width),h=Math.max(1,r.height);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+window.addEventListener('resize',resize);resize();
+orbit.onclick=function(){mode='orbit';selected=0;selectUI();cameraMode()};
+walk.onclick=function(){mode='walk';if(!selected)selected=2;selectUI();walkPos.set(rooms[selected][2],1.56,rooms[selected][3]);walkYaw=rooms[selected][4];cameraMode()};
+$('reset').onclick=function(){showRoom(0)};
+$('plus').onclick=function(){if(mode==='orbit')dist=Math.max(10,dist-2);else walkPos.add(new THREE.Vector3(Math.sin(walkYaw)*.3,0,Math.cos(walkYaw)*.3))};
+$('minus').onclick=function(){if(mode==='orbit')dist=Math.min(32,dist+2);else walkPos.add(new THREE.Vector3(-Math.sin(walkYaw)*.3,0,-Math.cos(walkYaw)*.3))};
+var down=false,lastX=0,lastY=0,touches=1;
+mount.addEventListener('pointerdown',function(e){down=true;lastX=e.clientX;lastY=e.clientY;mount.setPointerCapture(e.pointerId)});
+mount.addEventListener('pointerup',function(){down=false});
+mount.addEventListener('pointermove',function(e){if(!down)return;var dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;if(mode==='orbit'){yaw-=dx*.006;pitch=Math.max(.20,Math.min(1.49,pitch+dy*.006))}else{walkYaw-=dx*.005;walkPitch=Math.max(-1.0,Math.min(1.0,walkPitch-dy*.005))}});
+mount.addEventListener('wheel',function(e){e.preventDefault();dist=Math.max(10,Math.min(32,dist+e.deltaY*.015))},{passive:false});
+var keys={};window.addEventListener('keydown',function(e){keys[e.key.toLowerCase()]=true});window.addEventListener('keyup',function(e){keys[e.key.toLowerCase()]=false});
+document.querySelectorAll('[data-move]').forEach(function(b){var k=b.dataset.move;b.addEventListener('pointerdown',function(e){keys[k]=true;e.preventDefault();b.setPointerCapture(e.pointerId)});['pointerup','pointercancel','lostpointercapture'].forEach(function(ev){b.addEventListener(ev,function(){keys[k]=false})})});
+function inFloor(x,z){return floor.some(function(f){return x>f[0]+.17&&x<f[2]-.17&&z>f[1]+.17&&z<f[3]-.17})}
+function blocked(x,z){if(!inFloor(x,z))return true;return W.some(function(w){if(w[4]==='p')return false;var ax=w[0],az=w[1],bx=w[2],bz=w[3],dx=bx-ax,dz=bz-az,t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/(dx*dx+dz*dz)));return Math.hypot(x-(ax+t*dx),z-(az+t*dz))<.22})}
+var last=performance.now();
+function tick(now){requestAnimationFrame(tick);var dt=Math.min(.04,(now-last)/1000);last=now;
+if(mode==='walk'){var turn=(keys.arrowleft||keys.a||keys.left?1:0)-(keys.arrowright||keys.d||keys.right?1:0);walkYaw+=turn*dt*1.9;
+var step=((keys.arrowup||keys.w||keys.forward?1:0)-(keys.arrowdown||keys.s||keys.backward?1:0))*dt*2.25;
+if(step){var nx=walkPos.x+Math.sin(walkYaw)*step,nz=walkPos.z+Math.cos(walkYaw)*step;if(!blocked(nx,walkPos.z))walkPos.x=nx;if(!blocked(walkPos.x,nz))walkPos.z=nz}
+camera.position.copy(walkPos);camera.lookAt(walkPos.x+Math.sin(walkYaw),walkPos.y+Math.sin(walkPitch),walkPos.z+Math.cos(walkYaw))}
+else{var target=new THREE.Vector3(6,0,5.5);camera.position.set(6+dist*Math.sin(pitch)*Math.sin(yaw),dist*Math.cos(pitch),5.5+dist*Math.sin(pitch)*Math.cos(yaw));camera.lookAt(target)}
+renderer.render(scene,camera)}
+cameraMode();requestAnimationFrame(tick);
+})();
+</script></body></html>

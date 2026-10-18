@@ -36,7 +36,7 @@ main{flex:1;min-width:0;position:relative;background:radial-gradient(ellipse at 
 <aside><div><div class="eyebrow">HOME · SPATIAL TOUR</div><h1>우리 집 3D 투어</h1><div class="sub">제공된 33평형 원본 평면도 기준으로 방·욕실·현관·발코니의 위치를 재구성했습니다.</div></div><div class="rooms" id="rooms"></div><div class="foot">정확한 실측 BIM이 아닌 도면 기반 근사 모델입니다. 마감재·가구는 임시 배치이며, 동·호수와 주소는 공개하지 않습니다.</div></aside>
 <main><canvas id="scene" aria-label="3D 실내 모델"></canvas>
 <div class="bar"><div class="chip" id="status">● 평면 구조 기준 · 실내 모델</div><div class="buttons"><button class="on" id="orbit">3D 전체</button><button id="walk">직접 걷기</button><button id="map">2D 대조</button></div></div>
-<div class="hint" id="hint">드래그해 회전 · 두 손가락/휠로 확대 · 아래 방을 선택해 이동</div>
+<div class="hint" id="hint">드래그해 회전 · 확대 버튼/휠로 확대 · 아래 방을 선택해 이동</div>
 <div class="move" id="move"><button data-move="left" aria-label="왼쪽 회전">↶</button><button data-move="forward" aria-label="앞으로">↑</button><button data-move="backward" aria-label="뒤로">↓</button><button data-move="right" aria-label="오른쪽 회전">↷</button></div>
 <div class="panel"><b id="place">평면 전체보기</b><span id="detail">도면의 방 배치와 3D를 같은 좌표로 표현합니다.</span></div>
 <div class="toolbar"><button id="minus" aria-label="축소">−</button><button id="plus" aria-label="확대">＋</button><button id="reset" aria-label="초기화">⟲</button></div>
@@ -103,7 +103,7 @@ rooms.slice(1).forEach(function(r,i){var p=svgEl('g',{'class':'roomspot',role:'b
 var ul=$('rooms');rooms.forEach(function(r,i){var b=document.createElement('button');b.innerHTML=r[0]+'<small>'+r[1]+'</small>';b.dataset.room=i;b.addEventListener('click',function(){showRoom(i)});ul.appendChild(b)});
 function selectUI(){Array.from(ul.children).forEach(function(b,i){b.classList.toggle('on',selected===i)});$('place').textContent=selected?rooms[selected][0]:'평면 전체보기';$('detail').textContent=selected?rooms[selected][1]+' · 실제 실내 사진이 아닌 구조 재현입니다.':'방과 발코니 위치는 원본 도면을 따라 배치했습니다.'}
 function showRoom(i){selected=i;selectUI();$('mapmodal').classList.remove('show');if(i){mode='walk';cameraMode();walkPos.set(rooms[i][2],1.56,rooms[i][3]);walkYaw=rooms[i][4];walkPitch=0}else{mode='orbit';cameraMode();yaw=.45;pitch=.95;dist=window.innerWidth<700?25:19}}
-function cameraMode(){orbit.classList.toggle('on',mode==='orbit');walk.classList.toggle('on',mode==='walk');$('move').style.display=mode==='walk'?'flex':'none';$('hint').textContent=mode==='orbit'?'드래그로 회전 · 손가락으로 확대 · 공간 선택으로 내부 이동':'드래그로 시선 이동 · WASD·방향 버튼으로 걷기';if(typeof wallObjects!=='undefined')wallObjects.forEach(function(o){o.scale.y=mode==='orbit'?.49:1;o.position.y=mode==='orbit'?-0.64:0})}
+function cameraMode(){orbit.classList.toggle('on',mode==='orbit');walk.classList.toggle('on',mode==='walk');$('move').style.display=mode==='walk'?'flex':'none';$('hint').textContent=mode==='orbit'?'드래그로 회전 · 확대 버튼/휠 사용 · 공간 선택으로 내부 이동':'드래그로 시선 이동 · WASD·방향 버튼으로 걷기';if(typeof wallObjects!=='undefined')wallObjects.forEach(function(o){o.scale.y=mode==='orbit'&&o.userData.height>1?.49:1;o.position.y=o.userData.height*o.scale.y/2-o.userData.height/2})}
 function showMap(){$('mapmodal').classList.add('show')}
 map.addEventListener('click',showMap);$('close').onclick=function(){$('mapmodal').classList.remove('show')};$('fallbackMap').onclick=showMap;
 $('mapmodal').addEventListener('click',function(e){if(e.target.id==='mapmodal')$('mapmodal').classList.remove('show')});
@@ -121,7 +121,7 @@ floor.forEach(function(f){box(f[0],-.09,f[1],f[2],0,f[3],f[4])});
 var wallObjects=[];
 W.forEach(function(w){var dx=w[2]-w[0],dz=w[3]-w[1],l=Math.hypot(dx,dz),t=w[4],th=t==='p'?.09:.13,h=t==='p'?0.95:2.55;
 var m=new THREE.Mesh(new THREE.BoxGeometry(l,h,th),material(t==='g'?0x74b9c8:t==='p'?0xabb8b4:t==='s'?0xe0ddcf:0xf4eee2,t==='g'));
-m.position.set((w[0]+w[2])/2,h/2,(w[1]+w[3])/2);m.rotation.y=-Math.atan2(dz,dx);scene.add(m);wallObjects.push(m)});
+m.position.set((w[0]+w[2])/2,h/2,(w[1]+w[3])/2);m.rotation.y=-Math.atan2(dz,dx);m.userData.height=h;scene.add(m);wallObjects.push(m)});
 function bed(x,z,w,d){box(x,.08,z,x+w,.25,z+d,0xb29073);box(x+.08,.26,z+.12,x+w-.08,.42,z+d-.11,0xf8f1e6);box(x+.15,.43,z+.15,x+w-.15,.52,z+.53,0xffffff);box(x,.20,z-.09,x+w,.9,z,0xc5ae94)}
 function table(x,z,w,d){box(x,.68,z,x+w,.78,z+d,0xbda083);[[x+.12,z+.12],[x+w-.17,z+.12],[x+.12,z+d-.17],[x+w-.17,z+d-.17]].forEach(function(p){box(p[0],.07,p[1],p[0]+.07,.68,p[1]+.07,0x997658)})}
 bed(.55,6.62,1.66,1.90);bed(8.88,6.55,2.0,2.12);bed(9.5,2.0,1.63,1.95);

@@ -28,7 +28,12 @@ EDUNI_OMOK_URL = "/omok"
 EDUNI_JUNGLE_URL = "/jungle"
 EDUNI_SPACE_URL = "/space"
 EDUNI_READING_URL = "/reading"
+HOME_TOUR_URL = "/home-tour/"
 GAME_STATIC_DIR = Path(__file__).resolve().parent / "static_games"
+PORTAL_APP_ROOT = Path(__file__).resolve().parents[1]
+HOME_TOUR_PAGE = PORTAL_APP_ROOT / "home-tour" / "index.html"
+if not HOME_TOUR_PAGE.is_file():
+    HOME_TOUR_PAGE = PORTAL_APP_ROOT.parent / "home-tour" / "index.html"
 JUNGLE_STATIC_DIR = Path(__file__).resolve().parent / "jungle_static"
 app.add_static_files("/jungle-static", JUNGLE_STATIC_DIR)
 app.add_static_files("/jungle-assets", GAME_STATIC_DIR / "assets")
@@ -62,6 +67,18 @@ def _redirect_html(title: str, url: str) -> HTMLResponse:
         <script>window.location.replace('{url}');</script></body></html>
         """
     )
+
+
+@app.get(HOME_TOUR_URL.rstrip("/"), response_class=HTMLResponse)
+@app.get(HOME_TOUR_URL, response_class=HTMLResponse)
+def eduni_home_tour() -> HTMLResponse:
+    if not HOME_TOUR_PAGE.is_file():
+        return HTMLResponse(
+            "<!doctype html><html lang=\"ko\"><meta charset=\"utf-8\"><title>홈투어 파일 없음</title>"
+            "<body><h1>홈투어 파일을 찾을 수 없습니다</h1></body></html>",
+            status_code=404,
+        )
+    return HTMLResponse(HOME_TOUR_PAGE.read_text(encoding="utf-8"))
 
 
 BIRD_SPECIES = {
@@ -301,6 +318,7 @@ def register_pages() -> None:
 
             _section_title("빠른 시작", "자주 쓰는 학습과 게임으로 바로 이동합니다.")
             with ui.element("section").classes("portal-quick"):
+                _portal_card(HOME_TOUR_URL, "🏠 우리 집 3D 투어", "평면도 기준 3D 전체보기 · 직접 걷기 · 가구 배치 조절", "집 구경", "portal-game-blue")
                 _portal_card("/sudoku", "스도쿠 탐험", "4×4부터 차근차근 푸는 숫자 퍼즐", "새 게임", "portal-game-green")
                 _portal_card(EDUNI_SPACE_URL, "공간탐험", "공간지각·규칙·조건·길찾기를 섞은 사고추론 10문제", "470문제", "portal-game-space")
                 _portal_card(EDUNI_JUNGLE_URL, "정글 새탐험", "정글 맵을 탐험하며 새를 채집하는 모험", "탐험", "portal-game-jungle")

@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from portal_app.registry import WORLDS, get_world
-from portal_app.routes import JUNGLE_EXPEDITION_ACTIVITY_ID, activity_launch_path, eduni_jungle_game
+from portal_app.routes import HOME_TOUR_URL, JUNGLE_EXPEDITION_ACTIVITY_ID, activity_launch_path, eduni_jungle_game
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 
@@ -32,6 +32,13 @@ class RouteFoundationTests(unittest.TestCase):
         self.assertIn('@ui.page("/portal")', route_source)
         self.assertIn('@ui.page("/portal/world/{world_id}")', route_source)
         self.assertIn('@ui.page("/portal/parent")', route_source)
+        self.assertIn('@app.get(HOME_TOUR_URL, response_class=HTMLResponse)', route_source)
+        self.assertIn('_portal_card(HOME_TOUR_URL, "🏠 우리 집 3D 투어"', route_source)
+        self.assertEqual("/home-tour/", HOME_TOUR_URL)
+
+    def test_docker_image_packages_the_git_managed_home_tour_page(self) -> None:
+        dockerfile = (APP_ROOT / "Dockerfile").read_text(encoding="utf-8")
+        self.assertIn("COPY home-tour/index.html /app/home-tour/index.html", dockerfile)
 
     def test_jungle_activity_uses_the_canonical_static_route(self) -> None:
         response = eduni_jungle_game()

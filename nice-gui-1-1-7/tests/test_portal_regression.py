@@ -19,7 +19,7 @@ from portal_app.database import (
 )
 from portal_app.pattern_train import PATTERN_TRAIN_ACTIVITY_ID, build_pattern_train_result_summary
 from portal_app.registry import WORLDS, get_world
-from portal_app.routes import activity_launch_path, parent_activity_sessions, register_pages
+from portal_app.routes import activity_launch_path, eduni_home_tour, parent_activity_sessions, register_pages
 
 
 def route_for(path: str):
@@ -37,7 +37,7 @@ class PortalRegressionTests(unittest.TestCase):
         register_pages()
 
     def test_portal_routes_are_registered_and_smoke_match(self) -> None:
-        for path in ("/portal", "/portal/world/math", "/portal/activity/math.pattern_train.001", "/portal/parent"):
+        for path in ("/portal", "/portal/world/math", "/portal/activity/math.pattern_train.001", "/portal/parent", "/home-tour", "/home-tour/"):
             route = route_for(path)
             self.assertIsNotNone(route, path)
             assert route is not None
@@ -64,6 +64,12 @@ class PortalRegressionTests(unittest.TestCase):
         self.assertEqual(f"/portal/activity/{PATTERN_TRAIN_ACTIVITY_ID}", launch_path)
         self.assertEqual("pattern_sequence", pattern_train.activity_type)
         self.assertIsNotNone(route_for(launch_path))
+
+    def test_home_tour_is_served_as_a_standalone_portal_page(self) -> None:
+        response = eduni_home_tour()
+        self.assertEqual(200, response.status_code)
+        self.assertIn("우리 집 3D 투어".encode(), response.body)
+        self.assertIn(b"homeTourFurnitureEdits", response.body)
 
     def test_pattern_train_completion_persists_after_database_reload(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

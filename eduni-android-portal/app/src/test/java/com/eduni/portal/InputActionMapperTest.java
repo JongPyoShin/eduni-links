@@ -38,4 +38,35 @@ public class InputActionMapperTest {
         assertEquals(0f, mapper.moveX(), .0001f);
         assertEquals(0f, mapper.moveY(), .0001f);
     }
+
+    @Test public void latestDpadDirectionOverridesHeldDirectionAndAnalogInput() {
+        InputActionMapper mapper = new InputActionMapper();
+        mapper.setAnalog(.8f, .7f);
+        mapper.setKey(InputActionMapper.Action.MOVE_LEFT, true);
+        assertEquals(-1f, mapper.moveX(), .0001f);
+        assertEquals(0f, mapper.moveY(), .0001f);
+
+        mapper.setKey(InputActionMapper.Action.MOVE_RIGHT, true);
+        assertEquals(1f, mapper.moveX(), .0001f);
+        assertEquals(0f, mapper.moveY(), .0001f);
+    }
+
+    @Test public void releasingDigitalDpadRemovesItsIntentWithoutResidualMovement() {
+        InputActionMapper mapper = new InputActionMapper();
+        mapper.setKey(InputActionMapper.Action.MOVE_UP, true);
+        mapper.setKey(InputActionMapper.Action.MOVE_UP, false);
+        assertEquals(0f, mapper.moveX(), .0001f);
+        assertEquals(0f, mapper.moveY(), .0001f);
+    }
+
+    @Test public void keyDpadRemainsAuthoritativeWhenHatReportsAnotherDirection() {
+        InputActionMapper mapper = new InputActionMapper();
+        mapper.setHat(0f, 1f);
+        mapper.setKey(InputActionMapper.Action.MOVE_LEFT, true);
+        assertEquals(-1f, mapper.moveX(), .0001f);
+        assertEquals(0f, mapper.moveY(), .0001f);
+        mapper.setKey(InputActionMapper.Action.MOVE_LEFT, false);
+        assertEquals(0f, mapper.moveX(), .0001f);
+        assertEquals(0f, mapper.moveY(), .0001f);
+    }
 }

@@ -22,4 +22,17 @@ public class EncounterDirectorTest {
         director.finishCelebration();
         assertEquals(EncounterDirector.State.COMPLETE, director.state());
     }
+
+    @Test public void resetClearsCompletedEncounterForTheNextStage() {
+        EncounterDirector director = new EncounterDirector();
+        director.observeDistance(.08f);
+        director.beginLearning();
+        director.answer(true);
+        director.finishCelebration();
+
+        director.reset();
+
+        assertEquals(EncounterDirector.State.EXPLORE, director.state());
+        assertFalse(director.canInteract());
+    }
 }

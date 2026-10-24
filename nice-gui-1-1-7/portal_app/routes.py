@@ -27,12 +27,15 @@ EDUNI_OMOK_URL = "/omok"
 EDUNI_JUNGLE_URL = "/jungle"
 EDUNI_SURVIVAL_URL = "/survival"
 EDUNI_GAME_PORTAL_URL = "/portal/games"
+EDUNI_PHONICS_URL = "/portal/english/phonics"
 GAME_STATIC_DIR = Path(__file__).resolve().parent / "static_games"
 JUNGLE_STATIC_DIR = Path(__file__).resolve().parent / "jungle_static"
 SURVIVAL_STATIC_DIR = Path(__file__).resolve().parent / "survival_static"
+PHONICS_STATIC_DIR = Path(__file__).resolve().parent / "phonics_static"
 app.add_static_files("/jungle-static", JUNGLE_STATIC_DIR)
 app.add_static_files("/jungle-assets", GAME_STATIC_DIR / "assets")
 app.add_static_files("/survival-static", SURVIVAL_STATIC_DIR)
+app.add_static_files("/phonics-static", PHONICS_STATIC_DIR)
 
 
 def _game_html_response(filename: str) -> HTMLResponse:
@@ -48,6 +51,12 @@ def _game_html_response(filename: str) -> HTMLResponse:
             status_code=404,
         )
     return HTMLResponse(path.read_text(encoding="utf-8"))
+
+
+@app.get(EDUNI_PHONICS_URL, response_class=HTMLResponse)
+def english_phonics_page() -> HTMLResponse:
+    """Static client-side phonics lesson; the portal never receives microphone audio."""
+    return _game_html_response("eduni_phonics.html")
 
 
 def _redirect_html(title: str, url: str) -> HTMLResponse:
@@ -281,6 +290,7 @@ def register_pages() -> None:
                         ui.link("의준 링크", EDUNI_LINK_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-positive text-white q-px-md")
                         ui.link("AI 오목", EDUNI_OMOK_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-deep-purple text-white q-px-md")
                         ui.link("🎮 게임포털", EDUNI_GAME_PORTAL_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-teal text-white q-px-md")
+                        ui.link("🔤 영어 파닉스", EDUNI_PHONICS_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-primary text-white q-px-md")
                         ui.link("부모 화면", "/portal/parent").classes("portal-action q-btn q-btn-item q-btn--outline q-px-md")
                 with ui.element("div").classes("portal-console"):
                     with ui.element("div").classes("portal-tiles"):
@@ -297,6 +307,7 @@ def register_pages() -> None:
                 _portal_card(EDUNI_GAME_PORTAL_URL, "🎮 의준이 게임포털",
                              "정글·북극·피라미드 서바이벌과 모든 게임을 한곳에서 선택", "게임 모음", "portal-game-green")
                 _portal_card("/portal/world/math", "수학탐험대", "수학 학습 활동 바로가기", "학습", "portal-game-violet")
+                _portal_card(EDUNI_PHONICS_URL, "🔤 소리톡 파닉스", "영어 음가 따라 읽고 마이크로 말하기 연습", "영어 학습", "portal-game-blue")
                 _portal_card("https://jongpyoshin.github.io/eduni-links/home-tour/", "🏠 우리 집 3D 공간 투어",
                              "평면도 기준 3D 전체보기 · 직접 걷기 · 2D 구조도 대조", "공간 투어", "portal-game-blue")
                 _portal_card(HANJA_URL, "한자마을", "한자 시험과 학습", "학습", "portal-game-amber")
@@ -305,7 +316,7 @@ def register_pages() -> None:
             with ui.element("section").classes("portal-worlds"):
                 _portal_card(HANJA_URL, "한자마을", "한자 시험과 한자 게임으로 이동", "운영 중", icon="漢", accent="#e11d48")
                 _portal_card("/portal/world/math", "수학탐험대", "패턴 기차와 정글 탐험 활동", "포털", icon="+", accent="#7c3aed")
-                _portal_card("/portal", "영어", "다음 단계에서 확장 예정", "준비 중", icon="A", accent="#2563eb")
+                _portal_card(EDUNI_PHONICS_URL, "영어 · 소리톡 파닉스", "소리 읽기 · 단어 합치기 · 따라 말하기", "신규", icon="A", accent="#2563eb")
                 _portal_card("/portal", "과학", "다음 단계에서 확장 예정", "준비 중", icon="S", accent="#14b8a6")
 
     @ui.page(EDUNI_GAME_PORTAL_URL)
@@ -338,6 +349,9 @@ def register_pages() -> None:
 
     @ui.page("/portal/world/{world_id}")
     def world_page(world_id: str) -> None:
+        if world_id == "english":
+            ui.navigate.to(EDUNI_PHONICS_URL)
+            return
         _head()
         world = get_world(world_id)
         with ui.element("main").classes("portal-shell"):

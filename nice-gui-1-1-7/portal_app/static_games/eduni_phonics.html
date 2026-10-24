@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#175b62">
+  <title>소리톡 파닉스 | EDUNI 영어 학습</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;color:#173948;
+      --ink:#173948;--teal:#0e777f;--accent:#e8b848;--line:#bfdde0;--muted:#58757d}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:linear-gradient(175deg,#e5f8f4,#f5fcff 55%,#fff8e5);color:var(--ink)}
+    main{max-width:860px;margin:0 auto;padding:clamp(10px,3.4vw,24px) clamp(12px,4vw,28px) 38px}
+    button,select{font:inherit}
+    button{cursor:pointer;touch-action:manipulation}
+    button:disabled{opacity:.42;cursor:not-allowed}
+    button:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #d98b19;outline-offset:3px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
+    .back{color:var(--teal);font-size:14px;font-weight:900;text-decoration:none;display:inline-flex;align-items:center;min-height:42px}
+    .mark{font-weight:950;letter-spacing:.06em;color:#166f71}
+    .hero{display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;
+      border-radius:24px;padding:22px clamp(15px,4vw,28px);
+      color:#fff;background:linear-gradient(130deg,#176778,#0c8784);box-shadow:0 12px 28px #18596629}
+    .eyebrow{margin:0;font-size:11px;letter-spacing:.12em;color:#caeff0;font-weight:900}
+    h1{margin:7px 0;font-size:clamp(27px,5.8vw,40px);letter-spacing:-.045em;line-height:1.15}
+    .hero p:last-child{margin:8px 0 0;font-size:14px;line-height:1.55;font-weight:700;color:#e8fffa}
+    .hero .big{font-size:clamp(45px,10vw,85px)}
+    .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 1px 12px}
+    .toolbar label{font-weight:900;font-size:15px}
+    select{min-height:43px;border:2px solid #bcdedc;border-radius:12px;background:white;padding:6px 12px;
+      color:var(--ink);font-weight:800}
+    #completed{font-size:13px;color:#137c61;font-weight:900;white-space:nowrap}
+    .lesson{position:relative;background:#fff;border:2px solid #d1e7e8;border-radius:26px;
+      padding:clamp(17px,4vw,30px);box-shadow:0 9px 32px #28586515}
+    .lesson-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .unit{font-size:13px;color:#51777b;font-weight:900}
+    #wordDone{border-radius:999px;padding:6px 11px;background:#eff8ef;color:#276e5c;font-size:12px;font-weight:900}
+    .illustration{text-align:center;font-size:clamp(50px,12vw,87px);line-height:1.25;min-height:75px;margin-top:8px}
+    #word{text-align:center;font-weight:1000;font-size:clamp(64px,17vw,112px);line-height:1.05;
+      letter-spacing:.025em;margin:3px 0 7px;color:#123a65}
+    #meaning{text-align:center;font-size:19px;color:#506a75;font-weight:900}
+    .step{font-size:15px;font-weight:950;margin:24px 0 10px}
+    .tiles{display:flex;justify-content:center;flex-wrap:wrap;gap:9px}
+    .sound-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+      min-width:clamp(72px,18vw,105px);min-height:105px;padding:11px;
+      border:2px solid #6bb3b5;border-radius:17px;color:#123f59;background:#e8fbfc;
+      box-shadow:0 3px 0 #91cbd1;transition:transform .12s,background .12s}
+    .sound-tile:nth-child(2){background:#fff1d6;border-color:#dfad58;box-shadow:0 3px 0 #e8ca92}
+    .sound-tile.active{background:#c9f5db;transform:translateY(-4px);border-color:#22a585}
+    .sound-letter{font-size:clamp(31px,7vw,48px);font-weight:1000}
+    .ipa{font-size:15px;white-space:nowrap;font-weight:800;color:#52707b}
+    .tile-speak{font-size:15px}
+    .help{margin:10px 0 0;font-size:12px;line-height:1.55;color:var(--muted);text-align:center}
+    .actions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .act{min-height:64px;border-radius:17px;border:2px solid #b0d7d9;padding:11px 5px;
+      background:#f0fbfb;color:#195a65;font-size:clamp(12px,2.7vw,16px);font-weight:950;
+      box-shadow:0 4px 0 #bfdfe0}
+    .act.blend{background:#fff5e2;border-color:#e8be75;color:#754d18;box-shadow:0 4px 0 #e9d3aa}
+    .act.speak{background:#d8f4e2;border-color:#69b78b;color:#216844;box-shadow:0 4px 0 #afe4c1}
+    .try{border-radius:19px;padding:15px;background:#f7fbfe;border:1px solid #d6e7ec;margin-top:21px}
+    .try h2{font-size:16px;margin:0 0 8px;font-weight:950}
+    .record{display:block;width:100%;background:#167d80;border:2px solid #0a7074;color:white;min-height:61px;
+      border-radius:15px;font-size:20px;font-weight:950}
+    .try .help{text-align:left}
+    #feedback{min-height:66px;padding:14px;border-radius:14px;margin-top:12px;
+      font-weight:900;font-size:15px;line-height:1.6;background:#edf8fa;color:#236475}
+    #feedback[data-tone="success"]{background:#e1f9e8;color:#177044}
+    #feedback[data-tone="warning"]{background:#fff1df;color:#945118}
+    #feedback[data-tone="retry"]{background:#fff3ed;color:#7c5b35}
+    .nav{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:17px}
+    .nav button{min-height:51px;border:2px solid #b3d4d7;border-radius:14px;background:#fff;color:#246574;font-weight:950}
+    .parent{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
+      padding:13px 6px;border-bottom:1px solid #d7e5e6}
+    .parent button{min-height:43px;border:1px solid #b3d5cc;color:#176a57;background:#f5fffa;border-radius:12px;padding:9px 13px;font-weight:900}
+    .secure-info[hidden]{display:none}
+    .secure-info{margin:10px 0 0;padding:11px 12px;border-radius:12px;background:#fff1d4;
+      color:#7b4a17;font-size:13px;line-height:1.6;font-weight:850}
+    .secure-info a{display:inline-block;color:#0c7485;font-weight:950;text-decoration:underline}
+    .privacy{margin-top:15px;font-size:12px;line-height:1.7;color:#536972;background:#eff6f7;
+      padding:13px 15px;border-radius:14px}
+    .privacy b{color:#315965}
+    @media(max-width:470px){
+      .hero{padding:18px 16px;border-radius:17px}
+      .lesson{border-radius:19px;padding:17px 11px}
+      .toolbar{align-items:end}
+      .toolbar label{font-size:13px}
+      .toolbar select{width:154px;font-size:13px}
+      .actions{gap:6px}
+      .act{padding:8px 3px;min-height:61px}
+      .sound-tile{min-width:75px}
+      .parent button{width:100%}
+    }
+    @media(prefers-reduced-motion:reduce){.sound-tile{transition:none}}
+  </style>
+  <script src="/phonics-static/phonics.js?v=1" defer></script>
+</head>
+<body>
+  <main id="phonicsLesson">
+    <nav class="top" aria-label="포털 이동">
+      <a class="back" href="/portal">← EDUNI 학습 포털</a>
+      <span class="mark">EDUNI · ENGLISH</span>
+    </nav>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">SOUND · BLEND · SPEAK</p>
+        <h1>🔤 소리톡 파닉스</h1>
+        <p>글자 소리를 이어 읽고, 단어를 듣고, 내 목소리로 도전해요!</p>
+      </div>
+      <span class="big" aria-hidden="true">🦜</span>
+    </header>
+    <section class="toolbar" aria-label="학습 단계">
+      <div><label for="level">오늘의 단계</label><div id="completed" aria-live="polite">0개 연습</div></div>
+      <select id="level" aria-label="학습 단계 선택">
+        <option value="start">1단계 · 첫 소리 12개</option>
+        <option value="more">2단계 · 도전 12개</option>
+        <option value="all">모든 단어 24개</option>
+      </select>
+    </section>
+    <article class="lesson" aria-label="단어 발음 연습">
+      <div class="lesson-top">
+        <span class="unit" id="progress">1 / 12</span>
+        <span id="wordDone">☆ 연습 전</span>
+      </div>
+      <div class="illustration" id="wordEmoji" aria-hidden="true">☀️</div>
+      <div id="word" lang="en">sun</div>
+      <div id="meaning">해</div>
+      <h2 class="step">① 글자 소리를 차례로 눌러 봐요</h2>
+      <div class="tiles" id="phonemes" aria-label="글자와 음가 카드"></div>
+      <p class="help">각 카드의 기호는 영어 음가(IPA)예요. 🔊은 기기에서 합성한 참고 음성으로 정확한 음소와 다를 수 있어요.</p>
+      <h2 class="step">② 연결해서 듣고 읽어요</h2>
+      <div class="actions">
+        <button class="act blend" id="playSounds" type="button">🧩 소리 잇기</button>
+        <button class="act speak" id="playSlow" type="button">🐢 천천히</button>
+        <button class="act" id="playWhole" type="button">🔊 전체 읽기</button>
+      </div>
+      <section class="try" aria-label="따라 읽기">
+        <h2>③ 내 차례! 단어를 읽어 봐요</h2>
+        <button class="record" id="recordButton" type="button">🎙️ 내가 읽기</button>
+        <p class="help" id="micHelp">마이크를 누른 후 한 단어를 읽어 보세요.</p>
+        <p class="secure-info" id="secureHint" hidden>
+          🔒 가족 포털의 HTTP 접속에서는 마이크가 제한될 수 있어요.
+          <a href="https://jongpyoshin.github.io/eduni-links/phonics/">HTTPS 학습 페이지 열기 →</a>
+        </p>
+        <div id="feedback" data-tone="info" aria-live="polite" role="status">① 소리 → ② 단어 → ③ 내 목소리!</div>
+      </section>
+      <div class="nav">
+        <button type="button" id="previous">← 이전 단어</button>
+        <button type="button" id="next">다음 단어 →</button>
+      </div>
+    </article>
+    <section class="parent" aria-label="부모님과 함께">
+      <span style="font-size:13px;color:#526e78;font-weight:850">음성 인식이 잘 안 되면 부모님과 함께 확인해요.</span>
+      <button id="parentConfirm" type="button">👨‍👩‍👧 보호자와 읽었어요</button>
+    </section>
+    <aside class="privacy">
+      <b>🔐 음성 안내</b> — 이 페이지는 아이의 녹음·인식 문장·학습 결과를 EDUNI 서버나 DB에 저장하거나 업로드하지 않습니다.
+      마이크는 '내가 읽기' 버튼을 눌렀을 때만 켭니다. 다만 Chrome 등 일부 브라우저는 음성 인식을 위해 음성을 외부 서비스로 전송할 수 있습니다.
+      판정은 브라우저가 알아들은 <b>단어 일치 여부</b>이며 실제 발음의 음소별 정확도를 측정한 점수가 아닙니다.
+      부모님이 함께 살펴봐 주세요.
+    </aside>
+  </main>
+</body>
+</html>

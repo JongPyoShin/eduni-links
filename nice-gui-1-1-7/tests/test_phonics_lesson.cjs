@@ -30,6 +30,9 @@ test("word recognition uses complete word matches, not Levenshtein guesses",()=>
   assert.equal(evaluate("cat",["bat"]).status,"retry");
   assert.equal(evaluate("pen",["pin"]).status,"retry");
   assert.equal(evaluate("cat",["cats"]).status,"retry");
+  assert.equal(evaluate("sun",["son"]).status,"match");
+  assert.equal(evaluate("red",["read"]).status,"match");
+  assert.equal(evaluate("ten",["10"]).status,"match");
   assert.equal(evaluate("cat",[]).status,"empty");
 });
 test("transcripts are normalized without HTML interpretation",()=>{

@@ -45,6 +45,8 @@ class PhonicsPortalTests(unittest.TestCase):
         self.assertIn('_portal_card(EDUNI_PHONICS_URL, "영어 · 소리톡 파닉스"', source)
         self.assertIn('_portal_card(EDUNI_PHONICS_URL, "🔤 소리톡 파닉스"', source)
         self.assertIn('ui.link("🔤 영어 파닉스", EDUNI_PHONICS_URL)', source)
+        self.assertIn('if world_id == "english":', source)
+        self.assertIn('ui.navigate.to(EDUNI_PHONICS_URL)', source)
 
     def test_child_audio_not_collected_by_eduni(self):
         js = (ROOT / "portal_app" / "phonics_static" / "phonics.js").read_text(encoding="utf-8")

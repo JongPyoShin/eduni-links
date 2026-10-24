@@ -63,12 +63,14 @@
   }
   const WORDS = Object.freeze(SOURCE.map(makeWord));
   function normalize(text) {
-    return String(text || "").toLowerCase().replace(/[^a-z\s]/g," ").trim().replace(/\s+/g," ");
+    return String(text || "").toLowerCase().replace(/\b10\b/g,"ten")
+      .replace(/[^a-z\s]/g," ").trim().replace(/\s+/g," ");
   }
   function evaluate(word, alternatives) {
     const target=normalize(word),heard=(alternatives || []).map(normalize).filter(Boolean);
     if (!heard.length) return {status:"empty",heard:""};
-    const accepted=[target,"a "+target,"the "+target];
+    const equivalent={sun:["son"],red:["read"]};
+    const accepted=[target,...(equivalent[target]||[])].flatMap(w=>[w,"a "+w,"the "+w]);
     return {status:heard.some(t=>accepted.includes(t))?"match":"retry",heard:heard[0]};
   }
   function forLevel(level) {
@@ -79,7 +81,8 @@
     if (!el("phonicsLesson")) return;
     const synth=win.speechSynthesis;
     const Recognition=win.SpeechRecognition || win.webkitSpeechRecognition;
-    let level="start",idx=0,token=0,activeRecognition=null,completed=new Set(),sessionCount=0;
+    let level="start",idx=0,token=0,activeRecognition=null,completed=new Set();
+    const safeMic=!!Recognition && win.isSecureContext!==false;
     let busy=false;
     const cards=()=>forLevel(level);
     const item=()=>cards()[idx];
@@ -112,11 +115,14 @@
         el("phonemes").appendChild(button);
       });
       el("previous").disabled=idx===0;el("next").disabled=idx===cards().length-1;
-      el("recordButton").disabled=!Recognition;
-      el("micHelp").textContent=Recognition ?
+      el("recordButton").disabled=!safeMic;
+      el("secureHint").hidden=win.isSecureContext!==false;
+      el("micHelp").textContent=safeMic ?
         "마이크를 누르면 브라우저가 영어 한 단어를 인식해요. 부모님과 함께 눌러 주세요." :
-        "이 브라우저에서는 음성 인식을 사용할 수 없어요. 보호자 확인으로 연습할 수 있어요.";
-      el("recordButton").textContent=Recognition?"🎙️ 내가 읽기":"🎙️ 음성 인식 미지원";
+        win.isSecureContext===false ?
+          "현재 HTTP 연결에서는 마이크가 제한될 수 있어요. 아래 HTTPS 페이지로 이동해 보세요." :
+          "이 브라우저에서는 음성 인식을 사용할 수 없어요. 보호자 확인으로 연습할 수 있어요.";
+      el("recordButton").textContent=safeMic?"🎙️ 내가 읽기":"🎙️ 음성 인식 미지원";
       el("wordDone").textContent=completed.has(w.word)?"✅ 연습했어요":"☆ 연습 전";
       status("① 음가를 살펴보고 ② 전체 단어를 듣고 ③ 따라 읽어 봐요.");
     }
@@ -177,7 +183,7 @@
       else status("🌟 단어를 알아들었어요! 정말 잘했어요! 다음 단어도 읽어 봐요.","success");
     }
     function startListening(){
-      if(!Recognition){status("이 브라우저에서는 마이크 인식이 지원되지 않아요. 보호자와 함께 확인해 주세요.","warning");return;}
+      if(!safeMic){status("HTTPS 또는 음성 인식 지원 브라우저에서 연습해 주세요. 보호자 확인도 가능합니다.","warning");return;}
       if(busy)return;
       stopSpeak();stopMic();
       const target=item().word;

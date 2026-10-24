@@ -349,6 +349,9 @@ def register_pages() -> None:
 
     @ui.page("/portal/world/{world_id}")
     def world_page(world_id: str) -> None:
+        if world_id == "english":
+            ui.navigate.to(EDUNI_PHONICS_URL)
+            return
         _head()
         world = get_world(world_id)
         with ui.element("main").classes("portal-shell"):

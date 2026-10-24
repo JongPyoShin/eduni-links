@@ -72,6 +72,10 @@
     .parent{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
       padding:13px 6px;border-bottom:1px solid #d7e5e6}
     .parent button{min-height:43px;border:1px solid #b3d5cc;color:#176a57;background:#f5fffa;border-radius:12px;padding:9px 13px;font-weight:900}
+    .secure-info[hidden]{display:none}
+    .secure-info{margin:10px 0 0;padding:11px 12px;border-radius:12px;background:#fff1d4;
+      color:#7b4a17;font-size:13px;line-height:1.6;font-weight:850}
+    .secure-info a{display:inline-block;color:#0c7485;font-weight:950;text-decoration:underline}
     .privacy{margin-top:15px;font-size:12px;line-height:1.7;color:#536972;background:#eff6f7;
       padding:13px 15px;border-radius:14px}
     .privacy b{color:#315965}
@@ -133,6 +137,10 @@
         <h2>③ 내 차례! 단어를 읽어 봐요</h2>
         <button class="record" id="recordButton" type="button">🎙️ 내가 읽기</button>
         <p class="help" id="micHelp">마이크를 누른 후 한 단어를 읽어 보세요.</p>
+        <p class="secure-info" id="secureHint" hidden>
+          🔒 가족 포털의 HTTP 접속에서는 마이크가 제한될 수 있어요.
+          <a href="https://jongpyoshin.github.io/eduni-links/phonics/">HTTPS 학습 페이지 열기 →</a>
+        </p>
         <div id="feedback" data-tone="info" aria-live="polite" role="status">① 소리 → ② 단어 → ③ 내 목소리!</div>
       </section>
       <div class="nav">

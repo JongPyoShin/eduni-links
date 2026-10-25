@@ -8,10 +8,20 @@ const source = fs.readFileSync(path.join(__dirname, '../portal_app/static_games/
 function element(text = '', display = 'block') {
   return {textContent:text, hidden:false, disabled:false, parentElement:null, style:{display,visibility:'visible',opacity:'1'},
     events:{}, classList:{add(){},remove(){},contains(){return true;}},
-    setAttribute(){}, getAttribute(){return null;}, addEventListener(name, callback){this.events[name]=callback;}, focus(){}};
+    setAttribute(){}, getAttribute(){return null;}, removeAttribute(name){delete this[name];},
+    addEventListener(name, callback){this.events[name]=callback;}, focus(){}};
 }
 function fixture(route, nodes = {}, engine, pendingContext) {
   const controls = new Map();
+  // Mirror the real answer-card figure: it has an image and child metadata
+  // nodes. A generic element() does not implement querySelector().
+  const photo = element(), image = element(), title = element(), credit = element(), sourceLink = element();
+  const photoChildren = new Map([
+    ['img', image], ['.photo-title', title], ['.photo-credit', credit], ['.photo-source', sourceLink],
+  ]);
+  photo.hidden = true;
+  photo.querySelector = selector => photoChildren.get(selector) || null;
+  controls.set('#eduni-companion-photo', photo);
   const panel = element();
   panel.querySelector = selector => {
     if (!controls.has(selector)) controls.set(selector, element());
@@ -27,15 +37,18 @@ function fixture(route, nodes = {}, engine, pendingContext) {
   let settle;
   let request;
   const sandbox = {window, document, location:{pathname:route}, getComputedStyle:node=>node.style,
-    requestAnimationFrame(){}, setInterval(){return 1;}, clearInterval(){}, AbortController,
+    requestAnimationFrame(){}, setInterval(){return 1;}, clearInterval(){}, AbortController, URL,
     fetch:(_url, options)=>{request=JSON.parse(options.body); return new Promise(resolve=>{settle=resolve;});}};
   // Test-only exposure of a private resolver, never shipped to a browser.
   const instrumented = source.replace('screenLabel.textContent=screenContext().label;',
     'window.__readScreen=screenContext; screenLabel.textContent=screenContext().label;');
   assert.notEqual(instrumented, source, 'resolver exposure marker exists');
   vm.runInNewContext(instrumented, sandbox);
-  return {window, panel, controls, read:()=>JSON.parse(JSON.stringify(window.__readScreen())),
-    request:()=>request, finish:()=>settle({ok:true,status:200,json:async()=>({ok:true,answer:'old answer'})})};
+  return {window, panel, controls, photo, image, title, credit, sourceLink,
+    read:()=>JSON.parse(JSON.stringify(window.__readScreen())),
+    request:()=>request,
+    finish:(body={ok:true,answer:'old answer'}, status=200)=>
+      settle({ok:status===200,status,json:async()=>body})};
 }
 
 async function main() {
@@ -76,8 +89,13 @@ async function main() {
   const pending=f.controls.get('[data-action="send"]').events.click();
   assert.match(f.request().context.question,/처음 문제/);
   prompt.textContent='다음 문제';
-  f.finish(); await pending;
+  f.finish({ok:true, answer:'old answer', photo:{
+    title:'북극곰',alt:'늦게 도착한 북극곰 사진',credit:'예시',license:'공개 도메인',
+    url:'https://commons.wikimedia.org/wiki/Special:FilePath/Polar_Bear.jpg?width=640',
+    source_url:'https://commons.wikimedia.org/wiki/File:Polar_Bear.jpg'
+  }}); await pending;
   assert.notEqual(f.controls.get('#eduni-companion-answer').textContent,'old answer');
+  assert.equal(f.photo.hidden,true,'a late response must not display a stale image');
 
   f.window.isSecureContext=true;
   f.window.SpeechRecognition=function(){f.window.lastRecognition=this;this.start=()=>{};this.stop=()=>{};};
@@ -110,6 +128,45 @@ async function main() {
   assert.equal(f.request().context.activity,'reading');
   assert.doesNotMatch(JSON.stringify(f.request().context),/PRIVATE_/);
   f.finish(); await pendingSend;
-  console.log('PASS: screen text, visibility, board completeness/privacy, fallback, send-time context, stale answer');
+  // Real photo response and its separate child DOM nodes, not injected HTML.
+  f=fixture('/bubble', {'#questionText':[element('동물 문제')]});
+  f.controls.get('textarea').value='북극곰 사진 보여줘';
+  const photoPending=f.controls.get('[data-action="send"]').events.click();
+  const verifiedPhoto={
+    title:'북극곰',alt:'알래스카에 사는 북극곰',credit:'U.S. Fish and Wildlife Service',
+    license:'공개 도메인',url:'https://commons.wikimedia.org/wiki/Special:FilePath/Polar_Bear.jpg?width=640',
+    source_url:'https://commons.wikimedia.org/wiki/File:Polar_Bear.jpg'
+  };
+  f.finish({ok:true,answer:'북극곰은 두꺼운 털이 있어.',photo:verifiedPhoto});
+  await photoPending;
+  assert.equal(f.photo.hidden,false,'trusted photo card should be visible');
+  assert.equal(f.image.src,verifiedPhoto.url,'photo URL loaded from reviewed response');
+  assert.equal(f.image.alt,verifiedPhoto.alt,'photo alt text added');
+  assert.match(f.title.textContent,/북극곰 실제 사진/);
+  assert.match(f.credit.textContent,/U.S. Fish and Wildlife Service/);
+  assert.equal(f.sourceLink.href,verifiedPhoto.source_url,'source link and attribution visible');
+  assert.equal(f.controls.get('#eduni-companion-answer').textContent,'북극곰은 두꺼운 털이 있어.');
+  f.window.EDUNICompanion.setContext({activity:'pattern_train',question:'새 문제',choices:[],selected:''});
+  assert.equal(f.photo.hidden,true,'changing problem clears old photo');
+  assert.equal(f.image.src,undefined,'old photo URL cleared from image');
+  assert.equal(f.image.alt,'','old photo alt text cleared');
+
+  // A follow-up response with no matching image stays text-only.
+  f.controls.get('textarea').value='새 문제 힌트';
+  const noPhotoPending=f.controls.get('[data-action="send"]').events.click();
+  f.finish({ok:true,answer:'한 번 더 생각해 볼까?'});
+  await noPhotoPending;
+  assert.equal(f.photo.hidden,true,'unrelated prompt remains text-only');
+
+  // Invalid image hosts cannot be rendered even if the API includes them.
+  f.controls.get('textarea').value='사진 봐';
+  const badPhotoPending=f.controls.get('[data-action="send"]').events.click();
+  f.finish({ok:true,answer:'사진이 없을 수 있어.',photo:{
+    ...verifiedPhoto,url:'https://unsafe.example/picture.jpg'
+  }});
+  await badPhotoPending;
+  assert.equal(f.photo.hidden,true,'disallowed host must never be displayed');
+
+  console.log('PASS: screen context/privacy, stale answer and photos, trusted photo/attribution, missing and unsafe photos');
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});

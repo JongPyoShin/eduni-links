@@ -3,7 +3,7 @@
    No personal data, model generation, physics duplication or textures. */
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js";
 
-const PX=48, W=2048, H=1536, clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const PX=48, W=2048, H=1536, GROUND_MARGIN=320, clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const canvas=document.getElementById("gameCanvas");
 const stage=canvas?.parentElement;
 const toggle=document.getElementById("graphicsToggle");
@@ -61,7 +61,7 @@ function palm(x,y,id,p){
   }
 }
 function makeGround(world,p){
-  const geometry=new THREE.PlaneGeometry(W/PX,H/PX);
+  const geometry=new THREE.PlaneGeometry(W/PX,(H+GROUND_MARGIN*2)/PX);
   geometry.rotateX(-Math.PI/2);
   mesh(geometry,p.floor,pos(W/2,H/2,-.05),worldGroup);
   // Sparse built-in 3D ground features with per-world palette; deterministic.
@@ -253,7 +253,7 @@ function render(state,view){
     camera.top=fovHeight/2;camera.bottom=-fovHeight/2;
     camera.updateProjectionMatrix();
     const cx=(state.camera.x+view.viewW/2)/PX,cz=(state.camera.y+view.viewH/2)/PX;
-    camera.position.set(cx,31,cz+13);
+    camera.position.set(cx,24,cz+24);
     camera.lookAt(cx,0,cz);
     player.position.copy(pos(state.player.x,state.player.y));
     player.rotation.y=({up:Math.PI,down:0,left:-Math.PI/2,right:Math.PI/2})[state.facing]||0;

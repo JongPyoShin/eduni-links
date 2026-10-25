@@ -31,7 +31,6 @@ class Obj {
 class Geometry{rotateX(){return this;}dispose(){}}
 class Material{constructor(x){this.color=x.color;}}
 class Mesh extends Obj{constructor(g,m){super();this.geometry=g;this.material=m;}}
-class Camera extends Obj{updateProjectionMatrix(){}lookAt(){}}
 class Renderer {
   constructor(){
     this.domElement={style:{},hidden:false,events:{},setAttribute(){},
@@ -42,6 +41,13 @@ class Renderer {
   render(){this.frames++;}
 }
 function fixture(webgl=true){
+  const cameraRef={current:null};
+  const groundPlanes=[];
+  class Camera extends Obj{
+    constructor(){super();cameraRef.current=this;}
+    updateProjectionMatrix(){}
+    lookAt(x,y,z){this.target=new Vec(x,y,z);}
+  }
   const T={Vector3:Vec,Mesh,MeshStandardMaterial:Material,Group:Obj,Scene:Obj,
     Color:class{constructor(v){this.value=v;}},Fog:class{},
     HemisphereLight:Obj,DirectionalLight:Obj,OrthographicCamera:Camera,
@@ -50,6 +56,9 @@ function fixture(webgl=true){
     "PlaneGeometry","IcosahedronGeometry","TorusGeometry","OctahedronGeometry","RingGeometry"]){
     T[name]=Geometry;
   }
+  T.PlaneGeometry=class extends Geometry{
+    constructor(width,height){super();groundPlanes.push({width,height});}
+  };
   const toggle={disabled:true,textContent:"2D",events:{},
     setAttribute(k,v){this[k]=v;},addEventListener(k,f){this.events[k]=f;}};
   const stage={clientWidth:390,clientHeight:640,children:[],appendChild(v){this.children.push(v);}};
@@ -64,7 +73,7 @@ function fixture(webgl=true){
   assert.notEqual(plain,source,"Three import source must be present");
   new Function("THREE","window","document","console",plain)(
     T,window,document,{warn:(...items)=>warnings.push(items.join(" "))});
-  return {window,canvas,stage,toggle,warnings};
+  return {window,canvas,stage,toggle,warnings,camera:cameraRef.current,groundPlanes};
 }
 function gameState(id){
   const world=Worlds.getWorld(id);
@@ -91,6 +100,33 @@ test("WebGL availability, 3 real-mesh worlds and player state transitions",()=>{
     assert.equal(api.render(state,view),true,id+" state/character transition");
   }
   assert.deepEqual(warnings,[]);
+});
+test("WebGL camera uses a roughly 45-degree elevated pitch across all worlds",()=>{
+  const {window,camera}=fixture();
+  const api=window.SurvivalThreeD;
+  assert.equal(api.ready,true);
+  assert.ok(camera,"fixture must construct a camera");
+  for(const id of Worlds.worldIds()){
+    assert.equal(api.render(gameState(id),{viewW:690,viewH:1130}),true,id);
+    const rise=camera.position.y-camera.target.y;
+    const run=Math.hypot(camera.position.x-camera.target.x,camera.position.z-camera.target.z);
+    const pitch=Math.atan2(rise,run)*180/Math.PI;
+    assert.ok(Math.abs(pitch-45)<0.1,`${id} camera pitch was ${pitch.toFixed(2)}°`);
+  }
+});
+test("portrait 45-degree view stays covered by ground at both world edges",()=>{
+  const {window,groundPlanes}=fixture();
+  const api=window.SurvivalThreeD,worldHeight=logic.WORLD_HEIGHT,viewH=1300,pitch=Math.PI/4;
+  const halfDepth=viewH/(2*Math.sin(pitch));
+  const firstCenter=viewH/2,lastCenter=worldHeight-viewH/2;
+  assert.equal(api.ready,true);
+  for(const id of Worlds.worldIds()){
+    assert.equal(api.render(gameState(id),{viewW:600,viewH}),true,id);
+    const plane=groundPlanes.at(-1),floorHeight=plane.height*48;
+    const start=(worldHeight-floorHeight)/2,end=start+floorHeight;
+    assert.ok(start<=firstCenter-halfDepth,`${id} floor starts after the portrait view`);
+    assert.ok(end>=lastCenter+halfDepth,`${id} floor ends before the portrait view`);
+  }
 });
 test("graphics toggle and WebGL context loss fall back to original Canvas",()=>{
   const {window,canvas,toggle,stage}=fixture(),api=window.SurvivalThreeD;

@@ -73,6 +73,54 @@ class VerifiedEducationalPhotoTests(unittest.TestCase):
             with self.subTest(prompt=prompt):
                 self.assertIsNone(select_photo(prompt))
 
+    def test_photo_unavailable_reply_is_corrected_only_when_photo_is_attached(self):
+        fallback_answer = (
+            "지금은 사진을 직접 보여 줄 수 없어요.\n"
+            "인터넷에서 **“북극곰 사진”**을 검색하거나, 보호자에게 도와달라고 해 보세요."
+        )
+        payload = json.dumps({"prompt": "북극곰 사진 보여 줘",
+                              "context": {"activity": "general"}}, ensure_ascii=False).encode()
+        canonical_answer = "요청한 북극곰 사진을 아래에 준비했어요. 출처도 같이 살펴봐요."
+
+        def call_with_provider_answer(provider_answer):
+            with patch.dict("os.environ", {"EDUNI_AI_COMPANION_ENABLED": "1"}, clear=True), \
+                    patch.object(companion, "_run_provider", return_value=(0, provider_answer)):
+                return asyncio.run(companion.companion_chat(make_request(payload)))
+
+        response = call_with_provider_answer(fallback_answer)
+        answer = json.loads(response.body)
+        self.assertEqual(canonical_answer, answer["answer"])
+        self.assertEqual("polar_bear", answer["photo"]["topic"])
+
+        payload = json.dumps({"prompt": "북극곰과 펭귄 비교해 줘",
+                              "context": {"activity": "general"}}, ensure_ascii=False).encode()
+        response = call_with_provider_answer(fallback_answer)
+        answer = json.loads(response.body)
+        self.assertEqual(fallback_answer, answer["answer"])
+        self.assertNotIn("photo", answer)
+
+        payload = json.dumps({"prompt": "북극곰 사진 보여 줘",
+                              "context": {"activity": "general"}}, ensure_ascii=False).encode()
+        for provider_answer in (
+            "지금은 사진을 직접 보여 줄 수는 없어요.",
+            "사진을 보여 드리기 어려워요. 온라인에서 북극곰 사진을 찾아보세요.",
+            "사진을 가져올 수 없어요. 인터넷에서 찾아보세요.",
+            "지금은 사진을 보여 줄 수 없어요. 아래 사진을 볼 수 없어서 인터넷에서 검색해 봐요.",
+        ):
+            with self.subTest(provider_answer=provider_answer):
+                response = call_with_provider_answer(provider_answer)
+                self.assertEqual(canonical_answer, json.loads(response.body)["answer"])
+
+        for provider_answer in (
+            "‘사진을 보여 줄 수 없어요’라는 말은 틀렸어요. 아래 사진을 확인해 보세요.",
+            "위험한 사진을 보여 줄 수 없어요. 보호자에게 사진을 찾아 달라고 해 보세요.",
+            "사진은 부적절해서 보여 드릴 수 없어요. 보호자에게 찾아 달라고 해 보세요.",
+            "사진은 무서워서 보여 드릴 수 없어요. 인터넷 검색은 하지 마세요.",
+        ):
+            with self.subTest(provider_answer=provider_answer):
+                response = call_with_provider_answer(provider_answer)
+                self.assertEqual(provider_answer, json.loads(response.body)["answer"])
+
     def test_success_returns_photo_but_preserves_text_reply_and_errors(self):
         payload = json.dumps({"prompt": "북극곰 사진 보여 줘",
                               "context": {"activity": "general"}}, ensure_ascii=False).encode()

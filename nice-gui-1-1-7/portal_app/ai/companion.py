@@ -5,6 +5,7 @@ import os
 import threading
 import asyncio
 import hashlib
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -27,6 +28,29 @@ _RATE_LOCK = threading.Lock()
 _CALLER_LAST: dict[str, float] = {}
 READING_CONTEXT_QUESTION = "독서기록 기능 안내 화면입니다. 저장된 책 제목, 글쓴이, 아이의 메모와 감상, 검색 내용, 사진, 기록 수와 집계 정보는 전달되지 않았습니다. 기록 방법이나 일반적인 책 이야기는 도울 수 있지만, 저장된 기록을 본 것처럼 말하지 마세요."
 _ACTIVITIES = {"general", "pattern_train", "sudoku", "space", "facto", "hanja", "bubble", "bubble_shooter", "baduk", "omok", "link", "jungle", "reading"}
+_PHOTO_UNAVAILABLE_ANSWER = re.compile(
+    r"^\s*(?:(?:지금은|현재는)\s*)?(?:미안(?:하지만)?[,\s]*)?(?:제가\s*)?(?:직접\s*)?"
+    r"(?:사진|그림|이미지)[^.!?\n]{0,80}(?:못\s*보여|안\s*보여|보여\s*(?:줄|드릴)\s*수(?:가|는)?\s*없|"
+    r"보여\s*(?:주기|드리기)\s*(?:어렵|어려워|힘들)|볼\s*수(?:가)?\s*없|제공.{0,12}수\s*없|"
+    r"표시.{0,12}수\s*없|찾을\s*수\s*없|가져올\s*수\s*없|보이지\s*않)|"
+    r"^\s*(?:I'm\s+sorry[,\s]*)?(?:I\s*)?(?:can't|cannot|am unable to|don't have the ability to)\b"
+    r"[^.!?\n]{0,80}\b(?:show|display|provide|find|see|fetch)\b"
+    r"[^.!?\n]{0,40}\b(?:photo|picture|image)\b",
+    re.IGNORECASE,
+)
+_PHOTO_SAFETY_REFUSAL = re.compile(
+    r"위험|폭력|성적|자해|다치게|해를\s*끼|불법|안전하지|부적절|부적합|무서운|무서워|잔인|"
+    r"\bharm(?:ful)?\b|\bviolent\b|\bsexual\b|\bself[- ]harm\b|\billegal\b|\bunsafe\b",
+    re.IGNORECASE,
+)
+_PHOTO_AVAILABLE_CLAIM = re.compile(
+    r"(?:아래|위|여기)[^.!?\n]{0,20}(?:사진|그림|이미지)[^.!?\n]{0,15}"
+    r"(?:확인(?:해|하면|해봐|해요)|살펴(?:봐|보)|보세요|봐요|봐|보면|볼\s*수\s*있|있(?:어요|습니다)|준비했|첨부했)|"
+    r"(?:사진|그림|이미지)[^.!?\n]{0,20}(?:아래|위|여기)[^.!?\n]{0,15}"
+    r"(?:확인(?:해|하면|해봐|해요)|살펴(?:봐|보)|보세요|봐요|봐|보면|볼\s*수\s*있|있(?:어요|습니다)|준비했|첨부했)|"
+    r"\b(?:see|view|look at)\b[^.!?\n]{0,50}\b(?:photo|picture|image)\b[^.!?\n]{0,20}\b(?:below|here)\b",
+    re.IGNORECASE,
+)
 _LEGACY_BROWSER_HOST = "100.75.214.95:8081"
 _STATIC_DIR = Path(__file__).resolve().parents[1] / "static_games"
 _CSS_VERSION = hashlib.sha256((_STATIC_DIR / "eduni_companion.css").read_bytes()).hexdigest()[:12]
@@ -41,6 +65,18 @@ def inject_companion_assets(body: str) -> str:
 
 def _error(code: str, status: int) -> JSONResponse:
     return JSONResponse({"ok": False, "error": code}, status_code=status, headers={"Cache-Control": "no-store"})
+
+
+def _align_answer_with_photo(answer: str, photo: dict[str, str] | None) -> str:
+    """Replace provider claims that no photo is available when this response includes one."""
+    fallback = (
+        _PHOTO_UNAVAILABLE_ANSWER.search(answer)
+        and not _PHOTO_SAFETY_REFUSAL.search(answer)
+        and not _PHOTO_AVAILABLE_CLAIM.search(answer)
+    )
+    if photo and fallback:
+        return f"요청한 {photo['title']} 사진을 아래에 준비했어요. 출처도 같이 살펴봐요."
+    return answer
 
 
 def _expected_companion_origin(base_url: str, configured: str) -> str | None:
@@ -206,6 +242,7 @@ async def companion_chat(request: Request) -> JSONResponse:
         # Photos are chosen only from a reviewed, static catalog. Never pass
         # model-authored links through to a child's browser.
         photo = select_photo(prompt)
+        answer = _align_answer_with_photo(answer, photo)
         payload: dict[str, Any] = {"ok": True, "answer": answer}
         if photo:
             payload["photo"] = photo

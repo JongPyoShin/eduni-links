@@ -16,8 +16,8 @@ from portal_app.routes import (
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def route_for(path: str):
-    scope = {"type": "http", "method": "GET", "path": path, "headers": []}
+def route_for(path: str, method: str = "GET"):
+    scope = {"type": "http", "method": method, "path": path, "headers": []}
     for route in app.routes:
         match, _ = route.matches(scope)
         if match is Match.FULL:
@@ -73,10 +73,11 @@ class FamilySurvivalRouteTests(unittest.TestCase):
     def test_previous_routes_and_ai_companion_are_preserved(self) -> None:
         for path in (
             "/portal", "/portal/games", "/jungle", "/jungle-3d",
-            "/link", "/omok", "/reading", "/ai/companion/chat",
+            "/link", "/omok", "/reading",
         ):
             with self.subTest(path=path):
                 self.assertIsNotNone(route_for(path))
+        self.assertIsNotNone(route_for("/ai/companion/chat", "POST"))
         source = (ROOT / "portal_app" / "routes.py").read_text(encoding="utf-8")
         self.assertIn("inject_companion_assets(body)", source)
         self.assertIn('@ui.page("/portal/world/{world_id}")', source)

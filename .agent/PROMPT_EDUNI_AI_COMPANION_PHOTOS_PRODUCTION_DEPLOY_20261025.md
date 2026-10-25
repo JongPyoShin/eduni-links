@@ -22,7 +22,7 @@
 
 ## 2. 사전 검증
 - Node: `node nice-gui-1-1-7/tests/test_companion_ux.js`, `node nice-gui-1-1-7/tests/test_companion_screen_context.js`, `node nice-gui-1-1-7/tests/test_companion_dock.js`.
-- Python: `cd nice-gui-1-1-7`, `PYTHONUTF8=1` 환경에서 `python -m unittest tests.test_companion_educational_photos tests.test_companion` 및 사용 중인 설치환경의 전체 `python -m unittest discover -s tests`. `python scripts/validate_content.py`.
+- Python: `cd nice-gui-1-1-7`, `PYTHONUTF8=1` 환경에서 `python -m unittest discover -s tests -p 'test_companion*.py'` 및 사용 중인 설치환경의 전체 `python -m unittest discover -s tests`. `python scripts/validate_content.py`.
 - 정확한 이미지 출처 7개 `educational_photos.py`의 Wikimedia Commons 원본 링크, 실이미지 로딩을 **HTTPS Chrome**에서 확인.
 - 테스트 실패 또는 소스 미일치 → **HOLD**, Docker 변경 금지.
 

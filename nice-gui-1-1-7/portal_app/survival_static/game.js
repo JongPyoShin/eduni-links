@@ -707,6 +707,12 @@
     if (!state) return;
     const time = state.seconds;
     const view = visibleViewport();
+    // Real 3D renderer shares the existing camera, actors and game rules.
+    // If modules, WebGL or context creation fail, keep legacy 2D gameplay.
+    if (window.SurvivalThreeD?.render(state, view)) {
+      drawMiniMap();
+      return;
+    }
     ctx.clearRect(0, 0, view.viewW, view.viewH);
     ctx.save();
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;

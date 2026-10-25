@@ -103,6 +103,7 @@ class VerifiedEducationalPhotoTests(unittest.TestCase):
                               "context": {"activity": "general"}}, ensure_ascii=False).encode()
         for provider_answer in (
             "지금은 사진을 직접 보여 줄 수는 없어요.",
+            "지금 화면에는 북극곰 사진이 보이지 않아요.\n사진을 볼 수 있는 앱이나 검색에서 ‘북극곰 사진’을 찾아보세요.",
             "사진을 보여 드리기 어려워요. 온라인에서 북극곰 사진을 찾아보세요.",
             "사진을 가져올 수 없어요. 인터넷에서 찾아보세요.",
             "지금은 사진을 보여 줄 수 없어요. 아래 사진을 볼 수 없어서 인터넷에서 검색해 봐요.",

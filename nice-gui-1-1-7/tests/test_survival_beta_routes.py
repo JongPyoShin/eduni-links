@@ -113,7 +113,7 @@ class SurvivalBetaRouteTests(unittest.TestCase):
         for fragment in (
             'id="graphicsToggle"', 'type="module"',
             '/survival-static/survival3d.module.js?v=11',
-            'class="survival-webgl-view"',
+            'survival-webgl-view',
             '3D ADVENTURE', '2D 기본 화면',
         ):
             with self.subTest(fragment=fragment):

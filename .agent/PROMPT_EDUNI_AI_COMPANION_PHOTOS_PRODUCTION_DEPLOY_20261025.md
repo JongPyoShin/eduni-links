@@ -16,15 +16,16 @@
 ## 1. 배포 전 점검
 1. `git fetch origin feature/eduni-ai-companion`. origin 브랜치에 병합 SHA `c5ba23f8…`가 포함되는지 확인.
 2. `docker compose -p eduni-space-mvp ... ps`로 활성 구성 확인. 실제 운영 Compose와 무시되는 env 파일을 발견하고 **원래 compose 프로젝트/서비스/파일 조합만** 사용한다.
-3. `eduni-game` 이미지 ID/태그, 컨테이너 상태, 8081/HTTPS 8443 상태, `/healthz`, `/portal`, `/ai/health`를 기록.
+3. `eduni-game` 이미지 ID/태그, 컨테이너 상태, 8081/HTTPS 8443 상태, `/healthz`, `/portal`, `/ai/health`를 기록. **주의: `/ai/health`는 별개인 기존 `EDUNI_AI_PROVIDER` 진단이며 `provider=disabled`라고 해서 AI 친구가 꺼졌다는 뜻은 아니다. 이 값만으로 배포를 HOLD 하지 않는다.**
 4. 운영 PostgreSQL/SQLite 기록의 기본 건수 및 무결성을 읽기 전용으로 확인. 필요시 SQLite 온라인 백업·PG custom-format dump, 컨테이너 `/data` 백업을 Git 외부에 보존. 복구 테스트가 불가능하면 상태를 명시.
 5. 현행 `eduni-game` 이미지를 별도 rollback 태그로 보존하고 정확한 ID 기록. `eduni-postgres`는 계속 실행 상태 유지.
+6. **AI 친구 전용 상태는 읽기 전용으로 검사:** `EDUNI_AI_COMPANION_ENABLED=1`, `EDUNI_AI_COMPANION_PROVIDER=bridge`(또는 현장에 의도적으로 구성한 `local`), 브리지 URL/키/Origin이 설정됐는지(민감한 값 **출력 금지**) 확인한다. 예시: `docker exec eduni-game python -c "import os; print({'enabled':os.getenv('EDUNI_AI_COMPANION_ENABLED')=='1','provider':os.getenv('EDUNI_AI_COMPANION_PROVIDER','disabled'),'bridge_key_present':bool(os.getenv('EDUNI_AI_COMPANION_BRIDGE_KEY')),'origin_present':bool(os.getenv('EDUNI_AI_COMPANION_ORIGIN'))})"`. 실제 브리지 접근은 **기존 HTTPS AI 친구 UI**에서 보호자가 만든 합성 질문으로 확인한다. `/ai/companion/chat`의 자체 Origin 검사를 우회하거나 임의 헤더·키를 복사하지 않는다. 이 전용 기능 자체가 비활성/브리지 장애라면 `HOLD` 및 보고만 한다. 이번 사진 기능 배포 범위에서 AI 설정·비밀키·브리지를 변경하지 않는다.
 
 ## 2. 사전 검증
 - Node: `node nice-gui-1-1-7/tests/test_companion_ux.js`, `node nice-gui-1-1-7/tests/test_companion_screen_context.js`, `node nice-gui-1-1-7/tests/test_companion_dock.js`.
 - Python: `cd nice-gui-1-1-7`, `PYTHONUTF8=1` 환경에서 `python -m unittest discover -s tests -p 'test_companion*.py'` 및 사용 중인 설치환경의 전체 `python -m unittest discover -s tests`. `python scripts/validate_content.py`.
 - 정확한 이미지 출처 7개 `educational_photos.py`의 Wikimedia Commons 원본 링크, 실이미지 로딩을 **HTTPS Chrome**에서 확인.
-- 테스트 실패 또는 소스 미일치 → **HOLD**, Docker 변경 금지.
+- 테스트 실패 또는 소스 미일치, 실제 AI 친구 비활성 → **HOLD**, Docker 변경 금지. 단, 기존 `/ai/health`에만 나타나는 `provider=disabled`는 AI 친구 전용 상태를 확인하기 전까지 단독 차단 근거가 아니다.
 
 ## 3. 안전한 배포
 1. 동일한 **운영 Compose 프로젝트**와 기존 비밀값 파일을 사용해 `eduni-game` **단일 서비스만** 재빌드/업데이트. 예시 형태: `docker compose -p eduni-space-mvp [기존 -f/--env-file 인자] up -d --no-deps --build eduni-game`. 실제 인자와 원래 환경파일은 현장 설정 기준으로 사용.

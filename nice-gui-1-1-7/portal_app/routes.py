@@ -28,11 +28,15 @@ EDUNI_OMOK_URL = "/omok"
 EDUNI_JUNGLE_URL = "/jungle"
 EDUNI_SPACE_URL = "/space"
 EDUNI_READING_URL = "/reading"
+EDUNI_SURVIVAL_URL = "/survival"
+EDUNI_GAME_PORTAL_URL = "/portal/games"
 GAME_STATIC_DIR = Path(__file__).resolve().parent / "static_games"
 JUNGLE_STATIC_DIR = Path(__file__).resolve().parent / "jungle_static"
+SURVIVAL_STATIC_DIR = Path(__file__).resolve().parent / "survival_static"
 app.add_static_files("/jungle-static", JUNGLE_STATIC_DIR)
 app.add_static_files("/jungle-assets", GAME_STATIC_DIR / "assets")
 app.add_static_files("/sudoku-assets", GAME_STATIC_DIR)
+app.add_static_files("/survival-static", SURVIVAL_STATIC_DIR)
 
 
 def _game_html_response(filename: str) -> HTMLResponse:
@@ -99,6 +103,13 @@ def eduni_jungle_game() -> HTMLResponse:
 @app.get("/jungle-3d/", response_class=HTMLResponse)
 def eduni_jungle_3d_game() -> HTMLResponse:
     return _game_html_response("eduni_jungle_3d.html")
+
+
+@app.get("/survival", response_class=HTMLResponse)
+@app.get("/survival/", response_class=HTMLResponse)
+def eduni_survival_game() -> HTMLResponse:
+    """Self-hosted 3D/2D game, served from the same family server as /portal."""
+    return _game_html_response("eduni_survival.html")
 
 
 @app.get("/games/eduni-jungle", response_class=HTMLResponse)
@@ -287,6 +298,7 @@ def register_pages() -> None:
                         ui.link("의준 링크", EDUNI_LINK_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-positive text-white q-px-md")
                         ui.link("AI 오목", EDUNI_OMOK_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-deep-purple text-white q-px-md")
                         ui.link("정글 새탐험", EDUNI_JUNGLE_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-teal text-white q-px-md")
+                        ui.link("🎮 서바이벌 3D", EDUNI_SURVIVAL_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-primary text-white q-px-md")
                         ui.link("독서기록", EDUNI_READING_URL).classes("portal-action q-btn q-btn-item q-btn--standard bg-orange text-white q-px-md")
                         ui.link("부모 화면", "/portal/parent").classes("portal-action q-btn q-btn-item q-btn--outline q-px-md")
                 with ui.element("div").classes("portal-console"):
@@ -294,13 +306,17 @@ def register_pages() -> None:
                         for text in ("漢", "A", "오목", "정글"):
                             ui.label(text).classes("portal-tile")
                     with ui.element("div").classes("portal-stats"):
-                        for value, label in (("8", "학습 세계"), ("7", "게임 링크"), ("1", "서버 포털")):
+                        for value, label in (("8", "학습 세계"), ("8", "게임 링크"), ("1", "서버 포털")):
                             ui.html(f"<div class='portal-stat'><b>{value}</b><span>{label}</span></div>")
 
             ui.label("외부에서 바로 접속하려면 해당 기기에 Tailscale이 연결되어 있어야 합니다. 같은 Wi-Fi 여부와는 별개로, Tailscale 가족망 안이면 이 서버 주소가 통합니다.").classes("portal-notice q-mt-md")
 
             _section_title("빠른 시작", "자주 쓰는 학습과 게임으로 바로 이동합니다.")
             with ui.element("section").classes("portal-quick"):
+                _portal_card(EDUNI_SURVIVAL_URL, "🎮 마주치지 마! 3D 서바이벌",
+                             "🌴 정글 · ❄️ 북극 · 🏺 피라미드 · 3D/2D 모드 · 모바일 조작", "3D 모험", "portal-game-jungle")
+                _portal_card(EDUNI_GAME_PORTAL_URL, "🎲 게임 모아보기",
+                             "모든 가족 게임을 한곳에서 선택", "게임포털", "portal-game-green")
                 _portal_card("/sudoku", "스도쿠 탐험", "4×4부터 차근차근 푸는 숫자 퍼즐", "새 게임", "portal-game-green")
                 _portal_card(EDUNI_SPACE_URL, "공간탐험", "공간지각·규칙·조건·길찾기를 섞은 사고추론 10문제", "470문제", "portal-game-space")
                 _portal_card(EDUNI_JUNGLE_URL, "정글 새탐험", "정글 맵을 탐험하며 새를 채집하는 모험", "탐험", "portal-game-jungle")
@@ -317,6 +333,34 @@ def register_pages() -> None:
                 _portal_card("/portal/world/math", "수학탐험대", "패턴 기차와 정글 탐험 활동", "포털", icon="+", accent="#7c3aed")
                 _portal_card("/portal", "영어", "다음 단계에서 확장 예정", "준비 중", icon="A", accent="#2563eb")
                 _portal_card("/portal", "과학", "다음 단계에서 확장 예정", "준비 중", icon="S", accent="#14b8a6")
+
+    @ui.page(EDUNI_GAME_PORTAL_URL)
+    def games_portal() -> None:
+        _head()
+        with ui.element("main").classes("portal-shell"):
+            ui.link("← 가족 포털로 돌아가기", "/portal").classes("muted")
+            with ui.element("section").classes("portal-hero q-mt-md"):
+                with ui.element("div"):
+                    ui.label("EDUNI GAME PORTAL").classes("portal-eyebrow")
+                    ui.label("🎮 의준이 게임포털").classes("portal-title")
+                    ui.label("정글·북극·피라미드 3D 서바이벌을 가족 서버에서 즐겨요.").classes("portal-copy")
+                with ui.element("div").classes("portal-console"):
+                    with ui.element("div").classes("portal-tiles"):
+                        for emoji in ("🌴", "❄️", "🏺", "🎮"):
+                            ui.label(emoji).classes("portal-tile")
+                    ui.label("3개 서바이벌 월드 · 기존 게임 모두 유지").classes("text-center text-weight-bold")
+            _section_title("서바이벌 대모험", "3D로 즐기거나 휴대폰에서 2D로 전환할 수 있어요.")
+            with ui.element("section").classes("portal-grid"):
+                _portal_card(EDUNI_SURVIVAL_URL, "마주치지 마! 3D 서바이벌",
+                             "정글 · 북극 · 피라미드 · 자동 은신 · 열쇠 탈출", "3D · 2D", "portal-game-jungle")
+            _section_title("다른 게임", "기존 가족 게임도 그대로 사용할 수 있어요.")
+            with ui.element("section").classes("portal-grid"):
+                _portal_card(EDUNI_JUNGLE_URL, "정글 새탐험", "정글을 탐험하며 새를 모아요", "탐험", "portal-game-jungle")
+                _portal_card(EDUNI_LINK_URL, "의준 링크", "모바일 퍼즐", "퍼즐", "portal-game-pink")
+                _portal_card(EDUNI_OMOK_URL, "AI 오목", "AI 친구와 오목 대결", "전략", "portal-game-violet")
+                _portal_card("/sudoku", "스도쿠 탐험", "4×4부터 숫자 퍼즐", "학습", "portal-game-green")
+                _portal_card("/bubble-shooter", "한자 슈터", "한자 맞히기 슈터", "게임", "portal-game-blue")
+                _portal_card("/bubble", "버블 게임", "한자 퍼즐", "게임", "portal-game-amber")
 
     @ui.page("/portal/world/{world_id}")
     def world_page(world_id: str) -> None:

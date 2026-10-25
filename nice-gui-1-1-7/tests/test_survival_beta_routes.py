@@ -91,7 +91,7 @@ class SurvivalBetaRouteTests(unittest.TestCase):
             "width:min(156px,42vw)", "height:100dvh; overflow:hidden;",
             "id=\"miniMapPanel\"", "id=\"miniMapCanvas\"",
             "mini-map-drawer .map-legend { display:none; }",
-            "/survival-static/game.js?v=9",
+            "/survival-static/game.js?v=11",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, html)
@@ -105,6 +105,25 @@ class SurvivalBetaRouteTests(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, script)
         self.assertIn("camera.viewH||720", world_art)
+
+    def test_webgl_three_dimensional_mode_and_fallback(self) -> None:
+        html = eduni_survival_game().body.decode("utf-8")
+        script = (ROOT / "portal_app" / "survival_static" / "game.js").read_text(encoding="utf-8")
+        engine = (ROOT / "portal_app" / "survival_static" / "survival3d.module.js").read_text(encoding="utf-8")
+        for fragment in (
+            'id="graphicsToggle"', 'type="module"',
+            '/survival-static/survival3d.module.js?v=11',
+            'class="survival-webgl-view"',
+            '3D ADVENTURE', '2D 기본 화면',
+        ):
+            with self.subTest(fragment=fragment):
+                self.assertIn(fragment, html + engine)
+        self.assertIn('window.SurvivalThreeD?.render(state, view)', script)
+        self.assertIn("renderer=new THREE.WebGLRenderer", engine)
+        self.assertIn("window.SurvivalThreeD=Object.freeze", engine)
+        self.assertIn('webglcontextlost', engine)
+        self.assertIn('canvas.style.visibility=enabled?', engine)
+        self.assertNotIn('new THREE.WebGLRenderer', script, "Renderer must stay isolated from game rules")
 
     def test_sandboxed_beta_does_not_change_existing_game_routes(self) -> None:
         for path in ("/jungle", "/jungle-3d", "/link", "/omok", "/portal"):

@@ -142,12 +142,31 @@ public class NativeCrazyArcadeActivity extends Activity {
         final ArrayList<Enemy> enemies = new ArrayList<>();
         final ArrayList<Bomb> bombs = new ArrayList<>();
         final ArrayList<ItemDrop> drops = new ArrayList<>();
+        final android.graphics.Bitmap[] itemIcons = new android.graphics.Bitmap[ITEM_COUNT];
 
         CrazyView(Context c) {
             super(c);
             setFocusable(true);
             setFocusableInTouchMode(true);
             for (int i = 0; i < itemSlots.length; i++) itemSlots[i] = new RectF();
+            loadItemIcons();
+        }
+
+        /** Decode once at view creation; drawing only reads this fixed ITEM_* cache. */
+        void loadItemIcons() {
+            android.content.res.Resources resources = getResources();
+            String packageName = getContext().getPackageName();
+            for (int itemKind = 0; itemKind < ITEM_COUNT; itemKind++) {
+                String drawableName = CrazyItemIconMap.drawableNameFor(itemKind);
+                if (drawableName == null) continue;
+                int resourceId = resources.getIdentifier(drawableName, "drawable", packageName);
+                if (resourceId == 0) continue;
+                try {
+                    itemIcons[itemKind] = android.graphics.BitmapFactory.decodeResource(resources, resourceId);
+                } catch (Exception ignored) {
+                    // Keep the existing primitive fallback when a drawable cannot decode.
+                }
+            }
         }
 
         void resume() {
@@ -794,6 +813,15 @@ public class NativeCrazyArcadeActivity extends Activity {
         }
 
         void drawItemIcon(Canvas c, float x, float y, float r, int kind, boolean fieldDrop) {
+            android.graphics.Bitmap icon = kind >= 0 && kind < itemIcons.length ? itemIcons[kind] : null;
+            if (icon != null) {
+                float available = r * 2.5f;
+                float scale = Math.min(available / icon.getWidth(), available / icon.getHeight());
+                float width = icon.getWidth() * scale;
+                float height = icon.getHeight() * scale;
+                c.drawBitmap(icon, null, new RectF(x - width / 2f, y - height / 2f, x + width / 2f, y + height / 2f), p);
+                return;
+            }
             int color;
             if (kind == ITEM_WATER) color = Color.rgb(34, 197, 94);
             else if (kind == ITEM_POWER) color = Color.rgb(250, 204, 21);

@@ -12,6 +12,8 @@ public final class AdventureCameraController {
     private float cueX, cueY;
     private boolean initialized;
 
+    public void reset() { initialized = false; cueX = 0f; cueY = 0f; }
+
     public Frame update(float playerX, float playerY, StageWorldData stage, boolean objectiveComplete) {
         float goalX = objectiveComplete ? stage.landmarkX : stage.birdX;
         float goalY = objectiveComplete ? stage.landmarkY : stage.birdY;

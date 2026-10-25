@@ -289,6 +289,8 @@
     };
     setup.hidden = true;
     game.hidden = false;
+    // Theme-aware presentation only: game rules and collision remain untouched.
+    game.dataset.theme = state.world.id;
     // The mobile stage has dimensions only after becoming visible.
     fitCanvasToStage();
     state.camera = cameraForScreen(state.player);

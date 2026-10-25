@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#10352f">
-  <title>마주치지 마! | 3개 월드 서바이벌 v0.9</title>
+  <title>마주치지 마! | 3개 월드 서바이벌 v1.0 UI Preview</title>
   <style>
     :root { color-scheme: dark; --ink:#f4fff7; --muted:#bed6cb; --green:#45e0a3; --paper:#163b34; --line:#396456; --gold:#ffe47b; }
     * { box-sizing:border-box; }
@@ -299,6 +299,93 @@
       #gameScreen .status-icon { min-height:23px; }
     }
     @media(prefers-reduced-motion:reduce) { *, *::before,*::after { scroll-behavior:auto!important; transition:none!important; } }
+
+    /* V1 visual direction: premium illustrated adventure UI.
+       This is an art-direction foundation, not a claim that GLB meshes are in use. */
+    :root{--deep:#081d2a;--shell:#102d3c;--slate:#162f40;--cream:#fff8e8;--sun:#ffc860;--mint:#82e6b8;--aqua:#82dfee}
+    body{background:radial-gradient(circle at 76% 3%,#325d7d 0,transparent 32%),radial-gradient(circle at 2% 80%,#1b614f 0,transparent 36%),#081d2a}
+    .topline{margin-bottom:14px}
+    .brand{letter-spacing:.16em;font-size:11px;color:#9cf1d9}
+    .navlink{border-color:#9cd2e64f;background:#102b3baf;color:#e9fff8;box-shadow:0 4px 14px #0002}
+    #setupScreen{position:relative;overflow:hidden;isolation:isolate;background:linear-gradient(160deg,#183b48 0,#092735 48%,#0d2f2a 100%);border:1px solid #a2d6df42;border-radius:30px;box-shadow:0 30px 75px #0008,inset 0 1px #ffffff19}
+    #setupScreen::before{content:"";position:absolute;z-index:-1;pointer-events:none;inset:-80px -10% auto auto;width:min(80vw,740px);height:350px;background:radial-gradient(ellipse,#7cd8bf2b,transparent 65%);filter:blur(4px)}
+    #setupScreen .eyebrow{display:inline-flex;align-items:center;border:1px solid #86dcc558;border-radius:100px;padding:5px 12px;background:#103c4978;color:#e2f7b1;letter-spacing:.12em;font-size:11px}
+    #setupScreen h1{color:var(--cream);font-size:clamp(35px,6.8vw,63px);line-height:1.05;letter-spacing:-.065em;text-shadow:0 3px 22px #0008}
+    #setupScreen .intro{max-width:680px;color:#c3dede;line-height:1.7;font-size:clamp(14px,2vw,17px)}
+    #setupScreen .setting-title{color:#f1fbe9;letter-spacing:-.025em;font-size:16px}
+    #setupScreen .hint{color:#b6d7d4}
+    #setupScreen .setupgrid{gap:14px;margin-top:20px}
+    #setupScreen .avatar{min-height:166px;position:relative;overflow:hidden;border:1px solid #b2e2da40;border-radius:22px;background:linear-gradient(155deg,#2b5560,#123b43 64%,#0d2b3c);box-shadow:inset 0 1px #ffffff22,0 7px 14px #0003;color:#e9fff1;transition:transform .16s,border-color .16s}
+    #setupScreen .avatar:hover{transform:translateY(-2px);border-color:#b7fbe2a8}
+    #setupScreen .avatar[aria-pressed="true"]{border:2px solid #ffd98f;background:linear-gradient(150deg,#337e77,#163e49);box-shadow:0 0 0 3px #ffdc6c29,0 10px 25px #071a2399}
+    #setupScreen .avatar[aria-pressed="true"]::after{content:"✓";position:absolute;top:10px;right:12px;display:grid;place-items:center;border-radius:50%;width:24px;height:24px;background:#ffdc86;color:#203a3e;font-size:14px;font-weight:1000}
+    #setupScreen .avatar-preview{border:0;border-radius:50%;background:radial-gradient(ellipse at 50% 78%,#9bd5a952,#173b4688 65%,transparent 80%);box-shadow:none}
+    #setupScreen .life-box{border:1px solid #97cbd04b;border-radius:22px;background:linear-gradient(140deg,#1d4651,#10323f);box-shadow:inset 0 1px #ffffff18;min-height:166px}
+    #setupScreen .chip{border:1px solid #9ec4ca61;background:#153b48;border-radius:12px;color:#eaf7ee}
+    #setupScreen .chip[aria-pressed="true"]{background:#f6cd74;color:#143745;border-color:#ffe9af;box-shadow:0 3px 0 #ba8236}
+    #setupScreen .world-choices{gap:12px;margin-top:14px}
+    #setupScreen .world-choice{position:relative;overflow:hidden;justify-content:flex-end;min-height:155px;padding:16px 10px 17px;border:1px solid #ffffff64;border-radius:20px;isolation:isolate;color:#fffaf0;text-shadow:0 2px 6px #000b;box-shadow:inset 0 1px #fff4,0 8px 20px #0006}
+    #setupScreen .world-choice::before{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(to bottom,transparent 15%,#031826a0 100%)}
+    #setupScreen .world-choice[data-world="jungle"]{background:radial-gradient(ellipse at 26% 18%,#b2e696 0,#4c9e6b 26%,transparent 55%),linear-gradient(135deg,#124e45,#142f36 72%,#071d28)}
+    #setupScreen .world-choice[data-world="arctic"]{background:radial-gradient(ellipse at 70% 16%,#f8ffff 0,#c3ecfc 16%,transparent 40%),linear-gradient(145deg,#68acc9,#295d84 57%,#10283e)}
+    #setupScreen .world-choice[data-world="pyramid"]{background:radial-gradient(ellipse at 76% 24%,#ffe4a2 0,#dea560 26%,transparent 58%),linear-gradient(140deg,#8b6338,#594f49 67%,#252a38)}
+    #setupScreen .world-choice span{font-size:51px;line-height:1.1;filter:drop-shadow(0 6px 7px #031c2790)}
+    #setupScreen .world-choice[aria-pressed="true"]{border:3px solid #ffe3a2;box-shadow:0 0 0 3px #fcd37839,0 14px 24px #0008}
+    #setupScreen .world-choice[aria-pressed="true"]::after{content:"선택됨";position:absolute;top:9px;right:10px;border-radius:100px;background:#fff0bf;color:#264350;padding:3px 9px;font-size:10px;letter-spacing:0;text-shadow:none}
+    #setupScreen .map-card{margin-top:15px;border:1px solid #9dcbd05a;border-radius:18px;background:#123b4870;gap:12px}
+    #setupScreen .map-icon{font-size:36px}
+    #setupScreen .map-card strong{color:#fff3c1}
+    #setupScreen .mode-choice{background:#173f49;border-color:#96c3c757;color:#eff8fa}
+    #setupScreen .mode-choice[aria-pressed="true"]{background:#fff0bd;border-color:#ffe7a2;color:#183b46}
+    #setupScreen .footerline{padding-top:10px;border-top:1px solid #9ccbd03d}
+    .primary{border:1px solid #fff0aa;background:linear-gradient(180deg,#fff0ab,#ffba4f);border-radius:16px;box-shadow:0 5px 0 #a66b2a,0 7px 18px #0004;color:#163a3c}
+    .primary:hover{filter:brightness(1.05)}
+    #startButton{min-width:190px}
+    .overlay{background:#061c2acc;backdrop-filter:blur(5px)}
+    .overlay-card{border:1px solid #fbe49b;background:linear-gradient(160deg,#214d58,#102d3e);box-shadow:0 20px 70px #031620be}
+    .overlay-card h2{color:#fff4cc}
+    #gameScreen{--game-glow:#8bedc2;--stage-shadow:#05281e}
+    #gameScreen[data-theme="arctic"]{--game-glow:#b5f4ff;--stage-shadow:#174b78}
+    #gameScreen[data-theme="pyramid"]{--game-glow:#ffd394;--stage-shadow:#704820}
+    #gameScreen .canvas-wrap{border-color:#a8c9bf;box-shadow:0 13px 40px #0008}
+    #gameScreen .canvas-wrap::after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;box-shadow:inset 0 0 80px 10px var(--stage-shadow);opacity:.25}
+    #gameScreen .pill{background:#102f40e8;border:1px solid #a9d2d54d;box-shadow:inset 0 1px #ffffff16;color:#f5fbef}
+    #gameScreen .pill b{color:#fff0b6}
+    #gameScreen .small-button{background:#143d49;border:1px solid #a4d8d581}
+    #gameScreen .mini-map-drawer{background:#0b2e3ae9;border:1px solid #a8d6d580;box-shadow:0 6px 25px #08192299}
+    #gameScreen .mini-map-drawer summary{font-weight:950}
+    #gameScreen .mini-map-drawer[open]{border-color:var(--game-glow)}
+    #gameScreen .dir{border-color:#cde4e0b9;background:linear-gradient(155deg,#284f61,#143648);color:#fafff1;box-shadow:inset 0 2px #ffffff31,0 4px 0 #091c28,0 7px 14px #0005}
+    #gameScreen .dir:active,#gameScreen .dir.active{background:linear-gradient(145deg,#ffe1a1,#efb257);color:#19333b;box-shadow:inset 0 2px #fff8dc}
+    #gameScreen .dash-btn{background:linear-gradient(145deg,#ffe8a9,#ffae50);color:#553417;box-shadow:inset 0 2px #fff6c8,0 4px 0 #aa6634}
+    #gameScreen .hide-btn{background:linear-gradient(145deg,#daf9db,#75d1a6);color:#174b3c}
+    @media(max-width:770px){
+      #setupScreen .world-choices{gap:7px}
+      #setupScreen .world-choice{min-height:125px;padding:10px 3px 14px;font-size:clamp(12px,3vw,16px)}
+      #setupScreen .world-choice span{font-size:clamp(36px,9vw,50px)}
+      #setupScreen .world-choice[aria-pressed="true"]::after{top:4px;right:4px;padding:2px 5px;font-size:9px}
+      #startButton{width:100%}
+    }
+    @media(max-width:770px),(pointer:coarse) and (max-height:600px){
+      #gameScreen{background:#0d2938}
+      #gameScreen .hud{top:calc(env(safe-area-inset-top,0px) + 8px);left:8px;right:8px;gap:5px}
+      #gameScreen .mobile-hud{gap:4px;grid-auto-rows:minmax(25px,auto)}
+      #gameScreen .status-icon{min-height:26px;padding:5px 7px;border-radius:10px;background:#0a283dde;border:1px solid #f9ffe138;color:#fff9e7;font-size:12px;box-shadow:0 2px 8px #061b3080;backdrop-filter:blur(5px)}
+      #gameScreen .status-icon.goal-icon{color:#fff0b5;border-color:#ffda7d77}
+      #gameScreen .status-icon:nth-child(5),#gameScreen .status-icon:nth-child(6){display:none}
+      #gameScreen .status-icon:nth-child(n+7){background:#193847dc;font-size:11px}
+      #gameScreen .pause-icon,#gameScreen .portal-icon-link{width:40px;height:40px;min-height:40px;border-radius:13px;background:#0a293be5;border:1px solid #c8f9e47a;color:#f7fff3;box-shadow:0 3px 0 #07202a,0 7px 17px #0005}
+      #gameScreen .mini-map-drawer{top:calc(env(safe-area-inset-top,0px) + 79px);right:8px;border-radius:13px}
+      #gameScreen .mini-map-drawer[open]{width:min(164px,44vw)}
+      #gameScreen .side{background:linear-gradient(180deg,#0b2637f0,#0b2134fc 55%,#071b2d);border-top:1px solid #c4dfd553;box-shadow:0 -12px 30px #0d273d36}
+      #gameScreen .controls{gap:6px}
+      #gameScreen .dir{border:1px solid #d8e6e5b4;border-radius:18px;font-size:27px;background:linear-gradient(165deg,#325669ed,#143747ed)}
+      #gameScreen .retry-row .small-button{border:1px solid #bed9da75;background:#1b4458e8}
+      #gameScreen .canvas-wrap::after{box-shadow:inset 0 0 65px 4px var(--stage-shadow);opacity:.18}
+      #gameScreen .chase-alert{border:2px solid #ffe8b4;border-radius:14px;background:#8d2d42e8;backdrop-filter:blur(4px);font-size:clamp(15px,4vw,22px)}
+    }
+    @media(prefers-reduced-motion:reduce){#setupScreen .avatar{transition:none}#setupScreen .avatar:hover{transform:none}}
+
   </style>
 </head>
 <body>
@@ -306,9 +393,9 @@
   <div class="topline"><span class="brand">EDUNI × 의준의 첫 게임</span><a class="navlink" href="/portal/games">← 게임포털</a></div>
 
   <section id="setupScreen" class="card" aria-labelledby="mainTitle">
-    <div class="eyebrow">정글 · 북극 · 피라미드 · 2.5D BETA v0.9</div>
+    <div class="eyebrow">정글 · 북극 · 피라미드 · 2.5D · VISUAL PREVIEW v1.0</div>
     <h1 id="mainTitle">마주치지 마!<br>서바이벌 대모험 🌴</h1>
-    <p class="intro">🌍 세 가지 모험 세계를 골라요! 🌴 정글 · ❄️ 북극 · 🏺 피라미드. 각 세계의 악당을 피해 자동으로 숨고, 🔑 열쇠를 찾아 탈출하세요. 악당들에게 쫓기면 🌿 쉼터 안으로 들어가세요! 버튼 없이 바로 자동으로 숨어요.</p>
+    <p class="intro">정글의 나무 사이로, 북극의 눈밭을 지나, 피라미드의 비밀 통로로! 세 세계 중 하나를 선택하고 열쇠를 찾아 탈출해요. 쉼터에 들어가면 자동으로 숨을 수 있어요.</p>
     <div class="setupgrid">
       <div class="setting">
         <div class="setting-title">① 캐릭터를 골라요</div>
@@ -356,7 +443,7 @@
     </div>
     <div class="footerline">
       <p>🗺️ 화면 속 지도 아이콘을 누르면 내 위치와 목표가 보여요. 🌿 쉼터 안으로 들어가면 자동으로 숨고, 한 번 사용하면 사라져요!</p>
-      <button id="startButton" type="button" class="primary">모험 시작! ▶</button>
+      <button id="startButton" type="button" class="primary">모험 떠나기 ✦</button>
     </div>
   </section>
 
@@ -439,10 +526,10 @@
     <p id="liveStatus" class="game-footer" role="status" aria-live="polite">👹 추격! 🌿 은신처에서 잠깐 숨고 도망쳐요!</p>
   </section>
 </main>
-<script src="/survival-static/logic.js?v=9"></script>
-<script src="/survival-static/render25d.js?v=9"></script>
-<script src="/survival-static/worlds.js?v=9"></script>
-<script src="/survival-static/worldart25d.js?v=9"></script>
-<script src="/survival-static/game.js?v=9"></script>
+<script src="/survival-static/logic.js?v=10"></script>
+<script src="/survival-static/render25d.js?v=10"></script>
+<script src="/survival-static/worlds.js?v=10"></script>
+<script src="/survival-static/worldart25d.js?v=10"></script>
+<script src="/survival-static/game.js?v=10"></script>
 </body>
 </html>

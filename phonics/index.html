@@ -91,8 +91,70 @@
       .parent button{width:100%}
     }
     @media(prefers-reduced-motion:reduce){.sound-tile{transition:none}}
+
+    /* GitHub Pages preview only: original practice games for early readers */
+    .practice-jump{display:inline-flex;align-items:center;min-height:42px;margin-top:15px;
+      padding:10px 15px;border-radius:999px;background:#fff9e7;color:#12616b;
+      text-decoration:none;font-size:14px;font-weight:950;box-shadow:0 3px 0 #c5e0d7}
+    .practice-zone{margin:22px 0 18px;padding:clamp(15px,3vw,25px);border-radius:26px;
+      border:2px solid #f4d88b;background:linear-gradient(165deg,#fff8dd,#f1fcff 80%);
+      box-shadow:0 8px 24px #4b6b7015}
+    .practice-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .practice-head h2{font-size:clamp(23px,4vw,30px);margin:0;letter-spacing:-.04em}
+    .practice-head p{font-size:14px;color:#526c72;line-height:1.5;margin:7px 0 0}
+    .practice-pill{background:#f6dd8e;color:#6b4d15;border-radius:99px;padding:7px 12px;font-weight:900;font-size:12px}
+    .practice-settings{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;margin:18px 0;align-items:end}
+    .practice-settings label{display:block;font-size:12px;font-weight:950;margin-bottom:6px;color:#365663}
+    .practice-settings select{display:block;width:100%;min-height:45px;background:white}
+    .practice-primary{border:0;border-radius:14px;background:#0d717d;color:white;padding:13px 16px;
+      min-height:46px;font-size:15px;font-weight:950;cursor:pointer}
+    .practice-progress{display:flex;align-items:center;gap:12px;margin:10px 0 14px;color:#315d63;
+      font-size:14px;font-weight:950}
+    .practice-progress progress{width:100%;height:12px;accent-color:#1ca58a}
+    .practice-card,.practice-summary{background:white;border:2px solid #cce5e8;border-radius:22px;
+      padding:clamp(16px,4vw,26px);box-shadow:0 5px 16px #2b596112}
+    .practice-kind{display:inline-block;border-radius:99px;padding:7px 11px;background:#e0f5fb;
+      color:#146b7c;font-size:13px;font-weight:950}
+    .practice-question{font-weight:1000;font-size:clamp(20px,4vw,26px);line-height:1.3;
+      margin:15px 0 6px;text-align:center}
+    .practice-visual{font-size:clamp(48px,10vw,72px);font-weight:1000;text-align:center;min-height:84px;
+      display:grid;place-items:center;color:#205778;letter-spacing:.04em;word-break:break-word}
+    .practice-hint{text-align:center;color:#6d7883;font-size:15px;font-weight:800;min-height:24px}
+    .practice-replay{margin:9px auto 15px;display:block;background:#e1f8f4;border:2px solid #80c7bb;
+      border-radius:15px;min-height:50px;padding:10px 20px;font-weight:950;color:#11695e}
+    .practice-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:15px}
+    .practice-option{border:2px solid #aad2d9;border-radius:16px;background:#f4fdff;
+      color:#174f62;font-weight:950;min-height:66px;font-size:clamp(19px,5vw,28px);
+      padding:11px 6px;overflow-wrap:anywhere;box-shadow:0 3px 0 #b9dfe4}
+    .practice-option:focus-visible{outline:3px solid #c68621;outline-offset:3px}
+    .practice-option:disabled{opacity:.62;cursor:default}
+    .practice-option.practice-wrong{background:#fff0eb;border-color:#e9ada5}
+    .practice-option.practice-reset{grid-column:1/-1;font-size:16px;background:#fff0dc}
+    .practice-made{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:13px;
+      min-height:57px;padding:8px;border:2px dashed #a6c4cb;border-radius:15px}
+    .practice-made-tile{display:grid;place-items:center;min-width:50px;padding:5px 10px;
+      border-radius:12px;background:#daf5e9;font-size:27px;font-weight:1000;color:#126151}
+    .practice-feedback{font-size:15px;line-height:1.55;font-weight:850;
+      color:#315f71;background:#edf8fa;padding:12px;border-radius:12px;margin-top:16px;min-height:48px}
+    .practice-feedback[data-tone=success]{color:#176641;background:#e3f9e8}
+    .practice-feedback[data-tone=retry]{color:#9b5118;background:#fff0db}
+    .practice-feedback[data-tone=warn]{color:#9b5118;background:#fff0db}
+    .practice-next{display:block;width:100%;margin-top:13px}
+    .practice-summary{text-align:center}
+    .practice-summary h3{font-size:25px;margin:7px 0}
+    .practice-summary p{color:#456b75;line-height:1.7}
+    .practice-summary button{margin-top:10px}
+    .practice-zone [hidden]{display:none!important}
+    @media(max-width:560px){
+      .practice-settings{grid-template-columns:1fr 1fr}
+      .practice-settings .practice-primary{grid-column:1/-1}
+      .practice-zone{padding:14px 11px;border-radius:18px}
+      .practice-card,.practice-summary{padding:15px 12px}
+      .practice-visual{min-height:75px}
+    }
   </style>
   <script src="../nice-gui-1-1-7/portal_app/phonics_static/phonics.js?v=1" defer></script>
+  <script src="./practice.js?v=1" defer></script>
 </head>
 <body>
   <main id="phonicsLesson">
@@ -105,6 +167,7 @@
         <p class="eyebrow">SOUND · BLEND · SPEAK</p>
         <h1>🔤 소리톡 파닉스</h1>
         <p>글자 소리를 이어 읽고, 단어를 듣고, 내 목소리로 도전해요!</p>
+        <a href="#phonicsPractice" class="practice-jump">🎯 8문제 놀이 바로 가기</a>
       </div>
       <span class="big" aria-hidden="true">🦜</span>
     </header>
@@ -148,6 +211,63 @@
         <button type="button" id="next">다음 단어 →</button>
       </div>
     </article>
+
+    <section id="phonicsPractice" class="practice-zone" aria-label="영어 문제 놀이">
+      <header class="practice-head">
+        <div>
+          <h2>🎯 오늘의 영어 문제 놀이</h2>
+          <p>듣기 · 그림 · 글자 · 뜻을 바꿔 가며 매번 새로운 8문제에 도전해요!</p>
+        </div>
+        <span class="practice-pill">6가지 놀이</span>
+      </header>
+      <div class="practice-settings">
+        <div>
+          <label for="practiceLevel">난이도</label>
+          <select id="practiceLevel">
+            <option value="start">1단계 · 쉬운 단어</option>
+            <option value="more">2단계 · 도전 단어</option>
+            <option value="all">모든 단어</option>
+          </select>
+        </div>
+        <div>
+          <label for="practiceMode">문제 유형</label>
+          <select id="practiceMode">
+            <option value="mix">🎲 골고루 섞기</option>
+            <option value="listen">🔊 소리 듣고 고르기</option>
+            <option value="picture">🖼️ 그림 보고 고르기</option>
+            <option value="missing">✏️ 빠진 글자</option>
+            <option value="order">🧩 글자 조합</option>
+            <option value="first">👂 첫소리 찾기</option>
+            <option value="meaning">💡 뜻 찾기</option>
+          </select>
+        </div>
+        <button class="practice-primary" id="practiceStart" type="button">🔄 새 문제 시작</button>
+      </div>
+      <div class="practice-progress">
+        <span id="practiceProgress" aria-live="polite">문제 1 / 8</span>
+        <progress id="practiceBar" value="0" max="8" aria-label="문제 완료 진행률"></progress>
+      </div>
+      <article id="practiceCard" class="practice-card" aria-label="현재 영어 문제">
+        <span class="practice-kind" id="practiceKind">🎲 영어 문제</span>
+        <h3 class="practice-question" id="practicePrompt">문제를 준비하고 있어요.</h3>
+        <div class="practice-visual" id="practiceVisual" aria-label="문제 힌트"></div>
+        <p class="practice-hint" id="practiceHint"></p>
+        <button id="practiceReplay" class="practice-replay" type="button">🔊 단어 소리 듣기</button>
+        <div id="practiceMade" class="practice-made" aria-label="조합한 글자" hidden></div>
+        <div id="practiceOptions" class="practice-options" aria-label="보기 선택"></div>
+        <div id="practiceFeedback" class="practice-feedback" role="status" aria-live="polite">
+          문제를 골라 보세요!
+        </div>
+        <button id="practiceNext" class="practice-primary practice-next" type="button" hidden>다음 문제 ➜</button>
+      </article>
+      <article id="practiceSummary" class="practice-summary" hidden aria-live="polite">
+        <h3 id="practiceSummaryTitle">🎉 오늘의 문제 놀이 끝!</h3>
+        <p id="practiceSummaryText">모든 문제를 풀었어요!</p>
+        <button id="practiceAgain" class="practice-primary" type="button">🌟 새 문제 또 풀기</button>
+      </article>
+      <p class="help">문제는 현재 페이지 안에서만 구성돼요. 정답 기록이나 아이의 정보는 서버로 보내거나 저장하지 않아요.
+        소리 듣기는 사용 중인 기기의 음성 기능에 따라 다를 수 있어요.</p>
+    </section>
     <section class="parent" aria-label="부모님과 함께">
       <span style="font-size:13px;color:#526e78;font-weight:850">음성 인식이 잘 안 되면 부모님과 함께 확인해요.</span>
       <button id="parentConfirm" type="button">👨‍👩‍👧 보호자와 읽었어요</button>

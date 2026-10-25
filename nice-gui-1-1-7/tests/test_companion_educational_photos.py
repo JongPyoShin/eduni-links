@@ -8,7 +8,29 @@ from unittest.mock import patch
 
 from portal_app.ai import companion
 from portal_app.ai.educational_photos import PHOTOS, select_photo
-from test_companion import make_request
+from starlette.requests import Request
+
+
+def make_request(body: bytes) -> Request:
+    sent = False
+
+    async def receive():
+        nonlocal sent
+        if sent:
+            return {"type": "http.disconnect"}
+        sent = True
+        return {"type": "http.request", "body": body, "more_body": False}
+
+    scope = {
+        "type": "http", "http_version": "1.1", "method": "POST", "scheme": "http",
+        "path": "/ai/companion/chat", "raw_path": b"/ai/companion/chat",
+        "query_string": b"", "root_path": "",
+        "headers": [(b"host", b"testserver"), (b"origin", b"http://testserver"),
+                    (b"x-requested-with", b"XMLHttpRequest"),
+                    (b"content-type", b"application/json")],
+        "server": ("testserver", 80), "client": ("127.0.0.1", 12345),
+    }
+    return Request(scope, receive)
 
 
 class VerifiedEducationalPhotoTests(unittest.TestCase):

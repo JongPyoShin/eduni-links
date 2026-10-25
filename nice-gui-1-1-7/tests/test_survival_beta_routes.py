@@ -80,7 +80,7 @@ class SurvivalBetaRouteTests(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, html)
         self.assertNotIn('href="../survival/?v=7"', html)
-        self.assertIn('/survival-static/game.js?v=10', html)
+        self.assertIn('/survival-static/game.js?v=11', html)
 
     def test_mobile_camera_fits_without_cover_crop(self) -> None:
         html = eduni_survival_game().body.decode("utf-8")
@@ -115,7 +115,7 @@ class SurvivalBetaRouteTests(unittest.TestCase):
         self.assertIn('_portal_card(EDUNI_GAME_PORTAL_URL, "🎮 의준이 게임포털"', portal_source)
         game_hub = (ROOT.parent / "games" / "index.html").read_text(encoding="utf-8")
         landing = (ROOT.parent / "index.html").read_text(encoding="utf-8")
-        self.assertIn('href="../survival/?v=10"', game_hub)
+        self.assertIn('href="../survival/?v=11"', game_hub)
         self.assertIn('href="./games/"', landing)
         self.assertNotIn('class="survival" href="./survival/"', landing)
         app_source = (ROOT / "app.py").read_text(encoding="utf-8")

@@ -14,7 +14,7 @@
     ? '<button type="button" data-prompt="책 이야기 도와줘">책 이야기 도와줘</button><button type="button" data-prompt="기록하는 방법 알려줘">기록하는 방법 알려줘</button>'
     : '<button type="button" data-prompt="힌트 줘">힌트 줘</button><button type="button" data-prompt="쉽게 설명해 줘">쉽게 설명해 줘</button>';
   const panel = document.createElement("section"); panel.id = "eduni-companion-panel"; panel.setAttribute("aria-label", "AI 친구");
-  panel.innerHTML = `<header><span>AI 친구</span><button type="button" class="close" aria-label="닫기">닫기</button></header><div class="quick">${readingPrompts}</div><div id="eduni-companion-screen" aria-live="polite"></div><section class="answer-card" aria-labelledby="eduni-companion-answer-title"><h2 id="eduni-companion-answer-title">친구의 답변</h2><div id="eduni-companion-answer" aria-live="polite">궁금한 것을 물어봐!</div></section><details id="eduni-companion-notice"><summary>체험과 개인정보 안내</summary><p>아직은 보호자 감독 아래 합성 문제로 시험하는 기능이에요. 독립적인 어린이 사용은 준비되지 않았어요. 질문과 화면에 보이는 문제 일부가 OpenAI로 전송되며 구독 사용량에 포함됩니다. 이름, 학교, 주소, 연락처, 사적인 기록은 입력하지 마세요. 음성 인식은 브라우저 제공자를 이용할 수 있어요.</p></details><textarea rows="2" maxlength="500" aria-label="AI 친구에게 질문" placeholder="질문을 적어 줘"></textarea><div class="actions"><button type="button" data-action="voice">🎙️ 말하기</button><button type="button" data-action="speak">🔊 읽어 줘</button><button type="button" data-action="send">보내기</button></div><div id="eduni-companion-status" role="status" aria-live="polite" aria-atomic="true"></div>`;
+  panel.innerHTML = `<header><span>AI 친구</span><button type="button" class="close" aria-label="닫기">닫기</button></header><div class="quick">${readingPrompts}</div><div id="eduni-companion-screen" aria-live="polite"></div><section class="answer-card" aria-labelledby="eduni-companion-answer-title"><h2 id="eduni-companion-answer-title">친구의 답변</h2><div id="eduni-companion-answer" aria-live="polite">궁금한 것을 물어봐!</div><figure id="eduni-companion-photo" class="companion-photo" hidden><img alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"><figcaption><strong class="photo-title"></strong><span class="photo-credit"></span><a class="photo-source" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">사진 원본 및 이용 조건</a></figcaption></figure></section><details id="eduni-companion-notice"><summary>체험과 개인정보 안내</summary><p>아직은 보호자 감독 아래 합성 문제로 시험하는 기능이에요. 독립적인 어린이 사용은 준비되지 않았어요. 질문과 화면에 보이는 문제 일부가 OpenAI로 전송되며 구독 사용량에 포함됩니다. 이름, 학교, 주소, 연락처, 사적인 기록은 입력하지 마세요. 음성 인식은 브라우저 제공자를 이용할 수 있어요. 검증된 사진이 표시될 때는 브라우저가 위키미디어 공용즈에 이미지를 요청하므로 네트워크 연결이 필요하고 IP 주소 등 접속 정보가 전달될 수 있어요. 사진 원본과 이용 조건을 함께 확인해 주세요.</p></details><textarea rows="2" maxlength="500" aria-label="AI 친구에게 질문" placeholder="질문을 적어 줘"></textarea><div class="actions"><button type="button" data-action="voice">🎙️ 말하기</button><button type="button" data-action="speak">🔊 읽어 줘</button><button type="button" data-action="send">보내기</button></div><div id="eduni-companion-status" role="status" aria-live="polite" aria-atomic="true"></div>`;
   document.body.append(launch, panel);
   const avoidBottomDock = () => {
     const target = launch.getBoundingClientRect(), viewportHeight = innerHeight; let offset = 0;
@@ -32,6 +32,43 @@
   };
   requestAnimationFrame(avoidBottomDock); window.addEventListener("resize", avoidBottomDock);
   const input = panel.querySelector("textarea"), answer = panel.querySelector("#eduni-companion-answer"), status = panel.querySelector("#eduni-companion-status"), screenLabel = panel.querySelector("#eduni-companion-screen");
+  const photoBox = panel.querySelector("#eduni-companion-photo");
+  const safeHttps = (value,prefix) => {
+    try {
+      if(typeof value!=="string"||value.length>650)return null;
+      const parsed=new URL(value);
+      return parsed.protocol==="https:"&&parsed.hostname==="commons.wikimedia.org"&&
+        !parsed.username&&!parsed.password&&parsed.port===""&&parsed.pathname.startsWith(prefix)?
+        parsed.href:null;
+    }catch{return null;}
+  };
+  const clearPhoto = () => {
+    if(!photoBox)return;
+    photoBox.hidden=true;
+    const img=photoBox.querySelector("img");
+    if(img){img.onerror=null;img.removeAttribute("src");img.alt="";}
+  };
+  const renderPhoto = photo => {
+    clearPhoto();
+    if(!photoBox||!photo||typeof photo!=="object")return;
+    const url=safeHttps(photo.url,"/wiki/Special:FilePath/");
+    const source=safeHttps(photo.source_url,"/wiki/File:");
+    if(!url||!source||!/^.{1,65}$/.test(photo.title||"")||
+       !/^.{1,120}$/.test(photo.credit||"")||!/^.{1,65}$/.test(photo.license||"")||
+       !/^.{1,130}$/.test(photo.alt||""))return;
+    const image=photoBox.querySelector("img");
+    const title=photoBox.querySelector(".photo-title");
+    const credit=photoBox.querySelector(".photo-credit");
+    const link=photoBox.querySelector(".photo-source");
+    if(!image||!title||!credit||!link)return;
+    title.textContent=photo.title+" 실제 사진";
+    credit.textContent="촬영·제공: "+photo.credit+" · "+photo.license;
+    link.href=source;
+    image.alt=photo.alt;
+    image.onerror=()=>{ if(image.src===url)clearPhoto(); };
+    image.src=url;
+    photoBox.hidden=false;
+  };
   const buttons = [...panel.querySelectorAll("button")];
   const readingContext = Object.freeze({activity:"reading",question:READING_CONTEXT_QUESTION,choices:Object.freeze([]),selected:""});
   let context = route[1] === "reading" ? readingContext : window.EDUNICompanionPendingContext || {activity:"general",question:"",choices:[],selected:""};
@@ -89,7 +126,7 @@
   screenLabel.textContent=screenContext().label;
   const setBusy = value => { busy=value; panel.setAttribute("aria-busy",String(value)); panel.querySelector('[data-action="send"]').disabled=value; panel.querySelectorAll("[data-prompt]").forEach(button=>button.disabled=value); };
   const stopAudio = () => { try { recognition?.stop(); } catch {} recognition=null; window.speechSynthesis?.cancel(); };
-  const invalidate = () => { generation++; controller?.abort(); controller=null; setBusy(false); stopAudio(); };
+  const invalidate = () => { generation++; controller?.abort(); controller=null; setBusy(false); stopAudio(); clearPhoto(); };
   const close = () => { const wasBusy=busy; clearInterval(screenWatch); screenWatch=null; invalidate(); if(wasBusy) answer.textContent="궁금한 것을 물어봐!"; status.textContent=""; panel.classList.remove("open"); launch.focus(); };
   function refreshScreen() {
     const current=screenContext(), signature=JSON.stringify(current.payload);
@@ -119,7 +156,7 @@
     if (!prompt || busy) return;
     const current=screenContext(), screenPayload=JSON.stringify(current.payload); screenLabel.textContent=current.label;
     if(screenPayload!==lastScreenPayload){answer.textContent="궁금한 것을 물어봐!";status.textContent="";lastScreenPayload=screenPayload;}
-    const token=++generation; controller=new AbortController(); setBusy(true); answer.textContent="답을 준비하고 있어…"; status.textContent="답변을 기다리고 있어요…";
+    const token=++generation; controller=new AbortController(); setBusy(true); clearPhoto(); answer.textContent="답을 준비하고 있어…"; status.textContent="답변을 기다리고 있어요…";
     try {
       const response=await fetch("/ai/companion/chat",{method:"POST",headers:{"Content-Type":"application/json","X-Requested-With":"XMLHttpRequest"},body:JSON.stringify({prompt,context:current.payload}),signal:controller.signal,credentials:"same-origin"});
       const data=await response.json();
@@ -127,7 +164,7 @@
       if (JSON.stringify(screenContext().payload)!==JSON.stringify(current.payload)) { answer.textContent="화면이 바뀌었어. 지금 화면을 보고 다시 물어봐."; status.textContent="화면이 바뀌어서 답을 표시하지 않았어."; return; }
       if (response.status===503 && data.error==="ai_unavailable") throw new Error("AI 친구가 아직 꺼져 있어. 보호자가 설정을 확인해 줘.");
       if (!response.ok || !data.ok || typeof data.answer!=="string") throw new Error("AI 친구가 잠시 쉴게. 조금 뒤에 다시 물어봐.");
-      answer.textContent=data.answer; status.textContent="답변이 도착했어!";
+      answer.textContent=data.answer; renderPhoto(data.photo); status.textContent="답변이 도착했어!";
     } catch (error) {
       if (token===generation && error.name!=="AbortError") { answer.textContent="아직 답을 받지 못했어. 다시 물어봐."; status.textContent=error.message||"연결할 수 없어요."; }
     } finally {

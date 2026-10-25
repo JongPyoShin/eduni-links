@@ -18,6 +18,7 @@ from nicegui import app
 from .config import AIConfigError, load_ai_config
 from .providers import build_provider
 from .providers.base import ProviderError, ProviderTimeoutError, ProviderUnavailableError
+from .educational_photos import select_photo
 
 MAX_BODY = 8_000
 MAX_PROMPT = 500
@@ -202,7 +203,13 @@ async def companion_chat(request: Request) -> JSONResponse:
         status, answer = await asyncio.to_thread(_run_provider, prompt, context, caller)
         if status:
             return _error("busy" if status == 429 else "ai_unavailable", status)
-        return JSONResponse({"ok": True, "answer": answer}, headers={"Cache-Control": "no-store"})
+        # Photos are chosen only from a reviewed, static catalog. Never pass
+        # model-authored links through to a child's browser.
+        photo = select_photo(prompt)
+        payload: dict[str, Any] = {"ok": True, "answer": answer}
+        if photo:
+            payload["photo"] = photo
+        return JSONResponse(payload, headers={"Cache-Control": "no-store"})
     except TimeoutError:
         return _error("ai_timeout", 504)
     except (AIConfigError, ProviderUnavailableError):

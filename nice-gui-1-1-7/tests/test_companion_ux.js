@@ -16,6 +16,12 @@ function fixture() {
   for (const selector of ['textarea','#eduni-companion-answer','#eduni-companion-status','#eduni-companion-screen',
     '[data-action="send"]','[data-action="voice"]','[data-action="speak"]','.close']) controls.set(selector,element());
   const chips = ['힌트 줘','쉽게 설명해 줘'].map(prompt=>{const chip=element();chip.dataset.prompt=prompt;return chip;});
+  const photo=element(),image=element(),title=element(),credit=element(),sourceLink=element();
+  image.removeAttribute=function(name){delete this[name];};
+  photo.hidden=true;
+  const photoFields=new Map([['img',image],['.photo-title',title],['.photo-credit',credit],['.photo-source',sourceLink]]);
+  photo.querySelector=selector=>photoFields.get(selector);
+  controls.set('#eduni-companion-photo',photo);
   const panel=element();panel.querySelector=selector=>controls.get(selector);panel.querySelectorAll=selector=>selector==='[data-prompt]'?chips:[];
   const launch=element();
   const document={title:'EDUNI',documentElement:{style:{setProperty(){}}},body:{append(){}},getElementById(){return null;},
@@ -24,10 +30,10 @@ function fixture() {
   const window={addEventListener(){},EDUNICompanionPendingContext:{activity:'pattern_train',question:'첫 문제',choices:['A'],selected:''}};
   window.top=window.self=window;
   const sandbox={window,document,location:{pathname:'/pattern-train'},getComputedStyle:node=>node.style,
-    requestAnimationFrame(){},setInterval(){return 1;},clearInterval(){},AbortController,
+    requestAnimationFrame(){},setInterval(){return 1;},clearInterval(){},AbortController,URL,
     fetch:(_url,options)=>new Promise((resolve,reject)=>requests.push({options,resolve,reject}))};
   vm.runInNewContext(source,sandbox);
-  return {window,panel,launch,controls,chips,requests};
+  return {window,panel,launch,controls,chips,requests,photo,image,title,credit,sourceLink};
 }
 const response=(status,body)=>({status,ok:status===200,json:async()=>body});
 
@@ -63,6 +69,42 @@ async function main(){
   f.requests[2].reject(new Error('network offline'));
   await new Promise(setImmediate);
   assert.equal(f.controls.get('#eduni-companion-answer').textContent,'아직 답을 받지 못했어. 다시 물어봐.','network failure clears waiting answer');
-  console.log('PASS: immediate quick send, no autofocus, busy guard, fresh context, cancellation, 503/network failures');
+  f.controls.get('textarea').value='북극곰 사진 보여줘';
+  f.controls.get('[data-action="send"]').events.click();
+  f.requests[3].resolve(response(200,{ok:true,answer:'북극곰을 보자!',photo:{
+    topic:'polar_bear',title:'북극곰',alt:'알래스카 북극곰',
+    url:'https://commons.wikimedia.org/wiki/Special:FilePath/Polar_Bear.jpg?width=640',
+    source_url:'https://commons.wikimedia.org/wiki/File:Polar_Bear.jpg',
+    credit:'U.S. Fish and Wildlife Service',license:'공개 도메인'
+  }}));
+  await new Promise(setImmediate);
+  assert.equal(f.photo.hidden,false,'matching photo visible');
+  assert.equal(f.image.alt,'알래스카 북극곰');
+  assert.ok(f.image.src.includes('commons.wikimedia.org'),'Wikimedia image only');
+  assert.equal(f.credit.textContent,'촬영·제공: U.S. Fish and Wildlife Service · 공개 도메인');
+  assert.equal(f.controls.get('#eduni-companion-answer').textContent,'북극곰을 보자!');
+  assert.ok(f.sourceLink.href.endsWith('/wiki/File:Polar_Bear.jpg'),'attribution source link visible');
+  f.controls.get('textarea').value='다른 사진';
+  f.controls.get('[data-action="send"]').events.click();
+  assert.equal(f.photo.hidden,true,'new question clears stale photo before waiting');
+  f.requests[4].resolve(response(200,{ok:true,answer:'안전하게 답할게',photo:{
+    title:'잘못된 URL',alt:'not real',credit:'Fake',license:'none',
+    url:'https://evil.example/malicious.jpg',
+    source_url:'https://commons.wikimedia.org/wiki/File:Polar_Bear.jpg'
+  }}));
+  await new Promise(setImmediate);
+  assert.equal(f.photo.hidden,true,'foreign host never rendered');
+  f.controls.get('textarea').value='고양이';
+  f.controls.get('[data-action="send"]').events.click();
+  f.requests[5].resolve(response(200,{ok:true,answer:'고양이!',photo:{
+    title:'고양이',alt:'고양이 실물',credit:'Alvesgaspar',license:'CC BY-SA 3.0',
+    url:'https://commons.wikimedia.org/wiki/Special:FilePath/Cat_November_2010-1a.jpg?width=640',
+    source_url:'https://commons.wikimedia.org/wiki/File:Cat_November_2010-1a.jpg'
+  }}));
+  await new Promise(setImmediate);
+  assert.equal(f.photo.hidden,false,'second valid photo visible');
+  f.window.EDUNICompanion.setContext({activity:'pattern_train',question:'새로운 문제',choices:[],selected:''});
+  assert.equal(f.photo.hidden,true,'context change removes old photo');
+  console.log('PASS: interaction, trusted photo rendering, source attribution, untrusted URL rejection, stale image cleanup');
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});

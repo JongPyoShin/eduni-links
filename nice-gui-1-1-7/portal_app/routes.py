@@ -28,6 +28,7 @@ EDUNI_JUNGLE_URL = "/jungle"
 EDUNI_SURVIVAL_URL = "/survival"
 EDUNI_GAME_PORTAL_URL = "/portal/games"
 EDUNI_PHONICS_URL = "/portal/english/phonics"
+EDUNI_MATH_PLAYFACTORY_URL = "/portal/math/playfactory"
 GAME_STATIC_DIR = Path(__file__).resolve().parent / "static_games"
 JUNGLE_STATIC_DIR = Path(__file__).resolve().parent / "jungle_static"
 SURVIVAL_STATIC_DIR = Path(__file__).resolve().parent / "survival_static"
@@ -57,6 +58,12 @@ def _game_html_response(filename: str) -> HTMLResponse:
 def english_phonics_page() -> HTMLResponse:
     """Static client-side phonics lesson; the portal never receives microphone audio."""
     return _game_html_response("eduni_phonics.html")
+
+
+@app.get(EDUNI_MATH_PLAYFACTORY_URL, response_class=HTMLResponse)
+def math_playfactory_page() -> HTMLResponse:
+    """Three self-contained, client-side math board games for the family portal."""
+    return _game_html_response("eduni_math_playfactory.html")
 
 
 def _redirect_html(title: str, url: str) -> HTMLResponse:
@@ -307,6 +314,8 @@ def register_pages() -> None:
                 _portal_card(EDUNI_GAME_PORTAL_URL, "🎮 의준이 게임포털",
                              "정글·북극·피라미드 서바이벌과 모든 게임을 한곳에서 선택", "게임 모음", "portal-game-green")
                 _portal_card("/portal/world/math", "수학탐험대", "수학 학습 활동 바로가기", "학습", "portal-game-violet")
+                _portal_card(EDUNI_MATH_PLAYFACTORY_URL, "🎲 수학 보드게임 3종",
+                             "수와 연산 · 평면도형 · 공간전략게임", "7세 수학", "portal-game-amber")
                 _portal_card(EDUNI_PHONICS_URL, "🔤 소리톡 파닉스", "영어 음가 따라 읽고 마이크로 말하기 연습", "영어 학습", "portal-game-blue")
                 _portal_card(HANJA_URL, "한자마을", "한자 시험과 학습", "학습", "portal-game-amber")
 
@@ -338,6 +347,8 @@ def register_pages() -> None:
                              "🌴 정글 · ❄️ 북극 · 🏺 피라미드 · 자동 숨기 · 열쇠 탈출", "3개 월드", "portal-game-green")
             _section_title("다른 게임", "다른 게임도 모두 이곳에서 시작할 수 있어요.")
             with ui.element("section").classes("portal-grid"):
+                _portal_card(EDUNI_MATH_PLAYFACTORY_URL, "🎲 수학 보드게임 3종",
+                             "수와 연산 · 평면도형 · 공간전략게임", "학습 게임", "portal-game-amber")
                 _portal_card(EDUNI_JUNGLE_URL, "정글 새탐험", "정글을 탐험하며 새를 모아요", "탐험", "portal-game-jungle")
                 _portal_card(EDUNI_LINK_URL, "의준 링크", "얼굴 블록을 잇는 모바일 퍼즐", "퍼즐", "portal-game-pink")
                 _portal_card(EDUNI_OMOK_URL, "AI 오목", "AI 친구와 오목 대결", "전략", "portal-game-violet")
@@ -360,6 +371,10 @@ def register_pages() -> None:
             ui.label(world.title).classes("text-h3 text-weight-bold q-mt-lg")
             ui.label(world.skill).classes("muted text-subtitle1")
             ui.separator().classes("q-my-md")
+            if world_id == "math":
+                ui.link("🎲 수학 보드게임 3종 시작하기", EDUNI_MATH_PLAYFACTORY_URL).classes(
+                    "portal-action q-btn q-btn-item q-btn--standard bg-orange text-white q-mb-md"
+                )
             activities = [activity for activity in load_activities() if activity.world == world.id]
             if activities:
                 with ui.element("section").classes("portal-grid"):

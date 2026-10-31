@@ -20,6 +20,11 @@ $activePointer = Get-Content -Raw $activePointerPath | ConvertFrom-Json
 $releaseFile = if ([IO.Path]::IsPathRooted([string]$activePointer.release_path)) { [string]$activePointer.release_path } else { Join-Path $HostConfigDir $activePointer.release_path }
 $releaseFile = [IO.Path]::GetFullPath($releaseFile)
 $release = Get-Content -Raw $releaseFile | ConvertFrom-Json
+if ($release.source_git_commit) {
+  $head = git -C $repoRoot rev-parse HEAD
+  Assert ($LASTEXITCODE -eq 0 -and $head -eq $release.source_git_commit) 'Release source commit mismatch'
+  Assert (-not (git -C $repoRoot status --porcelain)) 'Release source worktree must be clean'
+}
 $compose = Join-Path $HostConfigDir 'compose.yml'
 $relayCompose = Join-Path $HostConfigDir 'relay.compose.yml'
 $dbEnvFile = if ([IO.Path]::IsPathRooted([string]$release.env_file)) { [string]$release.env_file } else { Join-Path $HostConfigDir $release.env_file }
@@ -50,8 +55,8 @@ function CheckRoutes([bool]$CheckAI) {
     Assert ($r.StatusCode -eq 200) "Retained feature failed: $($feature.path)"
     if ($feature.marker) { Assert ($r.Content.Contains($feature.marker)) "Retained feature content marker missing: $($feature.path)" }
     if ($feature.source_file) {
-      $source = Get-Content -Raw (Join-Path $sourceRoot $feature.source_file)
-      Assert ($source.Contains($feature.source_marker)) "Retained feature source marker missing: $($feature.path)"
+      $found = docker exec eduni-game python -c "from pathlib import Path; import sys; print('yes' if sys.argv[2] in (Path('/app') / sys.argv[1]).read_text(encoding='utf-8') else 'no')" $feature.source_file $feature.source_marker
+      Assert ($LASTEXITCODE -eq 0 -and $found -eq 'yes') "Running feature source marker missing: $($feature.path)"
     }
   }
   $ready = Invoke-RestMethod -Uri $release.relay.ready_url -TimeoutSec 5
@@ -103,6 +108,9 @@ Assert (Test-Path -LiteralPath $dbEnvFile) 'Existing database env file missing'
 Assert (Test-Path -LiteralPath $companionEnvFile) 'Existing companion env file missing'
 $built = (DockerJson @('image','inspect',$release.app.image_tag))[0]
 Assert ($built.Id -eq $release.app.image_id) 'Local release tag does not match the pinned image ID'
+if ($release.source_git_commit) {
+  Assert ($built.Config.Labels.'org.opencontainers.image.revision' -eq $release.source_git_commit) 'Image source revision mismatch'
+}
 $relayBuilt = (DockerJson @('image','inspect',$release.relay.image_tag))[0]
 Assert ($relayBuilt.Id -eq $release.relay.image_id) 'Canonical relay image tag does not match its pinned ID'
 $cfgText = & docker compose -p $release.project --project-directory $HostConfigDir --env-file $dbEnvFile -f $compose config --format json

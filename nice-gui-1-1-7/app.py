@@ -4,9 +4,12 @@ import re
 import base64
 from pathlib import Path
 
-from nicegui import ui
+from nicegui import app as fastapi_app, ui
+from fastapi.responses import RedirectResponse
 
 from portal_app.routes import register_pages
+from portal_app.ai.companion import COMPANION_ASSET_TAGS
+from portal_app import hanja  # register the single-process Hanja routes/API
 
 
 GAME_HTML = r'''
@@ -1228,7 +1231,40 @@ def load_praise_character_data_urls() -> list[str]:
     return data_urls
 
 
+CANONICAL_QUESTIONS_PATH = Path(__file__).parent.parent / 'shared' / 'bubble_shooter_questions.json'
+
+
+def _load_canonical_questions() -> list[dict[str, object]]:
+    """Load questions from the canonical shared dataset."""
+    if not CANONICAL_QUESTIONS_PATH.exists():
+        return []
+    try:
+        data = json.loads(CANONICAL_QUESTIONS_PATH.read_text(encoding='utf-8'))
+    except (json.JSONDecodeError, OSError):
+        return []
+    if not isinstance(data, dict) or data.get('schemaVersion') != 1:
+        return []
+    questions: list[dict[str, object]] = []
+    for entry in data.get('questions', []):
+        hanja = entry.get('hanja', '')
+        reading = entry.get('reading', '')
+        if not hanja or not reading:
+            continue
+        questions.append({
+            'target': hanja,
+            'answerLabel': reading,
+            'meaningSound': reading,
+            'explanation': f"정답은 {hanja}입니다. {hanja}은(는) {reading}입니다.",
+        })
+    return questions
+
+
 def load_bubble_questions() -> list[dict[str, object]]:
+    # Prefer canonical shared dataset
+    canonical = _load_canonical_questions()
+    if canonical:
+        return canonical
+    # Fallback to legacy quiz files
     questions: list[dict[str, object]] = []
     for set_no in [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 1, 2, 3, 4]:
         path = HANJA_OUTPUT_DIR / f'hanja_quiz_set_{set_no:02d}.json'
@@ -2114,8 +2150,10 @@ SHOOTER_HTML_TEMPLATE = r'''
   }
 </style>
 
+__SHOOTER_LOGIC_SCRIPT__
 <script>
 (() => {
+  const L = window.EDUNIBubbleShooterLogic;
   const sourceQuestions = __QUESTIONS_JSON__.filter(q => q.target && q.answerLabel);
   const praiseCharacterImages = __PRAISE_CHARACTERS_JSON__;
   const canvas = document.getElementById('shooterCanvas');
@@ -2229,9 +2267,11 @@ SHOOTER_HTML_TEMPLATE = r'''
       finishGame(true);
       return;
     }
-    const frontY = Math.max(...live.map(b => b.y));
-    const front = live.filter(b => Math.abs(b.y - frontY) < state.radius * 0.8);
-    state.current = front[Math.floor(Math.random() * front.length)];
+    state.current = L ? L.selectTarget(state.bubbles, state.radius) : (() => {
+      const frontY = Math.max(...live.map(b => b.y));
+      const front = live.filter(b => Math.abs(b.y - frontY) < state.radius * 0.8);
+      return front[Math.floor(Math.random() * front.length)];
+    })();
     statusEl.textContent = `'${state.current.meaningSound || state.current.answerLabel}' 버블을 맞는 한자에 쏘자`;
   }
 
@@ -2244,6 +2284,7 @@ SHOOTER_HTML_TEMPLATE = r'''
     state.shot = null;
     state.waiting = false;
     state.gameOver = false;
+    state.generation = (state.generation || 0) + 1;
     overlay.classList.add('hidden');
     scoreEl.textContent = '0';
     resizeCanvas();
@@ -2433,7 +2474,7 @@ SHOOTER_HTML_TEMPLATE = r'''
 
   function pointerPoint(event) {
     const rect = canvas.getBoundingClientRect();
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    return L ? L.pointerToCss(event, rect) : { x: event.clientX - rect.left, y: event.clientY - rect.top };
   }
 
   function startAim(event) {
@@ -2494,7 +2535,28 @@ SHOOTER_HTML_TEMPLATE = r'''
 
   function handleHit(hit) {
     if (!state.shot) return;
-    if (hit.target === state.shot.target) {
+    const shotResult = L ? L.resolveShot({ shot: state.shot, hitBubble: hit, bubbles: state.bubbles, shotTarget: state.shot.target }) : null;
+    if (shotResult && shotResult.type === 'correct') {
+      state.waiting = true;
+      state.score += shotResult.scoreDelta;
+      scoreEl.textContent = String(state.score);
+      state.bubbles = shotResult.bubbles;
+      const say = praise[Math.floor(Math.random() * praise.length)];
+      statusEl.textContent = `${say} 정답 버블을 터뜨렸어`;
+      playTone(780, 0.11, 'triangle');
+      setTimeout(() => playTone(980, 0.12, 'triangle'), 80);
+      setTimeout(() => showPraise(hit, say), 220);
+    } else if (shotResult && shotResult.type === 'clear') {
+      state.waiting = true;
+      state.score += shotResult.scoreDelta;
+      scoreEl.textContent = String(state.score);
+      state.bubbles = shotResult.bubbles;
+      const say = praise[Math.floor(Math.random() * praise.length)];
+      statusEl.textContent = `${say} 정답 버블을 터뜨렸어`;
+      playTone(780, 0.11, 'triangle');
+      setTimeout(() => playTone(980, 0.12, 'triangle'), 80);
+      setTimeout(() => finishGame(true), 220);
+    } else if (hit.target === state.shot.target) {
       state.waiting = true;
       state.score += 100;
       scoreEl.textContent = String(state.score);
@@ -2513,13 +2575,14 @@ SHOOTER_HTML_TEMPLATE = r'''
   function missShot() {
     playTone(180, 0.1, 'sine');
     state.shot = null;
-    afterTurn();
+    afterTurn(true);
   }
 
-  function afterTurn() {
-    addBackRowBubble();
+  function afterTurn(addBubble) {
+    if (addBubble) addBackRowBubble();
     layoutBubbles();
-    if (state.bubbles.some(b => b.y + b.r > state.baseY - state.radius * 2.2)) {
+    const dangerY = state.baseY - state.radius * 2.2;
+    if (L ? L.isDanger(state.bubbles, dangerY) : state.bubbles.some(b => b.y + b.r > dangerY)) {
       finishGame(false);
       return;
     }
@@ -2560,10 +2623,12 @@ SHOOTER_HTML_TEMPLATE = r'''
     praisePop.style.animation = 'none';
     void praisePop.offsetWidth;
     praisePop.style.animation = '';
+    const gen = state.generation;
     window.setTimeout(() => {
+      if (L ? !L.isGenerationValid(gen, state.generation) : state.generation !== gen) return;
       praisePop.classList.add('hidden');
       state.waiting = false;
-      afterTurn();
+      afterTurn(false);
     }, 980);
   }
 
@@ -2603,7 +2668,7 @@ SHOOTER_HTML_TEMPLATE = r'''
       return;
     }
     state.waiting = false;
-    afterTurn();
+    afterTurn(true);
   }
 
   function playTone(freq, duration, type) {
@@ -2647,6 +2712,25 @@ SHOOTER_HTML_TEMPLATE = r'''
 '''
 
 
+_SHOOTER_LOGIC_JS: str | None = None
+
+
+def _load_shooter_logic_js() -> str:
+    global _SHOOTER_LOGIC_JS
+    if _SHOOTER_LOGIC_JS is not None:
+        return _SHOOTER_LOGIC_JS
+    logic_path = os.path.join(
+        os.path.dirname(__file__),
+        'portal_app', 'static_games', 'eduni_bubble_shooter_logic.js',
+    )
+    try:
+        with open(logic_path, encoding='utf-8') as f:
+            _SHOOTER_LOGIC_JS = f.read()
+    except Exception:
+        _SHOOTER_LOGIC_JS = ''
+    return _SHOOTER_LOGIC_JS
+
+
 def shooter_html() -> str:
     questions = load_bubble_questions()
     if not questions:
@@ -2658,18 +2742,27 @@ def shooter_html() -> str:
                 'explanation': '정답은 冬입니다. 冬은 겨울 동입니다. 예시 단어는 冬至(동지), 冬眠(동면)입니다.',
             }
         ]
+    logic_js = _load_shooter_logic_js()
+    logic_script = f'<script id="eduni-shooter-logic">\n{logic_js}\n</script>' if logic_js else ''
     return (
         SHOOTER_HTML_TEMPLATE
         .replace('__QUESTIONS_JSON__', json.dumps(questions, ensure_ascii=False))
         .replace('__PRAISE_CHARACTERS_JSON__', json.dumps(load_praise_character_data_urls()))
+        .replace('__SHOOTER_LOGIC_SCRIPT__', logic_script)
     )
 
 
-@ui.page('/')
+@fastapi_app.get('/', include_in_schema=False)
+async def root_redirect() -> RedirectResponse:
+    return RedirectResponse('/portal', status_code=307)
+
+
+@ui.page('/blockpuzzle')
 def index() -> None:
     ui.add_head_html(
         '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">'
     )
+    ui.add_head_html(COMPANION_ASSET_TAGS)
     ui.add_body_html(GAME_HTML)
 
 
@@ -2678,6 +2771,7 @@ def bubble() -> None:
     ui.add_head_html(
         '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">'
     )
+    ui.add_head_html(COMPANION_ASSET_TAGS)
     ui.add_body_html(bubble_html())
 
 
@@ -2686,6 +2780,7 @@ def bubble_shooter() -> None:
     ui.add_head_html(
         '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">'
     )
+    ui.add_head_html(COMPANION_ASSET_TAGS)
     ui.add_body_html(shooter_html())
 
 
@@ -2693,6 +2788,6 @@ register_pages()
 
 
 if __name__ in {'__main__', '__mp_main__'}:
-    port = int(os.environ.get('PORT', '8080'))
+    port = int(os.environ.get('PORT', '18081'))
     host = os.environ.get('EDUNI_HOST', '127.0.0.1')
     ui.run(title='EDUNI', host=host, port=port, reload=False)

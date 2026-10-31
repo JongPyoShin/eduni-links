@@ -1,0 +1,493 @@
+{
+  "schemaVersion": 1,
+  "questions": [
+    {
+      "hanja": "不",
+      "reading": "불"
+    },
+    {
+      "hanja": "世",
+      "reading": "인간 세"
+    },
+    {
+      "hanja": "中",
+      "reading": "가운데 중"
+    },
+    {
+      "hanja": "主",
+      "reading": "주인 주"
+    },
+    {
+      "hanja": "事",
+      "reading": "사"
+    },
+    {
+      "hanja": "人",
+      "reading": "사람 인"
+    },
+    {
+      "hanja": "休",
+      "reading": "휴"
+    },
+    {
+      "hanja": "住",
+      "reading": "주"
+    },
+    {
+      "hanja": "來",
+      "reading": "올 래"
+    },
+    {
+      "hanja": "便",
+      "reading": "편"
+    },
+    {
+      "hanja": "兄",
+      "reading": "형"
+    },
+    {
+      "hanja": "先",
+      "reading": "선"
+    },
+    {
+      "hanja": "入",
+      "reading": "들 입"
+    },
+    {
+      "hanja": "內",
+      "reading": "내"
+    },
+    {
+      "hanja": "全",
+      "reading": "전"
+    },
+    {
+      "hanja": "冬",
+      "reading": "겨울 동"
+    },
+    {
+      "hanja": "出",
+      "reading": "출"
+    },
+    {
+      "hanja": "前",
+      "reading": "전"
+    },
+    {
+      "hanja": "力",
+      "reading": "력"
+    },
+    {
+      "hanja": "動",
+      "reading": "움직일 동"
+    },
+    {
+      "hanja": "午",
+      "reading": "오"
+    },
+    {
+      "hanja": "口",
+      "reading": "구"
+    },
+    {
+      "hanja": "同",
+      "reading": "동"
+    },
+    {
+      "hanja": "名",
+      "reading": "이름 명"
+    },
+    {
+      "hanja": "命",
+      "reading": "목숨 명"
+    },
+    {
+      "hanja": "問",
+      "reading": "물을 문"
+    },
+    {
+      "hanja": "國",
+      "reading": "국"
+    },
+    {
+      "hanja": "土",
+      "reading": "토"
+    },
+    {
+      "hanja": "地",
+      "reading": "지"
+    },
+    {
+      "hanja": "場",
+      "reading": "장"
+    },
+    {
+      "hanja": "夏",
+      "reading": "하"
+    },
+    {
+      "hanja": "夕",
+      "reading": "저녁 석"
+    },
+    {
+      "hanja": "外",
+      "reading": "외"
+    },
+    {
+      "hanja": "天",
+      "reading": "천"
+    },
+    {
+      "hanja": "夫",
+      "reading": "지아비 부"
+    },
+    {
+      "hanja": "姓",
+      "reading": "성 성"
+    },
+    {
+      "hanja": "子",
+      "reading": "자"
+    },
+    {
+      "hanja": "字",
+      "reading": "자"
+    },
+    {
+      "hanja": "孝",
+      "reading": "효"
+    },
+    {
+      "hanja": "學",
+      "reading": "학"
+    },
+    {
+      "hanja": "安",
+      "reading": "안"
+    },
+    {
+      "hanja": "室",
+      "reading": "실"
+    },
+    {
+      "hanja": "家",
+      "reading": "가"
+    },
+    {
+      "hanja": "寸",
+      "reading": "촌"
+    },
+    {
+      "hanja": "少",
+      "reading": "적을 소"
+    },
+    {
+      "hanja": "山",
+      "reading": "산"
+    },
+    {
+      "hanja": "川",
+      "reading": "천"
+    },
+    {
+      "hanja": "工",
+      "reading": "공"
+    },
+    {
+      "hanja": "市",
+      "reading": "시"
+    },
+    {
+      "hanja": "平",
+      "reading": "평"
+    },
+    {
+      "hanja": "年",
+      "reading": "년"
+    },
+    {
+      "hanja": "弟",
+      "reading": "아우 제"
+    },
+    {
+      "hanja": "後",
+      "reading": "후"
+    },
+    {
+      "hanja": "心",
+      "reading": "마음 심"
+    },
+    {
+      "hanja": "所",
+      "reading": "바 소"
+    },
+    {
+      "hanja": "手",
+      "reading": "손 수"
+    },
+    {
+      "hanja": "教",
+      "reading": "교"
+    },
+    {
+      "hanja": "數",
+      "reading": "셈 수"
+    },
+    {
+      "hanja": "文",
+      "reading": "문"
+    },
+    {
+      "hanja": "方",
+      "reading": "모 방"
+    },
+    {
+      "hanja": "旗",
+      "reading": "기"
+    },
+    {
+      "hanja": "春",
+      "reading": "춘"
+    },
+    {
+      "hanja": "時",
+      "reading": "시"
+    },
+    {
+      "hanja": "月",
+      "reading": "월"
+    },
+    {
+      "hanja": "有",
+      "reading": "유"
+    },
+    {
+      "hanja": "木",
+      "reading": "목"
+    },
+    {
+      "hanja": "村",
+      "reading": "촌"
+    },
+    {
+      "hanja": "林",
+      "reading": "림"
+    },
+    {
+      "hanja": "校",
+      "reading": "교"
+    },
+    {
+      "hanja": "植",
+      "reading": "심을 식"
+    },
+    {
+      "hanja": "歌",
+      "reading": "가"
+    },
+    {
+      "hanja": "正",
+      "reading": "바를 정"
+    },
+    {
+      "hanja": "民",
+      "reading": "민"
+    },
+    {
+      "hanja": "氣",
+      "reading": "기운 기"
+    },
+    {
+      "hanja": "水",
+      "reading": "수"
+    },
+    {
+      "hanja": "江",
+      "reading": "강"
+    },
+    {
+      "hanja": "洞",
+      "reading": "골 동"
+    },
+    {
+      "hanja": "海",
+      "reading": "해"
+    },
+    {
+      "hanja": "漢",
+      "reading": "한수 한"
+    },
+    {
+      "hanja": "火",
+      "reading": "화"
+    },
+    {
+      "hanja": "然",
+      "reading": "연"
+    },
+    {
+      "hanja": "物",
+      "reading": "물"
+    },
+    {
+      "hanja": "王",
+      "reading": "왕"
+    },
+    {
+      "hanja": "生",
+      "reading": "생"
+    },
+    {
+      "hanja": "登",
+      "reading": "오를 등"
+    },
+    {
+      "hanja": "白",
+      "reading": "백"
+    },
+    {
+      "hanja": "直",
+      "reading": "곧을 직"
+    },
+    {
+      "hanja": "祖",
+      "reading": "할아비 조"
+    },
+    {
+      "hanja": "秋",
+      "reading": "가을 추"
+    },
+    {
+      "hanja": "空",
+      "reading": "공"
+    },
+    {
+      "hanja": "立",
+      "reading": "립"
+    },
+    {
+      "hanja": "算",
+      "reading": "셈 산"
+    },
+    {
+      "hanja": "紙",
+      "reading": "종이 지"
+    },
+    {
+      "hanja": "老",
+      "reading": "로"
+    },
+    {
+      "hanja": "育",
+      "reading": "육"
+    },
+    {
+      "hanja": "自",
+      "reading": "자"
+    },
+    {
+      "hanja": "花",
+      "reading": "꽃 화"
+    },
+    {
+      "hanja": "草",
+      "reading": "풀 초"
+    },
+    {
+      "hanja": "記",
+      "reading": "기"
+    },
+    {
+      "hanja": "話",
+      "reading": "말씀 화"
+    },
+    {
+      "hanja": "赤",
+      "reading": "적"
+    },
+    {
+      "hanja": "足",
+      "reading": "족"
+    },
+    {
+      "hanja": "車",
+      "reading": "차"
+    },
+    {
+      "hanja": "軍",
+      "reading": "군사 군"
+    },
+    {
+      "hanja": "農",
+      "reading": "농사 농"
+    },
+    {
+      "hanja": "道",
+      "reading": "도"
+    },
+    {
+      "hanja": "邑",
+      "reading": "고을 읍"
+    },
+    {
+      "hanja": "里",
+      "reading": "리"
+    },
+    {
+      "hanja": "重",
+      "reading": "무거울 중"
+    },
+    {
+      "hanja": "金",
+      "reading": "금"
+    },
+    {
+      "hanja": "長",
+      "reading": "장"
+    },
+    {
+      "hanja": "門",
+      "reading": "문 문"
+    },
+    {
+      "hanja": "間",
+      "reading": "간"
+    },
+    {
+      "hanja": "雨",
+      "reading": "우"
+    },
+    {
+      "hanja": "雪",
+      "reading": "설"
+    },
+    {
+      "hanja": "電",
+      "reading": "전"
+    },
+    {
+      "hanja": "靑",
+      "reading": "푸를 청"
+    },
+    {
+      "hanja": "青",
+      "reading": "청"
+    },
+    {
+      "hanja": "面",
+      "reading": "면"
+    },
+    {
+      "hanja": "韓",
+      "reading": "한"
+    },
+    {
+      "hanja": "食",
+      "reading": "먹을 식"
+    },
+    {
+      "hanja": "정",
+      "reading": "정"
+    }
+  ]
+}

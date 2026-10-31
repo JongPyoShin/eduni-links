@@ -55,3 +55,9 @@ Report only:
 - compatibility result for affected existing routes
 - commit SHA
 - remaining risks
+
+## EDUNI production release
+- Read `ops/eduni-production/POLICY.md` before release work.
+- Build the complete portal from a clean recorded commit with `docker build -f nice-gui-1-1-7/Dockerfile -t <immutable-image-ref> .` at the repository root. Release by immutable image digest; do not build on the production host.
+- Keep Compose files and secrets in the host-owned configuration directory outside this repository. Use the tracked EDUNI files as templates only; never commit host manifests or credentials.
+- Use the canonical Compose app-only replacement procedure, preserve `/data` and unrelated services, and do not run the retired `nice-gui-1-1-7/scripts/start_eduni_services.ps1` or `watch_eduni_services.ps1` launchers.

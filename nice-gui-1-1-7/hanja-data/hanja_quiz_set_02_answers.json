@@ -1,0 +1,579 @@
+{
+  "quiz_set_id": "hanja_quiz_set_02",
+  "quiz_title": "한자 6급 대비 1회 모의시험",
+  "quiz_file": "hanja_quiz_set_02.json",
+  "saved_at": "2026-06-06T11:43:16",
+  "total_questions": 30,
+  "answered_questions": 3,
+  "unanswered_questions": [
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30
+  ],
+  "answers": [
+    {
+      "number": 1,
+      "type": "choice",
+      "topic": "뜻과 음",
+      "question": "한자 '家'의 뜻과 음으로 알맞은 것은?",
+      "choices": [
+        "집 가",
+        "노래 가",
+        "각각 각",
+        "사이 간"
+      ],
+      "selected_answer": 1,
+      "selected_choice": "집 가",
+      "correct_answer": 1,
+      "correct_choice": "집 가",
+      "is_correct": true,
+      "explanation": "家는 '집'이라는 뜻이고 음은 '가'입니다."
+    },
+    {
+      "number": 2,
+      "type": "choice",
+      "topic": "뜻과 음",
+      "question": "한자 '強'의 뜻과 음으로 알맞은 것은?",
+      "choices": [
+        "강할 강",
+        "강 강",
+        "열 개",
+        "수레 거"
+      ],
+      "selected_answer": 1,
+      "selected_choice": "강할 강",
+      "correct_answer": 1,
+      "correct_choice": "강할 강",
+      "is_correct": true,
+      "explanation": "強은 '강하다'의 뜻을 가진 한자로, 음은 '강'입니다. 江은 물이 흐르는 '강 강'입니다."
+    },
+    {
+      "number": 3,
+      "type": "choice",
+      "topic": "뜻 구별",
+      "question": "'학교 교'에 해당하는 한자는?",
+      "choices": [
+        "交",
+        "教",
+        "校",
+        "郊"
+      ],
+      "selected_answer": 2,
+      "selected_choice": "教",
+      "correct_answer": 3,
+      "correct_choice": "校",
+      "is_correct": false,
+      "explanation": "校는 학교를 뜻합니다. 交는 사귈 교, 教는 가르칠 교입니다."
+    },
+    {
+      "number": 4,
+      "type": "choice",
+      "topic": "음 구별",
+      "question": "음이 '금'인 한자로만 묶인 것은?",
+      "choices": [
+        "今, 金",
+        "根, 近",
+        "急, 級",
+        "功, 工"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 1,
+      "correct_choice": "今, 金",
+      "is_correct": false,
+      "explanation": "今은 이제 금, 金은 쇠 금입니다."
+    },
+    {
+      "number": 5,
+      "type": "choice",
+      "topic": "뜻과 음",
+      "question": "한자 '農'의 뜻과 음으로 알맞은 것은?",
+      "choices": [
+        "해 년",
+        "농사 농",
+        "많을 다",
+        "남녘 남"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 2,
+      "correct_choice": "농사 농",
+      "is_correct": false,
+      "explanation": "農은 농사와 관련된 한자로, 뜻은 '농사', 음은 '농'입니다."
+    },
+    {
+      "number": 6,
+      "type": "choice",
+      "topic": "비슷한 음",
+      "question": "'대'로 읽는 한자가 아닌 것은?",
+      "choices": [
+        "代",
+        "對",
+        "待",
+        "圖"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 4,
+      "correct_choice": "圖",
+      "is_correct": false,
+      "explanation": "圖는 그림 도입니다. 代, 對, 待는 모두 음이 '대'입니다."
+    },
+    {
+      "number": 7,
+      "type": "choice",
+      "topic": "뜻 구별",
+      "question": "'머리 두'에 해당하는 한자는?",
+      "choices": [
+        "豆",
+        "頭",
+        "登",
+        "等"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 2,
+      "correct_choice": "頭",
+      "is_correct": false,
+      "explanation": "頭는 머리를 뜻하고 음은 두입니다."
+    },
+    {
+      "number": 8,
+      "type": "choice",
+      "topic": "뜻과 음",
+      "question": "한자 '綠'의 뜻과 음으로 알맞은 것은?",
+      "choices": [
+        "길 로",
+        "푸를 록",
+        "여섯 륙",
+        "이할 리"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 2,
+      "correct_choice": "푸를 록",
+      "is_correct": false,
+      "explanation": "綠은 푸르다, 초록빛을 뜻하며 음은 록입니다."
+    },
+    {
+      "number": 9,
+      "type": "choice",
+      "topic": "한자어 읽기",
+      "question": "한자어 '姓名'의 바른 읽기는?",
+      "choices": [
+        "성명",
+        "서명",
+        "생명",
+        "문명"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 1,
+      "correct_choice": "성명",
+      "is_correct": false,
+      "explanation": "姓은 성 성, 名은 이름 명이므로 姓名은 성명입니다."
+    },
+    {
+      "number": 10,
+      "type": "choice",
+      "topic": "뜻 구별",
+      "question": "'물을 문'에 해당하는 한자는?",
+      "choices": [
+        "文",
+        "聞",
+        "門",
+        "問"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 4,
+      "correct_choice": "問",
+      "is_correct": false,
+      "explanation": "問은 묻다, 질문하다의 뜻입니다. 文은 글월, 聞은 들을, 門은 문입니다."
+    },
+    {
+      "number": 11,
+      "type": "choice",
+      "topic": "반대 뜻",
+      "question": "'반 반'과 뜻이 가장 가까운 한자는?",
+      "choices": [
+        "半",
+        "反",
+        "班",
+        "番"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 1,
+      "correct_choice": "半",
+      "is_correct": false,
+      "explanation": "半은 둘로 나눈 한쪽, 곧 '반'을 뜻합니다."
+    },
+    {
+      "number": 12,
+      "type": "choice",
+      "topic": "뜻과 음",
+      "question": "한자 '父'의 뜻과 음으로 알맞은 것은?",
+      "choices": [
+        "지아비 부",
+        "아비 부",
+        "떼 부",
+        "북녘 북"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 2,
+      "correct_choice": "아비 부",
+      "is_correct": false,
+      "explanation": "父는 아버지를 뜻하는 '아비 부'입니다."
+    },
+    {
+      "number": 13,
+      "type": "choice",
+      "topic": "숫자 한자",
+      "question": "숫자 '넷'을 뜻하는 한자는?",
+      "choices": [
+        "三",
+        "四",
+        "五",
+        "七"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 2,
+      "correct_choice": "四",
+      "is_correct": false,
+      "explanation": "四는 넷을 뜻하고 음은 사입니다."
+    },
+    {
+      "number": 14,
+      "type": "choice",
+      "topic": "뜻 구별",
+      "question": "'줄 선'에 해당하는 한자는?",
+      "choices": [
+        "先",
+        "線",
+        "雪",
+        "席"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 2,
+      "correct_choice": "線",
+      "is_correct": false,
+      "explanation": "線은 줄, 선을 뜻합니다. 先은 먼저 선입니다."
+    },
+    {
+      "number": 15,
+      "type": "choice",
+      "topic": "비슷한 모양",
+      "question": "뜻이 '사라질 소'인 한자는?",
+      "choices": [
+        "小",
+        "少",
+        "所",
+        "消"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 4,
+      "correct_choice": "消",
+      "is_correct": false,
+      "explanation": "消는 사라지다, 없어지다의 뜻입니다."
+    },
+    {
+      "number": 16,
+      "type": "choice",
+      "topic": "뜻과 음",
+      "question": "한자 '習'의 뜻과 음으로 알맞은 것은?",
+      "choices": [
+        "재주 술",
+        "익힐 습",
+        "이길 승",
+        "비로소 시"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 2,
+      "correct_choice": "익힐 습",
+      "is_correct": false,
+      "explanation": "習은 배우고 익힌다는 뜻의 '익힐 습'입니다."
+    },
+    {
+      "number": 17,
+      "type": "choice",
+      "topic": "음 구별",
+      "question": "음이 '신'인 한자로만 묶인 것은?",
+      "choices": [
+        "信, 新, 神, 身",
+        "失, 室, 心, 十",
+        "食, 式, 植, 市",
+        "時, 始, 手, 水"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 1,
+      "correct_choice": "信, 新, 神, 身",
+      "is_correct": false,
+      "explanation": "信, 新, 神, 身은 모두 음이 신입니다."
+    },
+    {
+      "number": 18,
+      "type": "choice",
+      "topic": "뜻과 음",
+      "question": "한자 '弱'의 뜻과 음으로 알맞은 것은?",
+      "choices": [
+        "편안 안",
+        "사랑 애",
+        "약할 약",
+        "약 약"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 3,
+      "correct_choice": "약할 약",
+      "is_correct": false,
+      "explanation": "弱은 약하다는 뜻의 '약할 약'입니다. 藥은 약 약입니다."
+    },
+    {
+      "number": 19,
+      "type": "choice",
+      "topic": "한자어 읽기",
+      "question": "한자어 '永遠'의 바른 읽기는?",
+      "choices": [
+        "영원",
+        "영운",
+        "연원",
+        "용원"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 1,
+      "correct_choice": "영원",
+      "is_correct": false,
+      "explanation": "永은 길 영, 遠은 멀 원이므로 永遠은 영원입니다."
+    },
+    {
+      "number": 20,
+      "type": "choice",
+      "topic": "뜻 구별",
+      "question": "'오른 우'에 해당하는 한자는?",
+      "choices": [
+        "右",
+        "友",
+        "有",
+        "油"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 1,
+      "correct_choice": "右",
+      "is_correct": false,
+      "explanation": "右는 오른쪽을 뜻하는 '오른 우'입니다."
+    },
+    {
+      "number": 21,
+      "type": "choice",
+      "topic": "뜻과 음",
+      "question": "한자 '醫'의 뜻과 음으로 알맞은 것은?",
+      "choices": [
+        "뜻 의",
+        "옷 의",
+        "의원 의",
+        "소리 음"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 3,
+      "correct_choice": "의원 의",
+      "is_correct": false,
+      "explanation": "醫는 의원, 의학과 관련된 한자입니다."
+    },
+    {
+      "number": 22,
+      "type": "choice",
+      "topic": "뜻 구별",
+      "question": "'스스로 자'에 해당하는 한자는?",
+      "choices": [
+        "子",
+        "字",
+        "者",
+        "自"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 4,
+      "correct_choice": "自",
+      "is_correct": false,
+      "explanation": "自는 자기 자신, 스스로를 뜻합니다."
+    },
+    {
+      "number": 23,
+      "type": "choice",
+      "topic": "비슷한 음",
+      "question": "'전'으로 읽는 한자가 아닌 것은?",
+      "choices": [
+        "全",
+        "前",
+        "戰",
+        "定"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 4,
+      "correct_choice": "定",
+      "is_correct": false,
+      "explanation": "定은 정할 정입니다. 全, 前, 戰은 음이 전입니다."
+    },
+    {
+      "number": 24,
+      "type": "choice",
+      "topic": "뜻과 음",
+      "question": "한자 '祖'의 뜻과 음으로 알맞은 것은?",
+      "choices": [
+        "아침 조",
+        "할아비 조",
+        "겨레 족",
+        "발 족"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 2,
+      "correct_choice": "할아비 조",
+      "is_correct": false,
+      "explanation": "祖는 조상, 할아버지를 뜻하는 '할아비 조'입니다."
+    },
+    {
+      "number": 25,
+      "type": "choice",
+      "topic": "뜻 구별",
+      "question": "'종이 지'에 해당하는 한자는?",
+      "choices": [
+        "地",
+        "紙",
+        "直",
+        "集"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 2,
+      "correct_choice": "紙",
+      "is_correct": false,
+      "explanation": "紙는 종이를 뜻합니다. 地는 땅 지입니다."
+    },
+    {
+      "number": 26,
+      "type": "choice",
+      "topic": "뜻과 음",
+      "question": "한자 '靑'의 뜻과 음으로 알맞은 것은?",
+      "choices": [
+        "맑을 청",
+        "푸를 청",
+        "몸 체",
+        "풀 초"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 2,
+      "correct_choice": "푸를 청",
+      "is_correct": false,
+      "explanation": "靑은 푸르다의 뜻이고 음은 청입니다."
+    },
+    {
+      "number": 27,
+      "type": "choice",
+      "topic": "계절 한자",
+      "question": "계절을 나타내는 한자로만 묶인 것은?",
+      "choices": [
+        "春, 夏, 秋, 冬",
+        "七, 八, 九, 十",
+        "東, 西, 南, 北",
+        "上, 下, 左, 右"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 1,
+      "correct_choice": "春, 夏, 秋, 冬",
+      "is_correct": false,
+      "explanation": "春 봄, 夏 여름, 秋 가을, 冬 겨울은 계절을 나타냅니다."
+    },
+    {
+      "number": 28,
+      "type": "choice",
+      "topic": "뜻과 음",
+      "question": "한자 '學'의 뜻과 음으로 알맞은 것은?",
+      "choices": [
+        "아래 하",
+        "여름 하",
+        "배울 학",
+        "한나라 한"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 3,
+      "correct_choice": "배울 학",
+      "is_correct": false,
+      "explanation": "學은 배우다, 학문을 뜻하는 '배울 학'입니다."
+    },
+    {
+      "number": 29,
+      "type": "choice",
+      "topic": "비슷한 음",
+      "question": "음이 '화'인 한자로만 묶인 것은?",
+      "choices": [
+        "花, 話, 畫, 和, 火",
+        "海, 幸, 行, 向, 現",
+        "兄, 形, 號, 後, 訓",
+        "活, 黃, 會, 孝, 休"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 1,
+      "correct_choice": "花, 話, 畫, 和, 火",
+      "is_correct": false,
+      "explanation": "花, 話, 畫, 和, 火는 모두 음이 화입니다."
+    },
+    {
+      "number": 30,
+      "type": "choice",
+      "topic": "뜻과 음",
+      "question": "한자 '休'의 뜻과 음으로 알맞은 것은?",
+      "choices": [
+        "효도 효",
+        "뒤 후",
+        "가르칠 훈",
+        "쉴 휴"
+      ],
+      "selected_answer": null,
+      "selected_choice": null,
+      "correct_answer": 4,
+      "correct_choice": "쉴 휴",
+      "is_correct": false,
+      "explanation": "休는 쉬다의 뜻을 가진 '쉴 휴'입니다."
+    }
+  ]
+}

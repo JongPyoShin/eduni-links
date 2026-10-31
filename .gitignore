@@ -29,3 +29,6 @@ eduni-android-portal/**/*.log
 # files as a standalone asset library, so never commit the downloaded GLBs.
 jungle-web-canvas-poc/assets/vendor/threejsassets/
 jungle-web-canvas-poc/assets/vendor/kenney/
+
+.env.companion
+nice-gui-1-1-7/.companion-token-sync-key

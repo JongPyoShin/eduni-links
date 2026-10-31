@@ -1,0 +1,359 @@
+{
+  "set_id": "oracle_quiz_set_06",
+  "title": "Oracle DB 시험 대비 문제 세트 06",
+  "source_files": [
+    "oracle_exam_lecture_notes.md"
+  ],
+  "questions": [
+    {
+      "number": 1,
+      "topic": "GROUP BY",
+      "difficulty": "중",
+      "question": "부서별 평균 급여를 구할 때 필요한 절은? (응용 3)",
+      "choices": [
+        "WHERE AVG(SAL)",
+        "GROUP BY DEPTNO",
+        "CONNECT BY SAL",
+        "ORDER BY DEPTNO만 사용"
+      ],
+      "answer": 2,
+      "explanation": "정답은 B번 'GROUP BY DEPTNO'입니다. 그룹별 집계는 GROUP BY로 묶은 뒤 집계 함수를 적용합니다. 보기별 확인: A. WHERE AVG(SAL) - 'GROUP BY' 관점에서 핵심 조건과 맞지 않습니다. B. GROUP BY DEPTNO - 문제 조건을 정확히 만족합니다. C. CONNECT BY SAL - 'GROUP BY' 관점에서 핵심 조건과 맞지 않습니다. D. ORDER BY DEPTNO만 사용 - 'GROUP BY' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 2,
+      "topic": "인덱스 기본",
+      "difficulty": "중",
+      "question": "B-tree 인덱스가 직접 도움을 주기 쉬운 조건은? (응용 3)",
+      "choices": [
+        "ENAME LIKE '%IM'",
+        "DROP TABLE 직후 조회",
+        "DEPTNO = 10",
+        "SAL + 100 > 5000"
+      ],
+      "answer": 3,
+      "explanation": "정답은 C번 'DEPTNO = 10'입니다. 인덱스 선두 컬럼에 가공 없는 동등 조건이 있으면 유리합니다. 보기별 확인: A. ENAME LIKE '%IM' - '인덱스 기본' 관점에서 핵심 조건과 맞지 않습니다. B. DROP TABLE 직후 조회 - '인덱스 기본' 관점에서 핵심 조건과 맞지 않습니다. C. DEPTNO = 10 - 문제 조건을 정확히 만족합니다. D. SAL + 100 > 5000 - '인덱스 기본' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 3,
+      "topic": "커밋",
+      "difficulty": "중",
+      "question": "COMMIT의 효과로 맞는 것은? (응용 3)",
+      "choices": [
+        "SELECT 결과만 정렬한다",
+        "항상 이전 상태로 되돌린다",
+        "인덱스를 자동 삭제한다",
+        "현재 트랜잭션 변경을 확정한다"
+      ],
+      "answer": 4,
+      "explanation": "정답은 D번 '현재 트랜잭션 변경을 확정한다'입니다. COMMIT은 트랜잭션 변경 내용을 영구 반영합니다. 보기별 확인: A. SELECT 결과만 정렬한다 - '커밋' 관점에서 핵심 조건과 맞지 않습니다. B. 항상 이전 상태로 되돌린다 - '커밋' 관점에서 핵심 조건과 맞지 않습니다. C. 인덱스를 자동 삭제한다 - '커밋' 관점에서 핵심 조건과 맞지 않습니다. D. 현재 트랜잭션 변경을 확정한다 - 문제 조건을 정확히 만족합니다."
+    },
+    {
+      "number": 4,
+      "topic": "권한",
+      "difficulty": "중",
+      "question": "다른 사용자에게 EMP 조회 권한을 주는 문장은? (응용 3)",
+      "choices": [
+        "GRANT SELECT ON EMP TO USER1",
+        "ROLLBACK GRANT",
+        "ALLOW EMP TO USER1",
+        "DROP SELECT ON EMP"
+      ],
+      "answer": 1,
+      "explanation": "정답은 A번 'GRANT SELECT ON EMP TO USER1'입니다. 객체 권한 부여는 GRANT 권한 ON 객체 TO 사용자 형식입니다. 보기별 확인: A. GRANT SELECT ON EMP TO USER1 - 문제 조건을 정확히 만족합니다. B. ROLLBACK GRANT - '권한' 관점에서 핵심 조건과 맞지 않습니다. C. ALLOW EMP TO USER1 - '권한' 관점에서 핵심 조건과 맞지 않습니다. D. DROP SELECT ON EMP - '권한' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 5,
+      "topic": "SUBSTR",
+      "difficulty": "중",
+      "question": "문자열 일부를 잘라내는 함수는? (응용 3)",
+      "choices": [
+        "COUNT",
+        "SUBSTR",
+        "ROLLBACK",
+        "CUBE"
+      ],
+      "answer": 2,
+      "explanation": "정답은 B번 'SUBSTR'입니다. SUBSTR은 시작 위치와 길이를 기준으로 부분 문자열을 반환합니다. 보기별 확인: A. COUNT - 'SUBSTR' 관점에서 핵심 조건과 맞지 않습니다. B. SUBSTR - 문제 조건을 정확히 만족합니다. C. ROLLBACK - 'SUBSTR' 관점에서 핵심 조건과 맞지 않습니다. D. CUBE - 'SUBSTR' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 6,
+      "topic": "TO_DATE",
+      "difficulty": "중",
+      "question": "문자열을 날짜로 변환하는 함수는? (응용 3)",
+      "choices": [
+        "NVL",
+        "ROLLUP",
+        "TO_DATE",
+        "TO_CHAR만"
+      ],
+      "answer": 3,
+      "explanation": "정답은 C번 'TO_DATE'입니다. TO_DATE는 문자열과 포맷 모델을 이용해 날짜 값을 만듭니다. 보기별 확인: A. NVL - 'TO_DATE' 관점에서 핵심 조건과 맞지 않습니다. B. ROLLUP - 'TO_DATE' 관점에서 핵심 조건과 맞지 않습니다. C. TO_DATE - 문제 조건을 정확히 만족합니다. D. TO_CHAR만 - 'TO_DATE' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 7,
+      "topic": "객체명 규칙",
+      "difficulty": "중",
+      "question": "일반 객체명으로 가장 적절한 것은? (응용 3)",
+      "choices": [
+        "EMP 2026",
+        "EMP.2026",
+        "EMP-2026",
+        "EMP_2026"
+      ],
+      "answer": 4,
+      "explanation": "정답은 D번 'EMP_2026'입니다. 일반 객체명은 문자로 시작하고 문자, 숫자, 언더바를 사용하는 편이 안전합니다. 보기별 확인: A. EMP 2026 - '객체명 규칙' 관점에서 핵심 조건과 맞지 않습니다. B. EMP.2026 - '객체명 규칙' 관점에서 핵심 조건과 맞지 않습니다. C. EMP-2026 - '객체명 규칙' 관점에서 핵심 조건과 맞지 않습니다. D. EMP_2026 - 문제 조건을 정확히 만족합니다."
+    },
+    {
+      "number": 8,
+      "topic": "UNION ALL",
+      "difficulty": "중",
+      "question": "UNION ALL의 특징으로 맞는 것은? (응용 3)",
+      "choices": [
+        "중복 제거 없이 합친다",
+        "인덱스를 삭제한다",
+        "항상 중복을 제거한다",
+        "조인 조건을 만든다"
+      ],
+      "answer": 1,
+      "explanation": "정답은 A번 '중복 제거 없이 합친다'입니다. UNION ALL은 중복 제거 비용 없이 결과를 그대로 붙입니다. 보기별 확인: A. 중복 제거 없이 합친다 - 문제 조건을 정확히 만족합니다. B. 인덱스를 삭제한다 - 'UNION ALL' 관점에서 핵심 조건과 맞지 않습니다. C. 항상 중복을 제거한다 - 'UNION ALL' 관점에서 핵심 조건과 맞지 않습니다. D. 조인 조건을 만든다 - 'UNION ALL' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 9,
+      "topic": "HAVING",
+      "difficulty": "중",
+      "question": "부서별 평균 급여가 3000 이상인 그룹만 남기는 절은? (응용 3)",
+      "choices": [
+        "FROM HAVING",
+        "HAVING AVG(SAL) >= 3000",
+        "ORDER BY AVG(SAL)",
+        "SELECT HAVING SAL"
+      ],
+      "answer": 2,
+      "explanation": "정답은 B번 'HAVING AVG(SAL) >= 3000'입니다. 집계 결과 조건은 WHERE가 아니라 HAVING에서 판단합니다. 보기별 확인: A. FROM HAVING - 'HAVING' 관점에서 핵심 조건과 맞지 않습니다. B. HAVING AVG(SAL) >= 3000 - 문제 조건을 정확히 만족합니다. C. ORDER BY AVG(SAL) - 'HAVING' 관점에서 핵심 조건과 맞지 않습니다. D. SELECT HAVING SAL - 'HAVING' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 10,
+      "topic": "LIKE 인덱스",
+      "difficulty": "중",
+      "question": "일반 B-tree 인덱스를 쓰기 쉬운 LIKE 조건은? (응용 3)",
+      "choices": [
+        "ENAME LIKE '%IM'",
+        "SUBSTR(ENAME,1,2)='KI'",
+        "ENAME LIKE 'KI%'",
+        "ENAME IS NOT NULL만"
+      ],
+      "answer": 3,
+      "explanation": "정답은 C번 'ENAME LIKE 'KI%''입니다. 앞부분이 고정된 LIKE 패턴은 범위 탐색이 가능합니다. 보기별 확인: A. ENAME LIKE '%IM' - 'LIKE 인덱스' 관점에서 핵심 조건과 맞지 않습니다. B. SUBSTR(ENAME,1,2)='KI' - 'LIKE 인덱스' 관점에서 핵심 조건과 맞지 않습니다. C. ENAME LIKE 'KI%' - 문제 조건을 정확히 만족합니다. D. ENAME IS NOT NULL만 - 'LIKE 인덱스' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 11,
+      "topic": "롤백",
+      "difficulty": "중",
+      "question": "ROLLBACK의 효과로 맞는 것은? (응용 3)",
+      "choices": [
+        "사용자를 만든다",
+        "결과를 정렬한다",
+        "변경을 확정한다",
+        "미커밋 변경을 취소한다"
+      ],
+      "answer": 4,
+      "explanation": "정답은 D번 '미커밋 변경을 취소한다'입니다. ROLLBACK은 아직 COMMIT하지 않은 변경을 되돌립니다. 보기별 확인: A. 사용자를 만든다 - '롤백' 관점에서 핵심 조건과 맞지 않습니다. B. 결과를 정렬한다 - '롤백' 관점에서 핵심 조건과 맞지 않습니다. C. 변경을 확정한다 - '롤백' 관점에서 핵심 조건과 맞지 않습니다. D. 미커밋 변경을 취소한다 - 문제 조건을 정확히 만족합니다."
+    },
+    {
+      "number": 12,
+      "topic": "시퀀스",
+      "difficulty": "중",
+      "question": "다음 번호를 얻는 시퀀스 표현은? (응용 3)",
+      "choices": [
+        "SEQ.NEXTVAL",
+        "SEQ.VALUE()",
+        "SEQ.NULL",
+        "NEXT SEQ"
+      ],
+      "answer": 1,
+      "explanation": "정답은 A번 'SEQ.NEXTVAL'입니다. NEXTVAL은 시퀀스의 다음 값을 생성합니다. 보기별 확인: A. SEQ.NEXTVAL - 문제 조건을 정확히 만족합니다. B. SEQ.VALUE() - '시퀀스' 관점에서 핵심 조건과 맞지 않습니다. C. SEQ.NULL - '시퀀스' 관점에서 핵심 조건과 맞지 않습니다. D. NEXT SEQ - '시퀀스' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 13,
+      "topic": "DECODE",
+      "difficulty": "중",
+      "question": "조건 값에 따라 다른 값을 반환하는 Oracle 함수는? (응용 3)",
+      "choices": [
+        "TABLESPACE",
+        "DECODE",
+        "COMMIT",
+        "INDEX"
+      ],
+      "answer": 2,
+      "explanation": "정답은 B번 'DECODE'입니다. DECODE는 값 비교 결과에 따라 반환 값을 선택합니다. 보기별 확인: A. TABLESPACE - 'DECODE' 관점에서 핵심 조건과 맞지 않습니다. B. DECODE - 문제 조건을 정확히 만족합니다. C. COMMIT - 'DECODE' 관점에서 핵심 조건과 맞지 않습니다. D. INDEX - 'DECODE' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 14,
+      "topic": "TO_CHAR",
+      "difficulty": "중",
+      "question": "날짜나 숫자를 문자열로 변환할 때 쓰는 함수는? (응용 3)",
+      "choices": [
+        "SAVEPOINT",
+        "TO_NUMBER만",
+        "TO_CHAR",
+        "MINUS"
+      ],
+      "answer": 3,
+      "explanation": "정답은 C번 'TO_CHAR'입니다. TO_CHAR는 날짜/숫자를 지정 형식의 문자열로 표현합니다. 보기별 확인: A. SAVEPOINT - 'TO_CHAR' 관점에서 핵심 조건과 맞지 않습니다. B. TO_NUMBER만 - 'TO_CHAR' 관점에서 핵심 조건과 맞지 않습니다. C. TO_CHAR - 문제 조건을 정확히 만족합니다. D. MINUS - 'TO_CHAR' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 15,
+      "topic": "스키마 접근",
+      "difficulty": "중",
+      "question": "다른 계정의 EMP 테이블을 조회할 때 가장 일반적인 표기는? (응용 3)",
+      "choices": [
+        "DEVTRC:EMP",
+        "EMP@DEVTRC",
+        "DEVTRC EMP",
+        "DEVTRC.EMP"
+      ],
+      "answer": 4,
+      "explanation": "정답은 D번 'DEVTRC.EMP'입니다. 다른 스키마 객체는 스키마명과 객체명을 점으로 연결합니다. 보기별 확인: A. DEVTRC:EMP - '스키마 접근' 관점에서 핵심 조건과 맞지 않습니다. B. EMP@DEVTRC - '스키마 접근' 관점에서 핵심 조건과 맞지 않습니다. C. DEVTRC EMP - '스키마 접근' 관점에서 핵심 조건과 맞지 않습니다. D. DEVTRC.EMP - 문제 조건을 정확히 만족합니다."
+    },
+    {
+      "number": 16,
+      "topic": "MINUS",
+      "difficulty": "중",
+      "question": "A 결과에서 B 결과를 제외하는 집합 연산자는? (응용 3)",
+      "choices": [
+        "MINUS",
+        "UNION ALL",
+        "OUTER JOIN",
+        "UNION"
+      ],
+      "answer": 1,
+      "explanation": "정답은 A번 'MINUS'입니다. MINUS는 첫 번째 결과에서 두 번째 결과에 있는 행을 뺍니다. 보기별 확인: A. MINUS - 문제 조건을 정확히 만족합니다. B. UNION ALL - 'MINUS' 관점에서 핵심 조건과 맞지 않습니다. C. OUTER JOIN - 'MINUS' 관점에서 핵심 조건과 맞지 않습니다. D. UNION - 'MINUS' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 17,
+      "topic": "COUNT",
+      "difficulty": "중",
+      "question": "COUNT(*)에 대한 설명으로 맞는 것은? (응용 3)",
+      "choices": [
+        "문자열 길이를 센다",
+        "NULL 여부와 관계없이 행 수를 센다",
+        "인덱스 수를 센다",
+        "항상 중복을 제거한다"
+      ],
+      "answer": 2,
+      "explanation": "정답은 B번 'NULL 여부와 관계없이 행 수를 센다'입니다. COUNT(*)는 조건을 통과한 행의 개수를 셉니다. 보기별 확인: A. 문자열 길이를 센다 - 'COUNT' 관점에서 핵심 조건과 맞지 않습니다. B. NULL 여부와 관계없이 행 수를 센다 - 문제 조건을 정확히 만족합니다. C. 인덱스 수를 센다 - 'COUNT' 관점에서 핵심 조건과 맞지 않습니다. D. 항상 중복을 제거한다 - 'COUNT' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 18,
+      "topic": "함수 기반 인덱스",
+      "difficulty": "중",
+      "question": "UPPER(ENAME) 조건을 자주 검색할 때 적절한 인덱스는? (응용 3)",
+      "choices": [
+        "ROLLBACK",
+        "비트맵 조인만",
+        "함수 기반 인덱스",
+        "테이블 삭제"
+      ],
+      "answer": 3,
+      "explanation": "정답은 C번 '함수 기반 인덱스'입니다. 컬럼을 함수로 가공해 검색하면 같은 표현식의 함수 기반 인덱스를 고려합니다. 보기별 확인: A. ROLLBACK - '함수 기반 인덱스' 관점에서 핵심 조건과 맞지 않습니다. B. 비트맵 조인만 - '함수 기반 인덱스' 관점에서 핵심 조건과 맞지 않습니다. C. 함수 기반 인덱스 - 문제 조건을 정확히 만족합니다. D. 테이블 삭제 - '함수 기반 인덱스' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 19,
+      "topic": "SAVEPOINT",
+      "difficulty": "중",
+      "question": "트랜잭션 중간 지점을 표시하는 명령은? (응용 3)",
+      "choices": [
+        "INTERSECT",
+        "GRANT",
+        "ANALYZE",
+        "SAVEPOINT"
+      ],
+      "answer": 4,
+      "explanation": "정답은 D번 'SAVEPOINT'입니다. SAVEPOINT를 만들면 해당 지점까지 부분 롤백할 수 있습니다. 보기별 확인: A. INTERSECT - 'SAVEPOINT' 관점에서 핵심 조건과 맞지 않습니다. B. GRANT - 'SAVEPOINT' 관점에서 핵심 조건과 맞지 않습니다. C. ANALYZE - 'SAVEPOINT' 관점에서 핵심 조건과 맞지 않습니다. D. SAVEPOINT - 문제 조건을 정확히 만족합니다."
+    },
+    {
+      "number": 20,
+      "topic": "ROWNUM",
+      "difficulty": "중",
+      "question": "ROWNUM이 부여되는 시점으로 맞는 것은? (응용 3)",
+      "choices": [
+        "ORDER BY보다 먼저 부여될 수 있다",
+        "항상 ORDER BY 뒤에 부여된다",
+        "NULL 값에만 붙는다",
+        "인덱스 이름이다"
+      ],
+      "answer": 1,
+      "explanation": "정답은 A번 'ORDER BY보다 먼저 부여될 수 있다'입니다. ROWNUM은 정렬 전 단계에서 먼저 매겨질 수 있어 Top-N 작성 시 주의해야 합니다. 보기별 확인: A. ORDER BY보다 먼저 부여될 수 있다 - 문제 조건을 정확히 만족합니다. B. 항상 ORDER BY 뒤에 부여된다 - 'ROWNUM' 관점에서 핵심 조건과 맞지 않습니다. C. NULL 값에만 붙는다 - 'ROWNUM' 관점에서 핵심 조건과 맞지 않습니다. D. 인덱스 이름이다 - 'ROWNUM' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 21,
+      "topic": "CASE",
+      "difficulty": "중",
+      "question": "표준 SQL 방식의 조건 분기 표현은? (응용 3)",
+      "choices": [
+        "SWITCH TABLE",
+        "CASE WHEN ... THEN ... END",
+        "GROUP CASE BY",
+        "IF SQL THEN COMMIT"
+      ],
+      "answer": 2,
+      "explanation": "정답은 B번 'CASE WHEN ... THEN ... END'입니다. CASE 표현식은 조건별 반환 값을 정의할 수 있습니다. 보기별 확인: A. SWITCH TABLE - 'CASE' 관점에서 핵심 조건과 맞지 않습니다. B. CASE WHEN ... THEN ... END - 문제 조건을 정확히 만족합니다. C. GROUP CASE BY - 'CASE' 관점에서 핵심 조건과 맞지 않습니다. D. IF SQL THEN COMMIT - 'CASE' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 22,
+      "topic": "PL/SQL",
+      "difficulty": "중",
+      "question": "PL/SQL 블록의 기본 구조에 포함되는 키워드는? (응용 3)",
+      "choices": [
+        "GRANT ... TO만",
+        "UNION ... ALL만",
+        "BEGIN ... END",
+        "ORDER ... BY만"
+      ],
+      "answer": 3,
+      "explanation": "정답은 C번 'BEGIN ... END'입니다. PL/SQL 실행 블록은 DECLARE, BEGIN, EXCEPTION, END 구조를 가질 수 있습니다. 보기별 확인: A. GRANT ... TO만 - 'PL/SQL' 관점에서 핵심 조건과 맞지 않습니다. B. UNION ... ALL만 - 'PL/SQL' 관점에서 핵심 조건과 맞지 않습니다. C. BEGIN ... END - 문제 조건을 정확히 만족합니다. D. ORDER ... BY만 - 'PL/SQL' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 23,
+      "topic": "NULL 비교",
+      "difficulty": "중",
+      "question": "COMM이 NULL인 행을 찾는 조건은? (응용 3)",
+      "choices": [
+        "COMM IN NULL",
+        "COMM = NULL",
+        "COMM = ''",
+        "COMM IS NULL"
+      ],
+      "answer": 4,
+      "explanation": "정답은 D번 'COMM IS NULL'입니다. NULL은 일반 비교 연산자가 아니라 IS NULL로 판단합니다. 보기별 확인: A. COMM IN NULL - 'NULL 비교' 관점에서 핵심 조건과 맞지 않습니다. B. COMM = NULL - 'NULL 비교' 관점에서 핵심 조건과 맞지 않습니다. C. COMM = '' - 'NULL 비교' 관점에서 핵심 조건과 맞지 않습니다. D. COMM IS NULL - 문제 조건을 정확히 만족합니다."
+    },
+    {
+      "number": 24,
+      "topic": "INTERSECT",
+      "difficulty": "중",
+      "question": "두 SELECT 결과에 공통으로 존재하는 행만 반환하는 연산자는? (응용 3)",
+      "choices": [
+        "INTERSECT",
+        "MERGE JOIN",
+        "UNION ALL",
+        "CUBE"
+      ],
+      "answer": 1,
+      "explanation": "정답은 A번 'INTERSECT'입니다. INTERSECT는 교집합 결과를 반환합니다. 보기별 확인: A. INTERSECT - 문제 조건을 정확히 만족합니다. B. MERGE JOIN - 'INTERSECT' 관점에서 핵심 조건과 맞지 않습니다. C. UNION ALL - 'INTERSECT' 관점에서 핵심 조건과 맞지 않습니다. D. CUBE - 'INTERSECT' 관점에서 핵심 조건과 맞지 않습니다."
+    },
+    {
+      "number": 25,
+      "topic": "COUNT 컬럼",
+      "difficulty": "중",
+      "question": "COUNT(COMM)에 대한 설명으로 맞는 것은? (응용 3)",
+      "choices": [
+        "모든 행을 센다",
+        "COMM이 NULL이 아닌 행만 센다",
+        "평균을 구한다",
+        "중복을 반드시 제거한다"
+      ],
+      "answer": 2,
+      "explanation": "정답은 B번 'COMM이 NULL이 아닌 행만 센다'입니다. COUNT(컬럼)은 해당 컬럼이 NULL인 행은 제외합니다. 보기별 확인: A. 모든 행을 센다 - 'COUNT 컬럼' 관점에서 핵심 조건과 맞지 않습니다. B. COMM이 NULL이 아닌 행만 센다 - 문제 조건을 정확히 만족합니다. C. 평균을 구한다 - 'COUNT 컬럼' 관점에서 핵심 조건과 맞지 않습니다. D. 중복을 반드시 제거한다 - 'COUNT 컬럼' 관점에서 핵심 조건과 맞지 않습니다."
+    }
+  ]
+}

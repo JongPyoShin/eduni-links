@@ -1,0 +1,11 @@
+**/__pycache__
+**/*.py[cod]
+**/*.log
+**/.env*
+**/*secret*
+**/*token*
+**/*credential*
+
+**/external_access.txt
+**/quiz_access_code.txt
+**/*access_code*

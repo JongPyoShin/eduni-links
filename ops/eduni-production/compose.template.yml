@@ -1,0 +1,41 @@
+services:
+  eduni-game:
+    image: ${EDUNI_IMAGE:?Set an immutable image reference in the external host .env}
+    restart: unless-stopped
+    env_file:
+      - ${EDUNI_CONTAINER_ENV_FILE:?Set an external container environment file path}
+    environment:
+      EDUNI_HOST: 0.0.0.0
+      PORT: "18081"
+      EDUNI_HANJA_DIR: /data/hanja
+      EDUNI_HANJA_SOURCE_DIR: /app/hanja-data
+      EDUNI_PORTAL_DB: /data/eduni_portal.sqlite3
+      EDUNI_READING_DATA_DIR: /data/reading-journal
+      EDUNI_READING_DB_HOST: eduni-postgres
+      EDUNI_READING_DB_PORT: "5432"
+      EDUNI_READING_DB_NAME: eduni
+      EDUNI_READING_DB_USER: eduni
+      EDUNI_READING_DB_PASSWORD: ${EDUNI_POSTGRES_PASSWORD:?Load the existing database password from the external host .env}
+    ports:
+      - "${EDUNI_PUBLIC_BIND_IP:?Set the existing public or VPN bind address}:8081:18081"
+      - "127.0.0.1:${EDUNI_LOOPBACK_PORT:-8081}:18081"
+    volumes:
+      - eduni_data:/data
+    networks:
+      - existing_eduni
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18081/healthz', timeout=3)"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  eduni_data:
+    external: true
+    name: ${EDUNI_DATA_VOLUME:?Set the existing data volume name in the external host .env}
+
+networks:
+  existing_eduni:
+    external: true
+    name: ${EDUNI_NETWORK:?Set the existing network name in the external host .env}

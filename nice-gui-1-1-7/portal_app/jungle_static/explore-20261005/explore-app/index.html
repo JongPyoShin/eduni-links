@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko" data-render-quality="tablet">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#173f35">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>초록빛 탐험 — 숲과 물가</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" href="../explore.css?v=progression-20261015">
+  <link rel="stylesheet" href="/sudoku-assets/eduni_companion.css?v=progression-20261015">
+  <style>
+    .install-tools { margin-top: 7px; pointer-events: auto; }
+    .install-tools button { min-height: 44px; padding: 5px 9px; border: 1px solid #bfcdb3; border-radius: 9px; background: #fffdf0; color: #234e39; font: inherit; font-size: 11px; font-weight: 700; touch-action: manipulation; }
+    .install-tools p { margin: 5px 0 0; color: #5e7058; font-size: 10px; line-height: 1.4; }
+  </style>
+  <script type="importmap">{"imports":{"three":"../node_modules/three/build/three.module.js","three/addons/":"../node_modules/three/examples/jsm/"}}</script>
+</head>
+<body class="eduni-jungle">
+  <main id="game" aria-label="초록빛 숲 탐험">
+    <canvas id="world" tabindex="-1" aria-label="숲과 물가. 방향키나 조이스틱으로 이동하세요"></canvas>
+    <header class="hud">
+      <figure class="minimap"><canvas id="minimap" width="128" height="96" role="img" aria-label="탐험 지도: 위쪽은 북쪽, 파란 점은 현재 위치, 갈색 선은 길, 노란 점은 발견 장소, 주황 점은 새"></canvas><figcaption>북 ↑ · 파란 점 = 나 · 주황 점 = 새</figcaption></figure>
+      <details name="explore-hud" class="hud-panel hud-place"><summary aria-label="탐험 정보 열기 또는 닫기">🌿</summary><div class="place"><span class="eyebrow">작은 발견, 커다란 모험</span><h1 id="map-title">숲과 물가</h1><p id="objective">물소리를 따라 숲을 걸어 보자</p>
+        <div class="install-tools"><button id="install-app" type="button">설치 방법</button><p id="install-help" role="status" aria-live="polite" hidden></p></div>
+      </div></details>
+      <details name="explore-hud" class="hud-panel hud-tools"><summary aria-label="탐험 설정 열기 또는 닫기">🎒</summary><div class="hud-actions">
+        <label class="avatar-picker glass" for="avatar-select">
+          <span>탐험가 선택</span>
+          <select id="avatar-select" name="avatar" aria-label="탐험가 선택">
+            <option value="human">사람형(임시)</option>
+            <option value="rabbit" selected>토끼형(후보)</option>
+          </select>
+          <small id="avatar-status" aria-live="polite"></small>
+        </label>
+        <label class="avatar-picker glass" for="map-select" hidden><span>탐험 지도</span><select id="map-select" aria-label="탐험 지도 선택"><option value="river-meadow">숲과 물가</option><option value="camp">숲속 탐험 캠프</option><option value="waterfall">안개 폭포</option><option value="cave">반딧불 동굴</option><option value="giant-tree">거대한 고목</option><option value="sky-ridge">하늘 능선</option></select></label>
+        <button id="guide-button" class="glass" type="button">탐험 안내 <span id="discovery-count">0 / 3 발견</span></button>
+        <label class="avatar-picker glass" for="learning-difficulty"><span>새 학습 난이도</span><select id="learning-difficulty" aria-label="새 학습 난이도"><option value="easy">7세 준비</option><option value="challenge">초1 도전</option></select></label>
+        <button id="sound-toggle" class="glass" type="button" aria-pressed="false">🔔 소리 켜짐</button>
+      </div></details>
+      <nav class="quick-actions" aria-label="빠른 메뉴">
+        <button id="worldmap-button" type="button" aria-label="탐험 지도">🗺️ 지도</button>
+        <button id="codex-button" type="button" aria-label="새와 동물 도감">📖 도감 <span id="learning-count">0 / 12 기록</span></button>
+        <button id="equipment-button" type="button" aria-label="탐험 장비">🎒 장비</button>
+      </nav>
+    </header>
+    <p id="adventure-progress" aria-live="off"><span id="adventure-counts"></span><span id="adventure-target"></span></p>
+    <p id="toast" role="status" aria-live="polite"></p>
+    <div class="controls">
+      <div id="stick" role="group" aria-label="이동 조이스틱"><span class="stick-ring"></span><span class="stick-thumb"></span><span class="stick-label">밀어서 이동</span></div>
+      <button id="interact" type="button" disabled>관찰하기</button>
+    </div>
+    <p class="hint">방향키 · WASD · 조이스틱 · 땅을 눌러 이동</p>
+    <section id="panel" hidden role="dialog" aria-modal="true" aria-labelledby="panel-title" aria-describedby="panel-body">
+      <div class="card"><button id="panel-close" type="button" aria-label="닫기">×</button><span id="panel-icon" class="panel-icon">🌿</span><p id="panel-kicker"></p><h2 id="panel-title"></h2><p id="panel-body"></p><div id="panel-tabs" aria-label="도감 종류" hidden></div><div id="panel-cards" hidden></div><div id="panel-actions"></div></div>
+    </section>
+    <section id="tool-view" hidden role="dialog" aria-modal="true" aria-label="탐험 도구 보기">
+      <div class="viewfinder-reticle" aria-hidden="true"><span></span></div>
+      <p id="tool-view-status" role="status" aria-live="polite"></p>
+      <div class="tool-view-actions"><button id="tool-view-shutter" type="button" hidden disabled>📸 사진 기록</button><button id="tool-view-close" type="button">닫기</button></div>
+    </section>
+    <section id="loading" role="status"><div><span>🌱</span><h2>숲으로 들어가는 중</h2><p>작은 발견이 기다리고 있어요</p><button id="reload" type="button" hidden>다시 열기</button></div></section>
+    <output id="qa" hidden></output>
+  </main>
+  <script defer src="/sudoku-assets/eduni_companion.js?v=progression-20261015"></script>
+  <script type="module" src="../src/explore/main.js?v=progression-20261015"></script>
+  <script type="module" src="./pwa.js?v=progression-20261015"></script>
+</body>
+</html>

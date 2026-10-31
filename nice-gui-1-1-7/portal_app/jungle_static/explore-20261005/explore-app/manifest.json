@@ -1,0 +1,15 @@
+{
+  "id": "./",
+  "name": "초록빛 탐험 — 숲과 물가",
+  "short_name": "초록빛 탐험",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#173f35",
+  "background_color": "#e8efda",
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

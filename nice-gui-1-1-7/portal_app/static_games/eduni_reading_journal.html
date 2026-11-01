@@ -359,7 +359,7 @@
 <body>
   <main class="shell">
     <div class="topbar">
-      <a class="back" href="/portal">← EDUNI 포털</a>
+      <a class="back" href="/portal">← 뒤로</a>
       <div class="top-actions">
         <button id="mobileViewToggle" class="view-btn" type="button" aria-pressed="false">📱 모바일 보기</button>
         <button id="parentToolsOpenButton" class="view-btn" type="button" aria-haspopup="dialog" aria-controls="parentToolsDialog">보호자</button>
@@ -767,18 +767,95 @@
       const writeTab = document.getElementById('writeTab');
       const booksPanel = document.getElementById('booksPanel');
       const writePanel = document.getElementById('writePanel');
-      function selectReadingTab(tab) {
+      const readingHistoryKey = 'eduniReadingJournal';
+      const currentReadingHistory = history.state && typeof history.state === 'object'
+        ? history.state[readingHistoryKey]
+        : null;
+      const readingHasPreviousPage = currentReadingHistory?.hasPreviousPage ?? history.length > 1;
+      let readingExitApproved = false;
+      window.addEventListener('beforeunload', (event) => {
+        if (readingExitApproved) return;
+        event.preventDefault();
+        event.returnValue = '';
+      });
+      function currentReadingTab() {
+        return writeTab.getAttribute('aria-selected') === 'true' ? 'write' : 'books';
+      }
+      function makeReadingHistoryState(kind, readingTab, currentShelfMode, overlay = null) {
+        const baseState = history.state && typeof history.state === 'object' ? history.state : {};
+        return {
+          ...baseState,
+          [readingHistoryKey]: {
+            kind,
+            readingTab,
+            shelfMode: currentShelfMode,
+            overlay,
+            hasPreviousPage: readingHasPreviousPage,
+          },
+        };
+      }
+      function pushReadingHistoryState(overlay = null) {
+        const readingTab = currentReadingTab();
+        const current = history.state?.[readingHistoryKey];
+        if (current && current.readingTab === readingTab && current.shelfMode === shelfMode
+          && JSON.stringify(current.overlay || null) === JSON.stringify(overlay)) return;
+        history.pushState(makeReadingHistoryState('view', readingTab, shelfMode, overlay), '', location.href);
+      }
+      function dismissReadingDialog(dialog) {
+        if (history.state?.[readingHistoryKey]?.overlay) history.back();
+        else if (dialog.open) dialog.close();
+      }
+      function restoreReadingOverlay(overlay) {
+        if (!overlay) {
+          if (parentToolsDialog.open) parentToolsDialog.close();
+          if (recordDetailDialog.open) recordDetailDialog.close();
+          return;
+        }
+        if (overlay.type === 'parent') {
+          if (recordDetailDialog.open) recordDetailDialog.close();
+          if (!parentToolsDialog.open) {
+            parentToolsDialog.showModal();
+            loadParentInsights();
+          }
+          return;
+        }
+        if (overlay.type === 'record') {
+          if (parentToolsDialog.open) parentToolsDialog.close();
+          const record = [...records, ...memoryRecords].find((item) => Number(item.id) === Number(overlay.id));
+          if (record && !recordDetailDialog.open) showRecordDetail(record, { recordHistory: false });
+          return;
+        }
+        if (parentToolsDialog.open) parentToolsDialog.close();
+        if (recordDetailDialog.open) recordDetailDialog.close();
+      }
+      function applyReadingHistoryState(state) {
+        selectReadingTab(state.readingTab === 'write' ? 'write' : 'books', { recordHistory: false });
+        selectShelfMode(['calendar', 'memories'].includes(state.shelfMode) ? state.shelfMode : 'grid', { recordHistory: false });
+        restoreReadingOverlay(state.overlay || null);
+      }
+      const initialReadingState = history.state?.[readingHistoryKey];
+      if (initialReadingState && ['root', 'guard', 'view'].includes(initialReadingState.kind)) {
+        applyReadingHistoryState(initialReadingState);
+        if (initialReadingState.kind === 'root') {
+          history.pushState(makeReadingHistoryState('guard', initialReadingState.readingTab || 'books', initialReadingState.shelfMode || 'grid'), '', location.href);
+        }
+      } else {
+        history.replaceState(makeReadingHistoryState('root', 'books', 'grid'), '', location.href);
+        history.pushState(makeReadingHistoryState('guard', 'books', 'grid'), '', location.href);
+      }
+      function selectReadingTab(tab, { recordHistory = true } = {}) {
         const showWrite = tab === 'write';
         booksTab.setAttribute('aria-selected', showWrite ? 'false' : 'true');
         writeTab.setAttribute('aria-selected', showWrite ? 'true' : 'false');
         booksPanel.hidden = showWrite;
         writePanel.hidden = !showWrite;
         if (showWrite) window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (recordHistory) pushReadingHistoryState();
       }
       booksTab.addEventListener('click', () => selectReadingTab('books'));
       writeTab.addEventListener('click', () => selectReadingTab('write'));
 
-      function selectShelfMode(mode) {
+      function selectShelfMode(mode, { recordHistory = true } = {}) {
         shelfMode = mode;
         for (const [tab, view, selected] of [
           [shelfGridTab, shelfGridView, mode === 'grid'],
@@ -790,6 +867,7 @@
         }
         if (mode === 'calendar') loadCalendar();
         if (mode === 'memories') loadMemories();
+        if (recordHistory) pushReadingHistoryState();
       }
       shelfGridTab.addEventListener('click', () => selectShelfMode('grid'));
       calendarTab.addEventListener('click', () => selectShelfMode('calendar'));
@@ -797,9 +875,38 @@
       parentToolsOpenButton.addEventListener('click', () => {
         parentToolsDialog.showModal();
         loadParentInsights();
+        pushReadingHistoryState({ type: 'parent' });
       });
-      document.getElementById('parentToolsCloseButton').addEventListener('click', () => parentToolsDialog.close());
-      parentToolsDialog.addEventListener('click', (event) => { if (event.target === parentToolsDialog) parentToolsDialog.close(); });
+      document.getElementById('parentToolsCloseButton').addEventListener('click', () => dismissReadingDialog(parentToolsDialog));
+      parentToolsDialog.addEventListener('click', (event) => { if (event.target === parentToolsDialog) dismissReadingDialog(parentToolsDialog); });
+      parentToolsDialog.addEventListener('cancel', (event) => { event.preventDefault(); dismissReadingDialog(parentToolsDialog); });
+      window.addEventListener('popstate', (event) => {
+        const state = event.state?.[readingHistoryKey];
+        if (state && ['guard', 'view'].includes(state.kind)) {
+          applyReadingHistoryState(state);
+          return;
+        }
+        if (state?.kind === 'root') {
+          if (!window.confirm('독서기록 페이지를 나갈까요?')) {
+            history.pushState(makeReadingHistoryState('guard', state.readingTab || 'books', state.shelfMode || 'grid'), '', location.href);
+            return;
+          }
+          readingExitApproved = true;
+          if (readingHasPreviousPage) history.back();
+          else location.assign(document.querySelector('.back').href);
+          return;
+        }
+        if (window.confirm('독서기록 페이지를 나갈까요?')) {
+          readingExitApproved = true;
+          return;
+        }
+        history.pushState(makeReadingHistoryState('guard', currentReadingTab(), shelfMode), '', location.href);
+      });
+      document.querySelector('.back').addEventListener('click', (event) => {
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        history.back();
+      });
       function updateScrollTopButton() { scrollToTopButton.classList.toggle('hidden', window.scrollY < 400); }
       window.addEventListener('scroll', updateScrollTopButton, { passive: true });
       scrollToTopButton.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
@@ -1341,7 +1448,7 @@
         }
       }
 
-      async function showRecordDetail(record) {
+      async function showRecordDetail(record, { recordHistory = true } = {}) {
         const requestGeneration = ++detailRequestGeneration;
         const detailCover = document.getElementById('detailCover');
         if (record.cover_url) {
@@ -1356,6 +1463,7 @@
         detailHistory.replaceChildren();
         detailHistory.innerHTML = '<p class="detail-meta">날짜별 기록을 불러오는 중이에요…</p>';
         recordDetailDialog.showModal();
+        if (recordHistory) pushReadingHistoryState({ type: 'record', id: record.id });
         try {
           const params = new URLSearchParams({ title: record.title || '', author: record.author || '' });
           const response = await fetch('/reading/api/book-history?' + params.toString(), { cache: 'no-store' });
@@ -1596,8 +1704,9 @@
         const record = records.find((item) => item.id === Number(card.getAttribute('data-id')));
         if (record) showRecordDetail(record);
       });
-      document.getElementById('detailCloseButton').addEventListener('click', () => recordDetailDialog.close());
-      recordDetailDialog.addEventListener('click', (event) => { if (event.target === recordDetailDialog) recordDetailDialog.close(); });
+      document.getElementById('detailCloseButton').addEventListener('click', () => dismissReadingDialog(recordDetailDialog));
+      recordDetailDialog.addEventListener('click', (event) => { if (event.target === recordDetailDialog) dismissReadingDialog(recordDetailDialog); });
+      recordDetailDialog.addEventListener('cancel', (event) => { event.preventDefault(); dismissReadingDialog(recordDetailDialog); });
       recordDetailDialog.addEventListener('close', () => { detailRequestGeneration++; });
       detailHistory.addEventListener('click', async (event) => {
         const editButton = event.target.closest('[data-history-edit]');

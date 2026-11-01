@@ -25,20 +25,20 @@
     const chip = s.chips.find(c => c.id === id);
     if (!chip || chip.up || chip.owner !== null) return fail(s, '아직 뒤집지 않은 칩을 골라요.');
     chip.up = true; s.turn = 1 - s.turn;
-    s.message = `${chip.value} 공개! 합이 10 또는 20인 두세 칩을 찾으면 종을 눌러요.`;
+    s.message = `${chip.value} 공개! 공개된 2~4개 칩의 합이 10 또는 20이면 종을 눌러요.`;
     return true;
   }
   function tenRing(s, player) {
     if (s.finished || s.claimant !== null || ![0, 1].includes(player)) return false;
-    s.claimant = player; s.selected = []; s.message = `${player + 1}번의 종! 공개된 칩을 정확히 2개 또는 3개 고르세요.`; return true;
+    s.claimant = player; s.selected = []; s.message = `${player + 1}번의 종! 공개된 칩을 2~4개 골라요.`; return true;
   }
   function tenSelect(s, id) {
     if (s.finished || s.claimant === null) return false;
     const chip = s.chips.find(c => c.id === id);
     if (!chip || !chip.up || chip.owner !== null) return false;
     if (s.selected.includes(id)) s.selected = s.selected.filter(x => x !== id);
-    else if (s.selected.length < 3) s.selected.push(id);
-    else return fail(s, '최대 3개까지만 고를 수 있어요.');
+    else if (s.selected.length < 4) s.selected.push(id);
+    else return fail(s, '최대 4개까지만 고를 수 있어요.');
     return true;
   }
   function tenJudge(s) {
@@ -46,7 +46,7 @@
     const who = s.claimant, ids = [...s.selected];
     const chips = ids.map(id => s.chips.find(c => c.id === id));
     const sum = chips.reduce((v, c) => v + (c ? c.value : 0), 0);
-    const valid = [2, 3].includes(ids.length) && new Set(ids).size === ids.length &&
+    const valid = [2, 3, 4].includes(ids.length) && new Set(ids).size === ids.length &&
       chips.every(c => c && c.up && c.owner === null) && [10, 20].includes(sum);
     if (valid) {
       chips.forEach(c => { c.owner = who; c.up = false; s.piles[who].push(c.id); });
@@ -54,7 +54,7 @@
     } else {
       const penalty = s.piles[who].pop();
       if (penalty !== undefined) { const c = s.chips.find(c => c.id === penalty); c.owner = null; c.up = false; }
-      s.message = `합 ${sum}: 두세 칩의 합이 10 또는 20이어야 해요. ${penalty === undefined ? '모은 칩이 없어 반납하지 않아요.' : '모은 칩 1개를 뒤집어 돌려놓았어요.'}`;
+      s.message = `합 ${sum}: 2~4개 칩의 합이 10 또는 20이어야 해요. ${penalty === undefined ? '모은 칩이 없어 반납하지 않아요.' : '모은 칩 1개를 뒤집어 돌려놓았어요.'}`;
     }
     s.claimant = null; s.selected = []; return valid;
   }

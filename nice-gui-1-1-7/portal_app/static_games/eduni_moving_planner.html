@@ -41,6 +41,38 @@
     .product-table-actions{display:flex;gap:5px;white-space:nowrap}
     .product-table-actions .button.ghost{padding:5px 7px;font-size:11px}
     .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    .comparison-dialog{width:min(1440px,calc(100vw - 40px));max-width:none;height:min(92vh,1000px);max-height:min(92vh,1000px);overflow:hidden}
+    .comparison-dialog-inner{display:flex;flex-direction:column;gap:14px;height:100%;min-height:0;overflow:hidden;padding:clamp(18px,2.3vw,32px)}
+    .comparison-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+    .comparison-head-copy{min-width:0}
+    .comparison-eyebrow{color:var(--green);font-size:11px;font-weight:850;letter-spacing:.13em}
+    .comparison-title{margin:4px 0 5px;font-size:clamp(21px,2.3vw,29px);letter-spacing:-.04em}
+    .comparison-description{margin:0;color:#60716a;font-size:13px}
+    .comparison-close{flex:0 0 auto;border:1px solid var(--line);background:#f7f8f5;border-radius:50%;width:40px;height:40px;font-size:22px;color:var(--ink)}
+    .comparison-close:hover{background:#eaf2eb}
+    .comparison-summary{padding:11px 14px;border:1px solid #dce8dd;border-radius:12px;background:#f4f8f3;color:#476156;font-size:13px}
+    .comparison-summary.warning{border-color:#f0e0d4;background:#fff8f3;color:#815d45}
+    .comparison-table-region{flex:1 1 0;min-height:0;max-height:min(55vh,580px);overflow:auto;border:1px solid var(--line);border-radius:14px;background:#fff;-webkit-overflow-scrolling:touch}
+    .comparison-table-region:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+    .comparison-table{width:100%;min-width:820px;border-collapse:separate;border-spacing:0;text-align:left}
+    .comparison-table th,.comparison-table td{padding:12px 14px;vertical-align:top;border-bottom:1px solid var(--line)}
+    .comparison-table thead th{position:sticky;top:0;z-index:2;min-width:205px;background:#edf4ef;color:var(--green-dark);font-size:13px;font-weight:800}
+    .comparison-table thead th:first-child{left:0;z-index:4;min-width:180px}
+    .comparison-table tbody th{position:sticky;left:0;z-index:1;width:180px;min-width:180px;background:#f8faf7;color:#52645d;font-size:12px;font-weight:800}
+    .comparison-table tbody td{min-width:205px;color:var(--ink);font-size:13px;overflow-wrap:anywhere;white-space:pre-wrap}
+    .comparison-table tbody tr:last-child th,.comparison-table tbody tr:last-child td{border-bottom:0}
+    .comparison-table .price-cell{font-size:16px;font-weight:850;white-space:nowrap}
+    .comparison-table .note-cell{min-height:76px;line-height:1.65}
+    .comparison-table a{color:var(--green-dark);font-weight:800;text-decoration:none}
+    .comparison-table a:hover{text-decoration:underline}
+    .comparison-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--muted);font-size:11px}
+    .comparison-ai{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;padding:13px 15px;border:1px solid var(--line);border-radius:13px;background:#fbfcfa}
+    .comparison-ai-copy{min-width:0}
+    .comparison-ai-title{margin:0 0 3px;font-size:13px;font-weight:850;color:var(--ink)}
+    .comparison-ai-status{margin:0;color:#64736c;font-size:11px}
+    .comparison-ai-answer{grid-column:1/-1;max-height:18vh;overflow:auto;margin:0;padding:10px 12px;border-radius:10px;background:#f2f6f1;color:#283f36;font-size:13px;line-height:1.6;white-space:pre-wrap}
+    .comparison-ai-answer[hidden]{display:none}
+    @media(max-width:700px){.comparison-dialog{width:calc(100vw - 12px);height:calc(100dvh - 12px);max-height:calc(100dvh - 12px);border-radius:16px}.comparison-dialog-inner{height:100%;max-height:none;gap:10px;padding:14px}.comparison-head{gap:10px}.comparison-title{font-size:21px}.comparison-description{font-size:12px}.comparison-close{width:36px;height:36px}.comparison-summary{font-size:12px;padding:10px 11px}.comparison-table-region{min-height:0;max-height:none}.comparison-table th,.comparison-table td{padding:10px 11px}.comparison-ai{grid-template-columns:minmax(0,1fr) auto;padding:11px}.comparison-ai .button{padding:9px 11px;font-size:12px}.comparison-ai-answer{max-height:18vh}.comparison-footer{align-items:flex-start;flex-direction:column;gap:3px}}
   </style>
 </head>
 <body>
@@ -55,7 +87,7 @@
       <div class="hero-content">
         <div class="eyebrow">Moving planner · 한곳에서 정리</div>
         <h1>이사 준비,<br>견적과 가전 후보를 한눈에.</h1>
-        <p>업체 견적을 같은 기준으로 나란히 보고, 새집 가전 가격과 판매 링크를 모아두세요. 제품 선택이 고민되면 고른 후보만 EDUNI AI 친구에게 비교를 부탁할 수 있어요.</p>
+        <p>업체 견적을 같은 기준으로 나란히 보고, 새집 가전 가격과 판매 링크를 모아두세요. 가전 후보는 상세 비교표로 확인하고, 원할 때만 표 안에서 AI 요약을 받아볼 수 있어요.</p>
         <div class="hero-actions">
           <button class="button primary" id="addQuoteTop" type="button">＋ 이사 견적 추가</button>
           <button class="button secondary" id="addProductTop" type="button">＋ 가전 후보 추가</button>
@@ -63,7 +95,7 @@
       </div>
     </section>
 
-    <div class="privacy"><span class="icon">🔒</span><div><b>이 브라우저에만 저장됩니다.</b> 다른 기기와 자동 공유되지 않고 공개 링크도 만들지 않아요. 요약을 복사해 직접 공유할 수 있습니다. AI 비교를 누르면 선택한 가전의 분류·제품명·모델·가격·가격 확인처·확인일·메모와 저장된 집 크기·방 수가 전송됩니다. 비교 메모에 적은 내용도 그대로 전송되므로 주소나 연락처는 적지 마세요. 이사 날짜·견적·판매 링크는 AI에 보내지 않습니다.</div></div>
+    <div class="privacy"><span class="icon">🔒</span><div><b>이 브라우저에만 저장됩니다.</b> 다른 기기와 자동 공유되지 않고 공개 링크도 만들지 않아요. 제품 비교표를 여는 것만으로 정보가 전송되지는 않습니다. 표에서 <b>AI 요약 보기</b>를 누르면 선택 제품의 분류·제품명·모델·가격·판매처·확인일·메모(앞 140자)와 저장된 집 크기·방 수를 AI로 전송합니다. 이사 날짜·견적·판매 링크는 보내지 않아요. 주소·연락처·사적인 내용은 메모나 질문에 적지 마세요.</div></div>
 
     <section class="stats" aria-label="준비 현황">
       <div class="stat"><div class="stat-label">받은 이사 견적</div><div class="stat-value" id="quoteCount">0<span>건</span></div></div>
@@ -90,7 +122,7 @@
 
         <section class="panel" id="productsSection">
           <div class="section-head"><div><h2>입주 가전 가격표</h2><p>모델별 사내가와 확인한 외부 최저가·판매 링크를 저장해요.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="button secondary" id="importProducts" type="button">Excel 목록 붙여넣기</button><button class="button secondary" id="addProduct" type="button">＋ 가전 추가</button></div></div>
-          <div class="compare-bar"><p><b id="compareCount">0개 선택</b> · 가격과 메모를 기준으로 최대 3개 후보를 비교해요.</p><button class="button primary" id="compareProducts" type="button">🐣 AI 친구에게 비교 부탁</button></div>
+          <div class="compare-bar"><p><b id="compareCount">0개 선택</b> · 저장된 정보만 최대 3개까지 표로 비교해요.</p><button class="button primary" id="compareProducts" type="button">▦ 제품 비교표 열기</button></div>
           <div id="productList" class="product-list"></div>
         </section>
       </main>
@@ -159,7 +191,7 @@
         <div class="field"><label for="priceSeller">가격 확인처</label><input id="priceSeller" name="seller" maxlength="50" placeholder="예: 네이버 쇼핑 판매처"></div>
         <div class="field"><label for="checkedAt">가격 확인일</label><input id="checkedAt" name="checkedAt" type="date"></div>
         <div class="field full"><label for="productUrl">판매 상품 링크</label><input id="productUrl" name="url" type="url" maxlength="500" placeholder="https://..."></div>
-        <div class="field full"><label for="productNote">비교할 특징 메모</label><textarea id="productNote" name="note" maxlength="140" placeholder="용량, 설치 방식, 포함 옵션 등 비교에 필요한 점만 적어주세요."></textarea></div>
+        <div class="field full"><label for="productNote">비교할 기능·사양 메모</label><textarea id="productNote" name="note" maxlength="800" placeholder="상품 페이지에서 확인한 기능, 용량, 설치 방식, 포함 옵션 등을 입력해 주세요. 입력한 정보만 비교표에 표시됩니다."></textarea></div>
       </div>
       <div class="dialog-actions"><button class="button secondary" type="button" data-close="productDialog">취소</button><button class="button primary" type="submit">저장</button></div>
     </form>
@@ -167,10 +199,32 @@
   <dialog class="dialog" id="importDialog">
     <form id="importForm" class="dialog-inner">
       <div class="dialog-head"><h2>Excel 목록 붙여넣기</h2><button class="close" type="button" data-close="importDialog" aria-label="닫기">×</button></div>
-      <p class="small" style="margin:0 0 12px">Excel에서 후보 행을 복사해 붙여넣으세요. 열 순서는 <b>제품명 → 모델 코드 → 임직원가 → 외부 최저가 → 최저가 사이트 → 판매 링크 → 확인일(YYYY-MM-DD) → 특징 메모</b>입니다. 첫 제목 행은 자동으로 건너뜁니다. 외부 가격은 확인한 값만 넣어 주세요.</p>
+      <p class="small" style="margin:0 0 12px">Excel에서 후보 행을 복사해 붙여넣으세요. 열 순서는 <b>제품명 → 모델 코드 → 임직원가 → 외부 최저가 → 최저가 사이트 → 판매 링크 → 확인일(YYYY-MM-DD) → 기능·사양 메모</b>입니다. 첫 제목 행은 자동으로 건너뜁니다. 메모는 최대 800자까지 저장하며, 외부 가격은 확인한 값만 넣어 주세요.</p>
       <div class="field"><label for="importText">탭으로 구분된 행</label><textarea id="importText" rows="10" required placeholder="제품명&#9;모델코드&#9;임직원가&#9;외부최저가&#9;사이트&#9;링크&#9;확인일&#9;메모"></textarea></div>
       <div class="dialog-actions"><button class="button secondary" type="button" data-close="importDialog">취소</button><button class="button primary" type="submit">목록 가져오기</button></div>
     </form>
+  </dialog>
+  <dialog class="dialog comparison-dialog" id="productCompareDialog" aria-labelledby="comparisonTitle" aria-describedby="comparisonDescription">
+    <div class="comparison-dialog-inner">
+      <header class="comparison-head">
+        <div class="comparison-head-copy">
+          <div class="comparison-eyebrow">PRODUCT COMPARISON</div>
+          <h2 class="comparison-title" id="comparisonTitle">가전 후보 상세 비교</h2>
+          <p class="comparison-description" id="comparisonDescription">저장된 제품 정보만 비교표에 표시합니다. 입력하지 않은 사양은 추측하지 않고 미입력으로 표시해요.</p>
+        </div>
+        <button class="comparison-close" type="button" data-close="productCompareDialog" aria-label="비교표 닫기">×</button>
+      </header>
+      <div class="comparison-summary" id="comparisonSummary" role="status" aria-live="polite"></div>
+      <div class="comparison-table-region" role="region" aria-label="선택 제품 비교표. 가로 또는 세로로 스크롤할 수 있습니다." tabindex="0">
+        <table class="comparison-table" id="comparisonTable"></table>
+      </div>
+      <section class="comparison-ai" aria-labelledby="comparisonAiTitle">
+        <div class="comparison-ai-copy"><h3 class="comparison-ai-title" id="comparisonAiTitle">AI 정성 요약</h3><p class="comparison-ai-status" id="comparisonAiStatus" role="status" aria-live="polite">표는 바로 볼 수 있어요. AI 요약을 원할 때만 선택 제품 정보를 전송합니다.</p></div>
+        <button class="button secondary" id="requestAiSummary" type="button">AI 요약 보기</button>
+        <p class="comparison-ai-answer" id="comparisonAiAnswer" aria-live="polite" hidden></p>
+      </section>
+      <footer class="comparison-footer"><span>가격 차이 = 각 제품의 외부 최저가 − 임직원가입니다.</span><span>최종 가격·옵션·설치 조건은 판매처에서 확인하세요.</span></footer>
+    </div>
   </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -183,6 +237,8 @@
     const fresh = () => ({moveDate:"",homeSize:"",roomCount:"",quotes:[],products:[]});
     let state = load();
     let toastTimer;
+    let comparedProductIds = [];
+    let aiCompareController = null;
 
     function load() {
       try {
@@ -243,8 +299,7 @@
       const categoryOrder = $$("#productCategory option").map(option => option.value);
       const groups = new Map();
       for (const item of state.products) {
-        const detected = guessCategory(item.name, item.model);
-        const category = categoryOrder.includes(item.category) ? item.category : categoryOrder.includes(detected) ? detected : "기타";
+        const category = productCategory(item, categoryOrder);
         if (!groups.has(category)) groups.set(category, []);
         groups.get(category).push(item);
       }
@@ -258,7 +313,7 @@
               <tbody>${items.map(item => {
             const source = safeHttpUrl(item.url);
             return `<tr>
-              <th scope="row" class="product-table-item"><label class="select-row"><input type="checkbox" data-select-product="${esc(item.id)}" ${item.selected?"checked":""} aria-label="${esc(item.name)} AI 비교에 선택"><span><span class="product-name">${esc(item.name)}</span><span class="product-code">${esc(item.model)}</span></span></label>
+              <th scope="row" class="product-table-item"><label class="select-row"><input type="checkbox" data-select-product="${esc(item.id)}" ${item.selected?"checked":""} aria-label="${esc(item.name)} 제품 비교표에 선택"><span><span class="product-name">${esc(item.name)}</span><span class="product-code">${esc(item.model)}</span></span></label>
                 <details class="product-row-details"><summary>${esc(item.model)} 가격 검색${item.note?" · 메모":""}</summary><div class="product-search"><a class="search-link" href="${searchUrl("naver",item.model)}" target="_blank" rel="noopener noreferrer">네이버 쇼핑 ↗</a><a class="search-link" href="${searchUrl("danawa",item.model)}" target="_blank" rel="noopener noreferrer">다나와 ↗</a><a class="search-link" href="${searchUrl("enuri",item.model)}" target="_blank" rel="noopener noreferrer">에누리 ↗</a>${source?`<a class="search-link" href="${esc(source)}" target="_blank" rel="noopener noreferrer">저장한 판매처 ↗</a>`:""}</div>${item.note?`<p class="product-note">${esc(item.note)}</p>`:""}</details>
               </th>
               <td><span class="table-price">${money(item.employeePrice)}</span></td>
@@ -270,6 +325,37 @@
             </table>
           </div>
         </section>`).join("");
+    }
+    function renderProductComparison(items) {
+      const categories = items.map(item => productCategory(item));
+      const mixed = new Set(categories).size > 1;
+      const summary = $("#comparisonSummary");
+      summary.classList.toggle("warning", mixed);
+      summary.textContent = mixed
+        ? `여러 제품 분류가 포함되어 있습니다 (${categories.join(" · ")}). 분류별 순위는 만들지 않고 저장된 정보를 나란히 표시합니다.`
+        : `${categories[0]} ${items.length}개 후보의 입력 정보를 비교합니다. 기능·사양은 메모에 적힌 내용만 표시합니다.`;
+      const row = (label, value, className = "") => `<tr><th scope="row">${esc(label)}</th>${items.map(item => `<td${className?` class="${className}"`:""}>${value(item)}</td>`).join("")}</tr>`;
+      $("#comparisonTable").innerHTML = `<caption class="sr-only">${esc(items.map(item => `${item.name || "제품명 미입력"} ${item.model || "모델 코드 미입력"}`).join(" · "))} 비교표. 첫 번째 열은 항목이고 각 열은 제품입니다.</caption>
+        <thead><tr><th scope="col">비교 항목</th>${items.map((item,index) => `<th scope="col"><span class="pill">후보 ${index+1}</span><br>${esc(String(item.name||"").trim()||"미입력")}<small class="product-code">${esc(String(item.model||"").trim()||"미입력")}</small></th>`).join("")}</tr></thead>
+        <tbody>
+          ${row("제품 분류", item => esc(productCategory(item)))}
+          ${row("제품명", item => esc(String(item.name||"").trim()||"미입력"))}
+          ${row("모델 코드", item => esc(String(item.model||"").trim()||"미입력"))}
+          ${row("입력한 기능·사양 메모", item => esc(String(item.note||"").trim()||"미입력"), "note-cell")}
+          ${row("임직원가", item => `<span class="price-cell">${esc(money(item.employeePrice))}</span>`)}
+          ${row("외부 최저가", item => `<span class="price-cell">${esc(money(item.externalPrice))}</span>`)}
+          ${row("외부 최저가 − 임직원가", item => { const employee=Number(item.employeePrice),external=Number(item.externalPrice); if(!(employee>0)||!(external>0)||!Number.isFinite(employee)||!Number.isFinite(external))return "미입력"; const delta=external-employee,sign=delta>0?"+":delta<0?"−":""; return `<span class="price-cell">${sign}${esc(new Intl.NumberFormat("ko-KR").format(Math.abs(delta)))}원</span>`; })}
+          ${row("가격 확인처", item => esc(String(item.seller||"").trim()||"미입력"))}
+          ${row("가격 확인일", item => esc(item.checkedAt?dateLabel(item.checkedAt):"미입력"))}
+          ${row("모델명 가격 검색", item => `<a class="search-link" href="${searchUrl("danawa",item.model)}" target="_blank" rel="noopener noreferrer">다나와 ↗</a> <a class="search-link" href="${searchUrl("naver",item.model)}" target="_blank" rel="noopener noreferrer">네이버 쇼핑 ↗</a> <a class="search-link" href="${searchUrl("enuri",item.model)}" target="_blank" rel="noopener noreferrer">에누리 ↗</a>`)}
+          ${row("저장한 상품 링크", item => { const url=safeHttpUrl(item.url); return url?`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">상품 페이지 열기 ↗</a>`:"미입력"; })}
+        </tbody>`;
+      comparedProductIds = items.map(item => item.id);
+      $("#comparisonAiStatus").textContent = "표는 바로 볼 수 있어요. AI 요약을 원할 때만 선택 제품 정보가 전송됩니다.";
+      $("#comparisonAiAnswer").hidden = true;
+      $("#comparisonAiAnswer").textContent = "";
+      $("#requestAiSummary").disabled = false;
+      $("#productCompareDialog").showModal();
     }
     function fillForm(form, item) {
       for (const field of form.elements) {
@@ -306,6 +392,10 @@
       if (/후드/.test(text)) return "후드";
       return "기타";
     }
+    function productCategory(item, categories = $$("#productCategory option").map(option => option.value)) {
+      const detected = guessCategory(item?.name || "", item?.model || "");
+      return categories.includes(item?.category) ? item.category : categories.includes(detected) ? detected : "기타";
+    }
     function parsePrice(value) { const digits=String(value||"").replace(/[^\d]/g,""); return digits?Number(digits):""; }
     function importRows(text) {
       const rows=String(text||"").split(/\r?\n/).map(line=>line.split("\t").map(cell=>cell.trim())).filter(cells=>cells.some(Boolean));
@@ -314,7 +404,7 @@
         const [name="",model="",employee="",external="",seller="",rawUrl="",checkedAt="",note=""]=cells;
         if (!name || !model || /모델\s*(명|코드)|제품명/i.test(`${name} ${model}`)) continue;
         const previous=state.products.find(item=>String(item.model).toUpperCase()===model.toUpperCase());
-        const item={id:previous?.id||uid(),category:guessCategory(name,model),name,model:model.toUpperCase(),employeePrice:parsePrice(employee),externalPrice:parsePrice(external),seller,url:safeHttpUrl(rawUrl),checkedAt:/^\d{4}-\d{2}-\d{2}$/.test(checkedAt)?checkedAt:"",note:note.slice(0,140),selected:Boolean(previous?.selected)};
+        const item={id:previous?.id||uid(),category:guessCategory(name,model),name,model:model.toUpperCase(),employeePrice:parsePrice(employee),externalPrice:parsePrice(external),seller,url:safeHttpUrl(rawUrl),checkedAt:/^\d{4}-\d{2}-\d{2}$/.test(checkedAt)?checkedAt:"",note:note.slice(0,800),selected:Boolean(previous?.selected)};
         if (previous) { Object.assign(previous,item); updated++; }
         else { state.products.unshift(item); added++; }
       }
@@ -378,28 +468,50 @@
     document.addEventListener("change",event => {
       const id=event.target.dataset.selectProduct; if (!id) return;
       const item=state.products.find(product=>product.id===id); if (!item) return;
-      if (event.target.checked && state.products.filter(product=>product.selected).length>=3) { event.target.checked=false; toast("AI 비교는 한 번에 최대 3개까지 선택할 수 있어요."); return; }
+      if (event.target.checked && state.products.filter(product=>product.selected).length>=3) { event.target.checked=false; toast("제품 비교는 한 번에 최대 3개까지 선택할 수 있어요."); return; }
       item.selected=event.target.checked; save(); render();
     });
     $("#compareProducts").addEventListener("click",() => {
       const chosen=state.products.filter(product=>product.selected);
       if (chosen.length<2) return toast("비교할 가전 후보를 2개 이상 선택해 주세요.");
       if (chosen.some(item=>!String(item.name||"").trim()||!String(item.model||"").trim())) return toast("선택한 제품의 제품명과 모델 코드를 확인해 주세요.");
-      if (!window.EDUNICompanion?.ask) return toast("포털 AI 친구를 불러오지 못했어요. 포털 화면에서 다시 열어 주세요.");
+      renderProductComparison(chosen);
+    });
+    $("#productCompareDialog").addEventListener("close",() => {
+      if(aiCompareController){aiCompareController.abort();aiCompareController=null;}
+      $("#requestAiSummary").disabled=false;
+    });
+    $("#requestAiSummary").addEventListener("click",async() => {
+      if(aiCompareController)return;
+      const chosen=comparedProductIds.map(id=>state.products.find(item=>item.id===id)).filter(Boolean);
+      if(chosen.length<2){$("#comparisonAiStatus").textContent="비교할 제품 선택을 다시 확인해 주세요.";return;}
       const compact=(value,limit)=>String(value??"").replace(/\s+/g," ").trim().slice(0,limit);
       const numericForAI=(value,{integer=false,max=100_000_000}={})=>{const amount=Number(value);return Number.isFinite(amount)&&amount>0&&amount<=max&&(!integer||Number.isSafeInteger(amount))?amount:null;};
       const compareData={
         home:{size_py:numericForAI(state.homeSize,{max:200}),room_count:numericForAI(state.roomCount,{integer:true,max:20})},
         products:chosen.map(item=>({
-          category:compact(item.category,30),name:compact(item.name,80),model:compact(item.model,32),
+          category:compact(productCategory(item),30),name:compact(item.name,80),model:compact(item.model,32),
           employee_price:numericForAI(item.employeePrice,{integer:true}),external_price:numericForAI(item.externalPrice,{integer:true}),
           seller:compact(item.seller,50),checked_at:compact(item.checkedAt,10),note:compact(item.note,140)
         }))
       };
       const question=JSON.stringify(compareData);
-      const prompt="선택한 가전 후보를 비교해줘. 답변은 한줄 요약, 제품별 장점·주의점, 분류별 추천, 구매 전 확인할 점 순서로 짧게 써줘. 같은 분류끼리 비교하고 다른 분류는 대체재처럼 순위를 매기거나 종합 1위를 뽑지 마. 분류가 기타이면 같은 비교군으로 다루지 마. 가격 차액은 계산하거나 답변에 쓰지 말고, Portal이 답변 뒤에 붙이는 '입력 가격 계산' 섹션을 참고해. 모르는 사양이나 실시간 가격은 추측하지 마.";
-      window.EDUNICompanion.ask(prompt,{activity:"appliance_compare",question,choices:[],selected:""});
-      toast("선택한 가전 정보만 AI 친구에게 보냈어요.");
+      const prompt="선택한 가전 후보의 입력된 특징과 사양을 바탕으로 짧은 정성 요약을 써줘. 제품별 장점과 구매 전 확인할 점을 간단히 정리해. 같은 분류끼리만 비교하고 분류가 다르면 순위나 종합 1위를 매기지 마. 가격 차액은 계산하지 말고 표에 표시된 값만 참고해. 입력되지 않은 기능이나 실시간 가격은 추측하지 마.";
+      const controller=new AbortController(); aiCompareController=controller;
+      const status=$("#comparisonAiStatus"),answer=$("#comparisonAiAnswer"),button=$("#requestAiSummary");
+      button.disabled=true; answer.hidden=true; answer.textContent=""; status.textContent="선택한 제품 정보를 보내고 AI 요약을 기다리고 있어요…";
+      try {
+        const response=await fetch("/ai/companion/chat",{method:"POST",headers:{"Content-Type":"application/json","X-Requested-With":"XMLHttpRequest"},body:JSON.stringify({prompt,context:{activity:"appliance_compare",question,choices:[],selected:""}}),signal:controller.signal,credentials:"same-origin"});
+        const data=await response.json().catch(()=>null);
+        if(aiCompareController!==controller||!$("#productCompareDialog").open)return;
+        if(response.status===503&&data?.error==="ai_unavailable")throw new Error("AI를 지금 사용할 수 없어요. 비교표는 계속 확인할 수 있습니다.");
+        if(!response.ok||!data?.ok||typeof data.answer!=="string"||!data.answer.trim())throw new Error("AI 요약을 받지 못했어요. 비교표는 계속 확인할 수 있습니다.");
+        answer.textContent=data.answer.trim(); answer.hidden=false; status.textContent="AI 정성 요약이 도착했습니다.";
+      } catch(error) {
+        if(error.name!=="AbortError"&&aiCompareController===controller)status.textContent=error.message||"AI 요약에 연결할 수 없어요. 비교표는 계속 확인할 수 있습니다.";
+      } finally {
+        if(aiCompareController===controller){aiCompareController=null;button.disabled=false;}
+      }
     });
     $("#shareSummary").addEventListener("click",copySummary);
     $("#shareSummaryAside").addEventListener("click",copySummary);

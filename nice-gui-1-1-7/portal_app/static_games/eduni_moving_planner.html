@@ -210,7 +210,7 @@
         <div class="comparison-head-copy">
           <div class="comparison-eyebrow">PRODUCT COMPARISON</div>
           <h2 class="comparison-title" id="comparisonTitle">가전 후보 상세 비교</h2>
-          <p class="comparison-description" id="comparisonDescription">저장된 제품 정보만 비교표에 표시합니다. 입력하지 않은 사양은 추측하지 않고 미입력으로 표시해요.</p>
+          <p class="comparison-description" id="comparisonDescription">저장된 제품 정보만 비교표에 표시합니다. 입력 메모는 원문 그대로 보여주고, 없는 사양은 추측하지 않아요.</p>
         </div>
         <button class="comparison-close" type="button" data-close="productCompareDialog" aria-label="비교표 닫기">×</button>
       </header>
@@ -341,7 +341,7 @@
           ${row("제품 분류", item => esc(productCategory(item)))}
           ${row("제품명", item => esc(String(item.name||"").trim()||"미입력"))}
           ${row("모델 코드", item => esc(String(item.model||"").trim()||"미입력"))}
-          ${row("입력한 기능·사양 메모", item => esc(String(item.note||"").trim()||"미입력"), "note-cell")}
+          ${row("저장한 메모", item => esc(String(item.note||"").trim()||"미입력"), "note-cell")}
           ${row("임직원가", item => `<span class="price-cell">${esc(money(item.employeePrice))}</span>`)}
           ${row("외부 최저가", item => `<span class="price-cell">${esc(money(item.externalPrice))}</span>`)}
           ${row("외부 최저가 − 임직원가", item => { const employee=Number(item.employeePrice),external=Number(item.externalPrice); if(!(employee>0)||!(external>0)||!Number.isFinite(employee)||!Number.isFinite(external))return "미입력"; const delta=external-employee,sign=delta>0?"+":delta<0?"−":""; return `<span class="price-cell">${sign}${esc(new Intl.NumberFormat("ko-KR").format(Math.abs(delta)))}원</span>`; })}

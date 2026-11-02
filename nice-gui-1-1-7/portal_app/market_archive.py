@@ -1,66 +1,21 @@
 from __future__ import annotations
 
-import hashlib
-import hmac
 import json
 import os
 import re
-import threading
-import time
 from pathlib import Path
 
 from fastapi import Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from nicegui import app
 
-from .database import verify_parent_pin
 from .reading_storage import _connect_postgres
 
-SESSION_COOKIE = "eduni_market_session"
-SESSION_SECONDS = 8 * 60 * 60
 MAX_QUERY = 160
 MAX_PAGE_SIZE = 30
 MAX_EXCERPT = 350
 MAX_RAG_ARTICLES = 4
 _PROMO_TEXT = re.compile(r"처음 오신분|신규구독|인생나락|전자책|전차책|Bloom X|프리미엄연간|프리미엄\+|특별링크|신규연간구독자|구독자 여러분|3일 완성|할인 행사")
-_LOGIN_LOCK = threading.Lock()
-_LOGIN_FAILURES: dict[str, list[float]] = {}
-
-
-def _session_digest(token: str) -> str:
-    return hmac.new(_session_secret(), token.encode(), hashlib.sha256).hexdigest()
-
-
-def _session_secret() -> bytes:
-    value = os.environ.get("EDUNI_MARKET_SESSION_SECRET", "").encode()
-    if len(value) < 32:
-        raise RuntimeError("EDUNI_MARKET_SESSION_SECRET must be at least 32 bytes")
-    return value
-
-
-def _authorized(request: Request) -> bool:
-    token = request.cookies.get(SESSION_COOKIE, "")
-    try:
-        if not isinstance(token, str) or len(token) > 512 or token.count(".") != 1:
-            return False
-        encoded_payload, signature = token.split(".", 1)
-        if len(encoded_payload) > 400 or len(signature) != 64:
-            return False
-        payload = json.loads(bytes.fromhex(encoded_payload))
-        if not isinstance(payload, dict):
-            return False
-        expiry = payload.get("exp")
-        return (isinstance(expiry, (int, float)) and not isinstance(expiry, bool)
-                and expiry > time.time() and hmac.compare_digest(signature, _session_digest(encoded_payload)))
-    except (ValueError, TypeError, json.JSONDecodeError, RuntimeError):
-        return False
-
-
-def _session_value() -> str:
-    payload = json.dumps({"exp": int(__import__("time").time()) + SESSION_SECONDS}, separators=(",", ":")).encode().hex()
-    return payload + "." + _session_digest(payload)
-
-
 def _db():
     return _connect_postgres()
 
@@ -84,51 +39,6 @@ def _html() -> HTMLResponse:
 @app.get("/portal/market", response_class=HTMLResponse)
 async def market_archive_page(request: Request) -> HTMLResponse:
     return _html()
-
-
-@app.post("/portal/market/api/session")
-async def market_session(request: Request) -> JSONResponse:
-    if not _same_origin(request):
-        return JSONResponse({"ok": False}, status_code=403, headers={"Cache-Control": "no-store"})
-    if request.headers.get("content-type", "").split(";", 1)[0].lower() != "application/json":
-        return JSONResponse({"ok": False}, status_code=400, headers={"Cache-Control": "no-store"})
-    raw = await _read_bounded_body(request, 256)
-    if raw is None:
-        return JSONResponse({"ok": False}, status_code=400, headers={"Cache-Control": "no-store"})
-    try:
-        data = json.loads(raw)
-    except Exception:
-        return JSONResponse({"ok": False}, status_code=400, headers={"Cache-Control": "no-store"})
-    pin = data.get("pin") if isinstance(data, dict) else None
-    caller = request.client.host if request.client else "unknown"
-    now = time.monotonic()
-    with _LOGIN_LOCK:
-        failures = [stamp for stamp in _LOGIN_FAILURES.get(caller, []) if now - stamp < 300]
-        _LOGIN_FAILURES[caller] = failures
-        blocked = len(failures) >= 5
-    if blocked:
-        return JSONResponse({"ok": False}, status_code=401, headers={"Cache-Control": "no-store"})
-    configured = os.environ.get("EDUNI_MARKET_PIN_HASH")
-    valid = isinstance(pin, str) and configured is not None and verify_parent_pin(pin, configured)
-    if not valid:
-        with _LOGIN_LOCK:
-            _LOGIN_FAILURES.setdefault(caller, []).append(now)
-        return JSONResponse({"ok": False}, status_code=401, headers={"Cache-Control": "no-store"})
-    with _LOGIN_LOCK:
-        _LOGIN_FAILURES.pop(caller, None)
-    response = JSONResponse({"ok": True}, headers={"Cache-Control": "no-store"})
-    response.set_cookie(SESSION_COOKIE, _session_value(), max_age=SESSION_SECONDS, httponly=True,
-                        secure=request.url.scheme == "https", samesite="strict", path="/portal/market")
-    return response
-
-
-@app.post("/portal/market/api/logout")
-async def market_logout(request: Request) -> JSONResponse:
-    if not _same_origin(request) or request.headers.get("content-type", "").split(";", 1)[0].lower() != "application/json":
-        return JSONResponse({"ok": False}, status_code=403, headers={"Cache-Control": "no-store"})
-    response = JSONResponse({"ok": True}, headers={"Cache-Control": "no-store"})
-    response.delete_cookie(SESSION_COOKIE, path="/portal/market", httponly=True, samesite="strict")
-    return response
 
 
 def _same_origin(request: Request) -> bool:
@@ -155,9 +65,7 @@ async def _read_bounded_body(request: Request, limit: int) -> bytes | None:
 
 
 @app.get("/portal/market/api/articles")
-async def market_articles(request: Request, q: str = "", page: int = 1) -> JSONResponse:
-    if not _authorized(request):
-        return JSONResponse({"ok": False}, status_code=401, headers={"Cache-Control": "no-store"})
+async def market_articles(q: str = "", page: int = 1) -> JSONResponse:
     q = q.strip()[:MAX_QUERY]
     page = max(1, min(page, 10_000))
     conn = _db()
@@ -178,9 +86,7 @@ async def market_articles(request: Request, q: str = "", page: int = 1) -> JSONR
 
 
 @app.get("/portal/market/api/articles/{article_id}")
-async def market_article_detail(request: Request, article_id: str) -> JSONResponse:
-    if not _authorized(request):
-        return JSONResponse({"ok": False}, status_code=401, headers={"Cache-Control": "no-store"})
+async def market_article_detail(article_id: str) -> JSONResponse:
     if len(article_id) > 80 or not article_id.isalnum():
         return JSONResponse({"ok": False, "error": "not_found"}, status_code=404, headers={"Cache-Control": "no-store"})
     conn = _db()
@@ -201,8 +107,6 @@ async def market_article_detail(request: Request, article_id: str) -> JSONRespon
 async def market_ask(request: Request) -> JSONResponse:
     if not _same_origin(request):
         return JSONResponse({"ok": False}, status_code=403, headers={"Cache-Control": "no-store"})
-    if not _authorized(request):
-        return JSONResponse({"ok": False}, status_code=401, headers={"Cache-Control": "no-store"})
     if request.headers.get("content-type", "").split(";", 1)[0].lower() != "application/json":
         return JSONResponse({"ok": False}, status_code=400, headers={"Cache-Control": "no-store"})
     raw = await _read_bounded_body(request, 8_000)

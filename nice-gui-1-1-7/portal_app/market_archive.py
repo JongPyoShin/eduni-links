@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import threading
 import time
 from pathlib import Path
@@ -21,6 +22,7 @@ MAX_QUERY = 160
 MAX_PAGE_SIZE = 30
 MAX_EXCERPT = 350
 MAX_RAG_ARTICLES = 4
+_PROMO_TEXT = re.compile(r"처음 오신분|신규구독|인생나락|전자책|전차책|Bloom X|프리미엄연간|프리미엄\+|특별링크|신규연간구독자|구독자 여러분|3일 완성|할인 행사")
 _LOGIN_LOCK = threading.Lock()
 _LOGIN_FAILURES: dict[str, list[float]] = {}
 
@@ -61,6 +63,17 @@ def _session_value() -> str:
 
 def _db():
     return _connect_postgres()
+
+
+def _article_excerpt(text: str) -> str:
+    normalized = " ".join(text.split())
+    fallback = normalized[:MAX_EXCERPT]
+    final_start = min(max(0, len(normalized) - MAX_EXCERPT), 5000)
+    for start in range(0, final_start + 1, 100):
+        excerpt = normalized[start:start + MAX_EXCERPT]
+        if excerpt and not _PROMO_TEXT.search(excerpt):
+            return excerpt
+    return fallback
 
 
 def _html() -> HTMLResponse:
@@ -120,7 +133,8 @@ async def market_logout(request: Request) -> JSONResponse:
 
 def _same_origin(request: Request) -> bool:
     origin = request.headers.get("origin", "").rstrip("/")
-    return bool(origin and origin == str(request.base_url).rstrip("/"))
+    expected = os.environ.get("EDUNI_MARKET_PUBLIC_ORIGIN", str(request.base_url)).strip().rstrip("/")
+    return bool(origin and origin == expected)
 
 
 async def _read_bounded_body(request: Request, limit: int) -> bytes | None:
@@ -207,21 +221,21 @@ async def market_ask(request: Request) -> JSONResponse:
     conn = _db()
     try:
         if ids:
-            rows = conn.execute("SELECT article_id, publish_date, title, left(content_text, %s) FROM market_archive.article WHERE article_id = ANY(%s) AND has_content = TRUE",
-                                (MAX_EXCERPT, ids)).fetchall()
+            rows = conn.execute("SELECT article_id, publish_date, title, content_text FROM market_archive.article WHERE article_id = ANY(%s) AND has_content = TRUE",
+                                (ids,)).fetchall()
             if len(rows) != len(ids):
                 return JSONResponse({"ok": False, "error": "invalid_sources"}, status_code=400, headers={"Cache-Control": "no-store"})
         else:
-            rows = conn.execute("""SELECT article_id, publish_date, title, left(content_text, %s) FROM market_archive.article
+            rows = conn.execute("""SELECT article_id, publish_date, title, content_text FROM market_archive.article
                 WHERE has_content = TRUE AND to_tsvector('simple', title || ' ' || content_text) @@ plainto_tsquery('simple', %s)
                 ORDER BY ts_rank(to_tsvector('simple', title || ' ' || content_text), plainto_tsquery('simple', %s)) DESC,
-                         publish_date DESC LIMIT %s""", (MAX_EXCERPT, query, query, MAX_RAG_ARTICLES)).fetchall()
+                         publish_date DESC LIMIT %s""", (query, query, MAX_RAG_ARTICLES)).fetchall()
     finally:
         conn.close()
     if not rows:
         return JSONResponse({"ok": False, "error": "no_sources"}, status_code=404, headers={"Cache-Control": "no-store"})
     from .ai.companion import _run_provider, validate_companion_payload
-    excerpts = [{"id": str(row[0]), "date": str(row[1]), "title": row[2], "excerpt": row[3]} for row in rows]
+    excerpts = [{"id": str(row[0]), "date": str(row[1]), "title": row[2], "excerpt": _article_excerpt(row[3])} for row in rows]
     context = {"activity": "market_research", "question": json.dumps({"query": query.strip(), "articles": excerpts}, ensure_ascii=False), "choices": [], "selected": ""}
     try:
         prompt, context = validate_companion_payload({"prompt": query.strip(), "context": context})

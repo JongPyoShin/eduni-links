@@ -209,7 +209,7 @@ foreach ($entry in $service.environment.PSObject.Properties) {
   if ($entry.Name -like 'EDUNI_*' -or $entry.Name -eq 'PORT') { $composeEnv[$entry.Name] = [string]$entry.Value }
 }
 foreach ($key in @($liveEnv.Keys | Where-Object { $_ -like 'EDUNI_*' -or $_ -eq 'PORT' })) {
-  Assert ($composeEnv.ContainsKey($key) -and $liveEnv[$key] -ceq $composeEnv[$key]) "Compose environment mismatch: $key (values suppressed)"
+  Assert ($composeEnv.ContainsKey($key) -and $liveEnv[$key] -ceq $composeEnv[$key].Replace('$$', '$')) "Compose environment mismatch: $key (values suppressed)"
 }
 $dbBefore = DbSnapshot
 CheckRoutes $true $true

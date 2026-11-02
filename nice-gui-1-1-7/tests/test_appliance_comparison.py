@@ -16,27 +16,23 @@ assert BRIDGE_SPEC and BRIDGE_SPEC.loader
 bridge = importlib.util.module_from_spec(BRIDGE_SPEC)
 BRIDGE_SPEC.loader.exec_module(bridge)
 
+MODELS = ["DW99F79E1USWS", "DW99F79E1B00S"]
+OFFICIAL_URL = "https://www.samsung.com/sec/dishwashers/DW99F79E1USWS/"
+REVIEW_URL = "https://search.shopping.naver.com/search/all?query=DW99F79E1USWS"
+
 
 def comparison_data() -> dict:
-    product = {
-        "category": "식기세척기",
-        "name": "Infinite AI 식기세척기 빌트인 14인용",
-        "model": "DW99F79E1USWS",
-        "employee_price": 1_399_000,
-        "external_price": None,
-        "seller": "",
-        "checked_at": "",
-        "note": "필터 내장형, 컵 맞춤 세척",
-    }
     return {
-        "home": {"size_py": 24.56, "room_count": 3},
-        "products": [product, {**product, "model": "DW99F79E1B00S", "employee_price": 1_449_000}],
+        "products": [
+            {"category": "식기세척기", "name": "Infinite AI 식기세척기 빌트인 14인용", "model": MODELS[0]},
+            {"category": "식기세척기", "name": "Infinite AI 식기세척기 트루빌트인 14인용", "model": MODELS[1]},
+        ]
     }
 
 
 def request_body(data: dict | None = None) -> dict:
     return {
-        "prompt": "가전 후보를 비교해줘.",
+        "prompt": "선택 제품을 웹 조사로 비교해줘.",
         "context": {
             "activity": "appliance_compare",
             "question": json.dumps(data if data is not None else comparison_data(), ensure_ascii=False),
@@ -46,11 +42,70 @@ def request_body(data: dict | None = None) -> dict:
     }
 
 
+def source_catalog() -> list[dict[str, str]]:
+    return [
+        {"url": OFFICIAL_URL, "title": "삼성전자 제품 정보"},
+        {"url": REVIEW_URL, "title": "네이버 쇼핑 후기 검색"},
+    ]
+
+
+def cited_source_urls() -> set[str]:
+    return {OFFICIAL_URL, REVIEW_URL}
+
+
+def research_data(models: list[str] | None = None) -> dict:
+    chosen = models or MODELS
+    return {
+        "overall_summary": "두 제품의 공개 기능은 비슷하고, 설치 방식과 공개 후기 근거를 함께 확인하세요.",
+        "overall_source_urls": [OFFICIAL_URL, REVIEW_URL],
+        "products": [
+            {
+                "model": chosen[0],
+                "features": [{"feature": "세척 용량", "value": "14인용", "source_urls": [OFFICIAL_URL]}],
+                "advantages": [{"text": "컵 맞춤 세척 기능을 제공합니다.", "source_urls": [OFFICIAL_URL]}],
+                "cautions": [{"text": "빌트인 설치 공간을 구매 전에 확인하세요.", "source_urls": [OFFICIAL_URL]}],
+                "reviews": {
+                    "summary": "검색된 후기에서 반복 경향을 단정할 만큼 충분한 자료를 찾지 못했습니다.",
+                    "scope": "네이버 쇼핑의 공개 후기 검색 결과를 기준으로 확인했습니다.",
+                    "source_urls": [REVIEW_URL],
+                },
+            },
+            {
+                "model": chosen[1],
+                "features": [{"feature": "세척 용량", "value": "14인용, 트루빌트인", "source_urls": [OFFICIAL_URL]}],
+                "advantages": [{"text": "가구 전면과 맞추는 설치 형태입니다.", "source_urls": [OFFICIAL_URL]}],
+                "cautions": [{"text": "패널 미포함 여부와 설치 규격을 확인하세요.", "source_urls": [OFFICIAL_URL]}],
+                "reviews": {
+                    "summary": "모델 코드가 일치하는 후기 표본은 충분히 확인되지 않았습니다.",
+                    "scope": "후기 자료가 적어 전체 사용자 평가로 일반화하지 않았습니다.",
+                    "source_urls": [REVIEW_URL],
+                },
+            },
+        ],
+    }
+
+
+def completion_sources() -> dict:
+    return {"output": [{
+        "type": "web_search_call",
+        "action": {"sources": source_catalog()},
+    }, {
+        "type": "message",
+        "content": [{"type": "output_text", "text": "제품 정보를 비교합니다.", "annotations": [
+            {"type": "url_citation", "url": source["url"], "title": source["title"]}
+            for source in source_catalog()
+        ]}],
+    }]}
+
+
 class FakeSSEStream:
-    def __init__(self, answer: str):
+    def __init__(self, answer: str, response: dict | None = None):
+        complete = {"type": "response.completed"}
+        if response is not None:
+            complete["response"] = response
         self.lines = iter((
-            b'data: ' + json.dumps({"type": "response.output_text.delta", "delta": answer}, ensure_ascii=False).encode() + b"\n",
-            b'data: {"type":"response.completed"}\n',
+            b"data: " + json.dumps({"type": "response.output_text.delta", "delta": answer}, ensure_ascii=False).encode() + b"\n",
+            b"data: " + json.dumps(complete, ensure_ascii=False).encode() + b"\n",
         ))
 
     def __enter__(self):
@@ -86,246 +141,235 @@ class FakeBridgeOpener:
 
 
 class ApplianceComparisonTests(unittest.TestCase):
-    def test_validation_preserves_all_selected_products_and_decimal_home_size(self) -> None:
+    def test_validation_accepts_only_selected_product_identifiers(self) -> None:
         prompt, context = companion.validate_companion_payload(request_body())
         data = json.loads(context["question"])
-        self.assertEqual(prompt, "가전 후보를 비교해줘.")
-        self.assertEqual(data["home"], {"size_py": 24.56, "room_count": 3})
-        self.assertEqual([item["model"] for item in data["products"]], ["DW99F79E1USWS", "DW99F79E1B00S"])
-        self.assertIsNone(data["products"][0]["external_price"])
+        self.assertEqual(prompt, "선택 제품을 웹 조사로 비교해줘.")
+        self.assertEqual(data, comparison_data())
+        self.assertNotIn("home", data)
+        self.assertTrue(all(set(item) == {"category", "name", "model"} for item in data["products"]))
 
-    def test_bridge_accepts_and_preserves_comparison_context(self) -> None:
-        body = request_body()
-        result = bridge._context_prompt(body["prompt"], body["context"])
-        self.assertIn("24.56", result)
-        self.assertIn("DW99F79E1B00S", result)
-        self.assertIn("appliance_compare", result)
-
-    def test_bridge_sends_adult_comparison_instructions_only_for_comparison_activity(self) -> None:
-        class Opener:
-            def __init__(self):
-                self.payloads = []
-
-            def open(self, request, timeout):
-                self.payloads.append(json.loads(request.data))
-                return FakeSSEStream("comparison result")
-
-        opener = Opener()
-        with patch.object(bridge, "_opener", opener):
-            result = bridge.complete(request_body()["prompt"], request_body()["context"], lambda: {"access_token": "test-token"})
-            child_context = {"activity": "general", "question": "", "choices": [], "selected": ""}
-            bridge.complete("문제", child_context, lambda: {"access_token": "test-token"})
-        self.assertEqual(result["answer"], "comparison result")
-        self.assertIn("성인 사용자의 가전 구매 비교", opener.payloads[0]["instructions"])
-        self.assertIn("분류별 추천", opener.payloads[0]["instructions"])
-        self.assertIn("가격 차액을 계산하거나 답변에 쓰지 않는다", opener.payloads[0]["instructions"])
-        self.assertIn("분류가 기타이거나 알 수 없으면 같은 비교군으로 보지 말고", opener.payloads[0]["instructions"])
-        self.assertNotIn("성인 사용자의 가전 구매 비교", opener.payloads[1]["instructions"])
-        self.assertIn("주요 이용 대상은 7세 남아", opener.payloads[1]["instructions"])
-
-    def test_bridge_allows_3000_comparison_chars_but_keeps_general_limit(self) -> None:
-        class Opener:
-            def __init__(self, answer: str):
-                self.answer = answer
-
-            def open(self, _request, timeout):
-                return FakeSSEStream(self.answer)
-
-        exact_limit = "가" * bridge.MAX_APPLIANCE_COMPARE_ANSWER_CHARS
-        with patch.object(bridge, "_opener", Opener(exact_limit)):
-            compared_at_limit = bridge.complete(request_body()["prompt"], request_body()["context"], lambda: {"access_token": "test-token"})
-        self.assertEqual(len(compared_at_limit["answer"]), bridge.MAX_APPLIANCE_COMPARE_ANSWER_CHARS)
-
-        long_answer = "가" * 1_201
-        with patch.object(bridge, "_opener", Opener(long_answer)):
-            compared = bridge.complete(request_body()["prompt"], request_body()["context"], lambda: {"access_token": "test-token"})
-        self.assertEqual(len(compared["answer"]), 1_201)
-
-        general_context = {"activity": "general", "question": "", "choices": [], "selected": ""}
-        with patch.object(bridge, "_opener", Opener(long_answer)):
-            with self.assertRaisesRegex(ValueError, "answer limit"):
-                bridge.complete("질문", general_context, lambda: {"access_token": "test-token"})
-
-        too_long = "가" * (bridge.MAX_APPLIANCE_COMPARE_ANSWER_CHARS + 1)
-        with patch.object(bridge, "_opener", Opener(too_long)):
-            with self.assertRaisesRegex(ValueError, "answer limit"):
-                bridge.complete(request_body()["prompt"], request_body()["context"], lambda: {"access_token": "test-token"})
-
-    def test_portal_bridge_accepts_escaped_hangul_over_16kb_only_with_compare_limit(self) -> None:
-        context = companion.validate_companion_payload(request_body())[1]
-        answer = "한" * 3_000
-        body = json.dumps({"answer": answer}, ensure_ascii=True).encode("ascii")
-        self.assertGreater(len(body), 16_384)
-        with patch.dict(os.environ, {
-            "EDUNI_AI_COMPANION_BRIDGE_URL": "http://127.0.0.1:8765",
-            "EDUNI_AI_COMPANION_BRIDGE_KEY": "test-key",
-        }), patch.object(companion, "build_opener", return_value=FakeBridgeOpener(body)):
-            result = companion._bridge_answer("비교", context)
-        self.assertEqual(result, answer)
-
-        supplementary_answer = "\U0001d11e" * 3_000
-        supplementary_body = json.dumps({"answer": supplementary_answer}, ensure_ascii=True).encode("ascii")
-        self.assertGreater(len(supplementary_body), 16_384)
-        self.assertLess(len(supplementary_body), companion.MAX_BRIDGE_RESPONSE_BYTES)
-        with patch.dict(os.environ, {
-            "EDUNI_AI_COMPANION_BRIDGE_URL": "http://127.0.0.1:8765",
-            "EDUNI_AI_COMPANION_BRIDGE_KEY": "test-key",
-        }), patch.object(companion, "build_opener", return_value=FakeBridgeOpener(supplementary_body)):
-            result = companion._bridge_answer("비교", context)
-        self.assertEqual(result, supplementary_answer)
-
-        general_context = {"activity": "general", "question": "", "choices": [], "selected": ""}
-        general_body = json.dumps({"answer": "a" * 1_201}, ensure_ascii=True).encode("ascii")
-        with patch.dict(os.environ, {
-            "EDUNI_AI_COMPANION_BRIDGE_URL": "http://127.0.0.1:8765",
-            "EDUNI_AI_COMPANION_BRIDGE_KEY": "test-key",
-        }), patch.object(companion, "build_opener", return_value=FakeBridgeOpener(general_body)):
-            with self.assertRaisesRegex(companion.ProviderError, "invalid bridge response"):
-                companion._bridge_answer("질문", general_context)
-
-    def test_portal_rejects_bridge_json_over_64000_bytes(self) -> None:
-        context = companion.validate_companion_payload(request_body())[1]
-        body = b"x" * (companion.MAX_BRIDGE_RESPONSE_BYTES + 1)
-        with patch.dict(os.environ, {
-            "EDUNI_AI_COMPANION_BRIDGE_URL": "http://127.0.0.1:8765",
-            "EDUNI_AI_COMPANION_BRIDGE_KEY": "test-key",
-        }), patch.object(companion, "build_opener", return_value=FakeBridgeOpener(body)):
-            with self.assertRaisesRegex(companion.ProviderError, "bridge response too large"):
-                companion._bridge_answer("비교", context)
-
-    def test_price_facts_calculate_only_comparable_entered_prices(self) -> None:
-        data = comparison_data()
-        data["products"][0]["external_price"] = 1_500_000
-        data["products"][1]["external_price"] = None
-        context = companion.validate_companion_payload(request_body(data))[1]
-        facts = companion._appliance_price_facts(context)
-        self.assertIn("사용자 입력 가격 기준·실시간 검증 아님", facts)
-        self.assertIn("임직원가가 외부 최저가보다 101,000원 낮습니다", facts)
-        self.assertIn("임직원가 차액 50,000원(DW99F79E1USWS 낮음)", facts)
-        self.assertIn("외부 최저가 차액 생략(입력 가격 누락)", facts)
-
-        fully_priced = comparison_data()
-        fully_priced["products"][0]["external_price"] = 1_500_000
-        fully_priced["products"][1]["external_price"] = 1_450_000
-        fully_priced_context = companion.validate_companion_payload(request_body(fully_priced))[1]
-        fully_priced_facts = companion._appliance_price_facts(fully_priced_context)
-        self.assertIn("임직원가가 외부 최저가보다 1,000원 낮습니다", fully_priced_facts)
-        self.assertIn("외부 최저가 차액 50,000원(DW99F79E1B00S 낮음)", fully_priced_facts)
-
-        mixed = comparison_data()
-        mixed["products"][1]["category"] = "인덕션"
-        mixed_context = companion.validate_companion_payload(request_body(mixed))[1]
-        mixed_facts = companion._appliance_price_facts(mixed_context)
-        self.assertIn("동일한 알려진 분류 후보끼리", mixed_facts)
-        self.assertNotIn("차액 50,000원", mixed_facts)
-
-        blank_category = comparison_data()
-        blank_category["products"][0]["category"] = " "
-        blank_category["products"][1]["category"] = ""
-        blank_category_context = companion.validate_companion_payload(request_body(blank_category))[1]
-        blank_category_facts = companion._appliance_price_facts(blank_category_context)
-        self.assertIn("동일한 알려진 분류 후보끼리", blank_category_facts)
-        self.assertNotIn("차액 50,000원", blank_category_facts)
-
-        unknown_category = comparison_data()
-        unknown_category["products"][0]["category"] = "기타"
-        unknown_category["products"][1]["category"] = "기타"
-        unknown_category_context = companion.validate_companion_payload(request_body(unknown_category))[1]
-        unknown_category_facts = companion._appliance_price_facts(unknown_category_context)
-        self.assertIn("동일한 알려진 분류 후보끼리", unknown_category_facts)
-        self.assertNotIn("차액 50,000원", unknown_category_facts)
-
-        external_only = comparison_data()
-        external_only["products"][0]["employee_price"] = None
-        external_only["products"][0]["external_price"] = 1_500_000
-        external_only["products"][1]["employee_price"] = None
-        external_only["products"][1]["external_price"] = None
-        external_only_context = companion.validate_companion_payload(request_body(external_only))[1]
-        external_only_facts = companion._appliance_price_facts(external_only_context)
-        self.assertIn("외부 최저가 1,500,000원, 임직원가 입력 누락", external_only_facts)
-        self.assertIn("임직원가와 외부 최저가 입력 누락", external_only_facts)
-
-        missing = comparison_data()
-        missing["products"][0]["employee_price"] = None
-        missing["products"][1]["employee_price"] = None
-        missing_context = companion.validate_companion_payload(request_body(missing))[1]
-        missing_facts = companion._appliance_price_facts(missing_context)
-        self.assertIn("임직원가 차액 생략(입력 가격 누락)", missing_facts)
-        self.assertNotIn("임직원가 차액 0원", missing_facts)
-
-    def test_portal_final_comparison_includes_calculations_within_4000_chars(self) -> None:
-        context = companion.validate_companion_payload(request_body())[1]
-        final = companion._append_appliance_price_facts("가" * 4_000, context)
-        self.assertLessEqual(len(final), companion.MAX_PORTAL_ANSWER_CHARS)
-        self.assertTrue(final.endswith(companion._appliance_price_facts(context)))
-
-    def test_ui_allows_precise_home_size_and_discloses_transmitted_note(self) -> None:
-        html = (APP_ROOT / "portal_app" / "static_games" / "eduni_moving_planner.html").read_text(encoding="utf-8")
-        self.assertIn('id="homeSize" name="homeSize" type="number" min="0" max="200" step="any"', html)
-        self.assertIn("비교 메모에 적은 내용도 그대로 전송되므로", html)
-        self.assertIn("분류별 추천", html)
-        self.assertIn("종합 1위를 뽑지 마", html)
-        self.assertIn("가격 차액은 계산하거나 답변에 쓰지 말고", html)
-        self.assertIn("분류가 기타이면 같은 비교군으로 다루지 마", html)
-        prompt = html.split('const prompt="', 1)[1].split('";', 1)[0]
-        self.assertLessEqual(len(prompt), 500)
-
-    def test_invalid_comparison_shapes_are_rejected_by_app_and_bridge(self) -> None:
+    def test_app_and_bridge_reject_extra_fields_and_wrong_product_count(self) -> None:
         invalid_data = comparison_data()
-        invalid_data["products"] = invalid_data["products"] * 2
+        invalid_data["products"][0]["note"] = "사용자 메모"
         for validate in (companion.validate_companion_payload, lambda body: bridge._context_prompt(body["prompt"], body["context"])):
-            with self.subTest(validate=validate):
-                with self.assertRaises(ValueError):
-                    validate(request_body(invalid_data))
+            with self.subTest(validate=validate), self.assertRaises(ValueError):
+                validate(request_body(invalid_data))
+
+        invalid_data = comparison_data()
+        invalid_data["products"] = invalid_data["products"][:1]
+        for validate in (companion.validate_companion_payload, lambda body: bridge._context_prompt(body["prompt"], body["context"])):
+            with self.subTest(validate=validate), self.assertRaises(ValueError):
+                validate(request_body(invalid_data))
 
     def test_blank_product_name_or_model_is_rejected_by_app_and_bridge(self) -> None:
         for field in ("name", "model"):
             invalid_data = comparison_data()
             invalid_data["products"][0][field] = "  "
             for validate in (companion.validate_companion_payload, lambda body: bridge._context_prompt(body["prompt"], body["context"])):
-                with self.subTest(field=field, validate=validate):
-                    with self.assertRaises(ValueError):
-                        validate(request_body(invalid_data))
+                with self.subTest(field=field, validate=validate), self.assertRaises(ValueError):
+                    validate(request_body(invalid_data))
 
-    def test_appliance_comparison_uses_adult_advice_while_general_keeps_child_persona(self) -> None:
-        class Config:
-            provider = "local"
+    def test_bridge_requires_web_search_and_returns_a_source_backed_matrix(self) -> None:
+        response_text = json.dumps(research_data(), ensure_ascii=False)
 
-        class Provider:
+        class Opener:
             def __init__(self):
-                self.message_sets = []
+                self.payloads = []
 
-            def complete(self, messages, _tools):
-                self.message_sets.append(messages)
-                return type("Result", (), {"tool_calls": [], "content": "비교 결과"})()
+            def open(self, request, timeout):
+                self.payloads.append(json.loads(request.data))
+                context = self.payloads[-1]["input"][0]["content"]
+                if "DW99F79E1USWS" in context:
+                    return FakeSSEStream(response_text, completion_sources())
+                return FakeSSEStream("어떤 게임을 하고 있나요?")
 
-        provider = Provider()
-        with patch.dict(os.environ, {"EDUNI_AI_COMPANION_PROVIDER": "local"}), patch.object(companion, "load_ai_config", return_value=Config()), patch.object(companion, "build_provider", return_value=provider):
-            status, answer = companion._run_provider("비교", {"activity": "appliance_compare", "question": "{}"}, "compare-test")
-            child_status, _ = companion._run_provider("문제", {"activity": "general", "question": ""}, "general-test")
-        self.assertEqual((status, answer), (0, "비교 결과"))
-        self.assertEqual(child_status, 0)
-        self.assertIn("성인 사용자의 가전 구매 비교", provider.message_sets[0][0]["content"])
-        self.assertIn("가격 차액을 계산하거나 답변에 쓰지 않는다", provider.message_sets[0][0]["content"])
-        self.assertIn("분류가 기타이거나 알 수 없으면 같은 비교군으로 보지 말고", provider.message_sets[0][0]["content"])
-        self.assertNotIn("답은 쉬운 낱말로 2~4문장", provider.message_sets[0][0]["content"])
-        self.assertIn("주요 이용 대상은 7세 남아", provider.message_sets[1][0]["content"])
+        opener = Opener()
+        with patch.object(bridge, "_opener", opener):
+            result = bridge.complete(request_body()["prompt"], request_body()["context"], lambda: {"access_token": "test-token"})
+            child_context = {"activity": "general", "question": "", "choices": [], "selected": ""}
+            bridge.complete("문제", child_context, lambda: {"access_token": "test-token"})
 
-    def test_local_provider_uses_3000_compare_limit_and_1200_general_limit(self) -> None:
+        self.assertEqual(result["research"], research_data())
+        self.assertEqual(result["answer"], research_data()["overall_summary"])
+        self.assertEqual(result["sources"], source_catalog())
+        self.assertEqual(opener.payloads[0]["tools"], [{"type": "web_search"}])
+        self.assertEqual(opener.payloads[0]["tool_choice"], "required")
+        self.assertEqual(opener.payloads[0]["include"], ["web_search_call.action.sources"])
+        self.assertEqual(opener.payloads[0]["text"]["format"]["type"], "json_schema")
+        self.assertTrue(opener.payloads[0]["text"]["format"]["strict"])
+        schema = opener.payloads[0]["text"]["format"]["schema"]
+        self.assertFalse(schema["additionalProperties"])
+        self.assertEqual(schema["properties"]["products"]["maxItems"], 3)
+        item_schema = schema["properties"]["products"]["items"]["properties"]
+        self.assertEqual(item_schema["features"]["maxItems"], 5)
+        self.assertEqual(item_schema["advantages"]["maxItems"], 3)
+        self.assertEqual(item_schema["cautions"]["maxItems"], 3)
+        self.assertEqual(item_schema["features"]["items"]["properties"]["source_urls"]["maxItems"], 3)
+        feature_schema = item_schema["features"]["items"]["properties"]
+        self.assertIn("{1,292}", feature_schema["source_urls"]["items"]["pattern"])
+        self.assertIn("{0,80}", feature_schema["feature"]["pattern"])
+        self.assertIn("{0,220}", feature_schema["value"]["pattern"])
+        self.assertIn("{0,500}", schema["properties"]["overall_summary"]["pattern"])
+        self.assertNotIn("tools", opener.payloads[1])
+        sent_context = opener.payloads[0]["input"][0]["content"]
+        self.assertNotIn("가격", sent_context)
+        self.assertNotIn("사용자 메모", sent_context)
+        self.assertNotIn("home", sent_context)
+
+    def test_bridge_drops_claims_without_a_cited_source(self) -> None:
+        bad = research_data()
+        bad["products"][0]["features"][0]["source_urls"] = ["https://invented.invalid/fake"]
+        clean = bridge._validate_research_output(bad, MODELS, source_catalog(), cited_source_urls())
+        self.assertEqual(clean["products"][0]["features"], [])
+
+    def test_feature_matrix_keeps_only_shared_rows_in_the_same_order(self) -> None:
+        value = research_data()
+        value["products"][0]["features"].append({
+            "feature": "건조 방식", "value": "열풍 건조", "source_urls": [OFFICIAL_URL],
+        })
+        value["products"][1]["features"].append({
+            "feature": "설치 방식", "value": "트루빌트인", "source_urls": [OFFICIAL_URL],
+        })
+        clean = bridge._validate_research_output(value, MODELS, source_catalog(), cited_source_urls())
+        self.assertEqual([[row["feature"] for row in product["features"]] for product in clean["products"]], [
+            ["세척 용량"], ["세척 용량"],
+        ])
+
+    def test_long_summary_is_clipped_to_the_portal_contract(self) -> None:
+        value = research_data()
+        value["overall_summary"] = "설치와 실사용 후기의 구체적 차이를 확인하세요. " * 30
+        clean = bridge._validate_research_output(value, MODELS, source_catalog(), cited_source_urls())
+        self.assertEqual(len(clean["overall_summary"]), 500)
+        self.assertTrue(clean["overall_summary"].endswith("…"))
+
+    def test_bridge_rejects_model_order_mismatch(self) -> None:
+        with self.assertRaisesRegex(ValueError, "models do not match"):
+            bridge._validate_research_output(research_data(list(reversed(MODELS))), MODELS, source_catalog(), cited_source_urls())
+
+    def test_uncited_claims_are_removed_and_uncited_reviews_are_not_reported(self) -> None:
+        value = research_data()
+        value["products"][0]["features"][0]["value"] = "근거 없는 사양 주장"
+        value["products"][0]["features"][0]["source_urls"] = []
+        value["products"][0]["reviews"]["summary"] = "긍정 후기가 많습니다."
+        value["products"][0]["reviews"]["scope"] = "여러 사이트에서 반복 확인했습니다."
+        value["products"][0]["reviews"]["source_urls"] = []
+        clean = bridge._validate_research_output(value, MODELS, source_catalog(), cited_source_urls())
+        self.assertEqual(clean["products"][0]["features"], [])
+        self.assertEqual(clean["products"][0]["reviews"]["summary"], "출처를 확인할 수 있는 공개 후기 근거가 없습니다.")
+        self.assertEqual(clean["products"][0]["reviews"]["source_urls"], [])
+
+        value["overall_source_urls"] = []
+        clean = bridge._validate_research_output(value, MODELS, source_catalog(), cited_source_urls())
+        self.assertEqual(clean["overall_summary"], "출처가 연결된 종합 비교 근거가 없어 출처가 붙은 항목만 확인하세요.")
+
+    def test_consulted_but_uncited_pages_cannot_support_comparison_claims(self) -> None:
+        uncited = "https://example.com/search-result-only"
+        sources = source_catalog() + [{"url": uncited, "title": "검색 결과 목록"}]
+        value = research_data()
+        value["products"][0]["features"][0]["source_urls"] = [uncited]
+        clean = bridge._validate_research_output(value, MODELS, sources, cited_source_urls())
+        self.assertEqual(clean["products"][0]["features"], [])
+
+    def test_cited_pages_are_prioritized_over_consulted_results(self) -> None:
+        cited = "https://example.com/cited-page"
+        consulted = [{"url": f"https://example.com/search-{index}", "title": "검색 결과"} for index in range(35)]
+        response = {"output": [{
+            "type": "web_search_call", "action": {"sources": consulted},
+        }, {
+            "type": "message", "content": [{"type": "output_text", "text": "인용", "annotations": [
+                {"type": "url_citation", "url": cited, "title": "인용 페이지"},
+            ]}],
+        }]}
+        sources, cited_urls = bridge._web_research_sources(response, [cited])
+        self.assertEqual(sources[0]["url"], cited)
+        self.assertIn(cited, cited_urls)
+        self.assertEqual(len(sources), 1)
+
+    def test_portal_accepts_only_safe_sources_and_exact_models(self) -> None:
+        context = companion.validate_companion_payload(request_body())[1]
+        body = {
+            "answer": research_data()["overall_summary"],
+            "research": research_data(),
+            "sources": source_catalog(),
+        }
+        self.assertEqual(companion._validate_appliance_research(body, context), body)
+
+        bad_source = json.loads(json.dumps(body))
+        bad_source["sources"][0]["url"] = "javascript:alert(1)"
+        with self.assertRaisesRegex(companion.ProviderError, "invalid appliance research source"):
+            companion._validate_appliance_research(bad_source, context)
+
+        bad_model = json.loads(json.dumps(body))
+        bad_model["research"]["products"][0]["model"] = "OTHER-MODEL"
+        with self.assertRaisesRegex(companion.ProviderError, "models do not match"):
+            companion._validate_appliance_research(bad_model, context)
+
+    def test_portal_bridge_packages_verified_research_for_the_ui(self) -> None:
+        context = companion.validate_companion_payload(request_body())[1]
+        body = {
+            "answer": research_data()["overall_summary"],
+            "research": research_data(),
+            "sources": source_catalog(),
+        }
+        encoded = json.dumps(body, ensure_ascii=False).encode()
+        with patch.dict(os.environ, {
+            "EDUNI_AI_COMPANION_BRIDGE_URL": "http://127.0.0.1:8765",
+            "EDUNI_AI_COMPANION_BRIDGE_KEY": "test-key",
+        }), patch.object(companion, "build_opener", return_value=FakeBridgeOpener(encoded)):
+            packed = companion._bridge_compare("조사", context)
+        self.assertEqual(json.loads(packed), body)
+
+        body["research"]["products"][0]["reviews"]["source_urls"] = ["https://not-returned.invalid/review"]
+        encoded = json.dumps(body, ensure_ascii=False).encode()
+        with patch.dict(os.environ, {
+            "EDUNI_AI_COMPANION_BRIDGE_URL": "http://127.0.0.1:8765",
+            "EDUNI_AI_COMPANION_BRIDGE_KEY": "test-key",
+        }), patch.object(companion, "build_opener", return_value=FakeBridgeOpener(encoded)):
+            with self.assertRaisesRegex(companion.ProviderError, "invalid appliance research citations"):
+                companion._bridge_compare("조사", context)
+
+    def test_bridge_keeps_general_chat_separate_from_web_research(self) -> None:
+        class Opener:
+            def open(self, request, timeout):
+                payload = json.loads(request.data)
+                self.payload = payload
+                return FakeSSEStream("어떤 게임을 하고 있나요?")
+
+        opener = Opener()
+        context = {"activity": "general", "question": "", "choices": [], "selected": ""}
+        with patch.object(bridge, "_opener", opener):
+            result = bridge.complete("문제", context, lambda: {"access_token": "test-token"})
+        self.assertEqual(result, {"answer": "어떤 게임을 하고 있나요?"})
+        self.assertNotIn("tools", opener.payload)
+        self.assertNotIn("tool_choice", opener.payload)
+
+    def test_local_provider_does_not_claim_to_have_web_researched_products(self) -> None:
         class Config:
             provider = "local"
 
         class Provider:
             def complete(self, _messages, _tools):
-                return type("Result", (), {"tool_calls": [], "content": "가" * 3_500})()
+                raise AssertionError("comparison must use sourced web research")
 
-        with patch.dict(os.environ, {"EDUNI_AI_COMPANION_PROVIDER": "local"}), patch.object(companion, "load_ai_config", return_value=Config()), patch.object(companion, "build_provider", return_value=Provider()):
-            compare_status, compare_answer = companion._run_provider("비교", {"activity": "appliance_compare", "question": "{}"}, "compare-limit")
-            general_status, general_answer = companion._run_provider("질문", {"activity": "general", "question": ""}, "general-limit")
-        self.assertEqual(compare_status, 0)
-        self.assertEqual(len(compare_answer), companion.MAX_APPLIANCE_COMPARE_ANSWER_CHARS)
-        self.assertEqual(general_status, 0)
-        self.assertEqual(len(general_answer), companion.MAX_ANSWER_CHARS)
+        with patch.dict(os.environ, {"EDUNI_AI_COMPANION_PROVIDER": "local"}), \
+                patch.object(companion, "load_ai_config", return_value=Config()), \
+                patch.object(companion, "build_provider", return_value=Provider()):
+            compare_status, compare_answer = companion._run_provider("비교", {"activity": "appliance_compare", "question": "{}"}, "compare-test")
+        self.assertEqual((compare_status, compare_answer), (503, ""))
+
+    def test_ui_discloses_research_and_sends_only_product_identifiers(self) -> None:
+        html = (APP_ROOT / "portal_app" / "static_games" / "eduni_moving_planner.html").read_text(encoding="utf-8")
+        self.assertIn("제품명·모델 코드·분류만 전송", html)
+        self.assertIn("가격·메모·집 정보는 보내지 않습니다.", html)
+        self.assertIn("공개 사용자 후기 경향", html)
+        self.assertIn("renderProductComparison(chosen,data.research,data.sources)", html)
+        self.assertIn('target="_blank"; link.rel="noopener noreferrer"', html)
+        self.assertIn('link.textContent=(title.length>54?title.slice(0,51)+"…":title)+" ↗"', html)
+        self.assertNotIn("employee_price:numericForAI", html)
+        self.assertNotIn("home:{size_py:", html)
+        prompt = html.split('const prompt="', 1)[1].split('";', 1)[0]
+        self.assertLessEqual(len(prompt), 500)
 
 
 if __name__ == "__main__":

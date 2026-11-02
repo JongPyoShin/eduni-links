@@ -65,6 +65,12 @@
     .comparison-table .note-cell{min-height:76px;line-height:1.65}
     .comparison-table a{color:var(--green-dark);font-weight:800;text-decoration:none}
     .comparison-table a:hover{text-decoration:underline}
+    .comparison-evidence{display:grid;gap:9px;white-space:normal;line-height:1.55}
+    .comparison-evidence-item{display:grid;gap:4px}
+    .comparison-evidence-item strong{color:#3e5e50;font-size:11px}
+    .comparison-evidence-sources{display:flex;flex-wrap:wrap;gap:4px 9px;font-size:10px}
+    .comparison-evidence-sources a{display:inline-block;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;font-weight:700}
+    .comparison-review-scope{color:var(--muted);font-size:11px}
     .comparison-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--muted);font-size:11px}
     .comparison-ai{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;padding:13px 15px;border:1px solid var(--line);border-radius:13px;background:#fbfcfa}
     .comparison-ai-copy{min-width:0}
@@ -210,7 +216,7 @@
         <div class="comparison-head-copy">
           <div class="comparison-eyebrow">PRODUCT COMPARISON</div>
           <h2 class="comparison-title" id="comparisonTitle">가전 후보 상세 비교</h2>
-          <p class="comparison-description" id="comparisonDescription">저장된 제품 정보만 비교표에 표시합니다. 입력 메모는 원문 그대로 보여주고, 없는 사양은 추측하지 않아요.</p>
+          <p class="comparison-description" id="comparisonDescription">가격과 저장 정보는 아래 표에서 비교하고, AI 웹 조사로 기능·장단점·후기 비교와 참고 링크를 추가할 수 있어요. AI가 연결한 페이지를 열어 원문도 확인하세요. 조사 시 제품명·모델 코드·분류만 전송하며 가격·메모·집 정보는 보내지 않습니다. 웹 검색 사용량에 따라 추가 요금이 발생할 수 있습니다.</p>
         </div>
         <button class="comparison-close" type="button" data-close="productCompareDialog" aria-label="비교표 닫기">×</button>
       </header>
@@ -219,8 +225,8 @@
         <table class="comparison-table" id="comparisonTable"></table>
       </div>
       <section class="comparison-ai" aria-labelledby="comparisonAiTitle">
-        <div class="comparison-ai-copy"><h3 class="comparison-ai-title" id="comparisonAiTitle">AI 정성 요약</h3><p class="comparison-ai-status" id="comparisonAiStatus" role="status" aria-live="polite">표는 바로 볼 수 있어요. AI 요약을 원할 때만 선택 제품 정보를 전송합니다.</p></div>
-        <button class="button secondary" id="requestAiSummary" type="button">AI 요약 보기</button>
+        <div class="comparison-ai-copy"><h3 class="comparison-ai-title" id="comparisonAiTitle">AI 조사 기반 기능·후기 비교</h3><p class="comparison-ai-status" id="comparisonAiStatus" role="status" aria-live="polite">제품의 공개 사양·장단점·사용자 후기 자료를 찾아 비교표에 출처와 함께 표시합니다. 웹 검색은 버튼을 눌렀을 때만 실행되며 사용량에 따라 추가 요금이 발생할 수 있습니다.</p></div>
+        <button class="button secondary" id="requestAiSummary" type="button">AI 웹 조사 후 비교</button>
         <p class="comparison-ai-answer" id="comparisonAiAnswer" aria-live="polite" hidden></p>
       </section>
       <footer class="comparison-footer"><span>가격 차이 = 각 제품의 외부 최저가 − 임직원가입니다.</span><span>최종 가격·옵션·설치 조건은 판매처에서 확인하세요.</span></footer>
@@ -326,7 +332,7 @@
           </div>
         </section>`).join("");
     }
-    function renderProductComparison(items) {
+    function renderProductComparison(items, research = null, sources = []) {
       const categories = items.map(item => productCategory(item));
       const mixed = new Set(categories).size > 1;
       const summary = $("#comparisonSummary");
@@ -350,12 +356,73 @@
           ${row("모델명 가격 검색", item => `<a class="search-link" href="${searchUrl("danawa",item.model)}" target="_blank" rel="noopener noreferrer">다나와 ↗</a> <a class="search-link" href="${searchUrl("naver",item.model)}" target="_blank" rel="noopener noreferrer">네이버 쇼핑 ↗</a> <a class="search-link" href="${searchUrl("enuri",item.model)}" target="_blank" rel="noopener noreferrer">에누리 ↗</a>`)}
           ${row("저장한 상품 링크", item => { const url=safeHttpUrl(item.url); return url?`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">상품 페이지 열기 ↗</a>`:"미입력"; })}
         </tbody>`;
+      if(research) {
+        summary.textContent = (mixed ? "분류가 달라 종합 순위를 매기지 않았습니다. " : "") + research.overall_summary;
+        const tbody=$("#comparisonTable tbody");
+        const sourceTitles=new Map(sources.map(source=>[source.url,source.title]));
+        const addSources=(parent,urls)=>{
+          const wrap=document.createElement("div"); wrap.className="comparison-evidence-sources";
+          const safeUrls=Array.isArray(urls)?urls:[];
+          safeUrls.forEach((raw,index)=>{
+            const url=safeHttpUrl(raw);
+            if(!url||new URL(url).protocol!=="https:")return;
+            const link=document.createElement("a"); link.href=url; link.target="_blank"; link.rel="noopener noreferrer";
+            const domain=new URL(url).hostname.replace(/^www\./,"");
+            const title=sourceTitles.get(raw)||domain; link.title=title+" · "+domain; link.setAttribute("aria-label",title+", "+domain+"에서 열기");
+            link.textContent=(title.length>54?title.slice(0,51)+"…":title)+" ↗"; wrap.append(link);
+          });
+          if(wrap.childElementCount){const label=document.createElement("span");label.className="comparison-review-scope";label.textContent="AI 참고 링크 ";wrap.prepend(label);}
+          else{wrap.classList.add("comparison-review-scope");wrap.textContent="연결된 출처 없음";}
+          parent.append(wrap);
+        };
+        const addEvidence=(parent,title,text,urls,scope="")=>{
+          const block=document.createElement("div"); block.className="comparison-evidence-item";
+          if(title){const heading=document.createElement("strong");heading.textContent=title;block.append(heading);}
+          const content=document.createElement("span");content.textContent=text||"확인 가능한 공개 자료 없음";block.append(content);
+          if(scope){const note=document.createElement("span");note.className="comparison-review-scope";note.textContent=scope;block.append(note);}
+          addSources(block,urls);parent.append(block);
+        };
+        const addResearchRow=(label,renderCell)=>{
+          const tr=document.createElement("tr"),th=document.createElement("th");th.scope="row";th.textContent=label;tr.append(th);
+          items.forEach(item=>{const td=document.createElement("td");td.className="note-cell";renderCell(td,research.products.find(result=>result.model===item.model));tr.append(td);});
+          tbody.append(tr);
+        };
+        addSources(summary,research.overall_source_urls);
+        const featureNames=[...new Set(research.products.flatMap(product=>(product.features||[]).map(fact=>fact.feature)))];
+        featureNames.forEach(feature=>addResearchRow(feature,(cell,product)=>{
+          const fact=product?.features?.find(result=>result.feature===feature);
+          if(!fact){cell.textContent="확인 가능한 공개 자료 없음";return;}
+          cell.className+=" comparison-evidence";
+          addEvidence(cell,"",fact.value,fact.source_urls);
+        }));
+        if(!featureNames.length)addResearchRow("공개 사양·주요 기능",cell=>{cell.textContent="확인 가능한 공개 자료 없음";});
+        addResearchRow("조사된 장점",(cell,product)=>{
+          const rows=product?.advantages||[];
+          if(!rows.length){cell.textContent="확인 가능한 공개 자료 없음";return;}
+          cell.className+=" comparison-evidence";
+          rows.forEach(fact=>addEvidence(cell,"",fact.text,fact.source_urls));
+        });
+        addResearchRow("단점·확인할 점",(cell,product)=>{
+          const rows=product?.cautions||[];
+          if(!rows.length){cell.textContent="확인 가능한 공개 자료 없음";return;}
+          cell.className+=" comparison-evidence";
+          rows.forEach(fact=>addEvidence(cell,"",fact.text,fact.source_urls));
+        });
+        addResearchRow("공개 사용자 후기 경향",(cell,product)=>{
+          if(!product?.reviews){cell.textContent="확인 가능한 공개 자료 없음";return;}
+          cell.className+=" comparison-evidence";
+          addEvidence(cell,"",product.reviews.summary,product.reviews.source_urls,product.reviews.scope);
+        });
+      }
       comparedProductIds = items.map(item => item.id);
-      $("#comparisonAiStatus").textContent = "표는 바로 볼 수 있어요. AI 요약을 원할 때만 선택 제품 정보가 전송됩니다.";
+      $("#comparisonAiStatus").textContent = research
+        ? "AI 웹 조사 결과를 비교표에 표시했습니다. 사양·장단점·후기 행의 참고 링크에서 원문을 확인할 수 있어요."
+        : "제품의 공개 사양·장단점·사용자 후기 자료를 찾아 비교표에 출처와 함께 표시합니다. 버튼을 누를 때만 웹 검색하며 추가 요금이 발생할 수 있습니다.";
+      $("#requestAiSummary").textContent = research ? "다시 조사하기" : "AI 웹 조사 후 비교";
       $("#comparisonAiAnswer").hidden = true;
       $("#comparisonAiAnswer").textContent = "";
       $("#requestAiSummary").disabled = false;
-      $("#productCompareDialog").showModal();
+      if(!$("#productCompareDialog").open)$("#productCompareDialog").showModal();
     }
     function fillForm(form, item) {
       for (const field of form.elements) {
@@ -486,29 +553,23 @@
       const chosen=comparedProductIds.map(id=>state.products.find(item=>item.id===id)).filter(Boolean);
       if(chosen.length<2){$("#comparisonAiStatus").textContent="비교할 제품 선택을 다시 확인해 주세요.";return;}
       const compact=(value,limit)=>String(value??"").replace(/\s+/g," ").trim().slice(0,limit);
-      const numericForAI=(value,{integer=false,max=100_000_000}={})=>{const amount=Number(value);return Number.isFinite(amount)&&amount>0&&amount<=max&&(!integer||Number.isSafeInteger(amount))?amount:null;};
-      const compareData={
-        home:{size_py:numericForAI(state.homeSize,{max:200}),room_count:numericForAI(state.roomCount,{integer:true,max:20})},
-        products:chosen.map(item=>({
-          category:compact(productCategory(item),30),name:compact(item.name,80),model:compact(item.model,32),
-          employee_price:numericForAI(item.employeePrice,{integer:true}),external_price:numericForAI(item.externalPrice,{integer:true}),
-          seller:compact(item.seller,50),checked_at:compact(item.checkedAt,10),note:compact(item.note,140)
-        }))
-      };
+      const compareData={products:chosen.map(item=>({
+        category:compact(productCategory(item),30),name:compact(item.name,80),model:compact(item.model,32)
+      }))};
       const question=JSON.stringify(compareData);
-      const prompt="선택한 가전 후보의 입력된 특징과 사양을 바탕으로 짧은 정성 요약을 써줘. 제품별 장점과 구매 전 확인할 점을 간단히 정리해. 같은 분류끼리만 비교하고 분류가 다르면 순위나 종합 1위를 매기지 마. 가격 차액은 계산하지 말고 표에 표시된 값만 참고해. 입력되지 않은 기능이나 실시간 가격은 추측하지 마.";
+      const prompt="선택 제품을 최신 공개 웹 자료로 조사하고, 검증한 사양·장단점·실제 후기 경향을 출처 링크와 함께 표로 비교해줘. 확인할 수 없는 내용은 자료 없음으로 표시해.";
       const controller=new AbortController(); aiCompareController=controller;
-      const status=$("#comparisonAiStatus"),answer=$("#comparisonAiAnswer"),button=$("#requestAiSummary");
-      button.disabled=true; answer.hidden=true; answer.textContent=""; status.textContent="선택한 제품 정보를 보내고 AI 요약을 기다리고 있어요…";
+      const status=$("#comparisonAiStatus"),button=$("#requestAiSummary");
+      button.disabled=true; status.textContent="모델별 공식 사양과 공개 후기를 웹에서 조사하고 있어요. 출처를 확인해 비교표를 만드는 데 잠시 걸릴 수 있습니다…";
       try {
         const response=await fetch("/ai/companion/chat",{method:"POST",headers:{"Content-Type":"application/json","X-Requested-With":"XMLHttpRequest"},body:JSON.stringify({prompt,context:{activity:"appliance_compare",question,choices:[],selected:""}}),signal:controller.signal,credentials:"same-origin"});
         const data=await response.json().catch(()=>null);
         if(aiCompareController!==controller||!$("#productCompareDialog").open)return;
-        if(response.status===503&&data?.error==="ai_unavailable")throw new Error("AI를 지금 사용할 수 없어요. 비교표는 계속 확인할 수 있습니다.");
-        if(!response.ok||!data?.ok||typeof data.answer!=="string"||!data.answer.trim())throw new Error("AI 요약을 받지 못했어요. 비교표는 계속 확인할 수 있습니다.");
-        answer.textContent=data.answer.trim(); answer.hidden=false; status.textContent="AI 정성 요약이 도착했습니다.";
+        if(response.status===503&&data?.error==="ai_unavailable")throw new Error("AI 웹 조사를 지금 사용할 수 없어요. 저장된 가격 비교는 계속 확인할 수 있습니다.");
+        if(!response.ok||!data?.ok||typeof data.answer!=="string"||!data.research?.products||!Array.isArray(data.sources))throw new Error("출처가 포함된 AI 비교 결과를 받지 못했어요. 저장된 가격 비교는 계속 확인할 수 있습니다.");
+        renderProductComparison(chosen,data.research,data.sources);
       } catch(error) {
-        if(error.name!=="AbortError"&&aiCompareController===controller)status.textContent=error.message||"AI 요약에 연결할 수 없어요. 비교표는 계속 확인할 수 있습니다.";
+        if(error.name!=="AbortError"&&aiCompareController===controller)status.textContent=error.message||"AI 웹 조사에 연결할 수 없어요. 저장된 가격 비교는 계속 확인할 수 있습니다.";
       } finally {
         if(aiCompareController===controller){aiCompareController=null;button.disabled=false;}
       }

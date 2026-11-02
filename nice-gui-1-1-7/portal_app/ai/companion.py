@@ -24,9 +24,9 @@ from .educational_photos import select_photo
 MAX_BODY = 8_000
 MAX_PROMPT = 500
 MAX_ANSWER_CHARS = 1_200
-MAX_APPLIANCE_COMPARE_ANSWER_CHARS = 3_000
-MAX_PORTAL_ANSWER_CHARS = 4_000
-MAX_BRIDGE_RESPONSE_BYTES = 64_000
+MAX_APPLIANCE_COMPARE_ANSWER_CHARS = 12_000
+MAX_APPLIANCE_COMPARE_RESPONSE_CHARS = 128_000
+MAX_BRIDGE_RESPONSE_BYTES = 256_000
 _SLOTS = threading.BoundedSemaphore(4)
 _RATE_LOCK = threading.Lock()
 _CALLER_LAST: dict[str, float] = {}
@@ -133,18 +133,11 @@ def _validate_appliance_compare_question(question: str) -> str:
         data = json.loads(question)
     except (TypeError, json.JSONDecodeError) as exc:
         raise ValueError("appliance comparison data") from exc
-    if not isinstance(data, dict) or set(data) != {"home", "products"}:
+    if not isinstance(data, dict) or set(data) != {"products"}:
         raise ValueError("appliance comparison data")
-    home = data["home"]
     products = data["products"]
-    if not isinstance(home, dict) or set(home) != {"size_py", "room_count"}:
-        raise ValueError("appliance comparison home")
-    size_py, room_count = home["size_py"], home["room_count"]
-    if (size_py is not None and (isinstance(size_py, bool) or not isinstance(size_py, (int, float)) or not 0 < size_py <= 200)
-            or room_count is not None and (isinstance(room_count, bool) or not isinstance(room_count, int) or not 0 < room_count <= 20)):
-        raise ValueError("appliance comparison home")
-    fields = {"category", "name", "model", "employee_price", "external_price", "seller", "checked_at", "note"}
-    limits = {"category": 30, "name": 80, "model": 32, "seller": 50, "checked_at": 10, "note": 140}
+    fields = {"category", "name", "model"}
+    limits = {"category": 30, "name": 80, "model": 32}
     if not isinstance(products, list) or not 2 <= len(products) <= 3:
         raise ValueError("appliance comparison products")
     clean_products = []
@@ -159,79 +152,12 @@ def _validate_appliance_compare_question(question: str) -> str:
             clean[key] = value
         if not clean["name"].strip() or not clean["model"].strip():
             raise ValueError("appliance comparison product")
-        for key in ("employee_price", "external_price"):
-            value = product[key]
-            if value is not None and (isinstance(value, bool) or not isinstance(value, int) or not 0 < value <= 100_000_000):
-                raise ValueError("appliance comparison price")
-            clean[key] = value
         clean_products.append(clean)
-    clean_home = {"size_py": size_py, "room_count": room_count}
-    return json.dumps({"home": clean_home, "products": clean_products}, ensure_ascii=False, separators=(",", ":"))
+    return json.dumps({"products": clean_products}, ensure_ascii=False, separators=(",", ":"))
 
 
 def _answer_limit(context: dict[str, Any]) -> int:
     return MAX_APPLIANCE_COMPARE_ANSWER_CHARS if context.get("activity") == "appliance_compare" else MAX_ANSWER_CHARS
-
-
-def _appliance_price_facts(context: dict[str, Any]) -> str:
-    data = json.loads(context["question"])
-    products = data["products"]
-    known_categories = {
-        "냉장고", "식기세척기", "인덕션", "시스템 에어컨", "홈멀티 에어컨",
-        "스탠드 에어컨", "창문형 에어컨", "후드",
-    }
-    groups: dict[str, list[dict[str, Any]]] = {}
-    lines = ["입력 가격 계산 (사용자 입력 가격 기준·실시간 검증 아님)"]
-    for index, product in enumerate(products, 1):
-        model = product["model"]
-        employee_price, external_price = product["employee_price"], product["external_price"]
-        if employee_price is None:
-            if external_price is None:
-                lines.append(f"- 제품 {index} ({model}): 임직원가와 외부 최저가 입력 누락.")
-            else:
-                lines.append(f"- 제품 {index} ({model}): 외부 최저가 {external_price:,}원, 임직원가 입력 누락(차액 계산 생략).")
-        elif external_price is None:
-            lines.append(f"- 제품 {index} ({model}): 임직원가 {employee_price:,}원, 외부 최저가 입력 누락(차액 계산 생략).")
-        elif employee_price == external_price:
-            lines.append(f"- 제품 {index} ({model}): 임직원가와 외부 최저가가 같습니다({employee_price:,}원).")
-        elif employee_price < external_price:
-            lines.append(f"- 제품 {index} ({model}): 임직원가가 외부 최저가보다 {external_price - employee_price:,}원 낮습니다.")
-        else:
-            lines.append(f"- 제품 {index} ({model}): 임직원가가 외부 최저가보다 {employee_price - external_price:,}원 높습니다.")
-
-    for product in products:
-        category = product["category"].strip()
-        if category in known_categories:
-            groups.setdefault(category, []).append(product)
-
-    pair_count = 0
-    for category, candidates in groups.items():
-        for index, left in enumerate(candidates):
-            for right in candidates[index + 1:]:
-                pair_count += 1
-                facts = []
-                for key, label in (("employee_price", "임직원가"), ("external_price", "외부 최저가")):
-                    left_price, right_price = left[key], right[key]
-                    if left_price is None or right_price is None:
-                        facts.append(f"{label} 차액 생략(입력 가격 누락)")
-                    elif left_price == right_price:
-                        facts.append(f"{label} 차액 0원(동일)")
-                    else:
-                        cheaper = left if left_price < right_price else right
-                        facts.append(f"{label} 차액 {abs(left_price - right_price):,}원({cheaper['model']} 낮음)")
-                lines.append(f"- {category}: {left['model']} ↔ {right['model']} / " + "; ".join(facts))
-    if pair_count == 0:
-        lines.append("- 동일한 알려진 분류 후보끼리 비교할 수 없어 후보 간 차액을 계산하지 않았습니다.")
-    return "\n".join(lines)
-
-
-def _append_appliance_price_facts(answer: str, context: dict[str, Any]) -> str:
-    facts = _appliance_price_facts(context)[:MAX_PORTAL_ANSWER_CHARS]
-    answer = answer.strip()
-    separator = "\n\n" if answer else ""
-    available = max(0, MAX_PORTAL_ANSWER_CHARS - len(facts) - len(separator))
-    answer = answer[:available].rstrip()
-    return f"{answer}{separator}{facts}"
 
 
 def https_navigation_redirect_location(request: Request, configured_origin: str) -> str | None:
@@ -289,7 +215,7 @@ async def https_navigation_middleware(request: Request, call_next):
 app.middleware("http")(https_navigation_middleware)
 
 
-def _bridge_answer(prompt: str, context: dict[str, Any]) -> str:
+def _bridge_response(prompt: str, context: dict[str, Any]) -> dict[str, Any]:
     from urllib.parse import urlparse
 
     endpoint = os.environ.get("EDUNI_AI_COMPANION_BRIDGE_URL", "").strip().rstrip("/")
@@ -305,15 +231,14 @@ def _bridge_answer(prompt: str, context: dict[str, Any]) -> str:
         class NoRedirect(HTTPRedirectHandler):
             def redirect_request(self, req, fp, code, msg, headers, newurl):
                 return None
-        with build_opener(NoRedirect).open(request, timeout=40) as response:
+        with build_opener(NoRedirect).open(request, timeout=100) as response:
             raw = response.read(MAX_BRIDGE_RESPONSE_BYTES + 1)
         if len(raw) > MAX_BRIDGE_RESPONSE_BYTES:
             raise ProviderError("bridge response too large")
         body = json.loads(raw)
-        answer = body.get("answer") if isinstance(body, dict) else None
-        if not isinstance(answer, str) or not answer.strip() or len(answer) > _answer_limit(context):
+        if not isinstance(body, dict):
             raise ProviderError("invalid bridge response")
-        return answer.strip()
+        return body
     except HTTPError as exc:
         if exc.code == 504:
             raise ProviderTimeoutError("bridge timed out") from exc
@@ -324,6 +249,117 @@ def _bridge_answer(prompt: str, context: dict[str, Any]) -> str:
         if isinstance(exc.reason, TimeoutError):
             raise ProviderTimeoutError("bridge timed out") from exc
         raise ProviderUnavailableError("bridge unavailable") from exc
+
+
+def _bridge_answer(prompt: str, context: dict[str, Any]) -> str:
+    body = _bridge_response(prompt, context)
+    answer = body.get("answer")
+    if not isinstance(answer, str) or not answer.strip() or len(answer) > _answer_limit(context):
+        raise ProviderError("invalid bridge response")
+    return answer.strip()
+
+
+def _validate_appliance_research(body: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
+    from urllib.parse import urlsplit
+
+    answer, research, sources = body.get("answer"), body.get("research"), body.get("sources")
+    if not isinstance(answer, str) or not answer.strip() or len(answer) > 500:
+        raise ProviderError("invalid appliance research summary")
+    if not isinstance(research, dict) or set(research) != {"overall_summary", "overall_source_urls", "products"}:
+        raise ProviderError("invalid appliance research matrix")
+    if not isinstance(research["overall_summary"], str) or len(research["overall_summary"]) > 500:
+        raise ProviderError("invalid appliance research summary")
+    if not isinstance(sources, list) or len(sources) > 120:
+        raise ProviderError("invalid appliance research sources")
+    source_catalog: dict[str, dict[str, str]] = {}
+    clean_sources = []
+    for source in sources:
+        if not isinstance(source, dict) or set(source) != {"url", "title"}:
+            raise ProviderError("invalid appliance research source")
+        url, title = source["url"], source["title"]
+        if not isinstance(url, str) or len(url) > 300 or not isinstance(title, str) or len(title) > 180:
+            raise ProviderError("invalid appliance research source")
+        parsed = urlsplit(url)
+        if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+            raise ProviderError("invalid appliance research source")
+        if url not in source_catalog:
+            clean = {"url": url, "title": title.strip() or parsed.hostname}
+            source_catalog[url] = clean
+            clean_sources.append(clean)
+    expected_models = [item["model"] for item in json.loads(context["question"])["products"]]
+    products = research["products"]
+    if not isinstance(products, list) or [item.get("model") if isinstance(item, dict) else None for item in products] != expected_models:
+        raise ProviderError("appliance research models do not match request")
+
+    def text(value: Any, limit: int) -> str:
+        if not isinstance(value, str) or len(value) > limit:
+            raise ProviderError("invalid appliance research text")
+        return value.strip()
+
+    def links(value: Any) -> list[str]:
+        if not isinstance(value, list) or len(value) > 3 or any(not isinstance(url, str) or url not in source_catalog for url in value):
+            raise ProviderError("invalid appliance research citations")
+        return list(dict.fromkeys(value))
+
+    overall_sources = links(research["overall_source_urls"])
+    overall_summary = text(research["overall_summary"], 700)
+    if not overall_sources:
+        overall_summary = "출처가 연결된 종합 비교 근거가 없어 출처가 붙은 항목만 확인하세요."
+    clean_products = []
+    for product in products:
+        if not isinstance(product, dict) or set(product) != {"model", "features", "advantages", "cautions", "reviews"}:
+            raise ProviderError("invalid appliance research product")
+        features = product["features"]
+        advantages = product["advantages"]
+        cautions = product["cautions"]
+        reviews = product["reviews"]
+        if not isinstance(features, list) or len(features) > 5 or not isinstance(advantages, list) or len(advantages) > 3 or not isinstance(cautions, list) or len(cautions) > 3:
+            raise ProviderError("invalid appliance research lists")
+
+        def evidence_rows(rows: list[Any], expected_fields: set[str], label_key: str | None) -> list[dict[str, Any]]:
+            clean_rows = []
+            for row in rows:
+                if not isinstance(row, dict) or set(row) != expected_fields | {"source_urls"}:
+                    raise ProviderError("invalid appliance research evidence")
+                clean = {key: text(row[key], 80 if key == label_key else 220) for key in expected_fields}
+                clean_links = links(row["source_urls"])
+                if not clean_links:
+                    continue
+                clean["source_urls"] = clean_links
+                clean_rows.append(clean)
+            return clean_rows
+
+        if not isinstance(reviews, dict) or set(reviews) != {"summary", "scope", "source_urls"}:
+            raise ProviderError("invalid appliance review evidence")
+        review_sources = links(reviews["source_urls"])
+        clean_products.append({
+            "model": product["model"],
+            "features": evidence_rows(features, {"feature", "value"}, "feature"),
+            "advantages": evidence_rows(advantages, {"text"}, None),
+            "cautions": evidence_rows(cautions, {"text"}, None),
+            "reviews": ({
+                "summary": text(reviews["summary"], 420),
+                "scope": text(reviews["scope"], 240),
+                "source_urls": review_sources,
+            } if review_sources else {
+                "summary": "출처를 확인할 수 있는 공개 후기 근거가 없습니다.",
+                "scope": "근거 링크가 확보된 후기 내용만 표시합니다.",
+                "source_urls": [],
+            }),
+        })
+    return {
+        "answer": answer.strip(),
+        "research": {"overall_summary": overall_summary, "overall_source_urls": overall_sources, "products": clean_products},
+        "sources": clean_sources,
+    }
+
+
+def _bridge_compare(prompt: str, context: dict[str, Any]) -> str:
+    body = _validate_appliance_research(_bridge_response(prompt, context), context)
+    packed = json.dumps(body, ensure_ascii=False, separators=(",", ":"))
+    if len(packed) > MAX_APPLIANCE_COMPARE_RESPONSE_CHARS:
+        raise ProviderError("appliance research matrix too large")
+    return packed
 
 
 @app.post("/ai/companion/chat")
@@ -353,14 +389,19 @@ async def companion_chat(request: Request) -> JSONResponse:
         status, answer = await asyncio.to_thread(_run_provider, prompt, context, caller)
         if status:
             return _error("busy" if status == 429 else "ai_unavailable", status)
+        if context.get("activity") == "appliance_compare":
+            try:
+                comparison = json.loads(answer)
+                if not isinstance(comparison, dict) or set(comparison) != {"answer", "research", "sources"}:
+                    raise ValueError("invalid research response")
+            except (TypeError, json.JSONDecodeError, ValueError):
+                return _error("ai_failed", 502)
+            return JSONResponse({"ok": True, **comparison}, headers={"Cache-Control": "no-store"})
         # Photos are chosen only from a reviewed, static catalog. Never pass
         # model-authored links through to a child's browser.
         photo = select_photo(prompt)
         answer = _align_answer_with_photo(answer, photo)
-        if context.get("activity") == "appliance_compare":
-            answer = _append_appliance_price_facts(answer, context)
-        else:
-            answer = answer[:MAX_ANSWER_CHARS]
+        answer = answer[:MAX_ANSWER_CHARS]
         payload: dict[str, Any] = {"ok": True, "answer": answer}
         if photo:
             payload["photo"] = photo
@@ -394,8 +435,12 @@ def _run_provider(prompt: str, context: dict[str, Any], caller: str = "unknown")
     try:
         provider = os.environ.get("EDUNI_AI_COMPANION_PROVIDER", "disabled").strip().lower()
         if provider == "bridge":
+            if context.get("activity") == "appliance_compare":
+                return 0, _bridge_compare(prompt, context)
             return 0, _bridge_answer(prompt, context)
         if provider == "local":
+            if context.get("activity") == "appliance_compare":
+                return 503, ""
             config = load_ai_config()
             if config.provider != "local":
                 return 503, ""

@@ -150,14 +150,14 @@ async def market_articles(request: Request, q: str = "", page: int = 1) -> JSONR
     try:
         pattern = f"%{q}%"
         rows = conn.execute("""SELECT article_id, source_url, publish_date, title, category,
-                left(content_text, 360) AS excerpt, has_content, media_count
+                left(content_text, 360) AS excerpt, has_content, media_count, has_video
             FROM market_archive.article WHERE (%s = '' OR title ILIKE %s OR content_text ILIKE %s)
             ORDER BY publish_date DESC, article_id LIMIT %s OFFSET %s""",
             (q, pattern, pattern, MAX_PAGE_SIZE, (page - 1) * MAX_PAGE_SIZE)).fetchall()
         count = conn.execute("SELECT count(*) FROM market_archive.article WHERE (%s = '' OR title ILIKE %s OR content_text ILIKE %s)",
                              (q, pattern, pattern)).fetchone()[0]
         data = [{"id": str(row[0]), "url": row[1], "date": str(row[2]), "title": row[3], "category": row[4],
-                 "excerpt": row[5], "has_content": bool(row[6]), "media_count": int(row[7])} for row in rows]
+                 "excerpt": row[5], "has_content": bool(row[6]), "media_count": int(row[7]), "has_video": bool(row[8])} for row in rows]
         return JSONResponse({"ok": True, "articles": data, "page": page, "page_size": MAX_PAGE_SIZE, "total": count}, headers={"Cache-Control": "no-store"})
     finally:
         conn.close()
@@ -172,13 +172,13 @@ async def market_article_detail(request: Request, article_id: str) -> JSONRespon
     conn = _db()
     try:
         row = conn.execute("""SELECT article_id, source_url, publish_date, title, category, content_text,
-                archive_status, has_content, media_count FROM market_archive.article WHERE article_id = %s""",
+                archive_status, has_content, media_count, has_video FROM market_archive.article WHERE article_id = %s""",
                            (article_id,)).fetchone()
         if row is None:
             return JSONResponse({"ok": False, "error": "not_found"}, status_code=404, headers={"Cache-Control": "no-store"})
         return JSONResponse({"ok": True, "article": {"id": str(row[0]), "url": row[1], "date": str(row[2]),
             "title": row[3], "category": row[4], "text": row[5], "status": row[6],
-            "has_content": bool(row[7]), "media_count": int(row[8])}}, headers={"Cache-Control": "no-store"})
+            "has_content": bool(row[7]), "media_count": int(row[8]), "has_video": bool(row[9])}}, headers={"Cache-Control": "no-store"})
     finally:
         conn.close()
 

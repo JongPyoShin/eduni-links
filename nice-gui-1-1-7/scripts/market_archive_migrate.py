@@ -22,9 +22,12 @@ CREATE TABLE IF NOT EXISTS market_archive.article (
   source_filename TEXT NOT NULL,
   archive_status TEXT NOT NULL DEFAULT 'saved',
   has_content BOOLEAN NOT NULL DEFAULT TRUE,
+  has_video BOOLEAN NOT NULL DEFAULT FALSE,
   media_count INTEGER NOT NULL DEFAULT 0,
   imported_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE market_archive.article
+  ADD COLUMN IF NOT EXISTS has_video BOOLEAN NOT NULL DEFAULT FALSE;
 CREATE INDEX IF NOT EXISTS market_archive_article_date_idx
   ON market_archive.article (publish_date DESC, article_id);
 CREATE INDEX IF NOT EXISTS market_archive_article_search_idx
@@ -116,15 +119,17 @@ def import_articles(source: Path) -> int:
             if len(title) > 300 or not title: raise ValueError(f"invalid title in {path.name}")
             archive_status = str(data.get("status", "saved"))[:80]
             has_content = bool(data.get("hasContent", bool(content)))
+            has_video = data.get("hasVideo") is True
             media_count = len(data.get("images", [])) if isinstance(data.get("images", []), list) else 0
-            conn.execute("""INSERT INTO market_archive.article(article_id,source_url,publish_date,title,category,content_text,source_filename,archive_status,has_content,media_count)
-                VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(article_id) DO UPDATE SET
+            conn.execute("""INSERT INTO market_archive.article(article_id,source_url,publish_date,title,category,content_text,source_filename,archive_status,has_content,has_video,media_count)
+                VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(article_id) DO UPDATE SET
                 publish_date=EXCLUDED.publish_date,title=EXCLUDED.title,category=EXCLUDED.category,
                 source_url=EXCLUDED.source_url,
                 content_text=EXCLUDED.content_text,source_filename=EXCLUDED.source_filename,
                 archive_status=EXCLUDED.archive_status,has_content=EXCLUDED.has_content,
+                has_video=EXCLUDED.has_video,
                 media_count=EXCLUDED.media_count,imported_at=now()""",
-                (article_id, source_url, date_value, title, category, content, path.name, archive_status, has_content, media_count))
+                (article_id, source_url, date_value, title, category, content, path.name, archive_status, has_content, has_video, media_count))
             count += 1
         conn.commit()
     except Exception:

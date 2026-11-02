@@ -349,6 +349,7 @@ def register_pages() -> None:
                 _portal_card(EDUNI_PHONICS_URL, "🔤 소리톡 파닉스", "영어 음가 따라 읽고 마이크로 말하기 연습", "영어 학습", "portal-game-blue")
                 _portal_card(EDUNI_JUNGLE_URL, "정글 새탐험", "정글 맵을 탐험하며 새를 채집하는 모험", "탐험", "portal-game-jungle")
                 _portal_card(EDUNI_OMOK_URL, "AI 오목", "AI 친구와 오목을 두는 두뇌 게임", "신규", "portal-game-violet")
+                _portal_card("/portal/market", "시장 리서치 아카이브", "보관한 프리미엄 시장 분석 글 검색과 AI 질의", "보호자", "portal-game-blue")
                 _portal_card(EDUNI_LINK_URL, "의준 링크", "의준 얼굴 블럭을 연결하는 모바일 퍼즐", "신규", "portal-game-pink")
                 _portal_card("/bubble-shooter", "한자 슈터", "목표 한자를 맞히는 버블 슈터 게임", "게임", "portal-game-blue")
                 _portal_card("/bubble", "버블 게임", "짧게 집중해서 푸는 한자 게임", "게임", "portal-game-amber")

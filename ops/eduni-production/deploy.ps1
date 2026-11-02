@@ -51,20 +51,58 @@ function CheckRoutes([bool]$CheckAI, [bool]$PreDeployment = $false) {
   $health = Invoke-WebRequest -Uri "$base/healthz" -UseBasicParsing -TimeoutSec 8
   Assert ($health.StatusCode -eq 200) 'App health route failed'
   $features = @($release.features)
-  if ($PreDeployment -and $release.predeployment_feature_paths) {
-    $paths = @($release.predeployment_feature_paths | ForEach-Object { [string]$_ })
-    Assert ($paths.Count -gt 0 -and $paths.Count -eq (@($paths | Select-Object -Unique)).Count) 'Invalid predeployment feature path list'
-    Assert (@($paths | Where-Object { $_ -notin @($features | ForEach-Object { [string]$_.path }) }).Count -eq 0) 'Predeployment feature path is absent from the retained feature manifest'
-    $features = @($features | Where-Object { [string]$_.path -in $paths })
-    Assert ($features.Count -eq $paths.Count) 'Predeployment feature selection is incomplete'
-  }
+  Assert ($release.features -is [System.Array]) 'Retained feature manifest must be an array'
+  $featurePaths = @($features | ForEach-Object { [string]$_.path })
+  Assert ($featurePaths.Count -gt 0 -and @($featurePaths | Where-Object { $_ -notmatch '^/(?!/)[^\s\\#\x00-\x1f\x7f]*\z' }).Count -eq 0) 'Invalid retained feature manifest'
+  $featureKeys = @($featurePaths | ForEach-Object { ($_ -split '\?', 2)[0] })
+  Assert ($featureKeys.Count -eq (@($featureKeys | Sort-Object -CaseSensitive -Unique)).Count) 'Duplicate retained feature route'
   foreach ($feature in $features) {
-    $r = Invoke-WebRequest -Uri "$base$($feature.path)" -UseBasicParsing -TimeoutSec 8
-    Assert ($r.StatusCode -eq 200) "Retained feature failed: $($feature.path)"
-    if ($feature.marker) { Assert ($r.Content.Contains($feature.marker)) "Retained feature content marker missing: $($feature.path)" }
-    if ($feature.source_file) {
-      $found = docker exec eduni-game python -c "from pathlib import Path; import sys; print('yes' if sys.argv[2] in (Path('/app') / sys.argv[1]).read_text(encoding='utf-8') else 'no')" $feature.source_file $feature.source_marker
-      Assert ($LASTEXITCODE -eq 0 -and $found -eq 'yes') "Running feature source marker missing: $($feature.path)"
+    if ($null -ne $feature.PSObject.Properties['marker']) { Assert ($feature.marker -is [string]) "Invalid response marker for retained feature: $($feature.path)" }
+    if ($null -ne $feature.PSObject.Properties['source_file']) { Assert ($feature.source_file -is [string]) "Invalid source file for retained feature: $($feature.path)" }
+    if ($null -ne $feature.PSObject.Properties['source_marker']) { Assert ($feature.source_marker -is [string]) "Invalid source marker for retained feature: $($feature.path)" }
+    $hasSourceFile = -not [string]::IsNullOrWhiteSpace([string]$feature.source_file)
+    $hasSourceMarker = -not [string]::IsNullOrWhiteSpace([string]$feature.source_marker)
+    Assert ($hasSourceFile -eq $hasSourceMarker) "Incomplete source marker for retained feature: $($feature.path)"
+    Assert ((-not [string]::IsNullOrWhiteSpace([string]$feature.marker)) -or $hasSourceMarker) "Retained feature has no verification marker: $($feature.path)"
+  }
+  $predeploymentPaths = @()
+  if ($PreDeployment -and $release.predeployment_feature_paths) {
+    Assert ($release.predeployment_feature_paths -is [System.Array] -and $release.new_feature_paths -is [System.Array]) 'Staged feature paths must be arrays'
+    $predeploymentPaths = @($release.predeployment_feature_paths | ForEach-Object { [string]$_ })
+    $newFeaturePaths = @($release.new_feature_paths | ForEach-Object { [string]$_ })
+    $predeploymentKeys = @($predeploymentPaths | ForEach-Object { ($_ -split '\?', 2)[0] })
+    $newFeatureKeys = @($newFeaturePaths | ForEach-Object { ($_ -split '\?', 2)[0] })
+    Assert ($predeploymentPaths.Count -gt 0 -and $predeploymentKeys.Count -eq (@($predeploymentKeys | Sort-Object -CaseSensitive -Unique)).Count) 'Invalid predeployment feature path list'
+    Assert ($newFeaturePaths.Count -gt 0 -and $newFeatureKeys.Count -eq (@($newFeatureKeys | Sort-Object -CaseSensitive -Unique)).Count) 'Invalid new feature path list'
+    Assert (@($predeploymentPaths + $newFeaturePaths | Where-Object { $_ -notmatch '^/(?!/)[^\s\\#\x00-\x1f\x7f]*\z' }).Count -eq 0) 'Invalid staged feature path'
+    Assert (@($predeploymentKeys | Where-Object { $_ -cin $newFeatureKeys }).Count -eq 0) 'A route cannot be both predeployment and new'
+    Assert (-not [IO.Path]::IsPathRooted([string]$release.previous_release_path)) 'Previous release path must be relative to host config'
+    $hostConfigRoot = [IO.Path]::GetFullPath($HostConfigDir).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+    $previousFile = [IO.Path]::GetFullPath((Join-Path $HostConfigDir ([string]$release.previous_release_path)))
+    Assert ($previousFile.StartsWith($hostConfigRoot, [StringComparison]::OrdinalIgnoreCase)) 'Previous release path escapes host config'
+    Assert (Test-Path -LiteralPath $previousFile -PathType Leaf) 'Previous release manifest missing'
+    $previous = Get-Content -Raw $previousFile | ConvertFrom-Json
+    $previousPaths = @($previous.features | ForEach-Object { ([string]$_.path -split '\?', 2)[0] } | Sort-Object -CaseSensitive -Unique)
+    $stagedPreviousPaths = @($predeploymentKeys | Sort-Object -CaseSensitive -Unique)
+    Assert (($previousPaths -join "`n") -ceq ($stagedPreviousPaths -join "`n")) 'Predeployment paths differ from the previous release manifest'
+    $expectedPaths = @($stagedPreviousPaths + $newFeatureKeys | Sort-Object -CaseSensitive -Unique)
+    $targetPaths = @($featureKeys | Sort-Object -CaseSensitive -Unique)
+    Assert (($expectedPaths -join "`n") -ceq ($targetPaths -join "`n")) 'Target feature paths do not equal previous plus declared new features'
+  }
+  if ($PreDeployment -and $predeploymentPaths.Count -gt 0) {
+    foreach ($path in $predeploymentPaths) {
+      $r = Invoke-WebRequest -Uri "$base$path" -UseBasicParsing -TimeoutSec 8
+      Assert ($r.StatusCode -eq 200) "Predeployment feature route failed: $path"
+    }
+  } else {
+    foreach ($feature in $features) {
+      $r = Invoke-WebRequest -Uri "$base$($feature.path)" -UseBasicParsing -TimeoutSec 8
+      Assert ($r.StatusCode -eq 200) "Retained feature failed: $($feature.path)"
+      if ($feature.marker) { Assert ($r.Content.Contains($feature.marker)) "Retained feature content marker missing: $($feature.path)" }
+      if ($feature.source_file) {
+        $found = docker exec eduni-game python -c "from pathlib import Path; import sys; print('yes' if sys.argv[2] in (Path('/app') / sys.argv[1]).read_text(encoding='utf-8') else 'no')" $feature.source_file $feature.source_marker
+        Assert ($LASTEXITCODE -eq 0 -and $found -eq 'yes') "Running feature source marker missing: $($feature.path)"
+      }
     }
   }
   $ready = Invoke-RestMethod -Uri $release.relay.ready_url -TimeoutSec 5
@@ -178,7 +216,8 @@ CheckRoutes $true $true
 if (-not $Apply -or $before.Image -eq $release.app.image_id) {
   if ($before.Image -eq $release.app.image_id) { CheckRoutes $true }
   $mode = if ($before.Image -eq $release.app.image_id) { 'release already current; no-op' } else { 'no deployment performed' }
-  Write-Output "PREFLIGHT PASS: all feature markers, AI relay and bounded AI response verified; $mode."
+  $scope = if ($before.Image -eq $release.app.image_id) { 'all retained feature markers' } else { 'predeployment route checks' }
+  Write-Output "PREFLIGHT PASS: $scope, AI relay and bounded AI response verified; $mode."
   exit 0
 }
 

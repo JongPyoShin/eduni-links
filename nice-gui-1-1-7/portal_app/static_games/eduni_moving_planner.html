@@ -17,6 +17,30 @@
     .product-group-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 1px}
     .product-group-head h3{margin:0;color:var(--green-dark);font-size:14px}
     .product-group-count{color:var(--muted);font-size:11px;font-weight:750}
+    .product-table-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff;-webkit-overflow-scrolling:touch}
+    .product-table-scroll:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+    .product-table{width:100%;min-width:700px;border-collapse:separate;border-spacing:0;text-align:left}
+    .product-table th,.product-table td{padding:10px 12px;vertical-align:middle}
+    .product-table thead th{background:#f7f9f6;color:var(--muted);font-size:11px;font-weight:750;white-space:nowrap}
+    .product-table thead th:first-child{position:sticky;left:0;z-index:2}
+    .product-table tbody tr+tr th,.product-table tbody tr+tr td{border-top:1px solid var(--line)}
+    .product-table tbody tr:hover{background:#fbfcfa}
+    .product-table tbody th.product-table-item{position:sticky;left:0;z-index:1;min-width:250px;background:#fff;font-weight:400;text-align:left}
+    .product-table tbody tr:hover th.product-table-item{background:#fbfcfa}
+    .product-table-item .select-row{align-items:flex-start}
+    .product-table-item .product-name{display:block;font-size:13px;line-height:1.4}
+    .product-table-item .product-code{display:block;font-size:11px}
+    .product-row-details{margin:5px 0 0 23px;color:var(--muted);font-size:11px}
+    .product-row-details summary{cursor:pointer;color:var(--green-dark);font-weight:700}
+    .product-row-details .product-search{margin-top:6px;gap:5px}
+    .product-row-details .search-link{padding:3px 6px;font-size:10px}
+    .product-row-details .product-note{margin-top:6px;font-size:11px}
+    .table-price{font-weight:800;font-size:13px;white-space:nowrap}
+    .table-price-sub{display:block;margin-top:2px;color:var(--muted);font-size:10px;white-space:nowrap}
+    .product-table-seller{min-width:90px;color:#53645d;font-size:12px;overflow-wrap:anywhere}
+    .product-table-actions{display:flex;gap:5px;white-space:nowrap}
+    .product-table-actions .button.ghost{padding:5px 7px;font-size:11px}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
   </style>
 </head>
 <body>
@@ -227,17 +251,24 @@
       list.innerHTML = [...groups.entries()].sort(([a], [b]) => categoryOrder.indexOf(a) - categoryOrder.indexOf(b)).map(([category, items]) => `
         <section class="product-group" aria-label="${esc(category)} ${items.length}개">
           <div class="product-group-head"><h3>${esc(category)}</h3><span class="product-group-count">${items.length}개</span></div>
-          ${items.map(item => {
+          <div class="product-table-scroll" role="region" aria-label="${esc(category)} 가전 가격 비교 목록" tabindex="0">
+            <table class="product-table">
+              <caption class="sr-only">${esc(category)} 제품과 가격 비교</caption>
+              <thead><tr><th scope="col">제품 / 모델</th><th scope="col">임직원가</th><th scope="col">외부 최저가</th><th scope="col">판매처</th><th scope="col"><span class="sr-only">관리</span></th></tr></thead>
+              <tbody>${items.map(item => {
             const source = safeHttpUrl(item.url);
-            return `<article class="product-card">
-              <div class="product-top"><div><div class="product-name">${esc(item.name)}</div><div class="product-code">${esc(item.model)}</div></div><label class="select-row"><input type="checkbox" data-select-product="${esc(item.id)}" ${item.selected?"checked":""} aria-label="${esc(item.name)} AI 비교에 선택">AI 비교</label></div>
-              <div class="product-prices"><div class="price-box"><span>임직원가</span><b>${money(item.employeePrice)}</b></div><div class="price-box"><span>외부 확인 최저가 · ${esc(dateLabel(item.checkedAt))}</span><b>${money(item.externalPrice)}</b></div></div>
-              ${item.seller?`<div class="product-meta"><span class="pill">확인처: ${esc(item.seller)}</span></div>`:""}
-              ${item.note?`<p class="product-note">${esc(item.note)}</p>`:""}
-              <div class="product-search"><a class="search-link" href="${searchUrl("naver",item.model)}" target="_blank" rel="noopener noreferrer">네이버 쇼핑 ↗</a><a class="search-link" href="${searchUrl("danawa",item.model)}" target="_blank" rel="noopener noreferrer">다나와 ↗</a><a class="search-link" href="${searchUrl("enuri",item.model)}" target="_blank" rel="noopener noreferrer">에누리 ↗</a>${source?`<a class="search-link" href="${esc(source)}" target="_blank" rel="noopener noreferrer">저장한 판매처 ↗</a>`:""}</div>
-              <div class="card-actions"><button class="button ghost" data-edit-product="${esc(item.id)}" type="button">수정</button><button class="button ghost danger" data-delete-product="${esc(item.id)}" type="button">삭제</button></div>
-            </article>`;
-          }).join("")}
+            return `<tr>
+              <th scope="row" class="product-table-item"><label class="select-row"><input type="checkbox" data-select-product="${esc(item.id)}" ${item.selected?"checked":""} aria-label="${esc(item.name)} AI 비교에 선택"><span><span class="product-name">${esc(item.name)}</span><span class="product-code">${esc(item.model)}</span></span></label>
+                <details class="product-row-details"><summary>${esc(item.model)} 가격 검색${item.note?" · 메모":""}</summary><div class="product-search"><a class="search-link" href="${searchUrl("naver",item.model)}" target="_blank" rel="noopener noreferrer">네이버 쇼핑 ↗</a><a class="search-link" href="${searchUrl("danawa",item.model)}" target="_blank" rel="noopener noreferrer">다나와 ↗</a><a class="search-link" href="${searchUrl("enuri",item.model)}" target="_blank" rel="noopener noreferrer">에누리 ↗</a>${source?`<a class="search-link" href="${esc(source)}" target="_blank" rel="noopener noreferrer">저장한 판매처 ↗</a>`:""}</div>${item.note?`<p class="product-note">${esc(item.note)}</p>`:""}</details>
+              </th>
+              <td><span class="table-price">${money(item.employeePrice)}</span></td>
+              <td><span class="table-price">${money(item.externalPrice)}</span><span class="table-price-sub">확인 ${esc(dateLabel(item.checkedAt))}</span></td>
+              <td class="product-table-seller">${item.seller?esc(item.seller):"미입력"}</td>
+              <td><div class="product-table-actions"><button class="button ghost" data-edit-product="${esc(item.id)}" type="button" aria-label="${esc(item.name)} 수정">수정</button><button class="button ghost danger" data-delete-product="${esc(item.id)}" type="button" aria-label="${esc(item.name)} 삭제">삭제</button></div></td>
+            </tr>`;
+          }).join("")}</tbody>
+            </table>
+          </div>
         </section>`).join("");
     }
     function fillForm(form, item) {

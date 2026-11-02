@@ -74,6 +74,12 @@ def math_playfactory_page() -> HTMLResponse:
     return _game_html_response("eduni_math_playfactory.html")
 
 
+@app.get("/portal/moving", response_class=HTMLResponse)
+def moving_planner_page() -> HTMLResponse:
+    """Local-first moving quote and appliance comparison board."""
+    return _game_html_response("eduni_moving_planner.html")
+
+
 def _redirect_html(title: str, url: str) -> HTMLResponse:
     return HTMLResponse(
         f"""
@@ -348,6 +354,7 @@ def register_pages() -> None:
                 _portal_card("/bubble", "버블 게임", "짧게 집중해서 푸는 한자 게임", "게임", "portal-game-amber")
                 _portal_card("/blockpuzzle", "블록 퍼즐", "가볍게 머리를 깨우는 퍼즐", "게임", "portal-game-green")
                 _portal_card(EDUNI_READING_URL, "독서기록", "책 사진과 아이의 한마디를 차곡차곡 남기는 독서 앨범", "기록", "portal-game-amber")
+                _portal_card("/portal/moving", "이사 준비 보드", "이사 견적을 나란히 정리하고 새집 가전 링크·가격을 모아요", "생활 도구", "portal-game-blue")
 
             _section_title("학습 세계", "동적 포털의 실제 학습 경로와 맞췄습니다.")
             with ui.element("section").classes("portal-worlds"):

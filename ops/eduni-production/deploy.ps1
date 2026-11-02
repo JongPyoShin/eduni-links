@@ -43,14 +43,22 @@ SELECT format('SELECT %L || ''='' || count(*) FROM %I.%I;', schemaname||'.'||tab
   Assert ($LASTEXITCODE -eq 0) 'Could not read PostgreSQL database/table counts'
   return ($out -join "`n")
 }
-function CheckRoutes([bool]$CheckAI) {
+function CheckRoutes([bool]$CheckAI, [bool]$PreDeployment = $false) {
   $base = 'http://127.0.0.1:8081'
   try { $homeResponse = Invoke-WebRequest -Uri "$base/" -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 8 }
   catch { $homeResponse = $_.Exception.Response }
   Assert ($homeResponse.StatusCode -eq 307 -and $homeResponse.Headers.Location -eq '/portal') 'Home route no longer redirects to the retained portal'
   $health = Invoke-WebRequest -Uri "$base/healthz" -UseBasicParsing -TimeoutSec 8
   Assert ($health.StatusCode -eq 200) 'App health route failed'
-  foreach ($feature in $release.features) {
+  $features = @($release.features)
+  if ($PreDeployment -and $release.predeployment_feature_paths) {
+    $paths = @($release.predeployment_feature_paths | ForEach-Object { [string]$_ })
+    Assert ($paths.Count -gt 0 -and $paths.Count -eq (@($paths | Select-Object -Unique)).Count) 'Invalid predeployment feature path list'
+    Assert (@($paths | Where-Object { $_ -notin @($features | ForEach-Object { [string]$_.path }) }).Count -eq 0) 'Predeployment feature path is absent from the retained feature manifest'
+    $features = @($features | Where-Object { [string]$_.path -in $paths })
+    Assert ($features.Count -eq $paths.Count) 'Predeployment feature selection is incomplete'
+  }
+  foreach ($feature in $features) {
     $r = Invoke-WebRequest -Uri "$base$($feature.path)" -UseBasicParsing -TimeoutSec 8
     Assert ($r.StatusCode -eq 200) "Retained feature failed: $($feature.path)"
     if ($feature.marker) { Assert ($r.Content.Contains($feature.marker)) "Retained feature content marker missing: $($feature.path)" }
@@ -166,8 +174,9 @@ foreach ($key in @($liveEnv.Keys | Where-Object { $_ -like 'EDUNI_*' -or $_ -eq 
   Assert ($composeEnv.ContainsKey($key) -and $liveEnv[$key] -ceq $composeEnv[$key]) "Compose environment mismatch: $key (values suppressed)"
 }
 $dbBefore = DbSnapshot
-CheckRoutes $true
+CheckRoutes $true $true
 if (-not $Apply -or $before.Image -eq $release.app.image_id) {
+  if ($before.Image -eq $release.app.image_id) { CheckRoutes $true }
   $mode = if ($before.Image -eq $release.app.image_id) { 'release already current; no-op' } else { 'no deployment performed' }
   Write-Output "PREFLIGHT PASS: all feature markers, AI relay and bounded AI response verified; $mode."
   exit 0
@@ -202,7 +211,7 @@ try {
     Assert ((MountSignature $rolledBack) -eq $release.app.mount_signature) 'Rollback data mount changed'
     Assert ((PortSignature $rolledBack) -eq $release.app.port_signature) 'Rollback port bindings changed'
     AssertSameServices $dbBefore
-    CheckRoutes $true
+    CheckRoutes $true $true
     } catch { $rollbackFailure = $_.Exception.Message }
     finally {
     & docker tag $release.app.image_id $release.app.image_tag

@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f6f5f1">
+  <title>이사 준비 보드 | EDUNI</title>
+  <style>
+    :root{color-scheme:light;--ink:#18312c;--muted:#74817d;--line:#e6e9e3;--paper:#fff;--canvas:#f6f5f1;--green:#176b54;--green-dark:#10523f;--mint:#e8f4ed;--blue:#edf3f8;--orange:#fff1e8;--shadow:0 18px 50px rgba(26,46,39,.08)}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--canvas);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,"Malgun Gothic",sans-serif;line-height:1.5}button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit}.topbar{height:68px;padding:0 max(24px,calc((100vw - 1180px)/2));display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(24,49,44,.08);background:rgba(255,255,255,.76)}.brand{font-weight:850;letter-spacing:.03em}.brand-mark{display:inline-grid;place-items:center;width:30px;height:30px;margin-right:7px;border-radius:10px;background:var(--green);color:white}.topbar .crumb{color:var(--muted);font-size:14px}.topbar .spacer{flex:1}.wrap{max-width:1180px;margin:auto;padding:34px 24px 72px}.hero{position:relative;overflow:hidden;padding:34px 38px;border-radius:26px;background:#eaf2eb;box-shadow:var(--shadow)}.hero:after{content:"";position:absolute;width:300px;height:300px;border-radius:50%;right:4%;top:-190px;background:#d7e8d9;box-shadow:0 0 0 35px rgba(215,232,217,.4),0 0 0 75px rgba(215,232,217,.2)}.hero-content{position:relative;z-index:1;max-width:750px}.eyebrow{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--green)}h1{font-size:clamp(28px,4vw,43px);line-height:1.14;letter-spacing:-.045em;margin:10px 0 12px}.hero p{color:#52645d;max-width:650px;margin:0;font-size:16px}.hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}.button{border:0;border-radius:12px;padding:11px 16px;font-weight:750;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}.button.primary{color:#fff;background:var(--green)}.button.primary:hover{background:var(--green-dark)}.button.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}.button.ghost{padding:7px 10px;background:transparent;color:var(--muted);border:1px solid var(--line);font-size:13px}.button.danger{color:#a43c31}.small{font-size:12px;color:var(--muted)}.privacy{display:flex;align-items:flex-start;gap:12px;margin:18px 0 22px;padding:15px 18px;border:1px solid #dfe9df;border-radius:15px;background:#f4f8f3;color:#4e6259;font-size:13px}.privacy b{color:var(--green-dark)}.privacy .icon{font-size:18px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 18px}.stat{padding:16px 18px;border-radius:16px;background:#fff;border:1px solid var(--line)}.stat-label{font-size:12px;color:var(--muted)}.stat-value{font-size:21px;font-weight:850;letter-spacing:-.03em;margin-top:4px}.stat-value span{font-size:13px;font-weight:650;color:var(--muted)}.panel{background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:0 8px 30px rgba(26,46,39,.035)}.home-panel{margin-bottom:18px}.section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}.section-head h2{margin:0;font-size:19px;letter-spacing:-.025em}.section-head p{margin:4px 0 0;color:var(--muted);font-size:13px}.home-fields{display:grid;grid-template-columns:1.2fr .8fr .8fr;gap:12px}.field{display:flex;flex-direction:column;gap:6px;min-width:0}.field label{font-size:12px;font-weight:750;color:#53645d}.field input,.field select,.field textarea{width:100%;min-height:43px;padding:9px 11px;border:1px solid #dfe4dd;border-radius:10px;background:#fff;color:var(--ink);outline:none}.field textarea{min-height:84px;resize:vertical}.field input:focus,.field select:focus,.field textarea:focus{border-color:#67a58d;box-shadow:0 0 0 3px rgba(23,107,84,.12)}.home-actions{display:flex;align-items:center;gap:10px;margin-top:12px}.layout{display:grid;grid-template-columns:minmax(0,1fr) 286px;gap:18px;align-items:start}.main-col{display:grid;gap:18px}.quote-list,.product-list{display:grid;gap:10px}.empty{padding:28px 18px;text-align:center;border:1px dashed #cfd8cf;border-radius:14px;color:var(--muted);font-size:14px;background:#fbfcfa}.empty strong{display:block;color:#42574e;margin-bottom:4px}.quote-card,.product-card{border:1px solid var(--line);border-radius:15px;padding:16px;background:#fff}.quote-top,.product-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.quote-name,.product-name{font-weight:800;font-size:16px}.quote-price{font-weight:850;font-size:20px;white-space:nowrap;letter-spacing:-.03em}.quote-meta,.product-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 9px;background:#f1f4f1;color:#52635c;font-size:11px;font-weight:700}.pill.good{background:var(--mint);color:#27644d}.pill.warn{background:var(--orange);color:#9a5c35}.quote-note,.product-note{margin:10px 0 0;color:#64736c;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}.card-actions{display:flex;gap:7px;margin-top:12px;flex-wrap:wrap}.product-code{font-size:12px;letter-spacing:.06em;color:var(--muted);font-weight:700;margin-top:2px}.product-prices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}.price-box{padding:9px 11px;border-radius:10px;background:#f7f8f5}.price-box span{display:block;color:var(--muted);font-size:11px}.price-box b{display:block;font-size:15px;margin-top:2px}.product-search{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.search-link{font-size:12px;text-decoration:none;color:var(--green-dark);font-weight:750;padding:6px 9px;border:1px solid #dbe8dd;border-radius:9px;background:#f6faf6}.search-link:hover{background:#e8f4ed}.source-link{font-size:12px;font-weight:750;color:var(--green);word-break:break-all}.select-row{display:flex;align-items:center;gap:7px;color:#51645b;font-size:12px;font-weight:750}.select-row input{accent-color:var(--green);width:16px;height:16px}.compare-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding:13px 15px;border-radius:13px;background:#edf5ef}.compare-bar p{margin:0;font-size:13px;color:#50655a}.compare-bar b{color:var(--green-dark)}.aside{display:grid;gap:14px}.aside .panel{padding:18px}.aside h3{font-size:15px;margin:0 0 10px}.aside p{margin:0;color:#64736c;font-size:12px}.service-list{display:grid;gap:8px}.service-link{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;text-decoration:none;font-weight:750;font-size:13px}.service-link span{font-size:11px;color:var(--muted);font-weight:550}.service-link:hover{border-color:#b8d2c1;background:#fafcf9}.tip{border-left:3px solid #d69464;padding:4px 0 4px 11px;margin-top:11px!important}.source-note{font-size:11px!important;margin-top:10px!important}.footer{margin-top:22px;padding:0 4px;color:var(--muted);font-size:11px}.footer a{color:#536d60}.dialog{width:min(590px,calc(100% - 28px));max-height:90vh;border:0;border-radius:20px;padding:0;box-shadow:0 28px 100px rgba(16,36,29,.25)}.dialog::backdrop{background:rgba(17,33,29,.48);backdrop-filter:blur(3px)}.dialog-inner{padding:22px}.dialog-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.dialog-head h2{margin:0;font-size:20px}.close{border:0;background:#f1f3ef;border-radius:50%;width:34px;height:34px;font-size:19px}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.field.full{grid-column:1/-1}.checks{display:flex;gap:15px;flex-wrap:wrap;padding:4px 0}.checks label{display:flex;gap:7px;align-items:center;font-size:13px;color:#51645b}.checks input{accent-color:var(--green)}.dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,15px);opacity:0;pointer-events:none;background:#1d352e;color:#fff;padding:11px 16px;border-radius:12px;box-shadow:var(--shadow);font-size:13px;transition:.2s;z-index:30;max-width:calc(100vw - 32px)}.toast.show{opacity:1;transform:translate(-50%,0)}
+    @media(max-width:900px){.layout{grid-template-columns:1fr}.aside{grid-template-columns:repeat(2,minmax(0,1fr))}.hero:after{right:-12%}}
+    @media(max-width:620px){.topbar{height:58px;padding:0 16px}.topbar .crumb{font-size:12px}.topbar .button{padding:8px 10px;font-size:12px}.wrap{padding:18px 14px 48px}.hero{padding:25px 22px;border-radius:20px}.hero p{font-size:14px}.stats{gap:7px}.stat{padding:12px 10px}.stat-value{font-size:17px}.stat-label{font-size:10px}.home-fields{grid-template-columns:1fr 1fr}.home-fields .field:first-child{grid-column:1/-1}.panel{padding:17px;border-radius:16px}.section-head{align-items:center}.section-head h2{font-size:17px}.section-head p{font-size:12px}.quote-top,.product-top{align-items:flex-start}.quote-price{font-size:17px}.aside{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.compare-bar{align-items:flex-start;flex-direction:column}.hero-actions .button{flex:1}.privacy{font-size:12px;padding:12px}.home-actions{flex-wrap:wrap}}
+    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+  <style>
+    .product-group{display:grid;gap:10px}
+    .product-group-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 1px}
+    .product-group-head h3{margin:0;color:var(--green-dark);font-size:14px}
+    .product-group-count{color:var(--muted);font-size:11px;font-weight:750}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/portal" aria-label="EDUNI 포털"><span class="brand-mark">E</span>EDUNI</a>
+    <span class="crumb">생활 도구　/　이사 준비</span>
+    <span class="spacer"></span>
+    <button class="button secondary" id="shareSummary" type="button">요약 복사</button>
+  </header>
+  <div class="wrap">
+    <section class="hero">
+      <div class="hero-content">
+        <div class="eyebrow">Moving planner · 한곳에서 정리</div>
+        <h1>이사 준비,<br>견적과 가전 후보를 한눈에.</h1>
+        <p>업체 견적을 같은 기준으로 나란히 보고, 새집 가전 가격과 판매 링크를 모아두세요. 제품 선택이 고민되면 고른 후보만 EDUNI AI 친구에게 비교를 부탁할 수 있어요.</p>
+        <div class="hero-actions">
+          <button class="button primary" id="addQuoteTop" type="button">＋ 이사 견적 추가</button>
+          <button class="button secondary" id="addProductTop" type="button">＋ 가전 후보 추가</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="privacy"><span class="icon">🔒</span><div><b>이 브라우저에만 저장됩니다.</b> 다른 기기와 자동 공유되지 않고 공개 링크도 만들지 않아요. 요약을 복사해 직접 공유할 수 있습니다. EDUNI AI 친구에게 보내는 정보는 비교 대상으로 고른 가전의 모델·가격·메모뿐이며, 주소와 연락처는 입력하거나 보내지 마세요.</div></div>
+
+    <section class="stats" aria-label="준비 현황">
+      <div class="stat"><div class="stat-label">받은 이사 견적</div><div class="stat-value" id="quoteCount">0<span>건</span></div></div>
+      <div class="stat"><div class="stat-label">가전 후보</div><div class="stat-value" id="productCount">0<span>개</span></div></div>
+      <div class="stat"><div class="stat-label">선택 후보의 임직원가 합계</div><div class="stat-value" id="selectedTotal">0<span>원</span></div></div>
+    </section>
+
+    <section class="panel home-panel">
+      <div class="section-head"><div><h2>우리 집 이사 정보</h2><p>견적 비교에 필요한 기본 정보만 이 기기에 저장합니다.</p></div><span class="pill">나만 보는 메모</span></div>
+      <form id="homeForm" class="home-fields">
+        <div class="field"><label for="moveDate">이사 예정일</label><input id="moveDate" name="moveDate" type="date"></div>
+        <div class="field"><label for="homeSize">집 크기 (평)</label><input id="homeSize" name="homeSize" type="number" min="0" max="200" step="0.5" placeholder="예: 25"></div>
+        <div class="field"><label for="roomCount">방 개수</label><input id="roomCount" name="roomCount" type="number" min="0" max="20" step="1" placeholder="예: 3"></div>
+        <div class="home-actions"><button class="button primary" type="submit">정보 저장</button><span class="small" id="saveStatus" aria-live="polite">자동으로 이 브라우저에 저장돼요.</span></div>
+      </form>
+    </section>
+
+    <div class="layout">
+      <main class="main-col">
+        <section class="panel" id="quotesSection">
+          <div class="section-head"><div><h2>이사 견적</h2><p>방문 여부, 작업 범위, 추가 비용을 함께 기록해 비교해요.</p></div><button class="button secondary" id="addQuote" type="button">＋ 견적 추가</button></div>
+          <div id="quoteList" class="quote-list"></div>
+        </section>
+
+        <section class="panel" id="productsSection">
+          <div class="section-head"><div><h2>입주 가전 가격표</h2><p>모델별 사내가와 확인한 외부 최저가·판매 링크를 저장해요.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="button secondary" id="importProducts" type="button">Excel 목록 붙여넣기</button><button class="button secondary" id="addProduct" type="button">＋ 가전 추가</button></div></div>
+          <div class="compare-bar"><p><b id="compareCount">0개 선택</b> · 가격과 메모를 기준으로 최대 3개 후보를 비교해요.</p><button class="button primary" id="compareProducts" type="button">🐣 AI 친구에게 비교 부탁</button></div>
+          <div id="productList" class="product-list"></div>
+        </section>
+      </main>
+
+      <aside class="aside">
+        <section class="panel">
+          <h3>이사 견적 받는 곳</h3>
+          <p style="margin-bottom:11px">여러 곳에서 받은 견적을 이 보드에 직접 모아 비교하세요.</p>
+          <div class="service-list">
+            <a class="service-link" href="https://soomgo.com/" target="_blank" rel="noopener noreferrer">숨고 <span>서비스 요청 ↗</span></a>
+            <a class="service-link" href="https://info.towen.com/o/mo24/" target="_blank" rel="noopener noreferrer">모두이사 <span>방문 견적 ↗</span></a>
+            <a class="service-link" href="https://www.mowda.kr/" target="_blank" rel="noopener noreferrer">모다 <span>조건별 견적 ↗</span></a>
+            <a class="service-link" href="https://www.24ro.co.kr/" target="_blank" rel="noopener noreferrer">이사로 <span>사진 견적 ↗</span></a>
+            <a class="service-link" href="https://www.zimssa.com/" target="_blank" rel="noopener noreferrer">짐싸 <span>견적 요청 ↗</span></a>
+          </div>
+          <p class="tip">계약 전 사업자·보험, 방문 견적, 작업 범위와 추가 비용을 확인하고 계약서에 남겨두세요.</p>
+          <p class="source-note">이 링크는 업체 연결용이며 EDUNI가 업체를 보증하거나 견적을 검증하지 않습니다. <a href="https://www.kca.go.kr/kca/sub.do?menukey=5293&amp;mode=view&amp;no=1004455170" target="_blank" rel="noopener noreferrer">한국소비자원 안내 ↗</a></p>
+        </section>
+        <section class="panel">
+          <h3>가전 가격 검색</h3>
+          <p style="margin-bottom:11px">상품 카드에서 모델명으로 바로 검색하고, 배송·설치비를 포함한 조건을 확인하세요.</p>
+          <div class="service-list">
+            <a class="service-link" href="https://search.shopping.naver.com/" target="_blank" rel="noopener noreferrer">네이버 쇼핑 <span>판매처 비교 ↗</span></a>
+            <a class="service-link" href="https://www.danawa.com/" target="_blank" rel="noopener noreferrer">다나와 <span>가격·스펙 비교 ↗</span></a>
+            <a class="service-link" href="https://www.enuri.com/" target="_blank" rel="noopener noreferrer">에누리 <span>가격 비교 ↗</span></a>
+          </div>
+          <p class="tip">최저가는 옵션·카드 할인·배송/설치 조건에 따라 달라질 수 있어요. 확인한 날짜와 판매 링크를 함께 저장해두세요.</p>
+        </section>
+        <section class="panel">
+          <h3>저장과 공유</h3>
+          <p>입력 내용은 이 브라우저의 저장 공간에 남아요. 기기 간 동기화는 되지 않습니다.</p>
+          <button class="button secondary" id="shareSummaryAside" type="button" style="width:100%;margin-top:12px">가족 공유용 요약 복사</button>
+          <p class="source-note">복사되는 요약에는 주소·연락처·자유 메모를 넣지 않아요. 공개 공유 링크와 계정별 권한은 로그인 기능이 연결된 뒤 제공할 수 있습니다.</p>
+        </section>
+      </aside>
+    </div>
+    <footer class="footer">외부 가격은 저장 시점에 직접 확인한 참고값입니다. 이 페이지는 실시간 가격을 자동 조회하지 않으며, 구매 전 판매처에서 최종 가격·옵션·설치 조건을 확인하세요.</footer>
+  </div>
+
+  <dialog class="dialog" id="quoteDialog">
+    <form id="quoteForm" class="dialog-inner">
+      <div class="dialog-head"><h2 id="quoteDialogTitle">이사 견적 추가</h2><button class="close" type="button" data-close="quoteDialog" aria-label="닫기">×</button></div>
+      <input type="hidden" name="id">
+      <div class="form-grid">
+        <div class="field"><label for="quoteCompany">업체명</label><input id="quoteCompany" name="company" required maxlength="50" placeholder="예: ○○이사"></div>
+        <div class="field"><label for="quoteType">서비스 유형</label><select id="quoteType" name="type"><option>포장이사</option><option>반포장이사</option><option>일반이사</option><option>용달</option><option>기타</option></select></div>
+        <div class="field"><label for="quotePrice">총 견적가 (원)</label><input id="quotePrice" name="price" type="number" min="0" step="1000" required placeholder="예: 1200000"></div>
+        <div class="field"><label for="quoteDate">견적 받은 날</label><input id="quoteDate" name="date" type="date"></div>
+        <div class="field full"><div class="checks"><label><input name="visit" type="checkbox"> 방문 견적</label><label><input name="insurance" type="checkbox"> 보험/보상 확인</label></div></div>
+        <div class="field full"><label for="quoteNote">포함 작업·추가 비용 메모</label><textarea id="quoteNote" name="note" maxlength="220" placeholder="사다리차, 에어컨 이전, 청소, 식대 등. 주소·전화번호는 적지 마세요."></textarea></div>
+      </div>
+      <div class="dialog-actions"><button class="button secondary" type="button" data-close="quoteDialog">취소</button><button class="button primary" type="submit">저장</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="dialog" id="productDialog">
+    <form id="productForm" class="dialog-inner">
+      <div class="dialog-head"><h2 id="productDialogTitle">가전 후보 추가</h2><button class="close" type="button" data-close="productDialog" aria-label="닫기">×</button></div>
+      <input type="hidden" name="id">
+      <div class="form-grid">
+        <div class="field"><label for="productCategory">제품 분류</label><select id="productCategory" name="category"><option>냉장고</option><option>식기세척기</option><option>인덕션</option><option>시스템 에어컨</option><option>홈멀티 에어컨</option><option>스탠드 에어컨</option><option>창문형 에어컨</option><option>후드</option><option>기타</option></select></div>
+        <div class="field"><label for="productModel">모델 코드</label><input id="productModel" name="model" required maxlength="32" placeholder="예: DW99F79E1USWS"></div>
+        <div class="field full"><label for="productName">제품명</label><input id="productName" name="name" required maxlength="80" placeholder="예: Infinite AI 식기세척기"></div>
+        <div class="field"><label for="employeePrice">임직원가 (원)</label><input id="employeePrice" name="employeePrice" type="number" min="0" step="1000" placeholder="선택"></div>
+        <div class="field"><label for="externalPrice">확인한 외부 최저가 (원)</label><input id="externalPrice" name="externalPrice" type="number" min="0" step="1000" placeholder="선택"></div>
+        <div class="field"><label for="priceSeller">가격 확인처</label><input id="priceSeller" name="seller" maxlength="50" placeholder="예: 네이버 쇼핑 판매처"></div>
+        <div class="field"><label for="checkedAt">가격 확인일</label><input id="checkedAt" name="checkedAt" type="date"></div>
+        <div class="field full"><label for="productUrl">판매 상품 링크</label><input id="productUrl" name="url" type="url" maxlength="500" placeholder="https://..."></div>
+        <div class="field full"><label for="productNote">비교할 특징 메모</label><textarea id="productNote" name="note" maxlength="140" placeholder="용량, 설치 방식, 포함 옵션 등 비교에 필요한 점만 적어주세요."></textarea></div>
+      </div>
+      <div class="dialog-actions"><button class="button secondary" type="button" data-close="productDialog">취소</button><button class="button primary" type="submit">저장</button></div>
+    </form>
+  </dialog>
+  <dialog class="dialog" id="importDialog">
+    <form id="importForm" class="dialog-inner">
+      <div class="dialog-head"><h2>Excel 목록 붙여넣기</h2><button class="close" type="button" data-close="importDialog" aria-label="닫기">×</button></div>
+      <p class="small" style="margin:0 0 12px">Excel에서 후보 행을 복사해 붙여넣으세요. 열 순서는 <b>제품명 → 모델 코드 → 임직원가 → 외부 최저가 → 최저가 사이트 → 판매 링크 → 확인일(YYYY-MM-DD) → 특징 메모</b>입니다. 첫 제목 행은 자동으로 건너뜁니다. 외부 가격은 확인한 값만 넣어 주세요.</p>
+      <div class="field"><label for="importText">탭으로 구분된 행</label><textarea id="importText" rows="10" required placeholder="제품명&#9;모델코드&#9;임직원가&#9;외부최저가&#9;사이트&#9;링크&#9;확인일&#9;메모"></textarea></div>
+      <div class="dialog-actions"><button class="button secondary" type="button" data-close="importDialog">취소</button><button class="button primary" type="submit">목록 가져오기</button></div>
+    </form>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+  (() => {
+    "use strict";
+    const KEY = "eduni.movingBoard.v1";
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+    const fresh = () => ({moveDate:"",homeSize:"",roomCount:"",quotes:[],products:[]});
+    let state = load();
+    let toastTimer;
+
+    function load() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(KEY) || "null");
+        if (!saved || typeof saved !== "object") return fresh();
+        return { ...fresh(), ...saved, quotes:Array.isArray(saved.quotes)?saved.quotes:[], products:Array.isArray(saved.products)?saved.products:[] };
+      } catch { return fresh(); }
+    }
+    function save() {
+      try { localStorage.setItem(KEY, JSON.stringify(state)); $("#saveStatus").textContent = "저장됨 · 이 브라우저"; return true; }
+      catch { $("#saveStatus").textContent = "저장 공간을 사용할 수 없어요."; toast("브라우저 저장에 실패했어요. 공간을 확인해 주세요."); return false; }
+    }
+    function uid() { return window.crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2,8)}`; }
+    function esc(value) { return String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char])); }
+    function money(value) { const number = Number(value); return Number.isFinite(number) && number > 0 ? `${new Intl.NumberFormat("ko-KR").format(number)}원` : "미입력"; }
+    function toast(message) { const node = $("#toast"); node.textContent = message; node.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => node.classList.remove("show"), 2600); }
+    function safeHttpUrl(raw) { try { const url = new URL(raw); return ["http:","https:"].includes(url.protocol) ? url.href : ""; } catch { return ""; } }
+    function dateLabel(value) { if (!value) return "날짜 미입력"; return value.replaceAll("-","."); }
+
+    function render() {
+      $("#moveDate").value = state.moveDate || "";
+      $("#homeSize").value = state.homeSize || "";
+      $("#roomCount").value = state.roomCount || "";
+      $("#quoteCount").innerHTML = `${state.quotes.length}<span>건</span>`;
+      $("#productCount").innerHTML = `${state.products.length}<span>개</span>`;
+      const chosen = state.products.filter(product => product.selected);
+      const total = chosen.reduce((sum, item) => sum + (Number(item.employeePrice) || 0), 0);
+      const missingPrice = chosen.filter(item => !(Number(item.employeePrice) > 0)).length;
+      $("#selectedTotal").innerHTML = `${new Intl.NumberFormat("ko-KR").format(total)}<span>원${missingPrice?` · ${missingPrice}개 가격 미입력`:""}</span>`;
+      $("#compareCount").textContent = `${chosen.length}개 선택`;
+      renderQuotes();
+      renderProducts();
+    }
+    function renderQuotes() {
+      const list = $("#quoteList");
+      if (!state.quotes.length) {
+        list.innerHTML = '<div class="empty"><strong>아직 받은 견적이 없어요</strong>견적을 받은 업체마다 한 장씩 추가하면 조건을 비교하기 쉬워요.</div>';
+        return;
+      }
+      list.innerHTML = state.quotes.map(item => `<article class="quote-card">
+        <div class="quote-top"><div><div class="quote-name">${esc(item.company)}</div><div class="quote-meta"><span class="pill">${esc(item.type || "이사")}</span><span class="pill">${esc(dateLabel(item.date))}</span>${item.visit?'<span class="pill good">방문 견적</span>':'<span class="pill warn">방문 여부 미확인</span>'}${item.insurance?'<span class="pill good">보험/보상 확인</span>':'<span class="pill warn">보험/보상 미확인</span>'}</div></div><div class="quote-price">${money(item.price)}</div></div>
+        ${item.note?`<p class="quote-note">${esc(item.note)}</p>`:""}
+        <div class="card-actions"><button class="button ghost" data-edit-quote="${esc(item.id)}" type="button">수정</button><button class="button ghost danger" data-delete-quote="${esc(item.id)}" type="button">삭제</button></div>
+      </article>`).join("");
+    }
+    function searchUrl(site, model) {
+      const query = encodeURIComponent(model || "");
+      if (site === "naver") return `https://search.shopping.naver.com/search/all?query=${query}`;
+      if (site === "danawa") return `https://search.danawa.com/dsearch.php?query=${query}`;
+      return `https://www.enuri.com/search.jsp?keyword=${query}`;
+    }
+    function renderProducts() {
+      const list = $("#productList");
+      if (!state.products.length) {
+        list.innerHTML = '<div class="empty"><strong>가전 후보를 아직 모으지 않았어요</strong>모델 코드로 가격을 검색하고, 확인한 최저가와 판매 링크를 저장해 보세요.</div>';
+        return;
+      }
+      const categoryOrder = $$("#productCategory option").map(option => option.value);
+      const groups = new Map();
+      for (const item of state.products) {
+        const detected = guessCategory(item.name, item.model);
+        const category = categoryOrder.includes(item.category) ? item.category : categoryOrder.includes(detected) ? detected : "기타";
+        if (!groups.has(category)) groups.set(category, []);
+        groups.get(category).push(item);
+      }
+      list.innerHTML = [...groups.entries()].sort(([a], [b]) => categoryOrder.indexOf(a) - categoryOrder.indexOf(b)).map(([category, items]) => `
+        <section class="product-group" aria-label="${esc(category)} ${items.length}개">
+          <div class="product-group-head"><h3>${esc(category)}</h3><span class="product-group-count">${items.length}개</span></div>
+          ${items.map(item => {
+            const source = safeHttpUrl(item.url);
+            return `<article class="product-card">
+              <div class="product-top"><div><div class="product-name">${esc(item.name)}</div><div class="product-code">${esc(item.model)}</div></div><label class="select-row"><input type="checkbox" data-select-product="${esc(item.id)}" ${item.selected?"checked":""} aria-label="${esc(item.name)} AI 비교에 선택">AI 비교</label></div>
+              <div class="product-prices"><div class="price-box"><span>임직원가</span><b>${money(item.employeePrice)}</b></div><div class="price-box"><span>외부 확인 최저가 · ${esc(dateLabel(item.checkedAt))}</span><b>${money(item.externalPrice)}</b></div></div>
+              ${item.seller?`<div class="product-meta"><span class="pill">확인처: ${esc(item.seller)}</span></div>`:""}
+              ${item.note?`<p class="product-note">${esc(item.note)}</p>`:""}
+              <div class="product-search"><a class="search-link" href="${searchUrl("naver",item.model)}" target="_blank" rel="noopener noreferrer">네이버 쇼핑 ↗</a><a class="search-link" href="${searchUrl("danawa",item.model)}" target="_blank" rel="noopener noreferrer">다나와 ↗</a><a class="search-link" href="${searchUrl("enuri",item.model)}" target="_blank" rel="noopener noreferrer">에누리 ↗</a>${source?`<a class="search-link" href="${esc(source)}" target="_blank" rel="noopener noreferrer">저장한 판매처 ↗</a>`:""}</div>
+              <div class="card-actions"><button class="button ghost" data-edit-product="${esc(item.id)}" type="button">수정</button><button class="button ghost danger" data-delete-product="${esc(item.id)}" type="button">삭제</button></div>
+            </article>`;
+          }).join("")}
+        </section>`).join("");
+    }
+    function fillForm(form, item) {
+      for (const field of form.elements) {
+        if (!field.name || !(field.name in item)) continue;
+        if (field.type === "checkbox") field.checked = Boolean(item[field.name]);
+        else field.value = item[field.name] ?? "";
+      }
+    }
+    function openDialog(id, formId, titleId, title, item) {
+      const form = $(formId); form.reset(); form.elements.id.value = item?.id || "";
+      if (item) fillForm(form,item);
+      $(titleId).textContent = item ? `${title} 수정` : `${title} 추가`;
+      $(id).showModal();
+    }
+    function readForm(form) {
+      const value = Object.fromEntries(new FormData(form).entries());
+      for (const field of form.querySelectorAll('input[type="checkbox"]')) value[field.name] = field.checked;
+      return value;
+    }
+    function upsert(collection, value) {
+      const index = collection.findIndex(item => item.id === value.id);
+      if (index >= 0) collection[index] = {...collection[index], ...value};
+      else collection.unshift({...value,id:uid()});
+    }
+    function guessCategory(name, model) {
+      const text=`${name} ${model}`;
+      if (/식기\s*세척기/.test(text)) return "식기세척기";
+      if (/냉장고|냉동고|김치플러스/.test(text)) return "냉장고";
+      if (/인덕션|전기레인지/.test(text)) return "인덕션";
+      if (/창문형|윈도우핏/.test(text)) return "창문형 에어컨";
+      if (/시스템\s*에어컨|^AJ\d/i.test(text)) return "시스템 에어컨";
+      if (/홈멀티|2\s*in\s*1/i.test(text) || /\/\s*\d+(?:\.\d+)?㎡/.test(name)) return "홈멀티 에어컨";
+      if (/에어컨|^AF\d/i.test(text)) return "스탠드 에어컨";
+      if (/후드/.test(text)) return "후드";
+      return "기타";
+    }
+    function parsePrice(value) { const digits=String(value||"").replace(/[^\d]/g,""); return digits?Number(digits):""; }
+    function importRows(text) {
+      const rows=String(text||"").split(/\r?\n/).map(line=>line.split("\t").map(cell=>cell.trim())).filter(cells=>cells.some(Boolean));
+      let added=0,updated=0;
+      for (const cells of rows.slice(0,500)) {
+        const [name="",model="",employee="",external="",seller="",rawUrl="",checkedAt="",note=""]=cells;
+        if (!name || !model || /모델\s*(명|코드)|제품명/i.test(`${name} ${model}`)) continue;
+        const previous=state.products.find(item=>String(item.model).toUpperCase()===model.toUpperCase());
+        const item={id:previous?.id||uid(),category:guessCategory(name,model),name,model:model.toUpperCase(),employeePrice:parsePrice(employee),externalPrice:parsePrice(external),seller,url:safeHttpUrl(rawUrl),checkedAt:/^\d{4}-\d{2}-\d{2}$/.test(checkedAt)?checkedAt:"",note:note.slice(0,140),selected:Boolean(previous?.selected)};
+        if (previous) { Object.assign(previous,item); updated++; }
+        else { state.products.unshift(item); added++; }
+      }
+      return {added,updated};
+    }
+    function confirmDelete(label) { return window.confirm(`${label}을(를) 삭제할까요?`); }
+
+    function summaryText() {
+      const home = [state.moveDate?`이사 예정일 ${state.moveDate}`:"",state.homeSize?`${state.homeSize}평`:"",state.roomCount?`방 ${state.roomCount}개`:""].filter(Boolean).join(" · ");
+      const lines = ["[이사 준비 요약]", home || "이사 기본 정보 미입력"];
+      lines.push("", "이사 견적");
+      if (state.quotes.length) for (const item of state.quotes) lines.push(`- ${item.company} / ${item.type} / ${money(item.price)} / ${item.visit?"방문 견적":"방문 여부 미확인"}${item.insurance?" / 보험·보상 확인":""}`);
+      else lines.push("- 아직 입력한 견적이 없습니다.");
+      lines.push("", "가전 후보");
+      if (state.products.length) for (const item of state.products) lines.push(`- ${item.name} (${item.model}) / 임직원가 ${money(item.employeePrice)} / 외부 확인가 ${money(item.externalPrice)} (${dateLabel(item.checkedAt)})${safeHttpUrl(item.url)?` / ${safeHttpUrl(item.url)}`:""}`);
+      else lines.push("- 아직 입력한 가전 후보가 없습니다.");
+      lines.push("", "※ 주소, 연락처, 자유 메모는 공유 요약에 포함하지 않았습니다. 가격과 계약 조건은 판매처·업체에 최종 확인하세요.");
+      return lines.join("\n");
+    }
+    async function copySummary() {
+      try { await navigator.clipboard.writeText(summaryText()); toast("공유용 요약을 복사했어요."); }
+      catch { const field = document.createElement("textarea"); field.value = summaryText(); document.body.append(field); field.select(); const ok = document.execCommand("copy"); field.remove(); toast(ok?"공유용 요약을 복사했어요.":"복사하지 못했어요. 브라우저 권한을 확인해 주세요."); }
+    }
+
+    $("#homeForm").addEventListener("submit", event => {
+      event.preventDefault(); const form = new FormData(event.currentTarget);
+      state.moveDate = String(form.get("moveDate") || ""); state.homeSize = String(form.get("homeSize") || ""); state.roomCount = String(form.get("roomCount") || "");
+      save(); render(); toast("이사 기본 정보를 저장했어요.");
+    });
+    $("#addQuote").addEventListener("click",() => openDialog("#quoteDialog","#quoteForm","#quoteDialogTitle","이사 견적"));
+    $("#addQuoteTop").addEventListener("click",() => { $("#addQuote").click(); });
+    $("#addProduct").addEventListener("click",() => openDialog("#productDialog","#productForm","#productDialogTitle","가전 후보"));
+    $("#addProductTop").addEventListener("click",() => { $("#addProduct").click(); });
+    $("#importProducts").addEventListener("click",() => $("#importDialog").showModal());
+    $("#quoteForm").addEventListener("submit",event => {
+      event.preventDefault(); const form=event.currentTarget; const value=readForm(form); value.price=Number(value.price)||0; upsert(state.quotes,value); save(); render(); $("#quoteDialog").close(); toast("이사 견적을 저장했어요.");
+    });
+    $("#productForm").addEventListener("submit",event => {
+      event.preventDefault(); const form=event.currentTarget; const value=readForm(form); value.model=value.model.trim().toUpperCase(); value.url=safeHttpUrl(value.url); value.employeePrice=value.employeePrice?Number(value.employeePrice):""; value.externalPrice=value.externalPrice?Number(value.externalPrice):"";
+      if (!value.url && form.elements.url.value.trim()) { toast("상품 링크에는 http 또는 https 주소를 입력해 주세요."); return; }
+      upsert(state.products,value); save(); render(); $("#productDialog").close(); toast("가전 후보를 저장했어요.");
+    });
+    $("#importForm").addEventListener("submit",event => {
+      event.preventDefault();
+      const result=importRows($("#importText").value);
+      if (!result.added && !result.updated) return toast("가져올 행이 없어요. 안내된 열 순서를 확인해 주세요.");
+      save(); render(); $("#importDialog").close(); $("#importText").value="";
+      toast(`${result.added}개 추가 · ${result.updated}개 갱신했어요.`);
+    });
+    $$('[data-close]').forEach(button => button.addEventListener("click",() => $(`#${button.dataset.close}`).close()));
+    document.addEventListener("click",event => {
+      const editQuote=event.target.closest("[data-edit-quote]");
+      const deleteQuote=event.target.closest("[data-delete-quote]");
+      const editProduct=event.target.closest("[data-edit-product]");
+      const deleteProduct=event.target.closest("[data-delete-product]");
+      if (editQuote) openDialog("#quoteDialog","#quoteForm","#quoteDialogTitle","이사 견적",state.quotes.find(item=>item.id===editQuote.dataset.editQuote));
+      if (deleteQuote && confirmDelete("견적")) { state.quotes=state.quotes.filter(item=>item.id!==deleteQuote.dataset.deleteQuote); save(); render(); }
+      if (editProduct) openDialog("#productDialog","#productForm","#productDialogTitle","가전 후보",state.products.find(item=>item.id===editProduct.dataset.editProduct));
+      if (deleteProduct && confirmDelete("가전 후보")) { state.products=state.products.filter(item=>item.id!==deleteProduct.dataset.deleteProduct); save(); render(); }
+    });
+    document.addEventListener("change",event => {
+      const id=event.target.dataset.selectProduct; if (!id) return;
+      const item=state.products.find(product=>product.id===id); if (!item) return;
+      if (event.target.checked && state.products.filter(product=>product.selected).length>=3) { event.target.checked=false; toast("AI 비교는 한 번에 최대 3개까지 선택할 수 있어요."); return; }
+      item.selected=event.target.checked; save(); render();
+    });
+    $("#compareProducts").addEventListener("click",() => {
+      const chosen=state.products.filter(product=>product.selected);
+      if (chosen.length<2) return toast("비교할 가전 후보를 2개 이상 선택해 주세요.");
+      if (!window.EDUNICompanion?.ask) return toast("포털 AI 친구를 불러오지 못했어요. 포털 화면에서 다시 열어 주세요.");
+      const compact=(value,limit)=>String(value||"").replace(/\s+/g," ").trim().slice(0,limit)||"미입력";
+      const items=chosen.map((item,index)=>`${index+1}) ${compact(item.category,12)} ${compact(item.name,30)} / ${compact(item.model,22)} / 임직원가 ${money(item.employeePrice)} / 외부가 ${money(item.externalPrice)}(${compact(item.checkedAt,10)}) / 특징 ${compact(item.note,34)}`);
+      const question=`사용자가 적은 이사 가전 후보 비교 자료(가격 실시간 확인 아님): ${items.join(" | ")}`.slice(0,590);
+      const prompt="선택한 가전 후보를 입력된 가격과 특징만으로 비교해 줘. 가격 차이와 각 후보의 장단점을 짧게 말하고, 정보가 없는 부분은 추측하지 말고 확인이 필요하다고 알려 줘.";
+      window.EDUNICompanion.ask(prompt,{activity:"general",question,choices:[],selected:""});
+      toast("선택한 가전 정보만 AI 친구에게 보냈어요.");
+    });
+    $("#shareSummary").addEventListener("click",copySummary);
+    $("#shareSummaryAside").addEventListener("click",copySummary);
+    window.addEventListener("storage",event => { if (event.key===KEY) { state=load(); render(); } });
+    render();
+  })();
+  </script>
+</body>
+</html>

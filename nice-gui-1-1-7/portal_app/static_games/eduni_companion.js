@@ -81,6 +81,7 @@
   const visibleChoices = selector => [...document.querySelectorAll(selector)].filter(node=>!node.disabled&&isVisible(node)).map(node=>cleanText(node.textContent,60)).filter(Boolean).slice(0,10);
   const screenContext = () => {
     if (route[1] === "reading") return {payload:readingContext, label:"함께 보는 화면: 독서기록 · 일반 안내"};
+    if (context.activity === "appliance_compare") return {payload:context, label:"함께 보는 화면: 이사 준비 · 가전 비교"};
     if (context.activity === "general" && context.question) return {payload:context, label:"함께 보는 화면: 이사 준비 · 선택한 가전 후보"};
     if (context.activity === "pattern_train" || context.activity === "sudoku") return {payload:context, label:`함께 보는 화면: ${context.activity==="pattern_train"?"패턴 연습":"스도쿠"} · ${context.question?"현재 문제":"문제 없음"}`};
     const [path, activity, title] = route;

@@ -30,7 +30,7 @@ MAX_BRIDGE_RESPONSE_BYTES = 64_000
 _SLOTS = threading.BoundedSemaphore(4)
 _RATE_LOCK = threading.Lock()
 _CALLER_LAST: dict[str, float] = {}
-READING_CONTEXT_QUESTION = "독서기록 기능 안내 화면입니다. 저장된 책 제목, 글쓴이, 아이의 메모와 감상, 검색 내용, 사진, 기록 수와 집계 정보는 전달되지 않았습니다. 기록 방법이나 일반적인 책 이야기는 도울 수 있지만, 저장된 기록을 본 것처럼 말하지 마세요."
+READING_CONTEXT_QUESTION = "독서기록은 읽은 책을 기록하고 다시 찾아보는 개인 일지입니다. '우리 책장'은 책 기록 카드, '달력'은 날짜별 기록, '말과 장면'은 아이의 말·기억 장면 모아보기, '새 기록'은 입력 화면입니다. 새 기록에는 책 제목·글쓴이/출판사, 표지(카메라·갤러리·표지 찾기), 읽은 날짜, 읽기 방식(혼자·같이·읽어주기), 느낌, 아이의 말, 기억에 남는 장면, 부모 메모가 있습니다. 검색과 기간·읽기 방식·느낌 필터를 사용할 수 있습니다. 일반 페이지 질문에는 개별 기록·검색어·사진/영상·집계가 자동 포함되지 않습니다. 사용자가 별도 'GPT 분석 코멘트'를 요청하면 선택한 달의 기록 수·서로 다른 책 수·반복 읽기 수·또 읽고 싶은 책 수·읽기 방식별 수와 지난달 대비 변화량 등 집계가 전달됩니다. 개별 책 제목, 아이·부모 메모, 사진·영상은 포함되지 않습니다."
 _ACTIVITIES = {"general", "pattern_train", "sudoku", "space", "facto", "hanja", "bubble", "bubble_shooter", "baduk", "omok", "link", "jungle", "reading", "appliance_compare", "market_research"}
 _PHOTO_UNAVAILABLE_ANSWER = re.compile(
     r"^\s*(?:(?:지금은|현재는|지금\s*화면에는|현재\s*화면에는)\s*)?"

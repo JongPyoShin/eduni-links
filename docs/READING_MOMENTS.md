@@ -20,7 +20,7 @@ and is served through `/reading-attachments/{filename}`.
 - `GET /reading/api/records/{id}/blog-media` returns only attachments opted in
   for blog use.
 
-Uploads are limited to 12 attachments per reading record. Supported photos are
+Uploads are limited to 20 attachments per reading record. Supported photos are
 JPEG, PNG, and WebP up to 10 MiB each. Supported videos are MP4, MOV, and WebM
 up to 100 MiB each. The server validates file signatures as well as file type;
 the client-provided filename and MIME type are not trusted. This signature check

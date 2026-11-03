@@ -17,7 +17,7 @@ from .reading_storage import ensure_reading_journal_schema, reading_database_con
 READING_ATTACHMENT_DIR = Path(os.environ.get("EDUNI_READING_DATA_DIR") or (DATA_DIR / "reading_journal")) / "moments"
 IMAGE_MAX_BYTES = 10 * 1024 * 1024
 VIDEO_MAX_BYTES = 100 * 1024 * 1024
-MAX_ATTACHMENTS = 12
+MAX_ATTACHMENTS = 20
 CAPTION_MAX_LENGTH = 500
 _FILENAME_RE = re.compile(r"^[0-9a-f]{32}\.(?:jpg|png|webp|mp4|mov|webm)$")
 
@@ -141,10 +141,10 @@ def add_reading_attachment(
                 "SELECT COUNT(*) FROM reading_attachment WHERE reading_record_id = ?", (record_id,)
             ).fetchone()[0]
             if int(count) >= MAX_ATTACHMENTS:
-                raise ValueError("a reading record can have at most 12 attachments")
+                raise ValueError("a reading record can have at most 20 attachments")
             selected_position = int(count) if position is None else position
-            if isinstance(selected_position, bool) or not isinstance(selected_position, int) or not 0 <= selected_position <= 11:
-                raise ValueError("position must be between 0 and 11")
+            if isinstance(selected_position, bool) or not isinstance(selected_position, int) or not 0 <= selected_position < MAX_ATTACHMENTS:
+                raise ValueError(f"position must be between 0 and {MAX_ATTACHMENTS - 1}")
             insert_sql = """INSERT INTO reading_attachment
                    (reading_record_id, kind, filename, content_type, size, caption, blog_use, position, created_at)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"""
@@ -189,8 +189,8 @@ def update_reading_attachment(
         updates["blog_use"] = int(payload["blog_use"])
     if "position" in payload:
         position = payload["position"]
-        if isinstance(position, bool) or not isinstance(position, int) or not 0 <= position <= 11:
-            raise ValueError("position must be between 0 and 11")
+        if isinstance(position, bool) or not isinstance(position, int) or not 0 <= position < MAX_ATTACHMENTS:
+            raise ValueError(f"position must be between 0 and {MAX_ATTACHMENTS - 1}")
         updates["position"] = position
     if not updates:
         raise ValueError("no attachment fields provided")

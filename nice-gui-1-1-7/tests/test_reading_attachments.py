@@ -112,16 +112,16 @@ class ReadingAttachmentTests(unittest.TestCase):
         self.assertEqual(list(self.media.iterdir()) if self.media.exists() else [], [])
         self.assertEqual(list_reading_attachments(self.record_id, self.db), [])
 
-    def test_upload_enforces_photo_size_and_twelve_attachment_limit(self) -> None:
+    def test_upload_enforces_photo_size_and_twenty_attachment_limit(self) -> None:
         oversize = b"\xff\xd8\xff" + b"0" * (10 * 1024 * 1024)
         with self.assertRaisesRegex(ValueError, "too large"):
             add_reading_attachment(self.record_id, self.upload(oversize), path=self.db, media_dir=self.media)
-        for _ in range(12):
+        for _ in range(20):
             self.add_photo()
-        with self.assertRaisesRegex(ValueError, "at most 12"):
+        with self.assertRaisesRegex(ValueError, "at most 20"):
             self.add_photo()
-        self.assertEqual(len(list_reading_attachments(self.record_id, self.db)), 12)
-        self.assertEqual(len(list(self.media.iterdir())), 12)
+        self.assertEqual(len(list_reading_attachments(self.record_id, self.db)), 20)
+        self.assertEqual(len(list(self.media.iterdir())), 20)
 
     def test_record_delete_cascades_metadata_and_removes_files(self) -> None:
         first = self.add_photo()

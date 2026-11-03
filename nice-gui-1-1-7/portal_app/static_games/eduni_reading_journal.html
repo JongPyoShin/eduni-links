@@ -159,20 +159,27 @@
     .mood-chip.active { border-color:#d49c31; background:#fff4d7; color:#7f5814; box-shadow:inset 0 0 0 1px #d49c31; }
     .form-actions { display:flex; justify-content:flex-end; align-items:center; gap:10px; padding-top:3px; flex-wrap:wrap; }
     .photo-tools { display:flex; justify-content:flex-end; margin-top:8px; }
-    .moment-panel { margin-top:18px; padding:14px; border:1px solid var(--line); border-radius:16px; background:#fffaf3; }
+    .moment-panel { grid-column:1/-1; min-width:0; margin-top:0; padding:14px; border:1px solid var(--line); border-radius:16px; background:#fffaf3; }
     .moment-panel h3 { margin:0 0 6px; font-size:16px; }
     .moment-help,.moment-status { margin:4px 0 10px; color:var(--muted); font-size:12px; line-height:1.45; }
     .moment-actions { display:flex; flex-wrap:wrap; gap:7px; }
-    .moment-grid { display:grid; gap:10px; margin-top:10px; }
-    .moment-card { display:grid; grid-template-columns:90px minmax(0,1fr); gap:9px; padding:9px; border:1px solid var(--line); border-radius:13px; background:white; }
-    .moment-preview { width:90px; height:90px; object-fit:cover; border-radius:9px; background:#eee; }
+    .moment-grid-wrap { overflow-x:auto; margin-top:10px; }
+    .moment-grid { display:grid; grid-template-columns:repeat(var(--moment-columns,3),minmax(130px,1fr)); gap:10px; min-width:max-content; }
+    .moment-card { display:grid; gap:8px; width:100%; padding:9px; border:1px solid var(--line); border-radius:13px; background:white; }
+    .moment-preview { width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:9px; background:#eee; }
     video.moment-preview { object-fit:contain; }
     .moment-fields { display:grid; gap:7px; min-width:0; }
     .moment-fields input[type="text"] { min-width:0; width:100%; border:1px solid #dcd1c5; border-radius:9px; padding:8px; }
     .moment-fields a,.history-attachments a { color:#365342; font-size:12px; font-weight:800; }
     .history-attachments span { display:grid; gap:3px; }
     .moment-check { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:750; }
-    .moment-remove { justify-self:start; border:0; background:none; color:#a94c35; font-weight:850; padding:2px 0; }
+    .moment-columns-control { display:flex; align-items:center; gap:7px; margin:8px 0 0; color:#534b45; font-size:12px; font-weight:850; }
+    .moment-columns-control select { min-height:36px; border:1px solid #dcd1c5; border-radius:9px; background:white; padding:0 8px; }
+    .moment-card-actions { display:flex; align-items:center; gap:4px; }
+    .moment-icon-btn { display:grid; place-items:center; width:32px; height:32px; padding:0; border:1px solid var(--line); border-radius:9px; background:#fffdf8; color:#5f554d; }
+    .moment-icon-btn.remove { color:#a94c35; }
+    .moment-icon-btn:disabled { opacity:.45; cursor:default; }
+    .moment-icon-btn svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
     .history-attachments { display:flex; gap:7px; flex-wrap:wrap; margin-top:8px; }
     .history-attachments img,.history-attachments video { width:92px; height:92px; object-fit:cover; border-radius:9px; background:#eee; }
     .photo-remove-btn { min-height:38px; color:#8d4d3b; }
@@ -576,23 +583,29 @@
         <div class="photo-tools">
           <button id="removePhotoButton" class="photo-remove-btn hidden" type="button">사진 제거</button>
         </div>
-        <section class="moment-panel" aria-labelledby="momentTitle">
-          <h3 id="momentTitle">읽는 순간 사진·영상</h3>
-          <p class="moment-help">책 표지와 별도로 최대 12개까지 추가해요. 사진은 10MB, 영상은 100MB까지예요.</p>
-          <input id="momentPhotoInput" class="cover-file-input" type="file" accept="image/jpeg,image/png,image/webp" multiple aria-label="읽는 순간 사진 선택">
-          <input id="momentPhotoCaptureInput" class="cover-file-input" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" aria-label="읽는 순간 사진 촬영">
-          <input id="momentVideoInput" class="cover-file-input" type="file" accept="video/mp4,video/quicktime,video/webm" multiple aria-label="읽는 순간 영상 선택">
-          <input id="momentVideoCaptureInput" class="cover-file-input" type="file" accept="video/mp4,video/quicktime,video/webm" capture="environment" aria-label="읽는 순간 영상 촬영">
-          <div class="moment-actions">
-            <button class="photo-pick-btn" type="button" data-moment-picker="momentPhotoCaptureInput">📷 사진 찍기</button>
-            <button class="photo-pick-btn" type="button" data-moment-picker="momentPhotoInput">사진 고르기</button>
-            <button class="photo-pick-btn" type="button" data-moment-picker="momentVideoCaptureInput">🎥 영상 찍기</button>
-            <button class="photo-pick-btn" type="button" data-moment-picker="momentVideoInput">영상 고르기</button>
-          </div>
-          <p id="momentStatus" class="moment-status" role="status" aria-live="polite"></p>
-          <div id="momentGrid" class="moment-grid"></div>
-        </section>
       </div>
+
+      <section class="moment-panel" aria-labelledby="momentTitle">
+        <h3 id="momentTitle">읽는 순간 사진·영상</h3>
+        <p class="moment-help">책 표지와 별도로 최대 20개까지 추가해요. 사진은 10MB, 영상은 100MB까지예요.</p>
+        <input id="momentPhotoInput" class="cover-file-input" type="file" accept="image/jpeg,image/png,image/webp" multiple aria-label="읽는 순간 사진 선택">
+        <input id="momentPhotoCaptureInput" class="cover-file-input" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" aria-label="읽는 순간 사진 촬영">
+        <input id="momentVideoInput" class="cover-file-input" type="file" accept="video/mp4,video/quicktime,video/webm" multiple aria-label="읽는 순간 영상 선택">
+        <input id="momentVideoCaptureInput" class="cover-file-input" type="file" accept="video/mp4,video/quicktime,video/webm" capture="environment" aria-label="읽는 순간 영상 촬영">
+        <div class="moment-actions">
+          <button class="photo-pick-btn" type="button" data-moment-picker="momentPhotoCaptureInput">📷 사진 찍기</button>
+          <button class="photo-pick-btn" type="button" data-moment-picker="momentPhotoInput">사진 고르기</button>
+          <button class="photo-pick-btn" type="button" data-moment-picker="momentVideoCaptureInput">🎥 영상 찍기</button>
+          <button class="photo-pick-btn" type="button" data-moment-picker="momentVideoInput">영상 고르기</button>
+        </div>
+        <label class="moment-columns-control" for="momentColumns">표시 열
+          <select id="momentColumns" aria-label="읽는 순간 사진과 영상 표시 열 수">
+            <option value="1">1열</option><option value="2">2열</option><option value="3">3열</option><option value="4">4열</option><option value="5">5열</option>
+          </select>
+        </label>
+        <p id="momentStatus" class="moment-status" role="status" aria-live="polite"></p>
+        <div class="moment-grid-wrap"><div id="momentGrid" class="moment-grid"></div></div>
+      </section>
 
       <div class="form-fields">
         <div class="two">
@@ -708,6 +721,7 @@
       const removePhotoButton = document.getElementById('removePhotoButton');
       const momentGrid = document.getElementById('momentGrid');
       const momentStatus = document.getElementById('momentStatus');
+      const momentColumns = document.getElementById('momentColumns');
       const momentInputs = ['momentPhotoInput','momentPhotoCaptureInput','momentVideoInput','momentVideoCaptureInput'].map(id => document.getElementById(id));
       const mobileViewToggle = document.getElementById('mobileViewToggle');
       const monthPicker = document.getElementById('monthPicker');
@@ -798,6 +812,18 @@
       }
 
       function momentKind(file) { return file.type.startsWith('video/') ? 'video' : 'image'; }
+      const MOMENT_COLUMNS_KEY = 'eduni-reading-moment-columns';
+      let preferredMomentColumns = 3;
+      try { preferredMomentColumns = Number(localStorage.getItem(MOMENT_COLUMNS_KEY)) || 3; } catch (_) {}
+      preferredMomentColumns = preferredMomentColumns >= 1 && preferredMomentColumns <= 5 ? preferredMomentColumns : 3;
+      momentColumns.value = String(preferredMomentColumns);
+      momentGrid.style.setProperty('--moment-columns', momentColumns.value);
+      momentColumns.addEventListener('change', () => {
+        preferredMomentColumns = Number(momentColumns.value);
+        momentGrid.style.setProperty('--moment-columns', momentColumns.value);
+        try { localStorage.setItem(MOMENT_COLUMNS_KEY, momentColumns.value); } catch (_) {}
+      });
+      function momentIcon(path) { return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + path + '</svg>'; }
       function renderMomentCard(item, queued = false) {
         const card = document.createElement('article'); card.className = 'moment-card';
         const preview = document.createElement(item.kind === 'image' ? 'img' : 'video');
@@ -814,7 +840,8 @@
         const use = document.createElement('input'); use.type = 'checkbox'; use.checked = Boolean(item.blog_use); use.disabled = savingRecord || momentLoading;
         use.addEventListener('change', () => { item.blog_use = use.checked; });
         useLabel.append(use, document.createTextNode('블로그 활용 허용')); fields.append(useLabel);
-        const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'moment-remove'; remove.textContent = '제거'; remove.disabled = savingRecord || momentLoading;
+        const actions = document.createElement('div'); actions.className = 'moment-card-actions';
+        const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'moment-icon-btn remove'; remove.innerHTML = momentIcon('<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/>'); remove.setAttribute('aria-label','첨부 제거'); remove.title = '첨부 제거'; remove.disabled = savingRecord || momentLoading;
         remove.addEventListener('click', async () => {
           if (savingRecord) return;
           if (queued) { queuedMoments = queuedMoments.filter(row => row !== item); momentOrder = momentOrder.filter(row => row !== item); URL.revokeObjectURL(item.preview); renderMoments(); return; }
@@ -824,16 +851,17 @@
             if (!response.ok) throw new Error();
             existingMoments = existingMoments.filter(row => row.id !== item.id); momentOrder = momentOrder.filter(row => row.id !== item.id); renderMoments();
           } catch (_) { remove.disabled = false; momentStatus.textContent = '첨부를 제거하지 못했어요. 다시 시도해주세요.'; }
-        }); fields.append(remove);
+        }); actions.append(remove);
         const orderIndex = momentOrder.indexOf(item);
-        for (const [label, delta] of [['위로',-1],['아래로',1]]) {
-          const move = document.createElement('button'); move.type = 'button'; move.className = 'moment-remove'; move.textContent = label;
+        for (const [label, delta, path] of [['위로',-1,'<path d="m6 14 6-6 6 6"/>'],['아래로',1,'<path d="m6 10 6 6 6-6"/>']]) {
+          const move = document.createElement('button'); move.type = 'button'; move.className = 'moment-icon-btn'; move.innerHTML = momentIcon(path); move.setAttribute('aria-label','첨부 ' + label); move.title = label;
           move.disabled = savingRecord || momentLoading || orderIndex + delta < 0 || orderIndex + delta >= momentOrder.length;
           move.addEventListener('click', () => {
             if (savingRecord) return;
             const target = orderIndex + delta; [momentOrder[orderIndex], momentOrder[target]] = [momentOrder[target], momentOrder[orderIndex]]; renderMoments();
-          }); fields.append(move);
+          }); actions.append(move);
         }
+        fields.append(actions);
         card.append(fields); return card;
       }
       function renderMoments() {
@@ -841,7 +869,8 @@
         for (const item of momentOrder) momentGrid.append(renderMomentCard(item, queuedMoments.includes(item)));
         document.querySelectorAll('[data-moment-picker]').forEach(button => { button.disabled = savingRecord || momentLoading; });
         momentInputs.forEach(input => { input.disabled = savingRecord || momentLoading; });
-        momentStatus.textContent = `${existingMoments.length + queuedMoments.length}/12개 · 새 첨부는 독서기록 저장 후 올라가요.`;
+        momentColumns.disabled = savingRecord || momentLoading;
+        momentStatus.textContent = `${existingMoments.length + queuedMoments.length}/20개 · 새 첨부는 독서기록 저장 후 올라가요.`;
       }
       function queueMomentFiles(files) {
         if (savingRecord || momentLoading) return;
@@ -851,7 +880,7 @@
           const validImage = kind === 'image' && ['image/jpeg','image/png','image/webp'].includes(file.type) && file.size <= 10 * 1024 * 1024;
           const validVideo = kind === 'video' && ['video/mp4','video/quicktime','video/webm'].includes(file.type) && file.size <= 100 * 1024 * 1024;
           if ((!validImage && !validVideo) || !ext) { warning = '사진은 JPEG·PNG·WebP 10MB 이하, 영상은 MP4·MOV·WebM 100MB 이하만 추가할 수 있어요.'; continue; }
-          if (existingMoments.length + queuedMoments.length >= 12) { warning = '첨부는 기록 하나에 최대 12개까지예요.'; break; }
+          if (existingMoments.length + queuedMoments.length >= 20) { warning = '첨부는 기록 하나에 최대 20개까지예요.'; break; }
           const item = { file, kind, caption:'', blog_use:false, preview:URL.createObjectURL(file) };
           queuedMoments.push(item); momentOrder.push(item);
         }
@@ -1673,6 +1702,8 @@
         momentLoadGeneration++; momentLoading = false;
         setImageProcessing(false);
         form.reset();
+        momentColumns.value = String(preferredMomentColumns);
+        momentGrid.style.setProperty('--moment-columns', momentColumns.value);
         queuedMoments.forEach(item => URL.revokeObjectURL(item.preview));
         queuedMoments = []; existingMoments = []; momentOrder = []; renderMoments();
         coverCandidates.replaceChildren();
@@ -1912,6 +1943,10 @@
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (savingRecord) return;
+        if (momentLoading) {
+          setStatus('첨부를 불러오는 중이에요. 잠시 기다려주세요.', 'error');
+          return;
+        }
         if (imageProcessing) {
           setStatus('사진 준비가 끝날 때까지 잠시 기다려주세요.', 'error');
           return;

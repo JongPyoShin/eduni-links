@@ -587,7 +587,7 @@
 
       <section class="moment-panel" aria-labelledby="momentTitle">
         <h3 id="momentTitle">읽는 순간 사진·영상</h3>
-        <p class="moment-help">책 표지와 별도로 최대 20개까지 추가해요. 사진은 10MB, 영상은 100MB까지예요.</p>
+        <p class="moment-help">책 표지와 별도로 최대 20개까지 추가해요. 사진은 10MB, 영상은 100MB까지예요. 두 손가락을 모으면 첨부가 작아지고 열이 늘어요.</p>
         <input id="momentPhotoInput" class="cover-file-input" type="file" accept="image/jpeg,image/png,image/webp" multiple aria-label="읽는 순간 사진 선택">
         <input id="momentPhotoCaptureInput" class="cover-file-input" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" aria-label="읽는 순간 사진 촬영">
         <input id="momentVideoInput" class="cover-file-input" type="file" accept="video/mp4,video/quicktime,video/webm" multiple aria-label="읽는 순간 영상 선택">
@@ -816,13 +816,29 @@
       let preferredMomentColumns = 3;
       try { preferredMomentColumns = Number(localStorage.getItem(MOMENT_COLUMNS_KEY)) || 3; } catch (_) {}
       preferredMomentColumns = preferredMomentColumns >= 1 && preferredMomentColumns <= 5 ? preferredMomentColumns : 3;
-      momentColumns.value = String(preferredMomentColumns);
-      momentGrid.style.setProperty('--moment-columns', momentColumns.value);
-      momentColumns.addEventListener('change', () => {
-        preferredMomentColumns = Number(momentColumns.value);
+      function setMomentColumns(value) {
+        preferredMomentColumns = Math.max(1, Math.min(5, value));
+        momentColumns.value = String(preferredMomentColumns);
         momentGrid.style.setProperty('--moment-columns', momentColumns.value);
         try { localStorage.setItem(MOMENT_COLUMNS_KEY, momentColumns.value); } catch (_) {}
-      });
+      }
+      setMomentColumns(preferredMomentColumns);
+      momentColumns.addEventListener('change', () => setMomentColumns(Number(momentColumns.value)));
+      let momentPinchStartDistance = 0, momentPinchStartColumns = preferredMomentColumns;
+      momentGrid.addEventListener('touchstart', event => {
+        if (event.touches.length === 2) {
+          momentPinchStartDistance = Math.hypot(event.touches[0].clientX - event.touches[1].clientX, event.touches[0].clientY - event.touches[1].clientY);
+          momentPinchStartColumns = preferredMomentColumns;
+        }
+      }, { passive: true });
+      momentGrid.addEventListener('touchmove', event => {
+        if (event.touches.length !== 2 || !momentPinchStartDistance) return;
+        event.preventDefault();
+        const distance = Math.hypot(event.touches[0].clientX - event.touches[1].clientX, event.touches[0].clientY - event.touches[1].clientY);
+        setMomentColumns(momentPinchStartColumns + Math.round((momentPinchStartDistance - distance) / 65));
+      }, { passive: false });
+      momentGrid.addEventListener('touchend', event => { if (event.touches.length < 2) momentPinchStartDistance = 0; });
+      momentGrid.addEventListener('touchcancel', () => { momentPinchStartDistance = 0; });
       function momentIcon(path) { return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + path + '</svg>'; }
       function renderMomentCard(item, queued = false) {
         const card = document.createElement('article'); card.className = 'moment-card';

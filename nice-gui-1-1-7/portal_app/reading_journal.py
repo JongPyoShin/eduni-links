@@ -692,18 +692,32 @@ def delete_reading_record(
     ensure_reading_journal_schema(path)
     profile_id = child_profile_id if child_profile_id is not None else default_child_profile_id(path)
     with reading_database_connection(path) as conn:
+        if reading_uses_postgres(path):
+            parent_sql = "SELECT cover_filename FROM reading_record WHERE id = ? AND child_profile_id = ? FOR UPDATE"
+        else:
+            conn.execute("BEGIN IMMEDIATE")
+            parent_sql = "SELECT cover_filename FROM reading_record WHERE id = ? AND child_profile_id = ?"
         row = conn.execute(
-            "SELECT cover_filename FROM reading_record WHERE id = ? AND child_profile_id = ?",
+            parent_sql,
             (record_id, profile_id),
         ).fetchone()
         if row is None:
             return False
+        attachment_rows = conn.execute(
+            """SELECT a.filename FROM reading_attachment a JOIN reading_record r ON r.id = a.reading_record_id
+                WHERE r.id = ? AND r.child_profile_id = ?""",
+            (record_id, profile_id),
+        ).fetchall()
         conn.execute(
             "DELETE FROM reading_record WHERE id = ? AND child_profile_id = ?",
             (record_id, profile_id),
         )
     if row[0]:
         (media_dir / str(row[0])).unlink(missing_ok=True)
+    # Remove stored attachment files only after the cascading row deletion commits.
+    attachment_dir = media_dir.parent / "moments"
+    for attachment in attachment_rows:
+        (attachment_dir / str(attachment[0])).unlink(missing_ok=True)
     return True
 
 

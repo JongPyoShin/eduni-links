@@ -27,6 +27,23 @@ CREATE TABLE IF NOT EXISTS reading_record (
 
 CREATE INDEX IF NOT EXISTS idx_reading_record_child_date
 ON reading_record(child_profile_id, read_date DESC, id DESC);
+
+CREATE TABLE IF NOT EXISTS reading_attachment (
+  id INTEGER PRIMARY KEY,
+  reading_record_id INTEGER NOT NULL,
+  kind TEXT NOT NULL,
+  filename TEXT NOT NULL UNIQUE,
+  content_type TEXT NOT NULL,
+  size INTEGER NOT NULL,
+  caption TEXT NOT NULL DEFAULT '',
+  blog_use INTEGER NOT NULL DEFAULT 0,
+  position INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY(reading_record_id) REFERENCES reading_record(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_reading_attachment_record_position
+ON reading_attachment(reading_record_id, position, id);
 """
 
 POSTGRES_READING_SCHEMA_STATEMENTS = (
@@ -49,6 +66,24 @@ POSTGRES_READING_SCHEMA_STATEMENTS = (
     """
     CREATE INDEX IF NOT EXISTS idx_reading_record_child_date
     ON reading_record(child_profile_id, read_date DESC, id DESC)
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS reading_attachment (
+      id BIGSERIAL PRIMARY KEY,
+      reading_record_id BIGINT NOT NULL REFERENCES reading_record(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL,
+      filename TEXT NOT NULL UNIQUE,
+      content_type TEXT NOT NULL,
+      size BIGINT NOT NULL,
+      caption TEXT NOT NULL DEFAULT '',
+      blog_use INTEGER NOT NULL DEFAULT 0,
+      position INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_reading_attachment_record_position
+    ON reading_attachment(reading_record_id, position, id)
     """,
 )
 

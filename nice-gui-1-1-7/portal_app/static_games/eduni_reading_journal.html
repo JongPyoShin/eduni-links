@@ -122,6 +122,7 @@
       overflow:hidden; background:linear-gradient(145deg,#f7efe4,#edf3e9);
     }
     .cover-picker .cover-file-input { display:none; }
+    .moment-panel .cover-file-input { display:none; }
     .cover-actions { display:grid; gap:8px; width:100%; align-content:center; }
     .photo-pick-btn {
       width:100%; min-height:48px; padding:8px 12px; border:1px solid var(--line); border-radius:13px;
@@ -158,6 +159,22 @@
     .mood-chip.active { border-color:#d49c31; background:#fff4d7; color:#7f5814; box-shadow:inset 0 0 0 1px #d49c31; }
     .form-actions { display:flex; justify-content:flex-end; align-items:center; gap:10px; padding-top:3px; flex-wrap:wrap; }
     .photo-tools { display:flex; justify-content:flex-end; margin-top:8px; }
+    .moment-panel { margin-top:18px; padding:14px; border:1px solid var(--line); border-radius:16px; background:#fffaf3; }
+    .moment-panel h3 { margin:0 0 6px; font-size:16px; }
+    .moment-help,.moment-status { margin:4px 0 10px; color:var(--muted); font-size:12px; line-height:1.45; }
+    .moment-actions { display:flex; flex-wrap:wrap; gap:7px; }
+    .moment-grid { display:grid; gap:10px; margin-top:10px; }
+    .moment-card { display:grid; grid-template-columns:90px minmax(0,1fr); gap:9px; padding:9px; border:1px solid var(--line); border-radius:13px; background:white; }
+    .moment-preview { width:90px; height:90px; object-fit:cover; border-radius:9px; background:#eee; }
+    video.moment-preview { object-fit:contain; }
+    .moment-fields { display:grid; gap:7px; min-width:0; }
+    .moment-fields input[type="text"] { min-width:0; width:100%; border:1px solid #dcd1c5; border-radius:9px; padding:8px; }
+    .moment-fields a,.history-attachments a { color:#365342; font-size:12px; font-weight:800; }
+    .history-attachments span { display:grid; gap:3px; }
+    .moment-check { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:750; }
+    .moment-remove { justify-self:start; border:0; background:none; color:#a94c35; font-weight:850; padding:2px 0; }
+    .history-attachments { display:flex; gap:7px; flex-wrap:wrap; margin-top:8px; }
+    .history-attachments img,.history-attachments video { width:92px; height:92px; object-fit:cover; border-radius:9px; background:#eee; }
     .photo-remove-btn { min-height:38px; color:#8d4d3b; }
     .save-status { color:var(--muted); font-size:13px; font-weight:800; min-height:20px; }
     .save-status.error { color:#b42318; }
@@ -257,6 +274,7 @@
     .detail-content { display:grid; grid-template-columns:minmax(110px,170px) minmax(0,1fr); gap:16px; padding:18px; overflow:auto; }
     .detail-cover { width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:14px; background:var(--paper-2); }
     .detail-main { min-width:0; }
+    .detail-cover.hidden + .detail-main { grid-column:1/-1; }
     .detail-main h3 { margin:0 0 6px; font-size:23px; line-height:1.3; overflow-wrap:anywhere; }
     .detail-meta { margin:0; color:var(--muted); font-size:13px; line-height:1.6; }
     .detail-field { grid-column:1/-1; margin:0; padding:12px 14px; border-radius:14px; background:#f8f4ed; line-height:1.6; white-space:pre-wrap; overflow-wrap:anywhere; }
@@ -552,12 +570,28 @@
           <div class="cover-actions">
             <button id="cameraPickerButton" class="photo-pick-btn primary" type="button" aria-controls="cameraInput">📷 카메라로 촬영</button>
             <button id="galleryPickerButton" class="photo-pick-btn" type="button" aria-controls="galleryInput">🖼️ 갤러리에서 선택</button>
-            <p class="cover-action-note">표지나 책을 읽는 모습을 찍어보세요. 저장 전에 크기를 줄여요. 카메라 바로 열기는 기기·브라우저에 따라 지원되지 않을 수 있어요.</p>
+            <p class="cover-action-note">이 사진은 책 표지로 저장돼요. 읽는 순간 사진·영상은 아래에서 따로 추가해요.</p>
           </div>
         </div>
         <div class="photo-tools">
           <button id="removePhotoButton" class="photo-remove-btn hidden" type="button">사진 제거</button>
         </div>
+        <section class="moment-panel" aria-labelledby="momentTitle">
+          <h3 id="momentTitle">읽는 순간 사진·영상</h3>
+          <p class="moment-help">책 표지와 별도로 최대 12개까지 추가해요. 사진은 10MB, 영상은 100MB까지예요.</p>
+          <input id="momentPhotoInput" class="cover-file-input" type="file" accept="image/jpeg,image/png,image/webp" multiple aria-label="읽는 순간 사진 선택">
+          <input id="momentPhotoCaptureInput" class="cover-file-input" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" aria-label="읽는 순간 사진 촬영">
+          <input id="momentVideoInput" class="cover-file-input" type="file" accept="video/mp4,video/quicktime,video/webm" multiple aria-label="읽는 순간 영상 선택">
+          <input id="momentVideoCaptureInput" class="cover-file-input" type="file" accept="video/mp4,video/quicktime,video/webm" capture="environment" aria-label="읽는 순간 영상 촬영">
+          <div class="moment-actions">
+            <button class="photo-pick-btn" type="button" data-moment-picker="momentPhotoCaptureInput">📷 사진 찍기</button>
+            <button class="photo-pick-btn" type="button" data-moment-picker="momentPhotoInput">사진 고르기</button>
+            <button class="photo-pick-btn" type="button" data-moment-picker="momentVideoCaptureInput">🎥 영상 찍기</button>
+            <button class="photo-pick-btn" type="button" data-moment-picker="momentVideoInput">영상 고르기</button>
+          </div>
+          <p id="momentStatus" class="moment-status" role="status" aria-live="polite"></p>
+          <div id="momentGrid" class="moment-grid"></div>
+        </section>
       </div>
 
       <div class="form-fields">
@@ -672,6 +706,9 @@
       const writeTitle = document.getElementById('writeTitle');
       const cancelEditButton = document.getElementById('cancelEditButton');
       const removePhotoButton = document.getElementById('removePhotoButton');
+      const momentGrid = document.getElementById('momentGrid');
+      const momentStatus = document.getElementById('momentStatus');
+      const momentInputs = ['momentPhotoInput','momentPhotoCaptureInput','momentVideoInput','momentVideoCaptureInput'].map(id => document.getElementById(id));
       const mobileViewToggle = document.getElementById('mobileViewToggle');
       const monthPicker = document.getElementById('monthPicker');
       const monthlySummary = document.getElementById('monthlySummary');
@@ -696,6 +733,11 @@
       let coverDataUrl = null;
       let coverAction = 'keep';
       let editingId = null;
+      let existingMoments = [];
+      let queuedMoments = [];
+      let momentOrder = [];
+      let momentLoadGeneration = 0;
+      let momentLoading = false;
       let imageJobGeneration = 0;
       let imageProcessing = false;
       let savingRecord = false;
@@ -754,6 +796,98 @@
           }
         }
       }
+
+      function momentKind(file) { return file.type.startsWith('video/') ? 'video' : 'image'; }
+      function renderMomentCard(item, queued = false) {
+        const card = document.createElement('article'); card.className = 'moment-card';
+        const preview = document.createElement(item.kind === 'image' ? 'img' : 'video');
+        preview.className = 'moment-preview'; preview.src = queued ? item.preview : item.url;
+        if (preview.tagName === 'VIDEO') { preview.controls = true; preview.playsInline = true; preview.preload = 'metadata'; }
+        else preview.alt = queued ? item.file.name : (item.caption || '읽는 순간 사진');
+        card.append(preview);
+        const fields = document.createElement('div'); fields.className = 'moment-fields';
+        if (item.kind === 'video') { const original = document.createElement('a'); original.href = queued ? item.preview : item.url; original.target = '_blank'; original.rel = 'noopener noreferrer'; original.textContent = '영상 원본 열기'; fields.append(original); }
+        const caption = document.createElement('input'); caption.type = 'text'; caption.maxLength = 500; caption.placeholder = '짧은 설명 (선택)'; caption.value = item.caption || ''; caption.disabled = savingRecord || momentLoading;
+        caption.setAttribute('aria-label','미디어 설명');
+        caption.addEventListener('input', () => { item.caption = caption.value; }); fields.append(caption);
+        const useLabel = document.createElement('label'); useLabel.className = 'moment-check';
+        const use = document.createElement('input'); use.type = 'checkbox'; use.checked = Boolean(item.blog_use); use.disabled = savingRecord || momentLoading;
+        use.addEventListener('change', () => { item.blog_use = use.checked; });
+        useLabel.append(use, document.createTextNode('블로그 활용 허용')); fields.append(useLabel);
+        const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'moment-remove'; remove.textContent = '제거'; remove.disabled = savingRecord || momentLoading;
+        remove.addEventListener('click', async () => {
+          if (savingRecord) return;
+          if (queued) { queuedMoments = queuedMoments.filter(row => row !== item); momentOrder = momentOrder.filter(row => row !== item); URL.revokeObjectURL(item.preview); renderMoments(); return; }
+          remove.disabled = true;
+          try {
+            const response = await fetch('/reading/api/attachments/' + encodeURIComponent(item.id), { method:'DELETE' });
+            if (!response.ok) throw new Error();
+            existingMoments = existingMoments.filter(row => row.id !== item.id); momentOrder = momentOrder.filter(row => row.id !== item.id); renderMoments();
+          } catch (_) { remove.disabled = false; momentStatus.textContent = '첨부를 제거하지 못했어요. 다시 시도해주세요.'; }
+        }); fields.append(remove);
+        const orderIndex = momentOrder.indexOf(item);
+        for (const [label, delta] of [['위로',-1],['아래로',1]]) {
+          const move = document.createElement('button'); move.type = 'button'; move.className = 'moment-remove'; move.textContent = label;
+          move.disabled = savingRecord || momentLoading || orderIndex + delta < 0 || orderIndex + delta >= momentOrder.length;
+          move.addEventListener('click', () => {
+            if (savingRecord) return;
+            const target = orderIndex + delta; [momentOrder[orderIndex], momentOrder[target]] = [momentOrder[target], momentOrder[orderIndex]]; renderMoments();
+          }); fields.append(move);
+        }
+        card.append(fields); return card;
+      }
+      function renderMoments() {
+        momentGrid.replaceChildren();
+        for (const item of momentOrder) momentGrid.append(renderMomentCard(item, queuedMoments.includes(item)));
+        document.querySelectorAll('[data-moment-picker]').forEach(button => { button.disabled = savingRecord || momentLoading; });
+        momentInputs.forEach(input => { input.disabled = savingRecord || momentLoading; });
+        momentStatus.textContent = `${existingMoments.length + queuedMoments.length}/12개 · 새 첨부는 독서기록 저장 후 올라가요.`;
+      }
+      function queueMomentFiles(files) {
+        if (savingRecord || momentLoading) return;
+        let warning = '';
+        for (const file of files) {
+          const kind = momentKind(file), ext = file.name.toLowerCase().split('.').pop();
+          const validImage = kind === 'image' && ['image/jpeg','image/png','image/webp'].includes(file.type) && file.size <= 10 * 1024 * 1024;
+          const validVideo = kind === 'video' && ['video/mp4','video/quicktime','video/webm'].includes(file.type) && file.size <= 100 * 1024 * 1024;
+          if ((!validImage && !validVideo) || !ext) { warning = '사진은 JPEG·PNG·WebP 10MB 이하, 영상은 MP4·MOV·WebM 100MB 이하만 추가할 수 있어요.'; continue; }
+          if (existingMoments.length + queuedMoments.length >= 12) { warning = '첨부는 기록 하나에 최대 12개까지예요.'; break; }
+          const item = { file, kind, caption:'', blog_use:false, preview:URL.createObjectURL(file) };
+          queuedMoments.push(item); momentOrder.push(item);
+        }
+        renderMoments();
+        if (warning) momentStatus.textContent = warning;
+      }
+      async function loadMoments(id, generation) {
+        const response = await fetch('/reading/api/records/' + encodeURIComponent(id) + '/attachments', { cache:'no-store' });
+        const data = await response.json().catch(() => ({}));
+        if (generation !== momentLoadGeneration) return;
+        if (!response.ok || !Array.isArray(data.attachments)) throw new Error(data.error || '첨부를 불러오지 못했어요.');
+        existingMoments = data.attachments.slice().sort((a,b) => (a.position || 0) - (b.position || 0));
+        momentOrder = existingMoments.slice();
+        renderMoments();
+      }
+      async function saveMoments(id) {
+        while (queuedMoments.length) {
+          const item = queuedMoments[0], body = new FormData();
+          body.append('file', item.file); body.append('caption', item.caption || ''); body.append('blog_use', String(Boolean(item.blog_use)));
+          const response = await fetch('/reading/api/records/' + encodeURIComponent(id) + '/attachments', { method:'POST', body });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || !data.attachment) throw new Error(data.error || '첨부 업로드에 실패했어요.');
+          URL.revokeObjectURL(item.preview); queuedMoments.shift(); existingMoments.push(data.attachment);
+          momentOrder[momentOrder.indexOf(item)] = data.attachment; renderMoments();
+        }
+        for (let i = 0; i < momentOrder.length; i++) {
+          const item = momentOrder[i];
+          const response = await fetch('/reading/api/attachments/' + encodeURIComponent(item.id), {
+            method:'PATCH', headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({ caption:item.caption || '', blog_use:Boolean(item.blog_use), position:i }),
+          });
+          if (!response.ok) throw new Error('첨부 설명이나 순서를 저장하지 못했어요.');
+        }
+      }
+      document.querySelectorAll('[data-moment-picker]').forEach(button => button.addEventListener('click', () => { if (!savingRecord && !momentLoading) document.getElementById(button.dataset.momentPicker).click(); }));
+      momentInputs.forEach(input => input.addEventListener('change', () => { if (!savingRecord && !momentLoading) queueMomentFiles(Array.from(input.files || [])); input.value = ''; }));
 
       function localDateString(d = new Date()) {
         const offset = d.getTimezoneOffset();
@@ -1491,6 +1625,29 @@
               if (!value) continue;
               const note = document.createElement('p'); const strong = document.createElement('b'); strong.textContent = label + ' · '; note.append(strong, document.createTextNode(value)); item.append(note);
             }
+            const media = document.createElement('div'); media.className = 'history-attachments'; media.textContent = '첨부를 불러오는 중…'; item.append(media);
+            fetch('/reading/api/records/' + encodeURIComponent(entry.id) + '/attachments', { cache:'no-store' })
+              .then(response => response.json().then(data => ({response,data})))
+              .then(({response,data}) => {
+                if (!response.ok || !Array.isArray(data.attachments)) throw new Error();
+                media.replaceChildren();
+                for (const attachment of data.attachments) {
+                  const node = document.createElement(attachment.kind === 'video' ? 'video' : 'img');
+                  node.src = attachment.url; node.className = 'moment-preview';
+                  if (node.tagName === 'VIDEO') { node.controls = true; node.playsInline = true; node.preload = 'metadata'; }
+                  else node.alt = attachment.caption || '읽는 순간 사진';
+                  if (attachment.caption) node.title = attachment.caption;
+                  const wrapper = document.createElement('span');
+                  if (attachment.kind === 'image') {
+                    const original = document.createElement('a'); original.href = attachment.url; original.target = '_blank'; original.rel = 'noopener noreferrer'; original.setAttribute('aria-label', attachment.caption || '사진 원본 열기');
+                    original.append(node); wrapper.append(original);
+                  } else wrapper.append(node);
+                  if (attachment.kind === 'video') { const original = document.createElement('a'); original.href = attachment.url; original.target = '_blank'; original.rel = 'noopener noreferrer'; original.textContent = '영상 원본 열기'; wrapper.append(original); }
+                  if (attachment.caption) { const caption = document.createElement('small'); caption.textContent = attachment.caption; wrapper.append(caption); }
+                  media.append(wrapper);
+                }
+                if (!data.attachments.length) media.remove();
+              }).catch(() => { if (media.isConnected) media.textContent = '첨부를 불러오지 못했어요.'; });
             detailHistory.append(item);
           }
         } catch (error) {
@@ -1510,8 +1667,11 @@
 
       function resetFormState() {
         imageJobGeneration++;
+        momentLoadGeneration++; momentLoading = false;
         setImageProcessing(false);
         form.reset();
+        queuedMoments.forEach(item => URL.revokeObjectURL(item.preview));
+        queuedMoments = []; existingMoments = []; momentOrder = []; renderMoments();
         coverCandidates.replaceChildren();
         coverLookupStatus.textContent = '';
         lookupPublisher.value = '';
@@ -1531,7 +1691,9 @@
         cancelEditButton.classList.add('hidden');
       }
 
-      function startEdit(record) {
+      async function startEdit(record) {
+        const momentGeneration = ++momentLoadGeneration;
+        momentLoading = true;
         imageJobGeneration++;
         setImageProcessing(false);
         clearCoverInputs();
@@ -1539,6 +1701,8 @@
         coverLookupStatus.textContent = '';
         lookupPublisher.value = '';
         editingId = record.id;
+        queuedMoments.forEach(item => URL.revokeObjectURL(item.preview)); queuedMoments = []; existingMoments = []; momentOrder = [];
+        renderMoments(); momentStatus.textContent = '첨부를 불러오는 중이에요…';
         coverDataUrl = null;
         coverAction = 'keep';
         document.getElementById('title').value = record.title || '';
@@ -1565,6 +1729,12 @@
         saveButton.textContent = '수정 저장';
         cancelEditButton.classList.remove('hidden');
         setStatus('');
+        let momentsError = '';
+        try { await loadMoments(record.id, momentGeneration); }
+        catch (error) { momentsError = error.message || '첨부를 불러오지 못했어요.'; }
+        if (momentGeneration !== momentLoadGeneration) return;
+        momentLoading = false; renderMoments();
+        if (momentsError) momentStatus.textContent = momentsError;
         selectReadingTab('write');
         document.getElementById('writeSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
         setTimeout(() => document.getElementById('title').focus(), 350);
@@ -1780,11 +1950,24 @@
           );
           const data = await response.json().catch(() => ({}));
           if (!response.ok || !data.ok) throw new Error(data.error || '저장하지 못했어요.');
-
+          let savedId = editTarget;
+          if (savedId === null) {
+            savedId = Number(data.record?.id) || null;
+            if (!savedId) throw new Error('기록은 저장됐지만 첨부를 연결할 기록 번호를 확인하지 못했어요. 페이지를 새로고침하지 말고 지원을 요청해주세요.');
+            editingId = savedId;
+            writeTitle.textContent = '독서기록 수정'; saveButton.textContent = '수정 저장'; cancelEditButton.classList.remove('hidden');
+            coverAction = 'keep';
+          }
+          try { await saveMoments(savedId); }
+          catch (attachmentError) {
+            await loadRecords({ reset:true }); await loadParentInsights();
+            setStatus('독서기록은 저장했어요. 첨부 일부가 남아 있어요. 다시 저장하면 업로드를 이어서 시도해요. (' + (attachmentError.message || '첨부 오류') + ')', 'error');
+            return;
+          }
           resetFormState();
           await loadRecords({ reset: true });
           await loadParentInsights();
-          setStatus(editTarget === null ? '독서기록을 저장했어요 ✓' : '수정 내용을 저장했어요 ✓', 'success');
+          setStatus(editTarget === null ? '독서기록과 첨부를 저장했어요 ✓' : '수정 내용과 첨부를 저장했어요 ✓', 'success');
           setTimeout(() => setStatus(''), 2600);
         } catch (error) {
           setStatus(error.message || '저장하지 못했어요.', 'error');

@@ -987,7 +987,10 @@
         if (recordHistory) pushReadingHistoryState();
       }
       booksTab.addEventListener('click', () => selectReadingTab('books'));
-      writeTab.addEventListener('click', () => selectReadingTab('write'));
+      writeTab.addEventListener('click', () => {
+        if (editingId !== null) resetFormState();
+        selectReadingTab('write');
+      });
 
       function selectShelfMode(mode, { recordHistory = true } = {}) {
         shelfMode = mode;

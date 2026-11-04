@@ -1,6 +1,7 @@
 """Authenticated loopback bridge for the user's existing Windows DPAPI registration."""
 from __future__ import annotations
 
+import base64
 import ctypes
 from ctypes import wintypes
 import json
@@ -25,6 +26,8 @@ MAX_BLOG_DRAFT_BODY = 48_000
 MAX_ANSWER_CHARS = 1_200
 MAX_APPLIANCE_COMPARE_ANSWER_CHARS = 3_000
 MAX_BLOG_DRAFT_ANSWER_CHARS = 16_000
+MAX_BLOG_IMAGE_BYTES = 10 * 1024 * 1024
+MAX_BLOG_IMAGES_BYTES = 20 * 1024 * 1024
 TOKEN_SYNC_URL = "http://127.0.0.1:8766/internal/token"
 TOKEN_SYNC_KEY_FILE = Path(os.environ.get("EDUNI_AI_HOST_TOKEN_SYNC_KEY_FILE", str(Path(__file__).resolve().parents[1] / ".companion-token-sync-key")))
 TOKEN_SYNC_INTERVAL = 30
@@ -43,6 +46,51 @@ class _NoRedirect(HTTPRedirectHandler):
 
 
 _opener = build_opener(_NoRedirect)
+
+
+def _blog_image_data_urls(images: list[dict], origin: str, opener=_opener) -> list[str]:
+    """Fetch portal-hosted reading photos locally and encode bounded image data URLs."""
+    from urllib.parse import urlsplit
+
+    if not images:
+        return []
+    try:
+        trusted = urlsplit(origin)
+        if trusted.scheme != "https" or not trusted.hostname or trusted.username or trusted.password or trusted.path not in ("", "/") or trusted.query or trusted.fragment:
+            raise ValueError
+        trusted_origin = (trusted.scheme, trusted.hostname.lower(), trusted.port or 443)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("blog image origin unavailable") from exc
+
+    signatures = {
+        "image/jpeg": lambda data: data.startswith(b"\xff\xd8\xff"),
+        "image/png": lambda data: data.startswith(b"\x89PNG\r\n\x1a\n"),
+        "image/webp": lambda data: len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP",
+    }
+    encoded, total = [], 0
+    for image in images:
+        parsed = urlsplit(image["url"])
+        if (parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password
+                or (parsed.scheme, parsed.hostname.lower(), parsed.port or 443) != trusted_origin
+                or parsed.query or parsed.fragment):
+            raise ValueError("blog image URL origin rejected")
+        try:
+            with opener.open(Request(image["url"], headers={"Accept": "image/jpeg, image/png, image/webp"}), timeout=20) as response:
+                mime = response.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+                if mime not in signatures:
+                    raise ValueError("blog image content type rejected")
+                data = response.read(MAX_BLOG_IMAGE_BYTES + 1)
+        except ValueError:
+            raise
+        except Exception as exc:
+            raise ValueError("blog image download failed") from exc
+        if len(data) > MAX_BLOG_IMAGE_BYTES or total + len(data) > MAX_BLOG_IMAGES_BYTES:
+            raise ValueError("blog image size limit exceeded")
+        if not signatures[mime](data):
+            raise ValueError("blog image content rejected")
+        total += len(data)
+        encoded.append(f"data:{mime};base64," + base64.b64encode(data).decode("ascii"))
+    return encoded
 
 
 def _protect(data: bytes) -> bytes:
@@ -436,10 +484,11 @@ def complete_blog_draft(payload: dict, get_credentials=credentials) -> dict:
         "제목과 본문만 지정된 JSON으로 출력한다."
     )
     content = [{"type": "input_text", "text": text}]
-    for item in data["images"]:
+    image_data_urls = _blog_image_data_urls(data["images"], os.environ.get("EDUNI_AI_COMPANION_ORIGIN", ""), _opener)
+    for item, image_data_url in zip(data["images"], image_data_urls):
         if item["caption"]:
             content.append({"type": "input_text", "text": "사진 " + str(item["position"] + 1) + " 설명: " + item["caption"]})
-        content.append({"type": "input_image", "image_url": item["url"], "detail": "low"})
+        content.append({"type": "input_image", "image_url": image_data_url, "detail": "low"})
     record = get_credentials()
     payload = {
         "model": MODEL,

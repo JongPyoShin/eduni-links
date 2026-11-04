@@ -184,6 +184,7 @@ async function uniqueLocator(locator) {
 }
 
 async function waitForBrowserClose(context) {
+  process.exitCode = 1;
   await new Promise((resolve) => context.once('close', resolve));
 }
 
@@ -197,11 +198,42 @@ async function typeEditorText(page, locator, value) {
 }
 
 async function attachMediaToEditor(page, media) {
-  for (const item of media) {
+  for (let index = 0; index < media.length;) {
+    const item = media[index];
+    if (item.kind === 'image') {
+      let end = index + 1;
+      while (end < media.length && media[end].kind === 'image') end += 1;
+      const images = media.slice(index, end);
+      const toolbar = await uniqueLocator(page.locator('button.se-image-toolbar-button'));
+      if (!toolbar) fail('Naver의 사진 도구 버튼을 하나로 찾지 못했습니다.');
+      const before = await page.locator('.se-component.se-image').count();
+      const chooserPromise = page.waitForEvent('filechooser', { timeout: 15_000 });
+      await toolbar.click();
+      const chooser = await chooserPromise;
+      await chooser.setFiles(images.map(({ localPath }) => localPath));
+      const layoutOption = page.getByText('개별사진', { exact: true });
+      if (images.length > 1) await layoutOption.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {});
+      const layout = await uniqueLocator(layoutOption);
+      if (layout) await layout.click();
+      await page.waitForFunction(
+        ({ selector, count, countExpected }) => {
+          const nodes = [...document.querySelectorAll(selector)];
+          const added = nodes.slice(count);
+          return added.length >= countExpected && added.every((node) => {
+            const image = node.querySelector('img');
+            return image && image.complete && image.naturalWidth > 0 && image.currentSrc;
+          });
+        },
+        { selector: '.se-component.se-image', count: before, countExpected: images.length },
+        { timeout: 180_000 },
+      );
+      index = end;
+      continue;
+    }
     const toolbarClass = item.kind === 'image' ? 'image' : 'video';
-    const componentSelector = item.kind === 'image' ? '.se-component.se-image' : '.se-component.se-video';
+    const componentSelector = '.se-component.se-video';
     const toolbar = await uniqueLocator(page.locator('button.se-' + toolbarClass + '-toolbar-button'));
-    if (!toolbar) fail('Naver의 ' + (item.kind === 'image' ? '사진' : '동영상') + ' 도구 버튼을 하나로 찾지 못했습니다.');
+    if (!toolbar) fail('Naver의 동영상 도구 버튼을 하나로 찾지 못했습니다.');
     const before = await page.locator(componentSelector).count();
     const chooserPromise = page.waitForEvent('filechooser', { timeout: 15_000 });
     await toolbar.click();
@@ -212,44 +244,60 @@ async function attachMediaToEditor(page, media) {
       { selector: componentSelector, count: before },
       { timeout: 180_000 },
     );
+    index += 1;
   }
 }
 
-async function publishWithApproval(page) {
-  const openButton = await uniqueLocator(page.getByRole('button', { name: '발행', exact: true }));
-  if (!openButton) {
-    console.log('발행 설정 버튼을 하나로 특정할 수 없어 발행하지 않았습니다.');
-    return;
+async function saveDraftOnly(page) {
+  const saveButton = await uniqueLocator(page.getByRole('button', { name: '저장', exact: true }));
+  if (!saveButton) fail('저장 버튼을 하나로 특정할 수 없어 임시저장하지 않았습니다.');
+  const counterSelector = 'button[class*="save_count_btn"]';
+  const counter = page.locator(counterSelector);
+  let beforeCount = null;
+  if (await counter.count() === 1) {
+    const label = await counter.getAttribute('aria-label').catch(() => '');
+    const text = await counter.innerText().catch(() => '');
+    const matches = (label + ' ' + text).match(/\d+/g);
+    if (matches) beforeCount = Math.max(...matches.map(Number));
   }
-  await openButton.click();
-  const panel = page.locator('div[class*="layer_publish__"]');
-  try {
-    await panel.waitFor({ state: 'visible', timeout: 15_000 });
-  } catch (_) {
-    console.log('발행 설정 화면을 확인할 수 없어 발행하지 않았습니다.');
-    return;
+  await saveButton.click();
+  const confirmations = [];
+  if (beforeCount !== null) {
+    confirmations.push(page.waitForFunction(({ selector, previous }) => {
+      const button = document.querySelector(selector);
+      if (!button) return false;
+      const values = ((button.getAttribute('aria-label') || '') + ' ' + (button.textContent || '')).match(/\d+/g);
+      return values && Math.max(...values.map(Number)) > previous;
+    }, { selector: counterSelector, previous: beforeCount }, { timeout: 20_000 }));
   }
-  console.log('네이버 발행 설정을 확인하세요: 공개 범위, 발행 시점, 카테고리, 태그.');
-  const prompt = readline.createInterface({ input: process.stdin, output: process.stdout });
-  const approval = await prompt.question('설정을 확인한 뒤 실제 게시하려면 PUBLISH를 입력하세요: ');
-  prompt.close();
-  if (approval.trim() !== 'PUBLISH') {
-    console.log('게시하지 않았습니다. 발행 설정 화면에서 직접 수정하거나 닫을 수 있습니다.');
-    return;
+  confirmations.push(page.getByText(/임시저장 완료|임시저장\s*되었습니|저장 완료|저장\s*되었습니/)
+    .waitFor({ state: 'visible', timeout: 20_000 }));
+  try { await Promise.any(confirmations); }
+  catch (_) { fail('네이버 임시저장 완료를 확인하지 못했습니다.'); }
+}
+
+function isEmptySmartEditorDocument(data) {
+  const components = data && data.document && data.document.components;
+  if (!Array.isArray(components) || !components.length) return false;
+  const types = new Set();
+  let hasText = false;
+  const visit = (value) => {
+    if (!value || typeof value !== 'object') return true;
+    if (Array.isArray(value)) return value.every(visit);
+    if (value['@ctype'] === 'textNode') {
+      if (typeof value.value !== 'string') return false;
+      hasText = true;
+      return !value.value.replace(/[\u200b\uFEFF]/g, '').trim();
+    }
+    return Object.values(value).every(visit);
+  };
+  for (const component of components) {
+    const type = component && component['@ctype'];
+    if (!['documentTitle', 'text'].includes(type)) return false;
+    types.add(type);
+    if (!visit(component)) return false;
   }
-  const confirmButton = await uniqueLocator(panel.getByRole('button', { name: '발행', exact: true }));
-  if (!confirmButton) {
-    console.log('발행 확인 버튼을 하나로 특정할 수 없어 게시하지 않았습니다.');
-    return;
-  }
-  await confirmButton.click();
-  await page.waitForTimeout(2_000);
-  const result = new URL(page.url());
-  if (/PostView\.naver/i.test(result.pathname) || result.searchParams.has('logNo')) {
-    console.log('게시 결과 화면: ' + result.href);
-  } else {
-    console.log('발행 요청을 보냈습니다. 브라우저에서 게시 완료 상태를 확인하세요.');
-  }
+  return types.has('documentTitle') && types.has('text') && hasText;
 }
 
 function normalizedText(value) {
@@ -308,6 +356,15 @@ async function main() {
       await waitForBrowserClose(context);
       return;
     }
+    const documentData = await page.evaluate(() => {
+      const editor = window.SmartEditor?._editors?.blogpc001;
+      return typeof editor?.getDocumentData === 'function' ? editor.getDocumentData() : null;
+    });
+    if (!isEmptySmartEditorDocument(documentData)) {
+      console.log('편집기에 기존 제목이나 본문이 있어 덮어쓰지 않았습니다. 브라우저에서 내용을 확인하세요.');
+      await waitForBrowserClose(context);
+      return;
+    }
     await typeEditorText(page, title, draft.title);
     await typeEditorText(page, body, draft.body);
     const renderedTitle = await title.innerText().catch(() => '');
@@ -319,49 +376,34 @@ async function main() {
       return;
     }
     if (media.length) {
-      console.log('선택된 사진·동영상 ' + media.length + '개를 기록 순서대로 준비했습니다. Naver에 첨부하려면 UPLOAD를 입력하세요.');
-      console.log('UPLOAD를 건너뛰면 파일은 로컬에 남고 Naver 글에는 첨부되지 않습니다.');
-      const uploadPrompt = readline.createInterface({ input: process.stdin, output: process.stdout });
-      const uploadApproval = await uploadPrompt.question('선택한 사진·동영상을 Naver 글에 첨부하려면 UPLOAD를 입력하세요: ');
-      uploadPrompt.close();
-      if (uploadApproval.trim() === 'UPLOAD') {
-        try {
-          await attachMediaToEditor(page, media);
-          console.log('미디어 첨부가 끝났습니다. 브라우저에서 순서와 표시를 검토하세요.');
-        } catch (error) {
-          console.log('미디어 첨부를 완료하지 못했습니다: ' + error.message);
-          console.log('임시저장 동작은 실행하지 않았습니다. 브라우저에서 직접 확인하세요.');
-          await waitForBrowserClose(context);
-          return;
-        }
-      } else {
-        console.log('미디어를 Naver에 첨부하지 않았습니다. 필요하면 브라우저에서 직접 첨부하세요.');
+      console.log('선택된 사진·동영상 ' + media.length + '개를 기록 순서대로 첨부합니다.');
+      try {
+        await attachMediaToEditor(page, media);
+        console.log('미디어가 편집기에 표시되고 이미지 리소스가 로드된 것을 확인했습니다.');
+      } catch (error) {
+        console.log('미디어 첨부를 완료하지 못했습니다: ' + error.message);
+        console.log('임시저장은 실행하지 않았습니다. 브라우저에서 직접 확인하세요.');
+        await waitForBrowserClose(context);
+        return;
       }
     }
     console.log('제목·본문' + (media.length ? '·미디어' : '') + '를 준비했습니다. 브라우저에서 내용을 검토하세요.');
-    const prompt = readline.createInterface({ input: process.stdin, output: process.stdout });
-    const approval = await prompt.question('검토 후 임시저장은 SAVE, 발행 설정 열기는 PUBLISH를 입력하세요: ');
-    prompt.close();
-    if (approval.trim() === 'SAVE') {
-      const saveButton = await uniqueLocator(page.getByRole('button', { name: '저장', exact: true }));
-      if (!saveButton) {
-        console.log('저장 버튼을 하나로 특정할 수 없습니다. 브라우저에서 직접 임시저장하세요.');
-      } else {
-        await saveButton.click();
-        console.log('저장 버튼을 눌렀습니다. 브라우저에서 임시저장 완료 표시를 확인하세요.');
-      }
-    } else if (approval.trim() === 'PUBLISH') {
-      await publishWithApproval(page);
-    } else {
-      console.log('임시저장과 발행을 모두 건너뛰었습니다.');
+    try {
+      await saveDraftOnly(page);
+      console.log('네이버 임시저장 완료 표시를 확인했습니다. 게시 동작은 수행하지 않습니다.');
+    } catch (error) {
+      console.log(error.message);
+      await waitForBrowserClose(context);
+      return;
     }
-    await waitForBrowserClose(context);
   } finally {
     await context.close().catch(() => {});
   }
 }
 
-main().catch((error) => {
+module.exports = { attachMediaToEditor, isEmptySmartEditorDocument, saveDraftOnly };
+
+if (require.main === module) main().catch((error) => {
   console.error(error.message);
   process.exitCode = 1;
 });

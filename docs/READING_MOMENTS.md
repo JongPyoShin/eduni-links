@@ -57,16 +57,14 @@ not reprocess an already generated record. Local watcher state contains only
 record IDs. `npm run
 autostart:install` registers a per-user Windows logon task with a minimized,
 interactive PowerShell window. The watcher then opens the existing Naver helper;
-media upload and `SAVE` or the two-step `PUBLISH` flow still require terminal
-input, so the task runs in the signed-in user session rather than Docker.
+media attachment and temporary saving run automatically. The helper has no
+publish action. It runs in the signed-in user session rather than Docker.
 
 The separate Windows helper in `naver-blog-codex/` uses a dedicated Playwright
 Chromium profile, stores its login session locally, and does not store the
 Naver password. It stages only selected media from the internal snapshot, fills
 the SmartEditor ONE title and body, and can upload those photos/videos in record
-order after explicit `UPLOAD` confirmation. The user reviews the complete editor
-and chooses `SAVE` for a Naver draft, or `PUBLISH` to open Naver's settings. A
-second `PUBLISH` confirmation is required before the final publish button is
-clicked. Review selected media for faces and personal information before
-publishing. The helper accepts the internally generated media snapshot; users
+order, checks the loaded images, and temporary-saves the article automatically.
+Users review saved drafts in Naver and decide separately whether to publish.
+The helper accepts the internally generated media snapshot; users
 do not download or move JSON files.

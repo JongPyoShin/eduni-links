@@ -210,11 +210,11 @@ async function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function openDraft(filename) {
+async function openDraft(filename, spawnProcess = spawn) {
   await new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [path.join(ROOT, 'src', 'save-draft.js'), path.relative(process.cwd(), filename)], { stdio: 'inherit', cwd: process.cwd() });
+    const child = spawnProcess(process.execPath, [path.join(ROOT, 'src', 'save-draft.js'), path.relative(process.cwd(), filename)], { stdio: 'inherit', cwd: process.cwd() });
     child.once('error', reject);
-    child.once('close', resolve);
+    child.once('close', (code) => code === 0 ? resolve() : reject(new Error('Naver temporary save did not complete; record remains pending.')));
   });
 }
 
@@ -257,10 +257,10 @@ async function processRecord(origin, record, settings, state) {
     try { existing = JSON.parse(existingText); }
     catch (_) { fail('Existing draft for record ' + record.id + ' is invalid; it was preserved unchanged.'); }
     validateExistingDraft(existing, origin, record.id, stableMedia, blogSettings);
-    state.lastGeneratedId = record.id;
-    await writeState(state);
     console.log('Resuming the existing local draft for record ' + record.id + '.');
     await openDraft(filename);
+    state.lastGeneratedId = record.id;
+    await writeState(state);
     return;
   }
   const include_parent_note = settings.parentNotePolicy === 'always'
@@ -291,10 +291,10 @@ async function processRecord(origin, record, settings, state) {
   await fs.mkdir(DRAFTS, { recursive: true, mode: 0o700 });
   const handle = await fs.open(filename, 'wx', 0o600);
   try { await handle.writeFile(JSON.stringify(draft, null, 2) + '\n'); } finally { await handle.close(); }
-  state.lastGeneratedId = record.id;
-  await writeState(state);
   console.log('Generated a local draft for record ' + record.id + '.');
   await openDraft(filename);
+  state.lastGeneratedId = record.id;
+  await writeState(state);
 }
 
 async function main() {
@@ -354,4 +354,4 @@ async function main() {
 
 if (require.main === module) main().catch((error) => { console.error(error.message); process.exitCode = 1; });
 
-module.exports = { assertSnapshotCurrent, draftPath, mediaKey, validateBlogSettings, validateExistingDraft };
+module.exports = { assertSnapshotCurrent, draftPath, mediaKey, openDraft, validateBlogSettings, validateExistingDraft };

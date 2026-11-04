@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import html
 from pathlib import Path
+import re
 import sys
 
 APP_ROOT = Path(__file__).resolve().parents[1]
@@ -25,12 +28,22 @@ CREATE TABLE IF NOT EXISTS market_archive.article (
   has_content BOOLEAN NOT NULL DEFAULT TRUE,
   has_video BOOLEAN NOT NULL DEFAULT FALSE,
   media_count INTEGER NOT NULL DEFAULT 0,
+  stored_media_count INTEGER NOT NULL DEFAULT 0,
   imported_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS market_archive.media_asset (
+  sha256 TEXT PRIMARY KEY CHECK (sha256 ~ '^[0-9a-f]{64}$'),
+  content_type TEXT NOT NULL,
+  byte_length BIGINT NOT NULL CHECK (byte_length >= 0),
+  data BYTEA NOT NULL,
+  CHECK (octet_length(data) = byte_length)
 );
 ALTER TABLE market_archive.article
   ADD COLUMN IF NOT EXISTS has_video BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE market_archive.article
   ADD COLUMN IF NOT EXISTS content_html TEXT NOT NULL DEFAULT '';
+ALTER TABLE market_archive.article
+  ADD COLUMN IF NOT EXISTS stored_media_count INTEGER NOT NULL DEFAULT 0;
 CREATE INDEX IF NOT EXISTS market_archive_article_date_idx
   ON market_archive.article (publish_date DESC, article_id);
 CREATE INDEX IF NOT EXISTS market_archive_article_search_idx
@@ -117,6 +130,20 @@ def import_articles(source: Path) -> int:
             content_html = data.get("contentHtml", "")
             if not isinstance(content_html, str):
                 raise ValueError(f"invalid contentHtml in {path.name}")
+            for image in data.get("images", []):
+                if not isinstance(image, dict) or image.get("downloaded") is not True:
+                    continue
+                source_image = str(image.get("src", "")).strip()
+                local_path = str(image.get("localPath", "")).replace("\\", "/")
+                filename = Path(local_path).name
+                asset_sha256 = filename.rsplit(".", 1)[0]
+                if (not source_image.startswith(("https://", "http://"))
+                        or not re.fullmatch(r"[0-9a-f]{64}", asset_sha256)
+                        or Path(filename).suffix.lower() not in {".png", ".jpg", ".jpeg", ".gif", ".webp"}):
+                    raise ValueError(f"invalid saved image mapping in {path.name}")
+                asset_url = f"/portal/market/api/assets/{asset_sha256}"
+                content_html = content_html.replace(html.escape(source_image, quote=True), asset_url)
+                content_html = content_html.replace("../" + local_path, asset_url)
             try:
                 date_value = _publish_date(page)
                 source_url = _article_url(article_id, data.get("url"))
@@ -126,16 +153,20 @@ def import_articles(source: Path) -> int:
             archive_status = str(data.get("status", "saved"))[:80]
             has_content = bool(data.get("hasContent", bool(content)))
             has_video = data.get("hasVideo") is True
-            media_count = len(data.get("images", [])) if isinstance(data.get("images", []), list) else 0
-            conn.execute("""INSERT INTO market_archive.article(article_id,source_url,publish_date,title,category,content_text,content_html,source_filename,archive_status,has_content,has_video,media_count)
-                VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(article_id) DO UPDATE SET
+            image_records = data.get("images", [])
+            if not isinstance(image_records, list):
+                raise ValueError(f"invalid images in {path.name}")
+            media_count = len(image_records)
+            stored_media_count = sum(1 for image in image_records if isinstance(image, dict) and image.get("downloaded") is True)
+            conn.execute("""INSERT INTO market_archive.article(article_id,source_url,publish_date,title,category,content_text,content_html,source_filename,archive_status,has_content,has_video,media_count,stored_media_count)
+                VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(article_id) DO UPDATE SET
                 publish_date=EXCLUDED.publish_date,title=EXCLUDED.title,category=EXCLUDED.category,
                 source_url=EXCLUDED.source_url,
                 content_text=EXCLUDED.content_text,content_html=EXCLUDED.content_html,source_filename=EXCLUDED.source_filename,
                 archive_status=EXCLUDED.archive_status,has_content=EXCLUDED.has_content,
                 has_video=EXCLUDED.has_video,
-                media_count=EXCLUDED.media_count,imported_at=now()""",
-                (article_id, source_url, date_value, title, category, content, content_html, path.name, archive_status, has_content, has_video, media_count))
+                media_count=EXCLUDED.media_count,stored_media_count=EXCLUDED.stored_media_count,imported_at=now()""",
+                (article_id, source_url, date_value, title, category, content, content_html, path.name, archive_status, has_content, has_video, media_count, stored_media_count))
             count += 1
         conn.commit()
     except Exception:
@@ -144,15 +175,56 @@ def import_articles(source: Path) -> int:
     return count
 
 
+def import_assets(source: Path) -> tuple[int, int, int]:
+    files = sorted(path for path in source.rglob("*") if path.is_file())
+    if not files:
+        raise ValueError(f"no image assets in {source}")
+    mime_types = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+                  ".gif": "image/gif", ".webp": "image/webp"}
+    conn = _connect_postgres()
+    inserted = skipped = total_bytes = 0
+    try:
+        for index, path in enumerate(files, 1):
+            asset_sha256 = path.stem.lower()
+            content_type = mime_types.get(path.suffix.lower())
+            if (not content_type or not re.fullmatch(r"[0-9a-f]{64}", asset_sha256)
+                    or path.parent.name.lower() != asset_sha256[:2]):
+                raise ValueError(f"invalid image asset path: {path}")
+            data = path.read_bytes()
+            if hashlib.sha256(data).hexdigest() != asset_sha256:
+                raise ValueError(f"image checksum mismatch: {path}")
+            total_bytes += len(data)
+            cursor = conn.execute("""INSERT INTO market_archive.media_asset(sha256,content_type,byte_length,data)
+                VALUES(%s,%s,%s,%s) ON CONFLICT(sha256) DO NOTHING""",
+                (asset_sha256, content_type, len(data), data))
+            if cursor.rowcount:
+                inserted += 1
+            else:
+                skipped += 1
+            if index % 100 == 0:
+                conn.commit()
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+    return inserted, skipped, total_bytes
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Explicitly manage the dedicated market archive PostgreSQL table")
     sub = parser.add_subparsers(dest="action", required=True)
     sub.add_parser("migrate"); imp = sub.add_parser("import"); imp.add_argument("source", type=Path)
+    assets = sub.add_parser("assets"); assets.add_argument("source", type=Path)
     rollback_parser = sub.add_parser("rollback")
     rollback_parser.add_argument("--confirm-drop-market-archive", action="store_true", required=True)
     args = parser.parse_args()
     if args.action == "migrate": migrate(); print("market_archive schema created")
     elif args.action == "import": print(f"upserted {import_articles(args.source)} articles")
+    elif args.action == "assets":
+        inserted, skipped, size = import_assets(args.source)
+        print(f"assets inserted={inserted} existing={skipped} bytes={size}")
     else: rollback(); print("market_archive schema dropped; reading data and other schemas preserved")
     return 0
 

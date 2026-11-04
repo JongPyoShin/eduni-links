@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 
 from fastapi import Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from nicegui import app
 
 from .reading_storage import _connect_postgres
@@ -72,14 +72,15 @@ async def market_articles(q: str = "", page: int = 1) -> JSONResponse:
     try:
         pattern = f"%{q}%"
         rows = conn.execute("""SELECT article_id, source_url, publish_date, title, category,
-                left(content_text, 360) AS excerpt, has_content, media_count, has_video
+                left(content_text, 360) AS excerpt, has_content, media_count, stored_media_count, has_video
             FROM market_archive.article WHERE (%s = '' OR title ILIKE %s OR content_text ILIKE %s)
             ORDER BY publish_date DESC, article_id LIMIT %s OFFSET %s""",
             (q, pattern, pattern, MAX_PAGE_SIZE, (page - 1) * MAX_PAGE_SIZE)).fetchall()
         count = conn.execute("SELECT count(*) FROM market_archive.article WHERE (%s = '' OR title ILIKE %s OR content_text ILIKE %s)",
                              (q, pattern, pattern)).fetchone()[0]
         data = [{"id": str(row[0]), "url": row[1], "date": str(row[2]), "title": row[3], "category": row[4],
-                 "excerpt": row[5], "has_content": bool(row[6]), "media_count": int(row[7]), "has_video": bool(row[8])} for row in rows]
+                 "excerpt": row[5], "has_content": bool(row[6]), "media_count": int(row[7]),
+                 "stored_media_count": int(row[8]), "has_video": bool(row[9])} for row in rows]
         return JSONResponse({"ok": True, "articles": data, "page": page, "page_size": MAX_PAGE_SIZE, "total": count}, headers={"Cache-Control": "no-store"})
     finally:
         conn.close()
@@ -92,15 +93,34 @@ async def market_article_detail(article_id: str) -> JSONResponse:
     conn = _db()
     try:
         row = conn.execute("""SELECT article_id, source_url, publish_date, title, category, content_text, content_html,
-                archive_status, has_content, media_count, has_video FROM market_archive.article WHERE article_id = %s""",
+                archive_status, has_content, media_count, stored_media_count, has_video FROM market_archive.article WHERE article_id = %s""",
                            (article_id,)).fetchone()
         if row is None:
             return JSONResponse({"ok": False, "error": "not_found"}, status_code=404, headers={"Cache-Control": "no-store"})
         return JSONResponse({"ok": True, "article": {"id": str(row[0]), "url": row[1], "date": str(row[2]),
             "title": row[3], "category": row[4], "text": row[5], "html": row[6], "status": row[7],
-            "has_content": bool(row[8]), "media_count": int(row[9]), "has_video": bool(row[10])}}, headers={"Cache-Control": "no-store"})
+            "has_content": bool(row[8]), "media_count": int(row[9]), "stored_media_count": int(row[10]),
+            "has_video": bool(row[11])}}, headers={"Cache-Control": "no-store"})
     finally:
         conn.close()
+
+
+@app.get("/portal/market/api/assets/{asset_sha256}")
+async def market_asset(asset_sha256: str) -> Response:
+    if not re.fullmatch(r"[0-9a-f]{64}", asset_sha256):
+        return Response(status_code=404, headers={"Cache-Control": "no-store"})
+    conn = _db()
+    try:
+        row = conn.execute("SELECT content_type, data FROM market_archive.media_asset WHERE sha256 = %s",
+                           (asset_sha256,)).fetchone()
+    finally:
+        conn.close()
+    if row is None or row[0] not in {"image/png", "image/jpeg", "image/gif", "image/webp"}:
+        return Response(status_code=404, headers={"Cache-Control": "no-store"})
+    return Response(content=bytes(row[1]), media_type=row[0], headers={
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "X-Content-Type-Options": "nosniff",
+    })
 
 
 @app.post("/portal/market/api/ask")

@@ -30,10 +30,30 @@ def _db():
     return _connect_postgres()
 
 
-def _article_excerpt(text: str) -> str:
+def _article_excerpt(text: str, query: str = "") -> str:
     normalized = " ".join(text.split())
     fallback = normalized[:MAX_EXCERPT]
     final_start = min(max(0, len(normalized) - MAX_EXCERPT), 5000)
+    terms = _market_query_terms(query)
+    structured_query = any(term in query for term in ("조건", "기준", "요건", "세 가지", "단계", "순서"))
+    markers = ("첫째", "둘째", "셋째", "첫 번째", "두 번째", "세 번째")
+    best_excerpt = ""
+    best_score = (0, 0, 0)
+    last_start = max(0, len(normalized) - MAX_EXCERPT)
+    starts = list(range(0, last_start + 1, 100))
+    if starts and starts[-1] != last_start:
+        starts.append(last_start)
+    for start in starts:
+        excerpt = normalized[start:start + MAX_EXCERPT]
+        if not excerpt or _PROMO_TEXT.search(excerpt):
+            continue
+        marker_hits = sum(marker in excerpt for marker in markers) if structured_query else 0
+        term_hits = sum(term in excerpt.lower() for term in terms)
+        score = (marker_hits, term_hits, -start)
+        if score > best_score:
+            best_excerpt, best_score = excerpt, score
+    if best_excerpt and (best_score[0] or best_score[1]):
+        return best_excerpt
     for start in range(0, final_start + 1, 100):
         excerpt = normalized[start:start + MAX_EXCERPT]
         if excerpt and not _PROMO_TEXT.search(excerpt):
@@ -185,7 +205,7 @@ async def market_ask(request: Request) -> JSONResponse:
     if not rows:
         return JSONResponse({"ok": False, "error": "no_sources"}, status_code=404, headers={"Cache-Control": "no-store"})
     from .ai.companion import ProviderUnavailableError, _run_provider, validate_companion_payload
-    excerpts = [{"id": str(row[0]), "date": str(row[1]), "title": row[2], "excerpt": _article_excerpt(row[3])} for row in rows]
+    excerpts = [{"id": str(row[0]), "date": str(row[1]), "title": row[2], "excerpt": _article_excerpt(row[3], query)} for row in rows]
     context = {"activity": "market_research", "question": json.dumps({"query": query.strip(), "articles": excerpts}, ensure_ascii=False), "choices": [], "selected": ""}
     try:
         prompt_text = query.strip()

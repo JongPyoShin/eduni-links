@@ -472,8 +472,9 @@ async def reading_blog_draft_api(record_id: int, request: Request) -> JSONRespon
     try:
         from urllib.parse import urlsplit
         from ..reading_attachments import list_reading_attachments
-        from ..reading_journal import get_reading_record
+        from ..reading_journal import get_reading_blog_settings, get_reading_record
 
+        settings = get_reading_blog_settings(record_id)
         record = get_reading_record(record_id)
         attachments = list_reading_attachments(record_id, blog_only=True)
         photos = [item for item in attachments if item.get("kind") == "image"]
@@ -494,12 +495,13 @@ async def reading_blog_draft_api(record_id: int, request: Request) -> JSONRespon
             "feeling": {1: "괜찮았어", 2: "괜찮았어", 3: "괜찮았어", 4: "재미있었어", 5: "또 읽고 싶어"}.get(record.get("rating"), "느낌 미기록"),
             "child_comment": clean_text("child_comment", 2_000),
             "favorite_part": clean_text("favorite_part", 2_000),
+            "blog_note": clean_text("blog_note", 4_000),
         }
         include_parent_note = data["include_parent_note"]
         if include_parent_note:
             source_record["parent_note"] = clean_text("parent_note", 2_000)
         payload = {
-            "tone": data["tone"],
+            "tone": settings["blog_tone"],
             "record": source_record,
             "images": [
                 {"url": expected.rstrip("/") + item["url"], "caption": str(item.get("caption", ""))[:500], "position": item["position"]}
@@ -515,8 +517,12 @@ async def reading_blog_draft_api(record_id: int, request: Request) -> JSONRespon
             return _error("blog_request_too_large", 400)
         caller = request.client.host if request.client else "unknown"
         draft = await asyncio.to_thread(_run_blog_draft, payload, caller)
+        current_settings = get_reading_blog_settings(record_id)
+        if current_settings["source_revision"] != settings["source_revision"]:
+            return _error("blog_settings_changed", 409)
         return JSONResponse({
             "ok": True, **draft, "photo_count": len(photos), "video_count": len(videos),
+            "source_revision": settings["source_revision"],
         }, headers={"Cache-Control": "no-store"})
     except KeyError:
         return _error("record_not_found", 404)

@@ -1653,183 +1653,77 @@
         const panel = document.createElement('section');
         panel.className = 'blog-draft-panel';
         panel.id = 'reading-blog-draft-' + String(entry.id);
-        panel.setAttribute('aria-label', '블로그 글 초안');
+        panel.setAttribute('aria-label', '블로그 글쓰기 메모');
         const help = document.createElement('p');
         help.className = 'blog-draft-help';
-        help.textContent = 'GPT 초안 생성 버튼을 누르면 저장된 독서 기록과 블로그 사용 허용 사진이 GPT에 전달됩니다. 보호자 메모는 선택한 경우에만 포함되며, 생성된 제목·본문은 직접 고친 뒤 로컬 도우미로 보낼 수 있어요.';
+        help.textContent = '책에 대한 블로그 글쓰기 아이디어를 선택 사항으로 적어둘 수 있어요. 저장한 메모와 글 분위기는 나중에 GPT 초안 작성에 자동으로 반영됩니다.';
         const toneLabel = document.createElement('label');
         toneLabel.append(document.createTextNode('글 분위기'));
         const toneSelect = document.createElement('select');
         toneSelect.setAttribute('aria-label', '블로그 글 분위기 선택');
-        const tones = [
-          ['family', '따뜻한 가족 독서기록'],
-          ['plain', '담백한 독서 일지'],
-          ['child', '아이의 말과 장면 중심'],
-          ['book', '책 정보 중심 기록']
-        ];
-        for (const [value, label] of tones) {
+        for (const [value, label] of [
+          ['family', '따뜻한 가족 독서기록'], ['plain', '담백한 독서 일지'],
+          ['child', '아이의 말과 장면 중심'], ['book', '책 정보 중심 기록']
+        ]) {
           const option = document.createElement('option'); option.value = value; option.textContent = label; toneSelect.append(option);
         }
         toneLabel.append(toneSelect);
-        const parentLabel = document.createElement('label');
-        parentLabel.className = 'blog-draft-parent-toggle';
-        const parentToggle = document.createElement('input'); parentToggle.type = 'checkbox';
-        parentToggle.disabled = !entry.parent_note;
-        parentLabel.append(parentToggle, document.createTextNode('보호자 메모 포함'));
-        const titleLabel = document.createElement('label');
-        titleLabel.append(document.createTextNode('제목'));
-        const titleInput = document.createElement('input'); titleInput.type = 'text'; titleInput.maxLength = 120; titleInput.setAttribute('aria-label', '블로그 글 제목');
-        titleLabel.append(titleInput);
-        const bodyLabel = document.createElement('label');
-        bodyLabel.append(document.createTextNode('본문'));
-        const bodyInput = document.createElement('textarea'); bodyInput.rows = 12; bodyInput.setAttribute('aria-label', '블로그 글 본문');
-        bodyLabel.append(bodyInput);
-        const mediaHelp = document.createElement('p'); mediaHelp.className = 'blog-draft-help';
-        mediaHelp.textContent = '사진은 GPT가 초안 작성에 참고합니다. 영상은 저장된 설명만 참고하고, 사진·영상 파일은 로컬 도우미가 본문 뒤에 기록 순서로 첨부합니다. 게시 전에 얼굴과 개인정보 노출을 확인하세요.';
-        const mediaStatus = document.createElement('p'); mediaStatus.className = 'blog-draft-status'; mediaStatus.textContent = '블로그용 사진·영상 확인 중…';
-        const mediaList = document.createElement('div'); mediaList.className = 'blog-draft-media';
+        const noteLabel = document.createElement('label');
+        noteLabel.append(document.createTextNode('글쓰기 메모 (선택)'));
+        const noteInput = document.createElement('textarea');
+        noteInput.rows = 6; noteInput.maxLength = 4000;
+        noteInput.setAttribute('aria-label', '블로그 글쓰기 메모');
+        noteInput.placeholder = '글에 담고 싶은 생각, 강조할 장면, 표현 아이디어 등을 적어 주세요.';
+        noteInput.disabled = true;
+        noteLabel.append(noteInput);
         const actions = document.createElement('div'); actions.className = 'blog-draft-actions';
-        const regenerate = document.createElement('button'); regenerate.type = 'button'; regenerate.className = 'primary'; regenerate.textContent = 'GPT 초안 생성'; regenerate.disabled = true;
-        const copy = document.createElement('button'); copy.type = 'button'; copy.textContent = '제목·본문 복사';
-        const exportDraft = document.createElement('button'); exportDraft.type = 'button'; exportDraft.textContent = '로컬 도우미용 파일 저장'; exportDraft.disabled = true;
-        const status = document.createElement('p'); status.className = 'blog-draft-status'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
-        actions.append(regenerate, copy, exportDraft);
-        panel.append(help, toneLabel, parentLabel, titleLabel, bodyLabel, mediaHelp, mediaStatus, mediaList, actions, status);
-        const updateActions = () => {
-          const hasDraft = Boolean(titleInput.value.trim() && bodyInput.value.trim());
-          copy.disabled = !hasDraft || Boolean(panel._blogDraftGenerating);
-          const settingsMatch = panel._blogDraftTone === toneSelect.value && panel._blogDraftParentIncluded === parentToggle.checked;
-          exportDraft.disabled = !hasDraft || !Array.isArray(panel._blogMedia) || !settingsMatch || Boolean(panel._blogDraftGenerating);
-        };
-        const generate = async () => {
-          if (regenerate.disabled || !panel.isConnected) return;
-          panel._blogDraftGenerating = true;
-          regenerate.disabled = true;
-          toneSelect.disabled = true;
-          parentToggle.disabled = true;
-          titleInput.disabled = true;
-          bodyInput.disabled = true;
-          updateActions();
-          regenerate.textContent = 'GPT가 사진과 기록을 살펴보는 중…';
-          status.textContent = '선택한 글 분위기로 초안을 작성하고 있어요. 영상은 장면을 분석하지 않고 저장 설명만 참고합니다.';
+        const save = document.createElement('button'); save.type = 'button'; save.className = 'primary'; save.textContent = '메모 저장'; save.disabled = true;
+        const status = document.createElement('p'); status.className = 'blog-draft-status';
+        status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
+        actions.append(save);
+        toneSelect.disabled = true;
+        panel.append(help, toneLabel, noteLabel, actions, status);
+        const url = '/reading/api/records/' + encodeURIComponent(String(entry.id)) + '/blog-settings';
+        const headers = { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' };
+        let loaded = false;
+        const load = async () => {
           try {
-            const response = await fetch('/reading/api/records/' + encodeURIComponent(String(entry.id)) + '/blog-draft', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-              body: JSON.stringify({ tone: toneSelect.value, include_parent_note: parentToggle.checked }),
+            const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, cache: 'no-store' });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || data.ok !== true) throw new Error('블로그 메모를 불러오지 못했어요.');
+            toneSelect.value = data.blog_tone;
+            noteInput.value = data.blog_note || '';
+            loaded = true;
+            toneSelect.disabled = false; noteInput.disabled = false; save.disabled = false;
+            status.textContent = '';
+          } catch (error) {
+            status.textContent = (error.message || '블로그 메모를 불러오지 못했어요.') + ' 다시 열어 새로고침해 주세요.';
+          }
+        };
+        noteInput.addEventListener('input', () => { if (loaded) status.textContent = '저장되지 않은 변경 사항이 있어요.'; });
+        toneSelect.addEventListener('change', () => { if (loaded) status.textContent = '저장되지 않은 변경 사항이 있어요.'; });
+        save.addEventListener('click', async () => {
+          if (!loaded || save.disabled) return;
+          save.disabled = true; toneSelect.disabled = true; noteInput.disabled = true;
+          status.textContent = '저장 중…';
+          try {
+            const response = await fetch(url, {
+              method: 'PATCH', headers,
+              body: JSON.stringify({ blog_note: noteInput.value, blog_tone: toneSelect.value }),
               cache: 'no-store'
             });
             const data = await response.json().catch(() => ({}));
-            if (!response.ok || data.ok !== true || typeof data.title !== 'string' || typeof data.body !== 'string') {
-              const messages = {
-                ai_unavailable: 'GPT 연결을 사용할 수 없어요. 연결 상태를 확인해 주세요.',
-                ai_timeout: 'GPT 응답 시간이 초과됐어요. 잠시 후 다시 시도해 주세요.',
-                ai_failed: 'GPT 초안을 만들지 못했어요. 기록이나 사진 형식을 확인해 주세요.',
-                busy: 'GPT 요청이 몰려 있어요. 잠시 후 다시 시도해 주세요.',
-                blog_images_require_https: '사진을 GPT에 전달하려면 보안 HTTPS 연결이 필요해요.'
-              };
-              throw new Error(messages[data.error] || 'GPT 초안을 만들지 못했어요. 다시 시도해 주세요.');
-            }
-            titleInput.value = data.title;
-            bodyInput.value = data.body;
-            panel._blogDraftTone = toneSelect.value;
-            panel._blogDraftParentIncluded = parentToggle.checked;
-            status.textContent = 'GPT 초안 생성 완료 · 사진 ' + Number(data.photo_count || 0) + '장 참고 · 영상 ' + Number(data.video_count || 0) + '개는 설명만 참고했어요. 제목과 본문을 검토해 주세요.';
+            if (!response.ok || data.ok !== true) throw new Error(data.error === 'blog_note must be at most 4000 characters' ? '메모는 4000자까지 저장할 수 있어요.' : '블로그 메모를 저장하지 못했어요.');
+            noteInput.value = data.blog_note;
+            status.textContent = '블로그 글쓰기 메모와 분위기를 저장했어요.';
           } catch (error) {
-            status.textContent = error.message || 'GPT 초안을 만들지 못했어요. 다시 시도해 주세요.';
+            status.textContent = error.message || '블로그 메모를 저장하지 못했어요.';
           } finally {
-            if (panel.isConnected) {
-              panel._blogDraftGenerating = false;
-              toneSelect.disabled = false;
-              parentToggle.disabled = !entry.parent_note;
-              titleInput.disabled = false;
-              bodyInput.disabled = false;
-              regenerate.disabled = !Array.isArray(panel._blogMedia);
-              regenerate.textContent = titleInput.value.trim() && bodyInput.value.trim() ? 'GPT로 다시 생성' : 'GPT 초안 생성';
-              updateActions();
-            }
-          }
-        };
-        regenerate.addEventListener('click', generate);
-        toneSelect.addEventListener('change', () => { status.textContent = '글 분위기가 바뀌었어요. GPT 초안을 다시 생성하면 반영됩니다.'; });
-        parentToggle.addEventListener('change', () => { status.textContent = '보호자 메모 포함 여부가 바뀌었어요. GPT 초안을 다시 생성하면 반영됩니다.'; });
-        titleInput.addEventListener('input', updateActions);
-        bodyInput.addEventListener('input', updateActions);
-        copy.addEventListener('click', async () => {
-          try {
-            await navigator.clipboard.writeText(titleInput.value + '\n\n' + bodyInput.value);
-            status.textContent = '제목과 본문을 복사했어요.';
-          } catch (_) {
-            status.textContent = '복사할 수 없어요. 제목과 본문을 선택해 직접 복사해 주세요.';
+            save.disabled = false; toneSelect.disabled = false; noteInput.disabled = false;
           }
         });
-        exportDraft.addEventListener('click', () => {
-          if (!Array.isArray(panel._blogMedia)) {
-            status.textContent = '블로그용 사진·영상 목록을 불러온 뒤 다시 시도해 주세요.';
-            return;
-          }
-          const payload = {
-            schemaVersion: 1,
-            source: 'eduni-reading-journal',
-            title: titleInput.value,
-            body: bodyInput.value,
-            portalOrigin: window.location.origin,
-            media: panel._blogMedia.map((attachment, position) => ({
-              kind: attachment.kind,
-              url: new URL(attachment.url, window.location.href).href,
-              caption: attachment.caption || '',
-              position
-            }))
-          };
-          const blobUrl = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
-          const download = document.createElement('a'); download.href = blobUrl; download.download = 'reading-blog-' + String(entry.id) + '.json';
-          document.body.append(download); download.click(); download.remove();
-          window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-          status.textContent = '현재 제목·본문과 허용된 미디어 목록을 로컬 도우미 파일로 저장했어요.';
-        });
-        panel._blogMediaStatus = mediaStatus;
-        panel._blogMediaList = mediaList;
-        panel._blogDraftGenerateButton = regenerate;
-        panel._blogDraftUpdateActions = updateActions;
-        panel._blogMedia = null;
-        updateActions();
+        load();
         return panel;
-      }
-
-      async function loadBlogDraftMedia(recordId, panel) {
-        try {
-          const response = await fetch('/reading/api/records/' + encodeURIComponent(recordId) + '/blog-media', { cache: 'no-store' });
-          const data = await response.json().catch(() => ({}));
-          if (!response.ok || !Array.isArray(data.attachments)) throw new Error(data.error || '블로그용 미디어를 불러오지 못했어요.');
-          if (!panel.isConnected) return;
-          panel._blogMedia = data.attachments;
-          panel._blogDraftGenerateButton.disabled = false;
-          panel._blogMediaList.replaceChildren();
-          if (!data.attachments.length) {
-            panel._blogMediaStatus.textContent = '블로그 사용으로 허용된 사진·영상이 없어요.';
-            return;
-          }
-          panel._blogMediaStatus.textContent = '블로그 사용 허용 항목 ' + data.attachments.length + '개';
-          data.attachments.forEach((attachment, index) => {
-            const figure = document.createElement('figure');
-            const media = document.createElement(attachment.kind === 'video' ? 'video' : 'img');
-            media.src = attachment.url;
-            if (media.tagName === 'VIDEO') { media.controls = true; media.playsInline = true; media.preload = 'metadata'; }
-            else media.alt = attachment.caption || '블로그에 사용할 읽는 순간 사진 ' + (index + 1);
-            const caption = document.createElement('figcaption');
-            caption.textContent = (attachment.kind === 'video' ? '영상' : '사진') + ' ' + (index + 1) + (attachment.caption ? ' · ' + attachment.caption : ' · 설명 없음');
-            figure.append(media, caption);
-            panel._blogMediaList.append(figure);
-          });
-          panel._blogDraftUpdateActions();
-        } catch (error) {
-          if (panel.isConnected) {
-            panel._blogMedia = null;
-            panel._blogMediaStatus.textContent = error.message || '블로그용 미디어를 불러오지 못했어요.';
-            panel._blogDraftGenerateButton.disabled = true;
-            panel._blogDraftUpdateActions();
-          }
-        }
       }
 
       async function showRecordDetail(record, { recordHistory = true } = {}) {
@@ -1868,7 +1762,7 @@
             const date = document.createElement('span'); date.textContent = entry.read_date || ''; head.append(date);
             const actions = document.createElement('span'); actions.className = 'history-entry-actions';
             const edit = document.createElement('button'); edit.className = 'edit-btn'; edit.type = 'button'; edit.dataset.historyEdit = String(entry.id); edit.textContent = '수정';
-            const blog = document.createElement('button'); blog.className = 'blog-draft-button'; blog.type = 'button'; blog.dataset.historyBlog = String(entry.id); blog.textContent = '블로그 초안'; blog.setAttribute('aria-expanded', 'false'); blog.setAttribute('aria-controls', 'reading-blog-draft-' + String(entry.id));
+            const blog = document.createElement('button'); blog.className = 'blog-draft-button'; blog.type = 'button'; blog.dataset.historyBlog = String(entry.id); blog.textContent = '블로그 작성 메모'; blog.setAttribute('aria-expanded', 'false'); blog.setAttribute('aria-controls', 'reading-blog-draft-' + String(entry.id));
             const remove = document.createElement('button'); remove.className = 'delete-btn'; remove.type = 'button'; remove.dataset.historyDelete = String(entry.id); remove.textContent = '삭제';
             actions.append(edit, blog, remove); head.append(actions); item.append(head);
             const meta = document.createElement('p'); meta.textContent = [modeLabel(entry.reading_mode), moodLabel(entry.rating)].filter(Boolean).join(' · '); item.append(meta);
@@ -2152,7 +2046,6 @@
           const panel = createBlogDraftPanel(entry);
           item.append(panel);
           blogButton.setAttribute('aria-expanded', 'true');
-          await loadBlogDraftMedia(id, panel);
           return;
         }
         if (editButton) {

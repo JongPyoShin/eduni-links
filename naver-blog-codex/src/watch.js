@@ -4,6 +4,7 @@ const net = require('node:net');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const readline = require('node:readline/promises');
+const { createHash } = require('node:crypto');
 
 const ROOT = path.resolve(__dirname, '..');
 const STATE = path.join(ROOT, 'watch-state.json');
@@ -16,6 +17,7 @@ const TONE_NAMES = ['따뜻한 가족 독서기록', '담백한 독서 일지', 
 const POLL_MS = 15_000;
 const RETRY_MS = 60_000;
 const GRACE_MS = 3 * 60_000;
+const settingsApi = (id) => '/reading/api/records/' + id + '/blog-settings';
 
 function ask(prompt) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -97,6 +99,28 @@ function mediaKey(attachments) {
     ({ id, kind, filename, content_type, size, caption, blog_use, position, created_at, url })));
 }
 
+function validateBlogSettings(settings) {
+  if (!settings || typeof settings.blog_note !== 'string' || Array.from(settings.blog_note).length > 4_000
+    || !TONES.includes(settings.blog_tone) || !/^[a-f0-9]{64}$/.test(settings.source_revision || '')) {
+    fail('EDUNI returned invalid blog settings.');
+  }
+  return settings;
+}
+
+function draftPath(recordId, settings, attachments) {
+  const fingerprint = createHash('sha256')
+    .update(settings.source_revision + '\n' + mediaKey(attachments))
+    .digest('hex');
+  return path.join(DRAFTS, 'reading-blog-' + recordId + '-' + fingerprint + '.json');
+}
+
+function assertSnapshotCurrent(settings, attachments, currentSettings, currentAttachments) {
+  if (currentSettings.source_revision !== settings.source_revision
+    || mediaKey(currentAttachments) !== mediaKey(attachments)) {
+    fail('Blog settings or media changed during draft generation; it will be retried after stabilizing.');
+  }
+}
+
 async function waitReady(origin, record) {
   const created = Date.parse(record.created_at);
   if (!Number.isFinite(created)) fail('Record has an invalid created_at value.');
@@ -104,9 +128,11 @@ async function waitReady(origin, record) {
   let previous = null;
   for (;;) {
     const data = await api(origin, '/reading/api/records/' + record.id + '/blog-media');
+    const settings = validateBlogSettings(await api(origin, settingsApi(record.id)));
     const current = mediaKey(data.attachments);
-    if (previous !== null && current === previous) return data.attachments;
-    previous = current;
+    const snapshot = JSON.stringify([settings.source_revision, current]);
+    if (previous !== null && snapshot === previous) return { attachments: data.attachments, settings };
+    previous = snapshot;
     await new Promise((resolve) => setTimeout(resolve, POLL_MS));
   }
 }
@@ -192,8 +218,9 @@ async function openDraft(filename) {
   });
 }
 
-function validateExistingDraft(draft, origin, recordId, stableMedia) {
+function validateExistingDraft(draft, origin, recordId, stableMedia, settings) {
   if (!draft || draft.schemaVersion !== 1 || draft.source !== 'eduni-reading-journal'
+    || draft.sourceRevision !== settings.source_revision
     || draft.portalOrigin !== origin || typeof draft.title !== 'string' || !draft.title.trim() || draft.title.length > 120
     || typeof draft.body !== 'string' || !draft.body.trim() || draft.body.length > 100_000
     || !Array.isArray(draft.media) || draft.media.length > 20
@@ -217,8 +244,8 @@ function validateExistingDraft(draft, origin, recordId, stableMedia) {
 }
 
 async function processRecord(origin, record, settings, state) {
-  const stableMedia = await waitReady(origin, record);
-  const filename = path.join(DRAFTS, 'reading-blog-' + record.id + '.json');
+  const { attachments: stableMedia, settings: blogSettings } = await waitReady(origin, record);
+  const filename = draftPath(record.id, blogSettings, stableMedia);
   let existingText;
   try {
     existingText = await fs.readFile(filename, 'utf8');
@@ -229,7 +256,7 @@ async function processRecord(origin, record, settings, state) {
     let existing;
     try { existing = JSON.parse(existingText); }
     catch (_) { fail('Existing draft for record ' + record.id + ' is invalid; it was preserved unchanged.'); }
-    validateExistingDraft(existing, origin, record.id, stableMedia);
+    validateExistingDraft(existing, origin, record.id, stableMedia, blogSettings);
     state.lastGeneratedId = record.id;
     await writeState(state);
     console.log('Resuming the existing local draft for record ' + record.id + '.');
@@ -240,17 +267,20 @@ async function processRecord(origin, record, settings, state) {
     ? true
     : settings.parentNotePolicy === 'ask' ? await parentNoteChoice() : false;
   const data = await api(origin, '/reading/api/records/' + record.id + '/blog-draft', {
-    method: 'POST', body: JSON.stringify({ tone: settings.tone, include_parent_note }),
+    method: 'POST', body: JSON.stringify({ tone: blogSettings.blog_tone, include_parent_note }),
   });
   if (typeof data.title !== 'string' || !data.title.trim() || data.title.length > 80
     || typeof data.body !== 'string' || !data.body.trim() || data.body.length > 5_000
     || data.photo_count !== stableMedia.filter((item) => item.kind === 'image').length
-    || data.video_count !== stableMedia.filter((item) => item.kind === 'video').length) fail('EDUNI returned an invalid draft.');
+    || data.video_count !== stableMedia.filter((item) => item.kind === 'video').length
+    || data.source_revision !== blogSettings.source_revision) fail('EDUNI returned an invalid or stale draft.');
   const afterMedia = (await api(origin, '/reading/api/records/' + record.id + '/blog-media')).attachments;
-  if (mediaKey(afterMedia) !== mediaKey(stableMedia)) fail('Blog media changed during draft generation; it will be retried after stabilizing.');
+  const afterSettings = validateBlogSettings(await api(origin, settingsApi(record.id)));
+  assertSnapshotCurrent(blogSettings, stableMedia, afterSettings, afterMedia);
   const draft = {
     schemaVersion: 1,
     source: 'eduni-reading-journal',
+    sourceRevision: blogSettings.source_revision,
     title: data.title,
     body: data.body,
     portalOrigin: origin,
@@ -322,4 +352,6 @@ async function main() {
   }
 }
 
-main().catch((error) => { console.error(error.message); process.exitCode = 1; });
+if (require.main === module) main().catch((error) => { console.error(error.message); process.exitCode = 1; });
+
+module.exports = { assertSnapshotCurrent, draftPath, mediaKey, validateBlogSettings, validateExistingDraft };

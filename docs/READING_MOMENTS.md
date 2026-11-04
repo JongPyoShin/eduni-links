@@ -36,23 +36,25 @@ Captions are limited to 500 characters. Blog use is always opt-in and controls
 which attachments the GPT blog writer and Naver export may use. It does not
 provide account authentication or change the family server's network boundary.
 
-The reading-history dialog offers four writing tones and an editable title and
-body. GPT generation is an explicit button action through the existing
-authenticated EDUNI GPT bridge; it reuses the configured model credentials and
-does not require an API key. Only attachments opted in for blog use are eligible
-for the request. GPT receives approved photos as image inputs and video captions
-as text; video content itself is not analyzed. The parent note is excluded
-unless its checkbox is selected. The helper export contains only the edited
-title/body and blog-opted-in media list.
+The reading-history dialog offers an optional blog writing note and four writing
+tones, persisted on the reading record through GET/PATCH
+`/reading/api/records/{id}/blog-settings`. The dialog saves these settings rather
+than generating or downloading a draft. Automatic GPT generation always includes
+the saved note and uses the saved tone, independently of the parent-note policy.
+GPT receives blog-opted-in photos as image inputs and video captions as text;
+video content itself is not analyzed. No separate API key is required.
 
 The Windows helper can run `npm run watch` from `naver-blog-codex/`. Its first
 run saves the current latest ID as a baseline and skips older records; `--latest`
 processes the current latest record once. It checks for new IDs every 15 seconds,
-waits at least three minutes after record creation, then requires the blog-media
-metadata to match across two 15-second polls before asking the existing GPT
-bridge for a draft. The ignored `watch-settings.json` selects one of four tones
-and defaults parent-note handling to `never`; `npm run watch:configure` changes
-those settings. Local watcher state contains only record IDs. `npm run
+waits at least three minutes after record creation, then requires blog-media and
+saved blog settings to match across two 15-second polls before asking GPT for a
+draft. It checks the settings and media again after generation and uses a
+versioned internal draft file to avoid reusing a stale result. Existing files
+are preserved. Local `watch-settings.json` controls parent-note handling
+(default `never`); saved per-record tone takes precedence. Editing settings does
+not reprocess an already generated record. Local watcher state contains only
+record IDs. `npm run
 autostart:install` registers a per-user Windows logon task with a minimized,
 interactive PowerShell window. The watcher then opens the existing Naver helper;
 media upload and `SAVE` or the two-step `PUBLISH` flow still require terminal
@@ -60,11 +62,11 @@ input, so the task runs in the signed-in user session rather than Docker.
 
 The separate Windows helper in `naver-blog-codex/` uses a dedicated Playwright
 Chromium profile, stores its login session locally, and does not store the
-Naver password. It stages only selected media from the exported snapshot, fills
+Naver password. It stages only selected media from the internal snapshot, fills
 the SmartEditor ONE title and body, and can upload those photos/videos in record
 order after explicit `UPLOAD` confirmation. The user reviews the complete editor
 and chooses `SAVE` for a Naver draft, or `PUBLISH` to open Naver's settings. A
 second `PUBLISH` confirmation is required before the final publish button is
 clicked. Review selected media for faces and personal information before
-publishing. The helper accepts only the exported media snapshot, avoiding reads
-from the records API after export.
+publishing. The helper accepts the internally generated media snapshot; users
+do not download or move JSON files.

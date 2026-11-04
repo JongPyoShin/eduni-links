@@ -14,23 +14,9 @@ npm run login
 
 The last command opens a separate Chromium window at Naver login. Sign in and complete any verification yourself, then close the browser. The login session stays in the local `naver-profile/` directory. Do not share or commit it.
 
-## Send a draft from EDUNI
+## Draft source
 
-Open a saved reading record's history, choose a writing tone, and click `GPT 초안 생성`. The portal uses its existing authenticated GPT bridge; no separate API key is needed. Only attachments marked for blog use are included. Approved photos are sent as GPT image inputs when you request generation, and video captions are text context because the selected model does not accept video input. The parent note is excluded unless its checkbox is selected. Review and edit the title/body, then click `로컬 도우미용 파일 저장`. Move the downloaded `reading-blog-<record-id>.json` file into this helper's `drafts/` directory.
-
-Preview the file without network access or opening Naver:
-
-```powershell
-npm run save-draft -- --dry-run drafts\reading-blog-1.json
-```
-
-To prepare it in Naver:
-
-```powershell
-npm run save-draft -- drafts\reading-blog-1.json
-```
-
-The helper resolves your blog through Naver's `GoBlogWrite.naver` entry and opens the SmartEditor ONE writer for that blog. It downloads only media included in the exported file, from the exact EDUNI origin, into an ignored `input/photos/<job-id>` folder. Before the first download from an origin, type that exact origin in the terminal; the helper stores only the confirmed origin in ignored `eduni-origin.json`. A different origin requires a new confirmation. It allows up to 20 items (including at most 10 videos), 10 MiB per image, and 100 MiB per video; redirects and other hosts are rejected. Public EDUNI origins must use HTTPS. Every HTTP DNS result must be local/private/Tailscale. Resolved addresses are pinned for each HTTP(S) request so the connection cannot perform a second DNS lookup after validation.
+The watcher reads the record's saved blog note, saved tone, and blog-use media directly from EDUNI, then writes a private local draft and opens the Naver helper. No per-record JSON download or manual file move is required. Notes and tone are managed on the reading record in EDUNI. The browser helper still requires the explicit review and `SAVE`/`PUBLISH` confirmations described below.
 
 ## Watch for new reading records
 
@@ -48,7 +34,11 @@ To start it manually, run:
 npm run watch
 ```
 
-On first use, the watcher asks for the exact EDUNI origin and stores it in `eduni-origin.json`. By default, it saves the current latest record ID as a baseline and skips existing history; later records are checked every 15 seconds. For each new record, it waits at least three minutes after creation and for the blog-media list to remain unchanged across two polls. It then calls the Portal's existing GPT bridge, writes a private local JSON draft, and opens the Naver helper. The title/body and media are still visible for review in the editor before the explicit `SAVE` or `PUBLISH` confirmations below. `npm run watch:configure` lets you select another writing tone or choose parent-note policy `ask` or `always`.
+On first use, the watcher asks for the exact EDUNI origin and stores it in `eduni-origin.json`. By default, it saves the current latest record ID as a baseline and skips existing history; later records are checked every 15 seconds. For each new record, it waits at least three minutes after creation and until both the blog-media list and saved blog settings remain unchanged across two polls. It reads that record's saved editorial note and tone directly from EDUNI; the server's saved tone takes precedence over the legacy local watcher tone. The settings revision covers the saved note and tone; the stable media list is fingerprinted separately. Together they determine a versioned local draft filename, so changed inputs cannot silently reuse an old JSON draft. After GPT returns, the watcher rechecks both revisions and retries if either changed during generation. It stores the source revision in the local draft and opens the Naver helper. The title/body and media are still visible for review in the editor before the explicit `SAVE` or `PUBLISH` confirmations below. `npm run watch:configure` remains available for legacy local settings and parent-note policy.
+
+Editing a saved note or tone does not reprocess an already generated record or change an existing Naver post. Those settings are used the next time a record is generated; request a new generation explicitly if an existing record needs a revised draft.
+
+Run the watcher's offline snapshot checks with `npm run test:watch`.
 
 To start the watcher automatically when you sign in to Windows, run:
 

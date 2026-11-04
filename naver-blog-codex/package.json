@@ -8,6 +8,7 @@
     "save-draft": "node src/save-draft.js",
     "watch": "node src/watch.js",
     "watch:configure": "node src/watch.js --configure",
+    "test:watch": "node --test test/*.test.js",
     "autostart:install": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/install-autostart.ps1",
     "autostart:remove": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/remove-autostart.ps1"
   },

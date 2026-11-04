@@ -91,14 +91,14 @@ async def market_article_detail(article_id: str) -> JSONResponse:
         return JSONResponse({"ok": False, "error": "not_found"}, status_code=404, headers={"Cache-Control": "no-store"})
     conn = _db()
     try:
-        row = conn.execute("""SELECT article_id, source_url, publish_date, title, category, content_text,
+        row = conn.execute("""SELECT article_id, source_url, publish_date, title, category, content_text, content_html,
                 archive_status, has_content, media_count, has_video FROM market_archive.article WHERE article_id = %s""",
                            (article_id,)).fetchone()
         if row is None:
             return JSONResponse({"ok": False, "error": "not_found"}, status_code=404, headers={"Cache-Control": "no-store"})
         return JSONResponse({"ok": True, "article": {"id": str(row[0]), "url": row[1], "date": str(row[2]),
-            "title": row[3], "category": row[4], "text": row[5], "status": row[6],
-            "has_content": bool(row[7]), "media_count": int(row[8]), "has_video": bool(row[9])}}, headers={"Cache-Control": "no-store"})
+            "title": row[3], "category": row[4], "text": row[5], "html": row[6], "status": row[7],
+            "has_content": bool(row[8]), "media_count": int(row[9]), "has_video": bool(row[10])}}, headers={"Cache-Control": "no-store"})
     finally:
         conn.close()
 

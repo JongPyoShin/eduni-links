@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS market_archive.article (
   title TEXT NOT NULL,
   category TEXT NOT NULL DEFAULT '',
   content_text TEXT NOT NULL,
+  content_html TEXT NOT NULL DEFAULT '',
   source_filename TEXT NOT NULL,
   archive_status TEXT NOT NULL DEFAULT 'saved',
   has_content BOOLEAN NOT NULL DEFAULT TRUE,
@@ -28,6 +29,8 @@ CREATE TABLE IF NOT EXISTS market_archive.article (
 );
 ALTER TABLE market_archive.article
   ADD COLUMN IF NOT EXISTS has_video BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE market_archive.article
+  ADD COLUMN IF NOT EXISTS content_html TEXT NOT NULL DEFAULT '';
 CREATE INDEX IF NOT EXISTS market_archive_article_date_idx
   ON market_archive.article (publish_date DESC, article_id);
 CREATE INDEX IF NOT EXISTS market_archive_article_search_idx
@@ -111,6 +114,9 @@ def import_articles(source: Path) -> int:
             page = str(data.get("pageText", ""))
             raw_html = str(data.get("html", ""))
             content = _article_content(data)
+            content_html = data.get("contentHtml", "")
+            if not isinstance(content_html, str):
+                raise ValueError(f"invalid contentHtml in {path.name}")
             try:
                 date_value = _publish_date(page)
                 source_url = _article_url(article_id, data.get("url"))
@@ -121,15 +127,15 @@ def import_articles(source: Path) -> int:
             has_content = bool(data.get("hasContent", bool(content)))
             has_video = data.get("hasVideo") is True
             media_count = len(data.get("images", [])) if isinstance(data.get("images", []), list) else 0
-            conn.execute("""INSERT INTO market_archive.article(article_id,source_url,publish_date,title,category,content_text,source_filename,archive_status,has_content,has_video,media_count)
-                VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(article_id) DO UPDATE SET
+            conn.execute("""INSERT INTO market_archive.article(article_id,source_url,publish_date,title,category,content_text,content_html,source_filename,archive_status,has_content,has_video,media_count)
+                VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(article_id) DO UPDATE SET
                 publish_date=EXCLUDED.publish_date,title=EXCLUDED.title,category=EXCLUDED.category,
                 source_url=EXCLUDED.source_url,
-                content_text=EXCLUDED.content_text,source_filename=EXCLUDED.source_filename,
+                content_text=EXCLUDED.content_text,content_html=EXCLUDED.content_html,source_filename=EXCLUDED.source_filename,
                 archive_status=EXCLUDED.archive_status,has_content=EXCLUDED.has_content,
                 has_video=EXCLUDED.has_video,
                 media_count=EXCLUDED.media_count,imported_at=now()""",
-                (article_id, source_url, date_value, title, category, content, path.name, archive_status, has_content, has_video, media_count))
+                (article_id, source_url, date_value, title, category, content, content_html, path.name, archive_status, has_content, has_video, media_count))
             count += 1
         conn.commit()
     except Exception:

@@ -1,0 +1,7 @@
+naver-profile/
+node_modules/
+input/*
+drafts/
+eduni-origin.json
+watch-state.json
+watch-settings.json

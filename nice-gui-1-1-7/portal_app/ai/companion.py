@@ -27,6 +27,8 @@ MAX_ANSWER_CHARS = 1_200
 MAX_APPLIANCE_COMPARE_ANSWER_CHARS = 3_000
 MAX_PORTAL_ANSWER_CHARS = 4_000
 MAX_BRIDGE_RESPONSE_BYTES = 64_000
+MAX_BLOG_BRIDGE_RESPONSE_BYTES = 32_000
+MAX_BLOG_BRIDGE_REQUEST_BYTES = 48_000
 _SLOTS = threading.BoundedSemaphore(4)
 _RATE_LOCK = threading.Lock()
 _CALLER_LAST: dict[str, float] = {}
@@ -315,7 +317,7 @@ async def https_navigation_middleware(request: Request, call_next):
 app.middleware("http")(https_navigation_middleware)
 
 
-def _bridge_answer(prompt: str, context: dict[str, Any]) -> str:
+def _bridge_post(path: str, payload: dict[str, Any], response_limit: int) -> dict[str, Any]:
     from urllib.parse import urlparse
 
     endpoint = os.environ.get("EDUNI_AI_COMPANION_BRIDGE_URL", "").strip().rstrip("/")
@@ -325,21 +327,20 @@ def _bridge_answer(prompt: str, context: dict[str, Any]) -> str:
         raise ProviderUnavailableError("bridge is not configured")
     if parsed.hostname not in {"localhost", "127.0.0.1", "host.docker.internal"}:
         raise ProviderUnavailableError("bridge endpoint must be local")
-    request = URLRequest(endpoint + "/chat", data=json.dumps({"prompt": prompt, "context": context}, ensure_ascii=False).encode(),
+    request = URLRequest(endpoint + path, data=json.dumps(payload, ensure_ascii=False).encode(),
                          headers={"Content-Type": "application/json", "X-EDUNI-Bridge-Key": key}, method="POST")
     try:
         class NoRedirect(HTTPRedirectHandler):
             def redirect_request(self, req, fp, code, msg, headers, newurl):
                 return None
-        with build_opener(NoRedirect).open(request, timeout=40) as response:
-            raw = response.read(MAX_BRIDGE_RESPONSE_BYTES + 1)
-        if len(raw) > MAX_BRIDGE_RESPONSE_BYTES:
+        with build_opener(NoRedirect).open(request, timeout=100 if path == "/blog-draft" else 40) as response:
+            raw = response.read(response_limit + 1)
+        if len(raw) > response_limit:
             raise ProviderError("bridge response too large")
         body = json.loads(raw)
-        answer = body.get("answer") if isinstance(body, dict) else None
-        if not isinstance(answer, str) or not answer.strip() or len(answer) > _answer_limit(context):
+        if not isinstance(body, dict):
             raise ProviderError("invalid bridge response")
-        return answer.strip()
+        return body
     except HTTPError as exc:
         if exc.code == 504:
             raise ProviderTimeoutError("bridge timed out") from exc
@@ -350,6 +351,41 @@ def _bridge_answer(prompt: str, context: dict[str, Any]) -> str:
         if isinstance(exc.reason, TimeoutError):
             raise ProviderTimeoutError("bridge timed out") from exc
         raise ProviderUnavailableError("bridge unavailable") from exc
+
+
+def _bridge_answer(prompt: str, context: dict[str, Any]) -> str:
+    body = _bridge_post("/chat", {"prompt": prompt, "context": context}, MAX_BRIDGE_RESPONSE_BYTES)
+    answer = body.get("answer")
+    if not isinstance(answer, str) or not answer.strip() or len(answer) > _answer_limit(context):
+        raise ProviderError("invalid bridge response")
+    return answer.strip()
+
+
+def _bridge_blog_draft(payload: dict[str, Any]) -> dict[str, str]:
+    body = _bridge_post("/blog-draft", payload, MAX_BLOG_BRIDGE_RESPONSE_BYTES)
+    title, text = body.get("title"), body.get("body")
+    if (set(body) != {"title", "body"} or not isinstance(title, str) or not title.strip() or len(title) > 80
+            or not isinstance(text, str) or not text.strip() or len(text) > 5_000):
+        raise ProviderError("invalid blog draft response")
+    return {"title": title.strip(), "body": text.strip()}
+
+
+def _run_blog_draft(payload: dict[str, Any], caller: str) -> dict[str, str]:
+    now = time.monotonic()
+    with _RATE_LOCK:
+        if now - _CALLER_LAST.get(caller, 0) < 1:
+            raise ProviderUnavailableError("rate limited")
+        if caller not in _CALLER_LAST and len(_CALLER_LAST) >= 256:
+            _CALLER_LAST.pop(next(iter(_CALLER_LAST)))
+        _CALLER_LAST[caller] = now
+    if not _SLOTS.acquire(blocking=False):
+        raise ProviderUnavailableError("busy")
+    try:
+        if os.environ.get("EDUNI_AI_COMPANION_PROVIDER", "disabled").strip().lower() != "bridge":
+            raise ProviderUnavailableError("GPT bridge is unavailable")
+        return _bridge_blog_draft(payload)
+    finally:
+        _SLOTS.release()
 
 
 @app.post("/ai/companion/chat")
@@ -407,6 +443,93 @@ async def companion_chat(request: Request) -> JSONResponse:
         return _error("ai_failed", 502)
     except Exception:
         return _error("ai_failed", 502)
+
+
+@app.post("/reading/api/records/{record_id}/blog-draft")
+async def reading_blog_draft_api(record_id: int, request: Request) -> JSONResponse:
+    if os.environ.get("EDUNI_AI_COMPANION_ENABLED", "0").strip() != "1":
+        return _error("ai_unavailable", 503)
+    origin = request.headers.get("origin", "")
+    expected = _expected_companion_origin(str(request.base_url), os.environ.get("EDUNI_AI_COMPANION_ORIGIN", ""))
+    if expected is None or origin.rstrip("/") != expected or request.headers.get("x-requested-with") != "XMLHttpRequest":
+        return _error("request_rejected", 403)
+    if request.headers.get("content-type", "").split(";", 1)[0].strip().lower() != "application/json":
+        return _error("invalid_request", 400)
+    try:
+        chunks = bytearray()
+        async for chunk in request.stream():
+            chunks.extend(chunk)
+            if len(chunks) > 2_000:
+                return _error("invalid_request", 400)
+        data = json.loads(chunks)
+        if (not isinstance(data, dict) or set(data) != {"tone", "include_parent_note"}
+                or data.get("tone") not in {"family", "plain", "child", "book"}
+                or not isinstance(data.get("include_parent_note"), bool)):
+            return _error("invalid_request", 400)
+    except (ValueError, TypeError, json.JSONDecodeError):
+        return _error("invalid_request", 400)
+
+    try:
+        from urllib.parse import urlsplit
+        from ..reading_attachments import list_reading_attachments
+        from ..reading_journal import get_reading_record
+
+        record = get_reading_record(record_id)
+        attachments = list_reading_attachments(record_id, blog_only=True)
+        photos = [item for item in attachments if item.get("kind") == "image"]
+        videos = [item for item in attachments if item.get("kind") == "video"]
+        origin_parts = urlsplit(expected)
+        if photos and origin_parts.scheme != "https":
+            return _error("blog_images_require_https", 400)
+
+        def clean_text(key: str, limit: int) -> str:
+            value = record.get(key, "")
+            return value.strip()[:limit] if isinstance(value, str) else ""
+
+        source_record: dict[str, Any] = {
+            "title": clean_text("title", 160),
+            "author": clean_text("author", 120),
+            "read_date": clean_text("read_date", 10),
+            "reading_mode": {"alone": "혼자 읽기", "together": "같이 읽기", "read_aloud": "읽어주기"}.get(clean_text("reading_mode", 20), "독서 방식 미기록"),
+            "feeling": {1: "괜찮았어", 2: "괜찮았어", 3: "괜찮았어", 4: "재미있었어", 5: "또 읽고 싶어"}.get(record.get("rating"), "느낌 미기록"),
+            "child_comment": clean_text("child_comment", 2_000),
+            "favorite_part": clean_text("favorite_part", 2_000),
+        }
+        include_parent_note = data["include_parent_note"]
+        if include_parent_note:
+            source_record["parent_note"] = clean_text("parent_note", 2_000)
+        payload = {
+            "tone": data["tone"],
+            "record": source_record,
+            "images": [
+                {"url": expected.rstrip("/") + item["url"], "caption": str(item.get("caption", ""))[:500], "position": item["position"]}
+                for item in photos
+            ],
+            "video_captions": [
+                {"caption": str(item.get("caption", ""))[:500], "position": item["position"]}
+                for item in videos
+            ],
+        }
+        packed = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        if len(packed) > MAX_BLOG_BRIDGE_REQUEST_BYTES:
+            return _error("blog_request_too_large", 400)
+        caller = request.client.host if request.client else "unknown"
+        draft = await asyncio.to_thread(_run_blog_draft, payload, caller)
+        return JSONResponse({
+            "ok": True, **draft, "photo_count": len(photos), "video_count": len(videos),
+        }, headers={"Cache-Control": "no-store"})
+    except KeyError:
+        return _error("record_not_found", 404)
+    except ProviderUnavailableError as exc:
+        return _error("busy" if str(exc) in {"busy", "rate limited"} else "ai_unavailable", 429 if str(exc) in {"busy", "rate limited"} else 503)
+    except ProviderTimeoutError:
+        return _error("ai_timeout", 504)
+    except URLError as exc:
+        return _error("ai_timeout" if isinstance(exc.reason, TimeoutError) else "ai_failed", 504 if isinstance(exc.reason, TimeoutError) else 502)
+    except ProviderError:
+        return _error("ai_failed", 502)
+    except Exception:
+        return _error("blog_draft_failed", 502)
 
 
 def _run_provider(prompt: str, context: dict[str, Any], caller: str = "unknown") -> tuple[int, str]:

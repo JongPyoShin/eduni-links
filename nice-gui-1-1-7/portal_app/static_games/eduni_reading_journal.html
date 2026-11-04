@@ -294,6 +294,23 @@
     .history-entry-head { display:flex; align-items:center; justify-content:space-between; gap:8px; color:var(--leaf); font-weight:900; }
     .history-entry p { margin:8px 0 0; color:#514a44; font-size:13px; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; }
     .history-entry p b { color:var(--leaf); }
+    .history-entry-actions { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+    .blog-draft-button { padding:0; border:0; background:transparent; color:#365342; font-size:12px; font-weight:900; }
+    .blog-draft-panel { display:grid; gap:10px; margin-top:12px; padding:12px; border:1px solid #cddbcf; border-radius:13px; background:#f4f8f2; }
+    .blog-draft-panel[hidden] { display:none; }
+    .blog-draft-help,.blog-draft-status { margin:0; color:var(--muted); font-size:12px; line-height:1.5; }
+    .blog-draft-panel label { display:grid; gap:5px; color:#514a44; font-size:12px; font-weight:850; }
+    .blog-draft-panel select,.blog-draft-panel input,.blog-draft-panel textarea { width:100%; min-width:0; border:1px solid #dcd1c5; border-radius:9px; background:white; color:var(--ink); padding:9px; font:inherit; }
+    .blog-draft-panel textarea { min-height:250px; resize:vertical; line-height:1.55; white-space:pre-wrap; }
+    .blog-draft-parent-toggle { display:flex !important; grid-template-columns:auto 1fr; align-items:center; justify-content:start; gap:7px !important; }
+    .blog-draft-parent-toggle input { width:auto; }
+    .blog-draft-media { display:grid; grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); gap:8px; }
+    .blog-draft-media figure { min-width:0; margin:0; }
+    .blog-draft-media img,.blog-draft-media video { display:block; width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:8px; background:#eee; }
+    .blog-draft-media figcaption { margin-top:4px; color:#625950; font-size:11px; line-height:1.4; overflow-wrap:anywhere; }
+    .blog-draft-actions { display:flex; gap:7px; flex-wrap:wrap; }
+    .blog-draft-actions button { min-height:38px; padding:0 11px; border:1px solid var(--line); border-radius:10px; background:white; color:var(--ink); font-size:12px; font-weight:850; }
+    .blog-draft-actions .primary { border-color:var(--leaf); background:var(--leaf); color:white; }
     .parent-dialog { width:min(760px,calc(100vw - 20px)); max-height:90dvh; overflow:auto; padding:0; border:1px solid var(--line); border-radius:20px; background:var(--card); color:var(--ink); box-shadow:0 24px 80px #1e191433; }
     .parent-dialog::backdrop { background:#1c22238c; backdrop-filter:blur(3px); }
     .parent-dialog-head { position:sticky; top:0; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 16px; border-bottom:1px solid var(--line); background:var(--card); }
@@ -1632,6 +1649,189 @@
         }
       }
 
+      function createBlogDraftPanel(entry) {
+        const panel = document.createElement('section');
+        panel.className = 'blog-draft-panel';
+        panel.id = 'reading-blog-draft-' + String(entry.id);
+        panel.setAttribute('aria-label', '블로그 글 초안');
+        const help = document.createElement('p');
+        help.className = 'blog-draft-help';
+        help.textContent = 'GPT 초안 생성 버튼을 누르면 저장된 독서 기록과 블로그 사용 허용 사진이 GPT에 전달됩니다. 보호자 메모는 선택한 경우에만 포함되며, 생성된 제목·본문은 직접 고친 뒤 로컬 도우미로 보낼 수 있어요.';
+        const toneLabel = document.createElement('label');
+        toneLabel.append(document.createTextNode('글 분위기'));
+        const toneSelect = document.createElement('select');
+        toneSelect.setAttribute('aria-label', '블로그 글 분위기 선택');
+        const tones = [
+          ['family', '따뜻한 가족 독서기록'],
+          ['plain', '담백한 독서 일지'],
+          ['child', '아이의 말과 장면 중심'],
+          ['book', '책 정보 중심 기록']
+        ];
+        for (const [value, label] of tones) {
+          const option = document.createElement('option'); option.value = value; option.textContent = label; toneSelect.append(option);
+        }
+        toneLabel.append(toneSelect);
+        const parentLabel = document.createElement('label');
+        parentLabel.className = 'blog-draft-parent-toggle';
+        const parentToggle = document.createElement('input'); parentToggle.type = 'checkbox';
+        parentToggle.disabled = !entry.parent_note;
+        parentLabel.append(parentToggle, document.createTextNode('보호자 메모 포함'));
+        const titleLabel = document.createElement('label');
+        titleLabel.append(document.createTextNode('제목'));
+        const titleInput = document.createElement('input'); titleInput.type = 'text'; titleInput.maxLength = 120; titleInput.setAttribute('aria-label', '블로그 글 제목');
+        titleLabel.append(titleInput);
+        const bodyLabel = document.createElement('label');
+        bodyLabel.append(document.createTextNode('본문'));
+        const bodyInput = document.createElement('textarea'); bodyInput.rows = 12; bodyInput.setAttribute('aria-label', '블로그 글 본문');
+        bodyLabel.append(bodyInput);
+        const mediaHelp = document.createElement('p'); mediaHelp.className = 'blog-draft-help';
+        mediaHelp.textContent = '사진은 GPT가 초안 작성에 참고합니다. 영상은 저장된 설명만 참고하고, 사진·영상 파일은 로컬 도우미가 본문 뒤에 기록 순서로 첨부합니다. 게시 전에 얼굴과 개인정보 노출을 확인하세요.';
+        const mediaStatus = document.createElement('p'); mediaStatus.className = 'blog-draft-status'; mediaStatus.textContent = '블로그용 사진·영상 확인 중…';
+        const mediaList = document.createElement('div'); mediaList.className = 'blog-draft-media';
+        const actions = document.createElement('div'); actions.className = 'blog-draft-actions';
+        const regenerate = document.createElement('button'); regenerate.type = 'button'; regenerate.className = 'primary'; regenerate.textContent = 'GPT 초안 생성'; regenerate.disabled = true;
+        const copy = document.createElement('button'); copy.type = 'button'; copy.textContent = '제목·본문 복사';
+        const exportDraft = document.createElement('button'); exportDraft.type = 'button'; exportDraft.textContent = '로컬 도우미용 파일 저장'; exportDraft.disabled = true;
+        const status = document.createElement('p'); status.className = 'blog-draft-status'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
+        actions.append(regenerate, copy, exportDraft);
+        panel.append(help, toneLabel, parentLabel, titleLabel, bodyLabel, mediaHelp, mediaStatus, mediaList, actions, status);
+        const updateActions = () => {
+          const hasDraft = Boolean(titleInput.value.trim() && bodyInput.value.trim());
+          copy.disabled = !hasDraft || Boolean(panel._blogDraftGenerating);
+          const settingsMatch = panel._blogDraftTone === toneSelect.value && panel._blogDraftParentIncluded === parentToggle.checked;
+          exportDraft.disabled = !hasDraft || !Array.isArray(panel._blogMedia) || !settingsMatch || Boolean(panel._blogDraftGenerating);
+        };
+        const generate = async () => {
+          if (regenerate.disabled || !panel.isConnected) return;
+          panel._blogDraftGenerating = true;
+          regenerate.disabled = true;
+          toneSelect.disabled = true;
+          parentToggle.disabled = true;
+          titleInput.disabled = true;
+          bodyInput.disabled = true;
+          updateActions();
+          regenerate.textContent = 'GPT가 사진과 기록을 살펴보는 중…';
+          status.textContent = '선택한 글 분위기로 초안을 작성하고 있어요. 영상은 장면을 분석하지 않고 저장 설명만 참고합니다.';
+          try {
+            const response = await fetch('/reading/api/records/' + encodeURIComponent(String(entry.id)) + '/blog-draft', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+              body: JSON.stringify({ tone: toneSelect.value, include_parent_note: parentToggle.checked }),
+              cache: 'no-store'
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || data.ok !== true || typeof data.title !== 'string' || typeof data.body !== 'string') {
+              const messages = {
+                ai_unavailable: 'GPT 연결을 사용할 수 없어요. 연결 상태를 확인해 주세요.',
+                ai_timeout: 'GPT 응답 시간이 초과됐어요. 잠시 후 다시 시도해 주세요.',
+                ai_failed: 'GPT 초안을 만들지 못했어요. 기록이나 사진 형식을 확인해 주세요.',
+                busy: 'GPT 요청이 몰려 있어요. 잠시 후 다시 시도해 주세요.',
+                blog_images_require_https: '사진을 GPT에 전달하려면 보안 HTTPS 연결이 필요해요.'
+              };
+              throw new Error(messages[data.error] || 'GPT 초안을 만들지 못했어요. 다시 시도해 주세요.');
+            }
+            titleInput.value = data.title;
+            bodyInput.value = data.body;
+            panel._blogDraftTone = toneSelect.value;
+            panel._blogDraftParentIncluded = parentToggle.checked;
+            status.textContent = 'GPT 초안 생성 완료 · 사진 ' + Number(data.photo_count || 0) + '장 참고 · 영상 ' + Number(data.video_count || 0) + '개는 설명만 참고했어요. 제목과 본문을 검토해 주세요.';
+          } catch (error) {
+            status.textContent = error.message || 'GPT 초안을 만들지 못했어요. 다시 시도해 주세요.';
+          } finally {
+            if (panel.isConnected) {
+              panel._blogDraftGenerating = false;
+              toneSelect.disabled = false;
+              parentToggle.disabled = !entry.parent_note;
+              titleInput.disabled = false;
+              bodyInput.disabled = false;
+              regenerate.disabled = !Array.isArray(panel._blogMedia);
+              regenerate.textContent = titleInput.value.trim() && bodyInput.value.trim() ? 'GPT로 다시 생성' : 'GPT 초안 생성';
+              updateActions();
+            }
+          }
+        };
+        regenerate.addEventListener('click', generate);
+        toneSelect.addEventListener('change', () => { status.textContent = '글 분위기가 바뀌었어요. GPT 초안을 다시 생성하면 반영됩니다.'; });
+        parentToggle.addEventListener('change', () => { status.textContent = '보호자 메모 포함 여부가 바뀌었어요. GPT 초안을 다시 생성하면 반영됩니다.'; });
+        titleInput.addEventListener('input', updateActions);
+        bodyInput.addEventListener('input', updateActions);
+        copy.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(titleInput.value + '\n\n' + bodyInput.value);
+            status.textContent = '제목과 본문을 복사했어요.';
+          } catch (_) {
+            status.textContent = '복사할 수 없어요. 제목과 본문을 선택해 직접 복사해 주세요.';
+          }
+        });
+        exportDraft.addEventListener('click', () => {
+          if (!Array.isArray(panel._blogMedia)) {
+            status.textContent = '블로그용 사진·영상 목록을 불러온 뒤 다시 시도해 주세요.';
+            return;
+          }
+          const payload = {
+            schemaVersion: 1,
+            source: 'eduni-reading-journal',
+            title: titleInput.value,
+            body: bodyInput.value,
+            portalOrigin: window.location.origin,
+            media: panel._blogMedia.map((attachment, position) => ({
+              kind: attachment.kind,
+              url: new URL(attachment.url, window.location.href).href,
+              caption: attachment.caption || '',
+              position
+            }))
+          };
+          const blobUrl = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
+          const download = document.createElement('a'); download.href = blobUrl; download.download = 'reading-blog-' + String(entry.id) + '.json';
+          document.body.append(download); download.click(); download.remove();
+          window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+          status.textContent = '현재 제목·본문과 허용된 미디어 목록을 로컬 도우미 파일로 저장했어요.';
+        });
+        panel._blogMediaStatus = mediaStatus;
+        panel._blogMediaList = mediaList;
+        panel._blogDraftGenerateButton = regenerate;
+        panel._blogDraftUpdateActions = updateActions;
+        panel._blogMedia = null;
+        updateActions();
+        return panel;
+      }
+
+      async function loadBlogDraftMedia(recordId, panel) {
+        try {
+          const response = await fetch('/reading/api/records/' + encodeURIComponent(recordId) + '/blog-media', { cache: 'no-store' });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || !Array.isArray(data.attachments)) throw new Error(data.error || '블로그용 미디어를 불러오지 못했어요.');
+          if (!panel.isConnected) return;
+          panel._blogMedia = data.attachments;
+          panel._blogDraftGenerateButton.disabled = false;
+          panel._blogMediaList.replaceChildren();
+          if (!data.attachments.length) {
+            panel._blogMediaStatus.textContent = '블로그 사용으로 허용된 사진·영상이 없어요.';
+            return;
+          }
+          panel._blogMediaStatus.textContent = '블로그 사용 허용 항목 ' + data.attachments.length + '개';
+          data.attachments.forEach((attachment, index) => {
+            const figure = document.createElement('figure');
+            const media = document.createElement(attachment.kind === 'video' ? 'video' : 'img');
+            media.src = attachment.url;
+            if (media.tagName === 'VIDEO') { media.controls = true; media.playsInline = true; media.preload = 'metadata'; }
+            else media.alt = attachment.caption || '블로그에 사용할 읽는 순간 사진 ' + (index + 1);
+            const caption = document.createElement('figcaption');
+            caption.textContent = (attachment.kind === 'video' ? '영상' : '사진') + ' ' + (index + 1) + (attachment.caption ? ' · ' + attachment.caption : ' · 설명 없음');
+            figure.append(media, caption);
+            panel._blogMediaList.append(figure);
+          });
+          panel._blogDraftUpdateActions();
+        } catch (error) {
+          if (panel.isConnected) {
+            panel._blogMedia = null;
+            panel._blogMediaStatus.textContent = error.message || '블로그용 미디어를 불러오지 못했어요.';
+            panel._blogDraftGenerateButton.disabled = true;
+            panel._blogDraftUpdateActions();
+          }
+        }
+      }
+
       async function showRecordDetail(record, { recordHistory = true } = {}) {
         const requestGeneration = ++detailRequestGeneration;
         const detailCover = document.getElementById('detailCover');
@@ -1666,10 +1866,11 @@
             const item = document.createElement('article'); item.className = 'history-entry';
             const head = document.createElement('div'); head.className = 'history-entry-head';
             const date = document.createElement('span'); date.textContent = entry.read_date || ''; head.append(date);
-            const actions = document.createElement('span');
+            const actions = document.createElement('span'); actions.className = 'history-entry-actions';
             const edit = document.createElement('button'); edit.className = 'edit-btn'; edit.type = 'button'; edit.dataset.historyEdit = String(entry.id); edit.textContent = '수정';
+            const blog = document.createElement('button'); blog.className = 'blog-draft-button'; blog.type = 'button'; blog.dataset.historyBlog = String(entry.id); blog.textContent = '블로그 초안'; blog.setAttribute('aria-expanded', 'false'); blog.setAttribute('aria-controls', 'reading-blog-draft-' + String(entry.id));
             const remove = document.createElement('button'); remove.className = 'delete-btn'; remove.type = 'button'; remove.dataset.historyDelete = String(entry.id); remove.textContent = '삭제';
-            actions.append(edit, document.createTextNode(' · '), remove); head.append(actions); item.append(head);
+            actions.append(edit, blog, remove); head.append(actions); item.append(head);
             const meta = document.createElement('p'); meta.textContent = [modeLabel(entry.reading_mode), moodLabel(entry.rating)].filter(Boolean).join(' · '); item.append(meta);
             for (const [label, value] of [['아이가 한 말', entry.child_comment], ['기억에 남은 장면', entry.favorite_part], ['부모 메모', entry.parent_note]]) {
               if (!value) continue;
@@ -1933,9 +2134,27 @@
       detailHistory.addEventListener('click', async (event) => {
         const editButton = event.target.closest('[data-history-edit]');
         const deleteButton = event.target.closest('[data-history-delete]');
-        if (!editButton && !deleteButton) return;
-        const id = Number((editButton || deleteButton).dataset.historyEdit || (editButton || deleteButton).dataset.historyDelete);
+        const blogButton = event.target.closest('[data-history-blog]');
+        if (!editButton && !deleteButton && !blogButton) return;
+        const trigger = editButton || deleteButton || blogButton;
+        const id = Number(trigger.dataset.historyEdit || trigger.dataset.historyDelete || trigger.dataset.historyBlog);
         if (!Number.isInteger(id) || id < 1) return;
+        if (blogButton) {
+          const item = blogButton.closest('.history-entry');
+          const existing = item && item.querySelector('.blog-draft-panel');
+          if (existing) {
+            existing.hidden = !existing.hidden;
+            blogButton.setAttribute('aria-expanded', String(!existing.hidden));
+            return;
+          }
+          const entry = detailEntries.find((item) => item.id === id);
+          if (!entry || !item) { window.alert('기록을 불러오지 못했어요. 다시 시도해주세요.'); return; }
+          const panel = createBlogDraftPanel(entry);
+          item.append(panel);
+          blogButton.setAttribute('aria-expanded', 'true');
+          await loadBlogDraftMedia(id, panel);
+          return;
+        }
         if (editButton) {
           const record = detailEntries.find((item) => item.id === id);
           if (!record) { window.alert('기록을 불러오지 못했어요. 다시 시도해주세요.'); return; }

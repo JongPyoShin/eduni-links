@@ -113,10 +113,12 @@ def rollback() -> None:
     finally: conn.close()
 
 
-def import_articles(source: Path) -> int:
+def import_articles(source: Path, asset_root: Path) -> int:
     import json
     files = sorted(source.glob("*.json"))
     if not files: raise ValueError(f"no article JSON files in {source}")
+    asset_root = asset_root.resolve()
+    asset_digests: dict[Path, str] = {}
     conn = _connect_postgres(); count = 0
     try:
         for path in files:
@@ -136,11 +138,22 @@ def import_articles(source: Path) -> int:
                 source_image = str(image.get("src", "")).strip()
                 local_path = str(image.get("localPath", "")).replace("\\", "/")
                 filename = Path(local_path).name
-                asset_sha256 = filename.rsplit(".", 1)[0]
+                relative = Path(local_path)
                 if (not source_image.startswith(("https://", "http://"))
-                        or not re.fullmatch(r"[0-9a-f]{64}", asset_sha256)
+                        or relative.parts[:2] != ("assets", "images")
+                        or len(relative.parts) != 4
+                        or not re.fullmatch(r"[0-9a-f]{64}", Path(filename).stem)
+                        or relative.parts[2] != Path(filename).stem[:2]
                         or Path(filename).suffix.lower() not in {".png", ".jpg", ".jpeg", ".gif", ".webp"}):
                     raise ValueError(f"invalid saved image mapping in {path.name}")
+                saved_asset = (asset_root / Path(*relative.parts[2:])).resolve()
+                saved_asset.relative_to(asset_root)
+                if not saved_asset.is_file():
+                    raise ValueError(f"saved image file missing: {local_path}")
+                asset_sha256 = asset_digests.get(saved_asset)
+                if asset_sha256 is None:
+                    asset_sha256 = hashlib.sha256(saved_asset.read_bytes()).hexdigest()
+                    asset_digests[saved_asset] = asset_sha256
                 asset_url = f"/portal/market/api/assets/{asset_sha256}"
                 content_html = content_html.replace(html.escape(source_image, quote=True), asset_url)
                 content_html = content_html.replace("../" + local_path, asset_url)
@@ -185,14 +198,13 @@ def import_assets(source: Path) -> tuple[int, int, int]:
     inserted = skipped = total_bytes = 0
     try:
         for index, path in enumerate(files, 1):
-            asset_sha256 = path.stem.lower()
+            source_key = path.stem.lower()
             content_type = mime_types.get(path.suffix.lower())
-            if (not content_type or not re.fullmatch(r"[0-9a-f]{64}", asset_sha256)
-                    or path.parent.name.lower() != asset_sha256[:2]):
+            if (not content_type or not re.fullmatch(r"[0-9a-f]{64}", source_key)
+                    or path.parent.name.lower() != source_key[:2]):
                 raise ValueError(f"invalid image asset path: {path}")
             data = path.read_bytes()
-            if hashlib.sha256(data).hexdigest() != asset_sha256:
-                raise ValueError(f"image checksum mismatch: {path}")
+            asset_sha256 = hashlib.sha256(data).hexdigest()
             total_bytes += len(data)
             cursor = conn.execute("""INSERT INTO market_archive.media_asset(sha256,content_type,byte_length,data)
                 VALUES(%s,%s,%s,%s) ON CONFLICT(sha256) DO NOTHING""",
@@ -216,12 +228,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Explicitly manage the dedicated market archive PostgreSQL table")
     sub = parser.add_subparsers(dest="action", required=True)
     sub.add_parser("migrate"); imp = sub.add_parser("import"); imp.add_argument("source", type=Path)
+    imp.add_argument("--assets", type=Path, required=True)
     assets = sub.add_parser("assets"); assets.add_argument("source", type=Path)
     rollback_parser = sub.add_parser("rollback")
     rollback_parser.add_argument("--confirm-drop-market-archive", action="store_true", required=True)
     args = parser.parse_args()
     if args.action == "migrate": migrate(); print("market_archive schema created")
-    elif args.action == "import": print(f"upserted {import_articles(args.source)} articles")
+    elif args.action == "import": print(f"upserted {import_articles(args.source, args.assets)} articles")
     elif args.action == "assets":
         inserted, skipped, size = import_assets(args.source)
         print(f"assets inserted={inserted} existing={skipped} bytes={size}")

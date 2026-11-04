@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import re
@@ -183,7 +184,7 @@ async def market_ask(request: Request) -> JSONResponse:
         conn.close()
     if not rows:
         return JSONResponse({"ok": False, "error": "no_sources"}, status_code=404, headers={"Cache-Control": "no-store"})
-    from .ai.companion import _run_provider, validate_companion_payload
+    from .ai.companion import ProviderUnavailableError, _run_provider, validate_companion_payload
     excerpts = [{"id": str(row[0]), "date": str(row[1]), "title": row[2], "excerpt": _article_excerpt(row[3])} for row in rows]
     context = {"activity": "market_research", "question": json.dumps({"query": query.strip(), "articles": excerpts}, ensure_ascii=False), "choices": [], "selected": ""}
     try:
@@ -193,7 +194,16 @@ async def market_ask(request: Request) -> JSONResponse:
         prompt, context = validate_companion_payload({"prompt": prompt_text, "context": context})
         if len(json.dumps({"prompt": prompt, "context": context}, ensure_ascii=False).encode("utf-8")) > 8_000:
             return JSONResponse({"ok": False, "error": "context_too_large"}, status_code=400, headers={"Cache-Control": "no-store"})
-        status, answer = await __import__("asyncio").to_thread(_run_provider, prompt, context, "market:" + (request.client.host if request.client else "unknown"))
+        caller = "market:" + (request.client.host if request.client else "unknown")
+        try:
+            status, answer = await asyncio.to_thread(_run_provider, prompt, context, caller)
+        except ProviderUnavailableError:
+            await asyncio.sleep(1.05)
+            status, answer = await asyncio.to_thread(_run_provider, prompt, context, caller + ":retry")
+        else:
+            if status == 503:
+                await asyncio.sleep(1.05)
+                status, answer = await asyncio.to_thread(_run_provider, prompt, context, caller + ":retry")
     except Exception:
         return JSONResponse({"ok": False, "error": "ai_unavailable"}, status_code=503, headers={"Cache-Control": "no-store"})
     if status:

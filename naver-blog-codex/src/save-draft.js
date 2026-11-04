@@ -10,6 +10,7 @@ const { pipeline } = require('node:stream/promises');
 const { randomUUID } = require('node:crypto');
 const readline = require('node:readline/promises');
 const { chromium } = require('playwright');
+const log = require('./log');
 
 const ROOT = path.resolve(__dirname, '..');
 const MAX_TITLE = 120;
@@ -313,11 +314,13 @@ async function main() {
   const draft = JSON.parse(await fs.readFile(draftPath, 'utf8'));
   const origin = await validate(draft);
   if (dryRun) {
-    console.log('초안 구조 확인 완료: ' + draft.title + ' / 사진·영상 ' + draft.media.length + '개');
-    console.log('Naver에 접속하거나 파일을 업로드하지 않았습니다.');
+    await log(path.basename(draftPath) + ': local recovery draft valid; ' + draft.media.length + ' attachment(s).');
+    await log(path.basename(draftPath) + ': dry run only; no browser or Naver access.');
     return;
   }
+  await log(path.basename(draftPath) + ': downloading ' + draft.media.length + ' attachment(s) from EDUNI.');
   const media = await downloadMedia(draft, origin);
+  await log(path.basename(draftPath) + ': opening the dedicated Naver browser profile.');
   const context = await chromium.launchPersistentContext(path.join(ROOT, 'naver-profile'), {
     headless: false,
     viewport: { width: 1360, height: 900 },
@@ -325,10 +328,11 @@ async function main() {
   try {
     const page = context.pages()[0] || await context.newPage();
     await page.goto(BLOG_WRITE_ENTRY, { waitUntil: 'domcontentloaded' });
-    console.log('에디터를 열었습니다. 페이지 구조와 로그인 상태를 확인합니다.');
+    await log(path.basename(draftPath) + ': Naver editor entry opened; checking login and page structure.');
     if (/nidlogin\.login/.test(page.url())) {
-      console.log('Naver 로그인 화면입니다. 직접 로그인한 뒤 브라우저를 닫고 저장 파일 명령을 다시 실행하세요.');
+      await log(path.basename(draftPath) + ': login required; no Naver draft saved.', 'ERROR');
       await waitForBrowserClose(context);
+      process.exitCode = 1;
       return;
     }
     const blogUrl = new URL(page.url());
@@ -338,22 +342,25 @@ async function main() {
       ? blogPath[0]
       : null;
     if (!blogId) {
-      console.log('로그인된 블로그 주소를 확인할 수 없습니다. 글 입력을 중단합니다.');
+      await log(path.basename(draftPath) + ': could not identify logged-in blog; no Naver draft saved.', 'ERROR');
       await waitForBrowserClose(context);
+      process.exitCode = 1;
       return;
     }
     await page.goto(BLOG_EDITOR + '?blogId=' + encodeURIComponent(blogId), { waitUntil: 'domcontentloaded' });
     if (/nidlogin\.login/.test(page.url())) {
-      console.log('로그인 상태를 편집기에서 확인할 수 없습니다. 직접 로그인한 뒤 저장 파일 명령을 다시 실행하세요.');
+      await log(path.basename(draftPath) + ': editor login check failed; no Naver draft saved.', 'ERROR');
       await waitForBrowserClose(context);
+      process.exitCode = 1;
       return;
     }
     await page.locator('.se-section-documentTitle .se-module-text').first().waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {});
     const title = await uniqueLocator(page.locator('.se-section-documentTitle .se-module-text'));
     const body = await uniqueLocator(page.locator('.se-section-text .se-module-text'));
     if (!title || !body) {
-      console.log('제목/본문 입력 영역을 각각 하나로 특정할 수 없어 자동 입력을 중단했습니다. 직접 붙여넣고 검토할 수 있습니다.');
+      await log(path.basename(draftPath) + ': could not locate title/body editor fields; no Naver draft saved.', 'ERROR');
       await waitForBrowserClose(context);
+      process.exitCode = 1;
       return;
     }
     const documentData = await page.evaluate(() => {
@@ -361,8 +368,9 @@ async function main() {
       return typeof editor?.getDocumentData === 'function' ? editor.getDocumentData() : null;
     });
     if (!isEmptySmartEditorDocument(documentData)) {
-      console.log('편집기에 기존 제목이나 본문이 있어 덮어쓰지 않았습니다. 브라우저에서 내용을 확인하세요.');
+      await log(path.basename(draftPath) + ': editor already has content; preserving it and skipping save.', 'ERROR');
       await waitForBrowserClose(context);
+      process.exitCode = 1;
       return;
     }
     await typeEditorText(page, title, draft.title);
@@ -371,29 +379,31 @@ async function main() {
     const renderedBody = await body.innerText().catch(() => '');
     if (!normalizedText(renderedTitle).includes(normalizedText(draft.title))
       || !normalizedText(renderedBody).includes(normalizedText(draft.body))) {
-      console.log('에디터에 입력된 내용을 확인하지 못해 저장을 중단했습니다. 브라우저에서 내용을 직접 확인하세요.');
+      await log(path.basename(draftPath) + ': title/body verification failed; no Naver draft saved.', 'ERROR');
       await waitForBrowserClose(context);
+      process.exitCode = 1;
       return;
     }
     if (media.length) {
-      console.log('선택된 사진·동영상 ' + media.length + '개를 기록 순서대로 첨부합니다.');
+      await log(path.basename(draftPath) + ': attaching ' + media.length + ' item(s) in record order.');
       try {
         await attachMediaToEditor(page, media);
-        console.log('미디어가 편집기에 표시되고 이미지 리소스가 로드된 것을 확인했습니다.');
+        await log(path.basename(draftPath) + ': all attachments are visible and loaded.');
       } catch (error) {
-        console.log('미디어 첨부를 완료하지 못했습니다: ' + error.message);
-        console.log('임시저장은 실행하지 않았습니다. 브라우저에서 직접 확인하세요.');
+        await log(path.basename(draftPath) + ': attachment upload failed; save not attempted: ' + error.message, 'ERROR');
         await waitForBrowserClose(context);
+        process.exitCode = 1;
         return;
       }
     }
-    console.log('제목·본문' + (media.length ? '·미디어' : '') + '를 준비했습니다. 브라우저에서 내용을 검토하세요.');
+    await log(path.basename(draftPath) + ': title and body' + (media.length ? ' plus attachments' : '') + ' entered; saving as temporary draft.');
     try {
       await saveDraftOnly(page);
-      console.log('네이버 임시저장 완료 표시를 확인했습니다. 게시 동작은 수행하지 않습니다.');
+      await log(path.basename(draftPath) + ': Naver temporary-save confirmation observed; no publish action used.');
     } catch (error) {
-      console.log(error.message);
+      await log(path.basename(draftPath) + ': temporary save was not confirmed: ' + error.message, 'ERROR');
       await waitForBrowserClose(context);
+      process.exitCode = 1;
       return;
     }
   } finally {
@@ -403,7 +413,7 @@ async function main() {
 
 module.exports = { attachMediaToEditor, isEmptySmartEditorDocument, saveDraftOnly };
 
-if (require.main === module) main().catch((error) => {
-  console.error(error.message);
+if (require.main === module) main().catch(async (error) => {
+  await log(error.message, 'ERROR').catch(() => {});
   process.exitCode = 1;
 });

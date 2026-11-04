@@ -5,6 +5,7 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 const readline = require('node:readline/promises');
 const { createHash } = require('node:crypto');
+const log = require('./log');
 
 const ROOT = path.resolve(__dirname, '..');
 const STATE = path.join(ROOT, 'watch-state.json');
@@ -15,6 +16,7 @@ const API = '/reading/api/blog-watch/records';
 const TONES = ['family', 'plain', 'child', 'book'];
 const TONE_NAMES = ['따뜻한 가족 독서기록', '담백한 독서 일지', '아이의 말과 장면 중심', '책 정보 중심 기록'];
 const POLL_MS = 15_000;
+const IDLE_LOG_MS = 5 * 60_000;
 const RETRY_MS = 60_000;
 const GRACE_MS = 3 * 60_000;
 const settingsApi = (id) => '/reading/api/records/' + id + '/blog-settings';
@@ -177,7 +179,7 @@ async function readSettings() {
     if (error.code !== 'ENOENT') throw error;
     const defaults = { tone: 'family', parentNotePolicy: 'never' };
     await writeSettings(defaults);
-    console.log('Created watch-settings.json with the family tone; parent notes are excluded by default.');
+    await log('Created watch-settings.json with the family tone; parent notes are excluded by default.');
     return defaults;
   }
 }
@@ -244,7 +246,9 @@ function validateExistingDraft(draft, origin, recordId, stableMedia, settings) {
 }
 
 async function processRecord(origin, record, settings, state) {
+  await log('Record ' + record.id + ': waiting for stable reading settings and media.');
   const { attachments: stableMedia, settings: blogSettings } = await waitReady(origin, record);
+  await log('Record ' + record.id + ': snapshot stable; ' + stableMedia.length + ' attachment(s).');
   const filename = draftPath(record.id, blogSettings, stableMedia);
   let existingText;
   try {
@@ -257,15 +261,18 @@ async function processRecord(origin, record, settings, state) {
     try { existing = JSON.parse(existingText); }
     catch (_) { fail('Existing draft for record ' + record.id + ' is invalid; it was preserved unchanged.'); }
     validateExistingDraft(existing, origin, record.id, stableMedia, blogSettings);
-    console.log('Resuming the existing local draft for record ' + record.id + '.');
+    await log('Record ' + record.id + ': resuming local recovery draft; opening Naver editor.');
     await openDraft(filename);
+    await log('Record ' + record.id + ': Naver temporary save confirmed; updating watcher state.');
     state.lastGeneratedId = record.id;
     await writeState(state);
+    await log('Record ' + record.id + ': marked complete after Naver confirmation.');
     return;
   }
   const include_parent_note = settings.parentNotePolicy === 'always'
     ? true
     : settings.parentNotePolicy === 'ask' ? await parentNoteChoice() : false;
+  await log('Record ' + record.id + ': requesting article generation through EDUNI GPT.');
   const data = await api(origin, '/reading/api/records/' + record.id + '/blog-draft', {
     method: 'POST', body: JSON.stringify({ tone: blogSettings.blog_tone, include_parent_note }),
   });
@@ -274,6 +281,7 @@ async function processRecord(origin, record, settings, state) {
     || data.photo_count !== stableMedia.filter((item) => item.kind === 'image').length
     || data.video_count !== stableMedia.filter((item) => item.kind === 'video').length
     || data.source_revision !== blogSettings.source_revision) fail('EDUNI returned an invalid or stale draft.');
+  await log('Record ' + record.id + ': GPT article received; verifying the source snapshot before saving locally.');
   const afterMedia = (await api(origin, '/reading/api/records/' + record.id + '/blog-media')).attachments;
   const afterSettings = validateBlogSettings(await api(origin, settingsApi(record.id)));
   assertSnapshotCurrent(blogSettings, stableMedia, afterSettings, afterMedia);
@@ -291,10 +299,12 @@ async function processRecord(origin, record, settings, state) {
   await fs.mkdir(DRAFTS, { recursive: true, mode: 0o700 });
   const handle = await fs.open(filename, 'wx', 0o600);
   try { await handle.writeFile(JSON.stringify(draft, null, 2) + '\n'); } finally { await handle.close(); }
-  console.log('Generated a local draft for record ' + record.id + '.');
+  await log('Record ' + record.id + ': local recovery JSON created (not yet saved to Naver); opening editor.');
   await openDraft(filename);
+  await log('Record ' + record.id + ': Naver temporary save confirmed; updating watcher state.');
   state.lastGeneratedId = record.id;
   await writeState(state);
+  await log('Record ' + record.id + ': marked complete after Naver confirmation.');
 }
 
 async function main() {
@@ -312,7 +322,7 @@ async function main() {
   if (configure) {
     const settings = { tone: await chooseTone(), parentNotePolicy: await chooseParentNotePolicy() };
     await writeSettings(settings);
-    console.log('Saved watch-settings.json.');
+    await log('Saved watch-settings.json.');
     return;
   }
   const settings = await readSettings();
@@ -320,7 +330,7 @@ async function main() {
   for (;;) {
     try { latest = await records(origin); break; }
     catch (_) {
-      console.error('EDUNI record endpoint is unavailable; retrying in 60 seconds.');
+      await log('EDUNI record endpoint is unavailable; retrying in 60 seconds.', 'WARN');
       await sleep(RETRY_MS);
     }
   }
@@ -332,26 +342,38 @@ async function main() {
   if (latestOnly) {
     if (!latest) fail('No reading records found.');
     if (state.lastGeneratedId !== latest.id) await processRecord(origin, latest, settings, state);
+    else await log('Latest record ' + latest.id + ' is already marked complete; no browser opened.');
     return;
   }
-  console.log('Watching for new reading records; only record IDs newer than the saved baseline are eligible.');
+  await log('Watcher started; polling EDUNI every 15 seconds. baseline=' + state.baselineId + ', lastProcessed=' + state.lastGeneratedId + '.');
+  let lastIdleLogAt = Date.now();
   for (;;) {
     const afterId = Math.max(state.baselineId, state.lastGeneratedId);
     let page;
     try { page = await recordsAfter(origin, afterId); }
     catch (_) {
-      console.error('EDUNI record endpoint is unavailable; retrying in 60 seconds.');
+      await log('EDUNI record endpoint is unavailable; retrying in 60 seconds.', 'WARN');
       await sleep(RETRY_MS);
       continue;
     }
     if (page.length) {
       const record = page[0];
+      await log('Detected new record ' + record.id + '; starting draft workflow.');
       try { await processRecord(origin, record, settings, state); }
-      catch (error) { console.error('Record ' + record.id + ' was not completed: ' + error.message); await sleep(RETRY_MS); }
-    } else await sleep(POLL_MS);
+      catch (error) {
+        await log('Record ' + record.id + ' was not completed and remains pending; retrying in 60 seconds: ' + error.message, 'ERROR');
+        await sleep(RETRY_MS);
+      }
+    } else {
+      if (Date.now() - lastIdleLogAt >= IDLE_LOG_MS) {
+        await log('No new records; watcher is idle and will continue checking EDUNI every 15 seconds.');
+        lastIdleLogAt = Date.now();
+      }
+      await sleep(POLL_MS);
+    }
   }
 }
 
-if (require.main === module) main().catch((error) => { console.error(error.message); process.exitCode = 1; });
+if (require.main === module) main().catch(async (error) => { await log(error.message, 'ERROR').catch(() => {}); process.exitCode = 1; });
 
 module.exports = { assertSnapshotCurrent, draftPath, mediaKey, openDraft, validateBlogSettings, validateExistingDraft };

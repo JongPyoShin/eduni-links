@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import base64
+import hashlib
+import json
 import binascii
 from datetime import date
 from datetime import timedelta
@@ -11,7 +13,7 @@ import unicodedata
 import uuid
 from typing import Any
 
-from fastapi import Body, Query
+from fastapi import Body, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from nicegui import app
 
@@ -38,6 +40,8 @@ app.add_static_files("/reading-media", READING_MEDIA_DIR)
 
 READING_MODES = {"alone", "together", "read_aloud"}
 IMAGE_LIMIT_BYTES = 4 * 1024 * 1024
+BLOG_TONES = {"family", "plain", "child", "book"}
+BLOG_NOTE_LIMIT = 4000
 TEXT_LIMITS = {
     "title": 160,
     "author": 120,
@@ -207,6 +211,8 @@ def reading_record_from_row(row: tuple[Any, ...]) -> dict[str, Any]:
         "child_comment": str(row[7]),
         "favorite_part": str(row[8]),
         "parent_note": str(row[9]),
+        "blog_note": str(row[12]) if len(row) > 12 else "",
+        "blog_tone": str(row[13]) if len(row) > 13 else "family",
         "cover_filename": cover_filename,
         "cover_url": f"/reading-media/{cover_filename}" if cover_filename else None,
         "created_at": str(row[11]),
@@ -225,7 +231,7 @@ def get_reading_record(
         row = conn.execute(
             """
             SELECT id, child_profile_id, title, author, read_date, reading_mode, rating,
-                   child_comment, favorite_part, parent_note, cover_filename, created_at
+                   child_comment, favorite_part, parent_note, cover_filename, created_at, blog_note, blog_tone
               FROM reading_record
              WHERE id = ? AND child_profile_id = ?
             """,
@@ -234,6 +240,38 @@ def get_reading_record(
     if row is None:
         raise KeyError(record_id)
     return reading_record_from_row(row)
+
+
+
+def blog_settings_revision(blog_note: str, blog_tone: str) -> str:
+    canonical = json.dumps({"blog_note": blog_note, "blog_tone": blog_tone}, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def get_reading_blog_settings(record_id: int, path: Path | None = None, *, child_profile_id: int | None = None) -> dict[str, str]:
+    record = get_reading_record(record_id, path, child_profile_id=child_profile_id)
+    note, tone = record["blog_note"], record["blog_tone"]
+    return {"blog_note": note, "blog_tone": tone, "source_revision": blog_settings_revision(note, tone)}
+
+
+def update_reading_blog_settings(record_id: int, payload: dict[str, Any], path: Path | None = None, *, child_profile_id: int | None = None) -> dict[str, str]:
+    if set(payload) != {"blog_note", "blog_tone"}:
+        raise ValueError("invalid blog settings")
+    note, tone = payload.get("blog_note"), payload.get("blog_tone")
+    if not isinstance(note, str) or len(note) > BLOG_NOTE_LIMIT:
+        raise ValueError("blog_note must be at most 4000 characters")
+    if not isinstance(tone, str) or tone not in BLOG_TONES:
+        raise ValueError("invalid blog_tone")
+    ensure_reading_journal_schema(path)
+    profile_id = child_profile_id if child_profile_id is not None else default_child_profile_id(path)
+    with reading_database_connection(path) as conn:
+        cursor = conn.execute(
+            "UPDATE reading_record SET blog_note = ?, blog_tone = ? WHERE id = ? AND child_profile_id = ?",
+            (note.strip(), tone, record_id, profile_id),
+        )
+        if cursor.rowcount != 1:
+            raise KeyError(record_id)
+    return get_reading_blog_settings(record_id, path, child_profile_id=profile_id)
 
 
 def _validate_optional_read_date(value: object | None, field: str) -> str | None:
@@ -736,6 +774,67 @@ def reading_storage_health_api() -> JSONResponse:
     except Exception:
         return JSONResponse({"ok": False, "storage": "unavailable"}, status_code=503)
     return JSONResponse({"ok": True, "storage": backend})
+
+
+
+def _reading_settings_request_allowed(request: Request, *, require_origin: bool = False) -> bool:
+    if request.headers.get("x-requested-with") != "XMLHttpRequest":
+        return False
+    if not require_origin:
+        return True
+    origin = request.headers.get("origin", "")
+    configured = os.environ.get("EDUNI_AI_COMPANION_ORIGIN", "").strip().rstrip("/")
+    expected = configured or str(request.base_url).rstrip("/")
+    return origin.rstrip("/") == expected
+
+
+@app.get("/reading/api/records/{record_id}/blog-settings")
+def reading_blog_settings_get_api(record_id: int, request: Request) -> JSONResponse:
+    if not _reading_settings_request_allowed(request):
+        return JSONResponse({"ok": False, "error": "request_rejected"}, status_code=403, headers={"Cache-Control": "no-store"})
+    try:
+        settings = get_reading_blog_settings(record_id)
+    except KeyError:
+        return JSONResponse({"ok": False, "error": "record not found"}, status_code=404)
+    return JSONResponse({"ok": True, **settings}, headers={"Cache-Control": "no-store"})
+
+
+@app.patch("/reading/api/records/{record_id}/blog-settings")
+def reading_blog_settings_patch_api(record_id: int, request: Request, payload: dict[str, Any] | None = Body(default=None)) -> JSONResponse:
+    if not _reading_settings_request_allowed(request, require_origin=True):
+        return JSONResponse({"ok": False, "error": "request_rejected"}, status_code=403, headers={"Cache-Control": "no-store"})
+    try:
+        settings = update_reading_blog_settings(record_id, payload or {})
+    except ValueError as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+    except KeyError:
+        return JSONResponse({"ok": False, "error": "record not found"}, status_code=404)
+    return JSONResponse({"ok": True, **settings}, headers={"Cache-Control": "no-store"})
+
+
+@app.get("/reading/api/blog-watch/records")
+def reading_blog_watch_records_api(
+    limit: int = Query(default=100, ge=1, le=500),
+    after_id: int | None = Query(default=None, ge=0),
+) -> JSONResponse:
+    """Expose only IDs and creation times to the local new-record watcher."""
+    ensure_reading_journal_schema()
+    profile_id = default_child_profile_id()
+    with reading_database_connection() as conn:
+        if after_id is None:
+            rows = conn.execute(
+                "SELECT id, created_at FROM reading_record WHERE child_profile_id = ? ORDER BY id DESC LIMIT ?",
+                (profile_id, limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT id, created_at FROM reading_record WHERE child_profile_id = ? AND id > ? ORDER BY id ASC LIMIT ?",
+                (profile_id, after_id, limit),
+            ).fetchall()
+    return JSONResponse(
+        {"records": [{"id": int(row[0]), "created_at": str(row[1])} for row in rows]},
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.get("/reading/api/records")

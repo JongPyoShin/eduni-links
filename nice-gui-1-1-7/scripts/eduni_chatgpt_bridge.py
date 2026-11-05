@@ -21,6 +21,7 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 AUTH = "https://auth.openai.com/api/accounts/oauth/token"
 RESOURCE = "https://api.openai.com/v1"
 MODEL = "gpt-5.6-luna"
+BLOG_MODEL = "gpt-6.1-terra"
 MAX_BODY = 8_000
 MAX_BLOG_DRAFT_BODY = 48_000
 MAX_ANSWER_CHARS = 1_200
@@ -488,16 +489,17 @@ def complete_blog_draft(payload: dict, get_credentials=credentials) -> dict:
     for item, image_data_url in zip(data["images"], image_data_urls):
         if item["caption"]:
             content.append({"type": "input_text", "text": "사진 " + str(item["position"] + 1) + " 설명: " + item["caption"]})
-        content.append({"type": "input_image", "image_url": image_data_url, "detail": "low"})
+        content.append({"type": "input_image", "image_url": image_data_url, "detail": "high"})
     record = get_credentials()
     payload = {
-        "model": MODEL,
+        "model": BLOG_MODEL,
+        "reasoning": {"effort": "medium"},
         "store": False,
         "stream": True,
         "instructions": instructions,
         "input": [{"role": "user", "content": content}],
         "max_output_tokens": 3_000,
-        "text": {"format": {
+        "text": {"verbosity": "high", "format": {
             "type": "json_schema",
             "name": "eduni_reading_blog_draft",
             "strict": True,

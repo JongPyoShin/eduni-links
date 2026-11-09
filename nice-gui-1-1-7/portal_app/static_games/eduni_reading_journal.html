@@ -158,6 +158,9 @@
     .chip.active { border-color:var(--leaf); background:var(--leaf-soft); color:#365342; box-shadow:inset 0 0 0 1px var(--leaf); }
     .mood-chip.active { border-color:#d49c31; background:#fff4d7; color:#7f5814; box-shadow:inset 0 0 0 1px #d49c31; }
     .form-actions { display:flex; justify-content:flex-end; align-items:center; gap:10px; padding-top:3px; flex-wrap:wrap; }
+    .record-save-buttons { display:flex; gap:8px; }
+    .record-status-help { margin:8px 0 0; color:var(--muted); font-size:12px; line-height:1.45; }
+    .draft-pill { background:#fff0d3; color:#79551b; }
     .photo-tools { display:flex; justify-content:flex-end; margin-top:8px; }
     .moment-panel { grid-column:1/-1; min-width:0; margin-top:0; padding:14px; border:1px solid var(--line); border-radius:16px; background:#fffaf3; }
     .moment-panel h3 { margin:0 0 6px; font-size:16px; }
@@ -685,10 +688,14 @@
           <textarea id="parentNote" maxlength="2500" placeholder="읽는 모습, 반응, 다음에 함께 이야기하고 싶은 점"></textarea>
         </div>
 
+        <p class="record-status-help">사진을 나중에 올릴 예정이면 임시저장하세요. 등록 완료한 기록만 블로그 글쓰기 대상이 됩니다.</p>
         <div class="form-actions">
           <span id="saveStatus" class="save-status" role="status" aria-live="polite"></span>
           <button id="cancelEditButton" class="secondary-btn hidden" type="button">수정 취소</button>
-          <button id="saveButton" class="primary-btn" type="submit">기록 저장</button>
+          <div class="record-save-buttons">
+            <button id="saveDraftButton" class="secondary-btn" type="submit" name="record_status" value="draft">임시저장</button>
+            <button id="completeRecordButton" class="primary-btn" type="submit" name="record_status" value="completed">등록 완료</button>
+          </div>
         </div>
       </div>
     </form>
@@ -713,7 +720,8 @@
       const galleryPickerButton = document.getElementById('galleryPickerButton');
       const coverPicker = document.getElementById('coverPicker');
       const coverPreview = document.getElementById('coverPreview');
-      const saveButton = document.getElementById('saveButton');
+      const saveDraftButton = document.getElementById('saveDraftButton');
+      const completeRecordButton = document.getElementById('completeRecordButton');
       const saveStatus = document.getElementById('saveStatus');
       const recordsEl = document.getElementById('records');
       const recordDetailDialog = document.getElementById('recordDetailDialog');
@@ -806,7 +814,8 @@
 
       function setImageProcessing(value) {
         imageProcessing = value;
-        saveButton.disabled = value || savingRecord;
+        saveDraftButton.disabled = value || savingRecord;
+        completeRecordButton.disabled = value || savingRecord;
         findCoverButton.disabled = value || savingRecord;
       }
 
@@ -1529,7 +1538,8 @@
               '<div class="book-date">' + escapeHtml(record.read_date) + '</div>' +
               '<h3 class="book-title">' + escapeHtml(record.title) + '</h3>' +
               '<div class="book-author">' + author + '</div>' +
-              '<div class="book-meta">' +
+            '<div class="book-meta">' +
+                (record.status === 'draft' ? '<span class="mini-pill draft-pill">임시저장</span>' : '') +
                 '<span class="mini-pill">' + (record.repeat_count > 1 ? record.repeat_count + '회 읽음' : escapeHtml(modeLabel(record.reading_mode))) + '</span>' +
               '</div>' +
             '</div>' +
@@ -1570,7 +1580,10 @@
           const monthRecords = await fetchAllRecords({ date_from: firstDate, date_to: lastDate });
           if (generation !== calendarRequestGeneration) return;
           const counts = new Map();
-          for (const record of monthRecords) counts.set(record.read_date, (counts.get(record.read_date) || 0) + 1);
+          for (const record of monthRecords) {
+            if (record.status === 'completed') counts.set(record.read_date, (counts.get(record.read_date) || 0) + 1);
+          }
+          const completedCount = [...counts.values()].reduce((sum, count) => sum + count, 0);
           const firstWeekday = (new Date(year, monthNumber - 1, 1).getDay() + 6) % 7;
           for (let index = 0; index < firstWeekday; index++) {
             const blank = document.createElement('span'); blank.className = 'calendar-blank'; blank.setAttribute('aria-hidden','true'); calendarGrid.append(blank);
@@ -1597,8 +1610,8 @@
             }
             calendarGrid.append(button);
           }
-          calendarStatus.textContent = monthRecords.length
-            ? `${month}에 독서기록 ${monthRecords.length}건이 있어요. 기록이 있는 날짜를 누르면 그날의 책을 볼 수 있어요.`
+          calendarStatus.textContent = completedCount
+            ? `${month}에 등록 완료한 독서기록 ${completedCount}건이 있어요. 기록이 있는 날짜를 누르면 그날의 책을 볼 수 있어요.`
             : `${month}에는 아직 기록이 없어요.`;
         } catch (error) {
           if (generation === calendarRequestGeneration) calendarStatus.textContent = error.message || '달력 기록을 불러오지 못했어요.';
@@ -1642,7 +1655,7 @@
         try {
           const allRecords = await fetchAllRecords({});
           if (generation !== memoryRequestGeneration) return;
-          memoryRecords = allRecords;
+          memoryRecords = allRecords.filter((record) => record.status === 'completed');
           renderMemories();
         } catch (error) {
           if (generation === memoryRequestGeneration) memoryStatus.textContent = error.message || '기억을 불러오지 못했어요.';
@@ -1656,7 +1669,7 @@
         panel.setAttribute('aria-label', '블로그 글쓰기 메모');
         const help = document.createElement('p');
         help.className = 'blog-draft-help';
-        help.textContent = '책에 대한 블로그 글쓰기 아이디어를 선택 사항으로 적어둘 수 있어요. 저장한 메모와 글 분위기는 나중에 GPT 초안 작성에 자동으로 반영됩니다.';
+        help.textContent = '책에 대한 블로그 글쓰기 아이디어를 선택 사항으로 적어둘 수 있어요. 기록을 등록 완료하면 저장한 메모와 글 분위기가 GPT 초안 작성에 반영됩니다.';
         const toneLabel = document.createElement('label');
         toneLabel.append(document.createTextNode('글 분위기'));
         const toneSelect = document.createElement('select');
@@ -1737,7 +1750,7 @@
           detailCover.classList.add('hidden');
         }
         document.getElementById('detailTitle').textContent = record.title || '책 제목 없음';
-        document.getElementById('detailMeta').textContent = [record.author, record.repeat_count > 1 ? '총 ' + record.repeat_count + '회 읽음' : ''].filter(Boolean).join(' · ');
+          document.getElementById('detailMeta').textContent = [record.author, record.status === 'draft' ? '임시저장' : '', record.repeat_count > 1 ? '총 ' + record.repeat_count + '회 읽음' : ''].filter(Boolean).join(' · ');
         detailHistory.replaceChildren();
         detailHistory.innerHTML = '<p class="detail-meta">날짜별 기록을 불러오는 중이에요…</p>';
         recordDetailDialog.showModal();
@@ -1750,7 +1763,8 @@
           if (!response.ok || !Array.isArray(data.entries)) throw new Error(data.error || '기록을 불러오지 못했어요.');
           const entries = data.entries;
           detailEntries = entries;
-          document.getElementById('detailMeta').textContent = [record.author, '총 ' + (data.repeat_count || entries.length) + '회 읽음'].filter(Boolean).join(' · ');
+          const completedCount = Number.isInteger(data.repeat_count) ? data.repeat_count : entries.filter((entry) => entry.status === 'completed').length;
+          document.getElementById('detailMeta').textContent = [record.author, completedCount ? '총 ' + completedCount + '회 읽음' : '완료된 기록 없음'].filter(Boolean).join(' · ');
           detailHistory.replaceChildren();
           if (!entries.length) {
             detailHistory.textContent = '날짜별 기록이 없어요.';
@@ -1765,7 +1779,7 @@
             const blog = document.createElement('button'); blog.className = 'blog-draft-button'; blog.type = 'button'; blog.dataset.historyBlog = String(entry.id); blog.textContent = '블로그 작성 메모'; blog.setAttribute('aria-expanded', 'false'); blog.setAttribute('aria-controls', 'reading-blog-draft-' + String(entry.id));
             const remove = document.createElement('button'); remove.className = 'delete-btn'; remove.type = 'button'; remove.dataset.historyDelete = String(entry.id); remove.textContent = '삭제';
             actions.append(edit, blog, remove); head.append(actions); item.append(head);
-            const meta = document.createElement('p'); meta.textContent = [modeLabel(entry.reading_mode), moodLabel(entry.rating)].filter(Boolean).join(' · '); item.append(meta);
+            const meta = document.createElement('p'); meta.textContent = [entry.status === 'draft' ? '임시저장' : '', modeLabel(entry.reading_mode), moodLabel(entry.rating)].filter(Boolean).join(' · '); item.append(meta);
             for (const [label, value] of [['아이가 한 말', entry.child_comment], ['기억에 남은 장면', entry.favorite_part], ['부모 메모', entry.parent_note]]) {
               if (!value) continue;
               const note = document.createElement('p'); const strong = document.createElement('b'); strong.textContent = label + ' · '; note.append(strong, document.createTextNode(value)); item.append(note);
@@ -1834,7 +1848,6 @@
         applyChoices();
         readDate.value = localDateString();
         writeTitle.textContent = '오늘 읽은 책';
-        saveButton.textContent = '기록 저장';
         cancelEditButton.classList.add('hidden');
       }
 
@@ -1873,7 +1886,6 @@
         }
 
         writeTitle.textContent = '독서기록 수정';
-        saveButton.textContent = '수정 저장';
         cancelEditButton.classList.remove('hidden');
         setStatus('');
         let momentsError = '';
@@ -2073,6 +2085,7 @@
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (savingRecord) return;
+        const targetStatus = event.submitter?.value === 'completed' ? 'completed' : 'draft';
         if (momentLoading) {
           setStatus('첨부를 불러오는 중이에요. 잠시 기다려주세요.', 'error');
           return;
@@ -2089,6 +2102,7 @@
         }
 
         const payload = {
+          status: 'draft',
           title,
           author: document.getElementById('author').value.trim(),
           read_date: readDate.value || localDateString(),
@@ -2105,7 +2119,7 @@
         }
 
         setSaving(true);
-        setStatus(editingId === null ? '저장 중…' : '수정 저장 중…');
+        setStatus(targetStatus === 'completed' ? '등록 준비 중…' : '임시저장 중…');
         try {
           const editTarget = editingId;
           const response = await fetch(
@@ -2123,19 +2137,27 @@
             savedId = Number(data.record?.id) || null;
             if (!savedId) throw new Error('기록은 저장됐지만 첨부를 연결할 기록 번호를 확인하지 못했어요. 페이지를 새로고침하지 말고 지원을 요청해주세요.');
             editingId = savedId;
-            writeTitle.textContent = '독서기록 수정'; saveButton.textContent = '수정 저장'; cancelEditButton.classList.remove('hidden');
+            writeTitle.textContent = '독서기록 수정'; cancelEditButton.classList.remove('hidden');
             coverAction = 'keep';
           }
           try { await saveMoments(savedId); }
           catch (attachmentError) {
             await loadRecords({ reset:true }); await loadParentInsights();
-            setStatus('독서기록은 저장했어요. 첨부 일부가 남아 있어요. 다시 저장하면 업로드를 이어서 시도해요. (' + (attachmentError.message || '첨부 오류') + ')', 'error');
+            setStatus('임시저장했어요. 첨부 일부가 남아 있어요. 다시 수정 저장하면 업로드를 이어서 시도해요. (' + (attachmentError.message || '첨부 오류') + ')', 'error');
             return;
+          }
+          if (targetStatus === 'completed') {
+            const completionResponse = await fetch('/reading/api/records/' + savedId, {
+              method: 'PUT', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...payload, status: 'completed', cover_action: 'keep' }),
+            });
+            const completionData = await completionResponse.json().catch(() => ({}));
+            if (!completionResponse.ok || !completionData.ok) throw new Error(completionData.error || '등록 완료 처리에 실패했어요. 임시저장 상태로 남아 있어요.');
           }
           resetFormState();
           await loadRecords({ reset: true });
           await loadParentInsights();
-          setStatus(editTarget === null ? '독서기록과 첨부를 저장했어요 ✓' : '수정 내용과 첨부를 저장했어요 ✓', 'success');
+          setStatus(targetStatus === 'completed' ? '독서기록과 첨부 등록을 완료했어요 ✓' : '독서기록을 임시저장했어요 ✓', 'success');
           setTimeout(() => setStatus(''), 2600);
         } catch (error) {
           setStatus(error.message || '저장하지 못했어요.', 'error');

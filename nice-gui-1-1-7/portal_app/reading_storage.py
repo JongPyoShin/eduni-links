@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS reading_record (
   parent_note TEXT NOT NULL DEFAULT '',
   blog_note TEXT NOT NULL DEFAULT '',
   blog_tone TEXT NOT NULL DEFAULT 'family',
+  status TEXT NOT NULL DEFAULT 'draft',
   cover_filename TEXT,
   created_at TEXT NOT NULL,
   FOREIGN KEY(child_profile_id) REFERENCES child_profile(id)
@@ -63,12 +64,14 @@ POSTGRES_READING_SCHEMA_STATEMENTS = (
       parent_note TEXT NOT NULL DEFAULT '',
       blog_note TEXT NOT NULL DEFAULT '',
       blog_tone TEXT NOT NULL DEFAULT 'family',
+      status TEXT NOT NULL DEFAULT 'draft',
       cover_filename TEXT,
       created_at TEXT NOT NULL
     )
     """,
     "ALTER TABLE reading_record ADD COLUMN IF NOT EXISTS blog_note TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE reading_record ADD COLUMN IF NOT EXISTS blog_tone TEXT NOT NULL DEFAULT 'family'",
+    "ALTER TABLE reading_record ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'completed'",
     """
     CREATE INDEX IF NOT EXISTS idx_reading_record_child_date
     ON reading_record(child_profile_id, read_date DESC, id DESC)
@@ -174,6 +177,8 @@ def ensure_reading_journal_schema(path: Path | None = None) -> None:
                 conn.execute("ALTER TABLE reading_record ADD COLUMN blog_note TEXT NOT NULL DEFAULT ''")
             if "blog_tone" not in columns:
                 conn.execute("ALTER TABLE reading_record ADD COLUMN blog_tone TEXT NOT NULL DEFAULT 'family'")
+            if "status" not in columns:
+                conn.execute("ALTER TABLE reading_record ADD COLUMN status TEXT NOT NULL DEFAULT 'completed'")
         return
 
     with reading_database_connection(path) as conn:

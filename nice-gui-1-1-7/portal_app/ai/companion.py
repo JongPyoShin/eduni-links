@@ -476,6 +476,8 @@ async def reading_blog_draft_api(record_id: int, request: Request) -> JSONRespon
 
         settings = get_reading_blog_settings(record_id)
         record = get_reading_record(record_id)
+        if record.get("status") != "completed":
+            return _error("reading_record_not_completed", 409)
         attachments = list_reading_attachments(record_id, blog_only=True)
         photos = [item for item in attachments if item.get("kind") == "image"]
         videos = [item for item in attachments if item.get("kind") == "video"]
@@ -518,6 +520,9 @@ async def reading_blog_draft_api(record_id: int, request: Request) -> JSONRespon
         caller = request.client.host if request.client else "unknown"
         draft = await asyncio.to_thread(_run_blog_draft, payload, caller)
         current_settings = get_reading_blog_settings(record_id)
+        current_record = get_reading_record(record_id)
+        if current_record.get("status") != "completed":
+            return _error("reading_record_not_completed", 409)
         if current_settings["source_revision"] != settings["source_revision"]:
             return _error("blog_settings_changed", 409)
         return JSONResponse({

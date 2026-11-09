@@ -87,11 +87,17 @@ async function records(origin) {
 }
 
 async function recordsAfter(origin, afterId) {
-  const data = await api(origin, API + '?limit=500&after_id=' + afterId);
-  const page = data.records;
-  if (!Array.isArray(page) || page.some((r, i) => !Number.isSafeInteger(r.id) || r.id <= afterId
-    || typeof r.created_at !== 'string' || (i > 0 && r.id <= page[i - 1].id))) fail('Unexpected blog-watch records response.');
-  return page.map(({ id, created_at }) => ({ id, created_at }));
+  const records = [];
+  let cursor = afterId;
+  for (;;) {
+    const data = await api(origin, API + '?limit=500&after_id=' + cursor);
+    const page = data.records;
+    if (!Array.isArray(page) || page.length > 500 || page.some((r, i) => !Number.isSafeInteger(r.id) || r.id <= cursor
+      || typeof r.created_at !== 'string' || (i > 0 && r.id <= page[i - 1].id))) fail('Unexpected blog-watch records response.');
+    records.push(...page.map(({ id, created_at }) => ({ id, created_at })));
+    if (page.length < 500) return records;
+    cursor = page[page.length - 1].id;
+  }
 }
 
 function mediaKey(attachments) {
@@ -102,7 +108,8 @@ function mediaKey(attachments) {
 
 function validateBlogSettings(settings) {
   if (!settings || typeof settings.blog_note !== 'string' || Array.from(settings.blog_note).length > 4_000
-    || !TONES.includes(settings.blog_tone) || !/^[a-f0-9]{64}$/.test(settings.source_revision || '')) {
+    || !TONES.includes(settings.blog_tone) || !['draft', 'completed'].includes(settings.status)
+    || !/^[a-f0-9]{64}$/.test(settings.source_revision || '')) {
     fail('EDUNI returned invalid blog settings.');
   }
   return settings;
@@ -116,6 +123,11 @@ function draftPath(recordId, settings, attachments) {
 }
 
 function assertSnapshotCurrent(settings, attachments, currentSettings, currentAttachments) {
+  if (currentSettings.status !== 'completed') {
+    const error = new Error('Reading record returned to temporary-save status during generation.');
+    error.code = 'reading_record_draft';
+    throw error;
+  }
   if (currentSettings.source_revision !== settings.source_revision
     || mediaKey(currentAttachments) !== mediaKey(attachments)) {
     fail('Blog settings or media changed during draft generation; it will be retried after stabilizing.');
@@ -130,6 +142,11 @@ async function waitReady(origin, record) {
   for (;;) {
     const data = await api(origin, '/reading/api/records/' + record.id + '/blog-media');
     const settings = validateBlogSettings(await api(origin, settingsApi(record.id)));
+    if (settings.status !== 'completed') {
+      const error = new Error('Reading record is currently in temporary-save status.');
+      error.code = 'reading_record_draft';
+      throw error;
+    }
     const current = mediaKey(data.attachments);
     const snapshot = JSON.stringify([settings.source_revision, current]);
     if (previous !== null && snapshot === previous) return { attachments: data.attachments, settings };
@@ -143,6 +160,9 @@ async function readState() {
     const value = JSON.parse(await fs.readFile(STATE, 'utf8'));
     if (!Number.isSafeInteger(value.baselineId) || value.baselineId < 0
       || !Number.isSafeInteger(value.lastGeneratedId) || value.lastGeneratedId < 0
+      || (value.processedThroughId !== undefined && (!Number.isSafeInteger(value.processedThroughId) || value.processedThroughId < 0))
+      || (value.processedRecordIds !== undefined && (!Array.isArray(value.processedRecordIds)
+        || value.processedRecordIds.some((id) => !Number.isSafeInteger(id) || id < 0)))
       || (value.lastScheduledDate !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(value.lastScheduledDate))) {
       fail('Invalid watcher state; preserve and inspect watch-state.json.');
     }
@@ -157,6 +177,17 @@ async function writeState(state) {
   const temp = STATE + '.' + process.pid + '.' + Date.now() + '.tmp';
   await fs.writeFile(temp, JSON.stringify(state) + '\n', { flag: 'wx', mode: 0o600 });
   try { await fs.rename(temp, STATE); } catch (error) { await fs.rm(temp, { force: true }); throw error; }
+}
+
+function recordWasProcessed(state, recordId) {
+  return recordId <= state.processedThroughId || state.processedRecordIds.includes(recordId);
+}
+
+function markRecordProcessed(state, recordId) {
+  if (recordId > state.processedThroughId && !state.processedRecordIds.includes(recordId)) {
+    state.processedRecordIds.push(recordId);
+  }
+  state.lastGeneratedId = Math.max(state.lastGeneratedId, recordId);
 }
 
 function validateSettings(settings) {
@@ -292,7 +323,7 @@ async function processRecord(origin, record, settings, state) {
     await log('Record ' + record.id + ': resuming local recovery draft; opening Naver editor.');
     await openDraft(filename);
     await log('Record ' + record.id + ': Naver temporary save confirmed; updating watcher state.');
-    state.lastGeneratedId = record.id;
+    markRecordProcessed(state, record.id);
     await writeState(state);
     await log('Record ' + record.id + ': marked complete after Naver confirmation.');
     return;
@@ -330,7 +361,7 @@ async function processRecord(origin, record, settings, state) {
   await log('Record ' + record.id + ': local recovery JSON created (not yet saved to Naver); opening editor.');
   await openDraft(filename);
   await log('Record ' + record.id + ': Naver temporary save confirmed; updating watcher state.');
-  state.lastGeneratedId = record.id;
+  markRecordProcessed(state, record.id);
   await writeState(state);
   await log('Record ' + record.id + ': marked complete after Naver confirmation.');
 }
@@ -365,12 +396,17 @@ async function main() {
   }
   let state = await readState();
   if (!state) {
-    state = { baselineId: latest ? (latestOnly ? Math.max(0, latest.id - 1) : latest.id) : 0, lastGeneratedId: 0 };
+    const baselineId = latest ? (latestOnly ? Math.max(0, latest.id - 1) : latest.id) : 0;
+    state = { baselineId, lastGeneratedId: 0, processedThroughId: baselineId, processedRecordIds: [] };
+    await writeState(state);
+  } else if (state.processedThroughId === undefined || state.processedRecordIds === undefined) {
+    state.processedThroughId = Math.max(state.baselineId, state.lastGeneratedId);
+    state.processedRecordIds = [];
     await writeState(state);
   }
   if (latestOnly) {
     if (!latest) fail('No reading records found.');
-    if (state.lastGeneratedId !== latest.id) await processRecord(origin, latest, settings, state);
+    if (!recordWasProcessed(state, latest.id)) await processRecord(origin, latest, settings, state);
     else await log('Latest record ' + latest.id + ' is already marked complete; no browser opened.');
     return;
   }
@@ -389,24 +425,30 @@ async function main() {
     await log('Daily run started; checking for new reading records.');
     let page;
     for (;;) {
-      try { page = await recordsAfter(origin, Math.max(state.baselineId, state.lastGeneratedId)); break; }
+      try { page = await recordsAfter(origin, state.baselineId); break; }
       catch (_) {
         await log('EDUNI record endpoint is unavailable during the daily run; retrying in 60 seconds.', 'WARN');
         await sleep(RETRY_MS);
       }
     }
-    if (!page.length) {
-      await log('No new records at the scheduled time; waiting for the next daily run.');
+    const processed = new Set(state.processedRecordIds);
+    const pending = page.filter((record) => record.id > state.processedThroughId && !processed.has(record.id));
+    if (!pending.length) {
+      await log('No completed, unprocessed records at the scheduled time; waiting for the next daily run.');
       continue;
     }
-    await log('Daily run found ' + page.length + ' new record(s); processing in record order.');
-    for (const record of page) {
+    await log('Daily run found ' + pending.length + ' completed, unprocessed record(s); processing in record order.');
+    for (const record of pending) {
       for (;;) {
         await log('Detected new record ' + record.id + '; starting draft workflow.');
         try {
           await processRecord(origin, record, settings, state);
           break;
         } catch (error) {
+          if (error.code === 'reading_record_draft') {
+            await log('Record ' + record.id + ': changed back to temporary-save status; deferring until the next daily run.');
+            break;
+          }
           await log('Record ' + record.id + ' was not completed and remains pending; retrying in 60 seconds: ' + error.message, 'ERROR');
           await sleep(RETRY_MS);
         }

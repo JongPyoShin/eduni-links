@@ -39,6 +39,7 @@ READING_MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 app.add_static_files("/reading-media", READING_MEDIA_DIR)
 
 READING_MODES = {"alone", "together", "read_aloud"}
+READING_RECORD_STATUSES = {"draft", "completed"}
 IMAGE_LIMIT_BYTES = 4 * 1024 * 1024
 BLOG_TONES = {"family", "plain", "child", "book"}
 BLOG_NOTE_LIMIT = 4000
@@ -84,6 +85,13 @@ def _validate_reading_mode(value: object) -> str:
     if mode not in READING_MODES:
         raise ValueError("invalid reading_mode")
     return mode
+
+
+def _validate_record_status(value: object, default: str = "draft") -> str:
+    status = str(default if value is None else value).strip()
+    if status not in READING_RECORD_STATUSES:
+        raise ValueError("invalid status")
+    return status
 
 
 def _decode_cover_data_url(data_url: str) -> tuple[bytes, str]:
@@ -153,6 +161,7 @@ def create_reading_record(
     child_comment = _clean_text(payload.get("child_comment"), "child_comment")
     favorite_part = _clean_text(payload.get("favorite_part"), "favorite_part")
     parent_note = _clean_text(payload.get("parent_note"), "parent_note")
+    status = _validate_record_status(payload.get("status"), "completed")
 
     cover_filename = save_cover_data_url(payload.get("cover_data_url"), media_dir)
     created_at = utc_now()
@@ -162,8 +171,8 @@ def create_reading_record(
             insert_sql = """
                 INSERT INTO reading_record (
                     child_profile_id, title, author, read_date, reading_mode, rating,
-                    child_comment, favorite_part, parent_note, cover_filename, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    child_comment, favorite_part, parent_note, status, cover_filename, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
             if reading_uses_postgres(path):
                 insert_sql += " RETURNING id"
@@ -179,6 +188,7 @@ def create_reading_record(
                     child_comment,
                     favorite_part,
                     parent_note,
+                    status,
                     cover_filename,
                     created_at,
                 ),
@@ -200,6 +210,7 @@ def create_reading_record(
 
 def reading_record_from_row(row: tuple[Any, ...]) -> dict[str, Any]:
     cover_filename = str(row[10]) if row[10] else None
+    has_blog_settings = len(row) == 14 or len(row) >= 15
     return {
         "id": int(row[0]),
         "child_profile_id": int(row[1]),
@@ -211,8 +222,9 @@ def reading_record_from_row(row: tuple[Any, ...]) -> dict[str, Any]:
         "child_comment": str(row[7]),
         "favorite_part": str(row[8]),
         "parent_note": str(row[9]),
-        "blog_note": str(row[12]) if len(row) > 12 else "",
-        "blog_tone": str(row[13]) if len(row) > 13 else "family",
+        "blog_note": str(row[12]) if has_blog_settings else "",
+        "blog_tone": str(row[13]) if has_blog_settings else "family",
+        "status": str(row[14]) if len(row) >= 15 else (str(row[12]) if len(row) == 13 else "completed"),
         "cover_filename": cover_filename,
         "cover_url": f"/reading-media/{cover_filename}" if cover_filename else None,
         "created_at": str(row[11]),
@@ -231,7 +243,7 @@ def get_reading_record(
         row = conn.execute(
             """
             SELECT id, child_profile_id, title, author, read_date, reading_mode, rating,
-                   child_comment, favorite_part, parent_note, cover_filename, created_at, blog_note, blog_tone
+                   child_comment, favorite_part, parent_note, cover_filename, created_at, blog_note, blog_tone, status
               FROM reading_record
              WHERE id = ? AND child_profile_id = ?
             """,
@@ -385,8 +397,8 @@ def search_reading_records(
         ).fetchone()
         rows = conn.execute(
             f"""
-            SELECT id, child_profile_id, title, author, read_date, reading_mode, rating,
-                   child_comment, favorite_part, parent_note, cover_filename, created_at
+             SELECT id, child_profile_id, title, author, read_date, reading_mode, rating,
+                    child_comment, favorite_part, parent_note, cover_filename, created_at, status
               FROM reading_record
              WHERE {where_sql}
              ORDER BY read_date DESC, id DESC
@@ -432,7 +444,7 @@ def search_reading_book_groups(
         reading_mode=reading_mode,
         rating=rating,
     )
-    columns = "id, child_profile_id, title, author, read_date, reading_mode, rating, child_comment, favorite_part, parent_note, cover_filename, created_at"
+    columns = "id, child_profile_id, title, author, read_date, reading_mode, rating, child_comment, favorite_part, parent_note, cover_filename, created_at, status"
     with reading_database_connection(path) as conn:
         matching_rows = conn.execute(
             f"SELECT {columns} FROM reading_record WHERE {where_sql} ORDER BY read_date DESC, id DESC",
@@ -447,7 +459,8 @@ def search_reading_book_groups(
     latest_covers: dict[tuple[str, str], str | None] = {}
     for row in all_rows:
         key = _reading_book_key(row[2], row[3])
-        counts[key] = counts.get(key, 0) + 1
+        if row[12] == "completed":
+            counts[key] = counts.get(key, 0) + 1
         if key not in latest_covers or (not latest_covers[key] and row[10]):
             latest_covers[key] = str(row[10]) if row[10] else None
 
@@ -480,13 +493,13 @@ def reading_book_history(
         raise ValueError("title is required")
     with reading_database_connection(path) as conn:
         rows = conn.execute(
-            """SELECT id, child_profile_id, title, author, read_date, reading_mode, rating,
-                      child_comment, favorite_part, parent_note, cover_filename, created_at
+             """SELECT id, child_profile_id, title, author, read_date, reading_mode, rating,
+                       child_comment, favorite_part, parent_note, cover_filename, created_at, status
                  FROM reading_record WHERE child_profile_id = ? ORDER BY read_date DESC, id DESC""",
             (profile_id,),
         ).fetchall()
     entries = [reading_record_from_row(row) for row in rows if _reading_book_key(row[2], row[3]) == wanted]
-    return entries, len(entries)
+    return entries, sum(entry["status"] == "completed" for entry in entries)
 
 
 def reading_record_summary(
@@ -505,7 +518,7 @@ def reading_record_summary(
                    SUM(CASE WHEN SUBSTR(read_date, 1, 7) = ? THEN 1 ELSE 0 END),
                    SUM(CASE WHEN rating >= 5 THEN 1 ELSE 0 END)
               FROM reading_record
-             WHERE child_profile_id = ?
+             WHERE child_profile_id = ? AND status = 'completed'
             """,
             (summary_month, profile_id),
         ).fetchone()
@@ -536,16 +549,16 @@ def reading_monthly_summary(
             """SELECT COUNT(*), COUNT(DISTINCT LOWER(TRIM(title))),
                       SUM(CASE WHEN rating >= 5 THEN 1 ELSE 0 END)
                  FROM reading_record
-                WHERE child_profile_id = ? AND read_date >= ? AND read_date < ?""",
+                WHERE child_profile_id = ? AND status = 'completed' AND read_date >= ? AND read_date < ?""",
             (profile_id, start.isoformat(), next_start.isoformat()),
         ).fetchone()
         previous = conn.execute(
-            "SELECT COUNT(*) FROM reading_record WHERE child_profile_id = ? AND read_date >= ? AND read_date < ?",
+            "SELECT COUNT(*) FROM reading_record WHERE child_profile_id = ? AND status = 'completed' AND read_date >= ? AND read_date < ?",
             (profile_id, previous_start.isoformat(), start.isoformat()),
         ).fetchone()
         modes = conn.execute(
             """SELECT reading_mode, COUNT(*) FROM reading_record
-                WHERE child_profile_id = ? AND read_date >= ? AND read_date < ? GROUP BY reading_mode""",
+                WHERE child_profile_id = ? AND status = 'completed' AND read_date >= ? AND read_date < ? GROUP BY reading_mode""",
             (profile_id, start.isoformat(), next_start.isoformat()),
         ).fetchall()
     total = int(row[0] or 0)
@@ -588,14 +601,14 @@ def reading_parent_insights(
                    SUM(CASE WHEN read_date >= ? THEN 1 ELSE 0 END),
                    SUM(CASE WHEN read_date BETWEEN ? AND ? THEN 1 ELSE 0 END)
               FROM reading_record
-             WHERE child_profile_id = ? AND read_date <= ?
+              WHERE child_profile_id = ? AND status = 'completed' AND read_date <= ?
             """,
             (recent_start.isoformat(), previous_start.isoformat(), previous_end.isoformat(), profile_id, as_of.isoformat()),
         ).fetchone()
         mode_rows = conn.execute(
             """
             SELECT reading_mode, COUNT(*) FROM reading_record
-             WHERE child_profile_id = ? AND read_date <= ?
+             WHERE child_profile_id = ? AND status = 'completed' AND read_date <= ?
              GROUP BY reading_mode
             """,
             (profile_id, as_of.isoformat()),
@@ -668,11 +681,12 @@ def update_reading_record(
 
     with reading_database_connection(path) as conn:
         row = conn.execute(
-            "SELECT cover_filename FROM reading_record WHERE id = ? AND child_profile_id = ?",
+            "SELECT cover_filename, status FROM reading_record WHERE id = ? AND child_profile_id = ?",
             (record_id, profile_id),
         ).fetchone()
     if row is None:
         raise KeyError(record_id)
+    status = _validate_record_status(payload.get("status"), str(row[1] or "completed"))
 
     old_cover = str(row[0]) if row[0] else None
     new_cover: str | None = None
@@ -690,7 +704,7 @@ def update_reading_record(
                 """
                 UPDATE reading_record
                    SET title = ?, author = ?, read_date = ?, reading_mode = ?, rating = ?,
-                       child_comment = ?, favorite_part = ?, parent_note = ?, cover_filename = ?
+                       child_comment = ?, favorite_part = ?, parent_note = ?, status = ?, cover_filename = ?
                  WHERE id = ? AND child_profile_id = ?
                 """,
                 (
@@ -702,6 +716,7 @@ def update_reading_record(
                     child_comment,
                     favorite_part,
                     parent_note,
+                    status,
                     next_cover,
                     record_id,
                     profile_id,
@@ -794,9 +809,10 @@ def reading_blog_settings_get_api(record_id: int, request: Request) -> JSONRespo
         return JSONResponse({"ok": False, "error": "request_rejected"}, status_code=403, headers={"Cache-Control": "no-store"})
     try:
         settings = get_reading_blog_settings(record_id)
+        status = get_reading_record(record_id)["status"]
     except KeyError:
         return JSONResponse({"ok": False, "error": "record not found"}, status_code=404)
-    return JSONResponse({"ok": True, **settings}, headers={"Cache-Control": "no-store"})
+    return JSONResponse({"ok": True, **settings, "status": status}, headers={"Cache-Control": "no-store"})
 
 
 @app.patch("/reading/api/records/{record_id}/blog-settings")
@@ -823,12 +839,12 @@ def reading_blog_watch_records_api(
     with reading_database_connection() as conn:
         if after_id is None:
             rows = conn.execute(
-                "SELECT id, created_at FROM reading_record WHERE child_profile_id = ? ORDER BY id DESC LIMIT ?",
+                "SELECT id, created_at FROM reading_record WHERE child_profile_id = ? AND status = 'completed' ORDER BY id DESC LIMIT ?",
                 (profile_id, limit),
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT id, created_at FROM reading_record WHERE child_profile_id = ? AND id > ? ORDER BY id ASC LIMIT ?",
+                "SELECT id, created_at FROM reading_record WHERE child_profile_id = ? AND status = 'completed' AND id > ? ORDER BY id ASC LIMIT ?",
                 (profile_id, after_id, limit),
             ).fetchall()
     return JSONResponse(
@@ -962,7 +978,9 @@ def reading_cover_image_api(cover_id: int) -> Response:
 @app.post("/reading/api/records")
 def create_reading_record_api(payload: dict[str, Any] | None = Body(default=None)) -> JSONResponse:
     try:
-        record = create_reading_record(payload or {})
+        values = dict(payload or {})
+        values.setdefault("status", "draft")
+        record = create_reading_record(values)
     except ValueError as exc:
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
     return JSONResponse({"ok": True, "record": record}, status_code=201)

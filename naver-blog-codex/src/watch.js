@@ -16,7 +16,6 @@ const API = '/reading/api/blog-watch/records';
 const TONES = ['family', 'plain', 'child', 'book'];
 const TONE_NAMES = ['따뜻한 가족 독서기록', '담백한 독서 일지', '아이의 말과 장면 중심', '책 정보 중심 기록'];
 const POLL_MS = 15_000;
-const IDLE_LOG_MS = 5 * 60_000;
 const RETRY_MS = 60_000;
 const GRACE_MS = 3 * 60_000;
 const settingsApi = (id) => '/reading/api/records/' + id + '/blog-settings';
@@ -143,7 +142,10 @@ async function readState() {
   try {
     const value = JSON.parse(await fs.readFile(STATE, 'utf8'));
     if (!Number.isSafeInteger(value.baselineId) || value.baselineId < 0
-      || !Number.isSafeInteger(value.lastGeneratedId) || value.lastGeneratedId < 0) fail('Invalid watcher state; preserve and inspect watch-state.json.');
+      || !Number.isSafeInteger(value.lastGeneratedId) || value.lastGeneratedId < 0
+      || (value.lastScheduledDate !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(value.lastScheduledDate))) {
+      fail('Invalid watcher state; preserve and inspect watch-state.json.');
+    }
     return value;
   } catch (error) {
     if (error.code === 'ENOENT') return null;
@@ -159,14 +161,34 @@ async function writeState(state) {
 
 function validateSettings(settings) {
   if (!settings || !TONES.includes(settings.tone)
-    || !['never', 'ask', 'always'].includes(settings.parentNotePolicy)) {
+    || !['never', 'ask', 'always'].includes(settings.parentNotePolicy)
+    || (settings.dailyAt !== undefined && !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(settings.dailyAt))) {
     fail('Invalid watch-settings.json; run npm run watch:configure.');
   }
-  return settings;
+  return { ...settings, dailyAt: settings.dailyAt || '17:00' };
+}
+
+function localDateKey(date) {
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+}
+
+function nextDailyRunAt(now, dailyAt, lastScheduledDate = null) {
+  if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(dailyAt)) fail('dailyAt must use HH:MM 24-hour time.');
+  const [hour, minute] = dailyAt.split(':').map(Number);
+  const scheduled = new Date(now);
+  scheduled.setHours(hour, minute, 0, 0);
+  const today = localDateKey(now);
+  if (lastScheduledDate === today) scheduled.setDate(scheduled.getDate() + 1);
+  else if (now > scheduled && !(now.getHours() === hour && now.getMinutes() === minute)) scheduled.setDate(scheduled.getDate() + 1);
+  return scheduled;
+}
+
+function localDateTimeLabel(date) {
+  return localDateKey(date) + ' ' + String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
 }
 
 async function writeSettings(settings) {
-  validateSettings(settings);
+  settings = validateSettings(settings);
   const temp = SETTINGS + '.' + process.pid + '.' + Date.now() + '.tmp';
   await fs.writeFile(temp, JSON.stringify(settings, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
   try { await fs.rename(temp, SETTINGS); } catch (error) { await fs.rm(temp, { force: true }); throw error; }
@@ -174,12 +196,18 @@ async function writeSettings(settings) {
 
 async function readSettings() {
   try {
-    return validateSettings(JSON.parse(await fs.readFile(SETTINGS, 'utf8')));
+    const saved = JSON.parse(await fs.readFile(SETTINGS, 'utf8'));
+    const settings = validateSettings(saved);
+    if (saved.dailyAt === undefined) {
+      await writeSettings(settings);
+      await log('Added daily schedule 17:00 to watch-settings.json.');
+    }
+    return settings;
   } catch (error) {
     if (error.code !== 'ENOENT') throw error;
-    const defaults = { tone: 'family', parentNotePolicy: 'never' };
+    const defaults = { tone: 'family', parentNotePolicy: 'never', dailyAt: '17:00' };
     await writeSettings(defaults);
-    await log('Created watch-settings.json with the family tone; parent notes are excluded by default.');
+    await log('Created watch-settings.json with the family tone, parent notes excluded, and a daily 17:00 schedule.');
     return defaults;
   }
 }
@@ -320,7 +348,8 @@ async function main() {
   if (originArg && !originArg.trim()) fail('Origin is required after --origin.');
   const origin = await confirmedOrigin(originArg);
   if (configure) {
-    const settings = { tone: await chooseTone(), parentNotePolicy: await chooseParentNotePolicy() };
+    const current = await readSettings();
+    const settings = { ...current, tone: await chooseTone(), parentNotePolicy: await chooseParentNotePolicy() };
     await writeSettings(settings);
     await log('Saved watch-settings.json.');
     return;
@@ -345,35 +374,47 @@ async function main() {
     else await log('Latest record ' + latest.id + ' is already marked complete; no browser opened.');
     return;
   }
-  await log('Watcher started; polling EDUNI every 15 seconds. baseline=' + state.baselineId + ', lastProcessed=' + state.lastGeneratedId + '.');
-  let lastIdleLogAt = Date.now();
+  await log('Watcher started; daily schedule=' + settings.dailyAt + ' local ('
+    + Intl.DateTimeFormat().resolvedOptions().timeZone + '); baseline=' + state.baselineId + ', lastProcessed=' + state.lastGeneratedId + '.');
   for (;;) {
-    const afterId = Math.max(state.baselineId, state.lastGeneratedId);
-    let page;
-    try { page = await recordsAfter(origin, afterId); }
-    catch (_) {
-      await log('EDUNI record endpoint is unavailable; retrying in 60 seconds.', 'WARN');
-      await sleep(RETRY_MS);
-      continue;
+    const nextRun = nextDailyRunAt(new Date(), settings.dailyAt, state.lastScheduledDate || null);
+    const delay = Math.max(0, nextRun.getTime() - Date.now());
+    if (delay > 0) {
+      await log('Next EDUNI check at ' + localDateTimeLabel(nextRun) + ' (' + Intl.DateTimeFormat().resolvedOptions().timeZone + ').');
+      await sleep(delay);
     }
-    if (page.length) {
-      const record = page[0];
-      await log('Detected new record ' + record.id + '; starting draft workflow.');
-      try { await processRecord(origin, record, settings, state); }
-      catch (error) {
-        await log('Record ' + record.id + ' was not completed and remains pending; retrying in 60 seconds: ' + error.message, 'ERROR');
+
+    state.lastScheduledDate = localDateKey(new Date());
+    await writeState(state);
+    await log('Daily run started; checking for new reading records.');
+    let page;
+    for (;;) {
+      try { page = await recordsAfter(origin, Math.max(state.baselineId, state.lastGeneratedId)); break; }
+      catch (_) {
+        await log('EDUNI record endpoint is unavailable during the daily run; retrying in 60 seconds.', 'WARN');
         await sleep(RETRY_MS);
       }
-    } else {
-      if (Date.now() - lastIdleLogAt >= IDLE_LOG_MS) {
-        await log('No new records; watcher is idle and will continue checking EDUNI every 15 seconds.');
-        lastIdleLogAt = Date.now();
+    }
+    if (!page.length) {
+      await log('No new records at the scheduled time; waiting for the next daily run.');
+      continue;
+    }
+    await log('Daily run found ' + page.length + ' new record(s); processing in record order.');
+    for (const record of page) {
+      for (;;) {
+        await log('Detected new record ' + record.id + '; starting draft workflow.');
+        try {
+          await processRecord(origin, record, settings, state);
+          break;
+        } catch (error) {
+          await log('Record ' + record.id + ' was not completed and remains pending; retrying in 60 seconds: ' + error.message, 'ERROR');
+          await sleep(RETRY_MS);
+        }
       }
-      await sleep(POLL_MS);
     }
   }
 }
 
 if (require.main === module) main().catch(async (error) => { await log(error.message, 'ERROR').catch(() => {}); process.exitCode = 1; });
 
-module.exports = { assertSnapshotCurrent, draftPath, mediaKey, openDraft, validateBlogSettings, validateExistingDraft };
+module.exports = { assertSnapshotCurrent, draftPath, localDateKey, mediaKey, nextDailyRunAt, openDraft, validateBlogSettings, validateExistingDraft, validateSettings };

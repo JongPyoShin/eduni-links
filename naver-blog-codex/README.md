@@ -22,7 +22,8 @@ The watcher reads the record's saved blog note, saved tone, and blog-use media d
 
 Configure the watcher once. It asks for the writing tone and the parent-note
 policy; the default policy is `never` so parent notes stay out of automatic
-drafts. The settings are stored in ignored `watch-settings.json`.
+drafts. It runs daily at 17:00 local time by default. The schedule and other
+settings are stored in ignored `watch-settings.json`.
 
 ```powershell
 npm run watch:configure
@@ -34,7 +35,7 @@ To start it manually, run:
 npm run watch
 ```
 
-On first use, the watcher asks for the exact EDUNI origin and stores it in `eduni-origin.json`. By default, it saves the current latest record ID as a baseline and skips existing history; later records are checked every 15 seconds. For each new record, it waits at least three minutes after creation and until both the blog-media list and saved blog settings remain unchanged across two polls. It reads that record's saved editorial note and tone directly from EDUNI; the server's saved tone takes precedence over the legacy local watcher tone. The settings revision covers the saved note and tone; the stable media list is fingerprinted separately. Together they determine a versioned local recovery JSON filename, so changed inputs cannot silently reuse an old file. After GPT returns, the watcher rechecks both revisions and retries if either changed during generation. It stores the source revision in the local JSON and opens the Naver helper. The title/body and attached media are visible in the editor before the helper temporary-saves; failures remain pending instead of advancing the saved-record cursor. Progress, errors, and Naver save confirmations are timestamped in ignored `watcher.log` next to this README. `npm run watch:configure` remains available for legacy local settings and parent-note policy.
+On first use, the watcher asks for the exact EDUNI origin and stores it in `eduni-origin.json`. By default, it saves the current latest record ID as a baseline and skips existing history. At the configured time (`dailyAt`, `HH:MM`, local time; default `17:00`), it takes one snapshot of all new records and processes them in record order. Records added after that snapshot wait for the next day's run. If the watcher starts after the scheduled time, it waits until the next day. For each record, it waits at least three minutes after creation and until both the blog-media list and saved blog settings remain unchanged across two checks. It reads that record's saved editorial note and tone directly from EDUNI; the server's saved tone takes precedence over the legacy local watcher tone. The settings revision covers the saved note and tone; the stable media list is fingerprinted separately. Together they determine a versioned local recovery JSON filename, so changed inputs cannot silently reuse an old file. After GPT returns, the watcher rechecks both revisions and retries if either changed during generation. It stores the source revision in the local JSON and opens the Naver helper. The title/body and attached media are visible in the editor before the helper temporary-saves; failures remain pending instead of advancing the saved-record cursor. Progress, errors, and Naver save confirmations are timestamped in ignored `watcher.log` next to this README. `npm run watch:configure` remains available for legacy local settings and parent-note policy.
 
 Editing a saved note or tone does not reprocess an already generated record or change an existing Naver post. Those settings are used the next time a record is generated; request a new generation explicitly if an existing record needs a revised draft.
 

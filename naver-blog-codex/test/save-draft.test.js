@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { isEmptySmartEditorDocument, saveDraftOnly } = require('../src/save-draft');
+const { isEmptySmartEditorDocument, isVisuallyEmptyEditor, resolveEditorRecoveryPrompt, saveDraftOnly } = require('../src/save-draft');
 
 const blankDocument = {
   document: { components: [
@@ -22,6 +22,46 @@ test('SmartEditor content blocks an existing draft from being overwritten', () =
 test('unknown SmartEditor document data fails closed', () => {
   assert.equal(isEmptySmartEditorDocument({ document: { components: [{ '@ctype': 'image' }] } }), false);
   assert.equal(isEmptySmartEditorDocument(null), false);
+});
+
+test('editor placeholders count as empty, but visible draft content does not', () => {
+  assert.equal(isVisuallyEmptyEditor('제목', '글감과 함께 나의 일상을 기록해보세요!', 0, 0), true);
+  assert.equal(isVisuallyEmptyEditor('Existing title', '', 0, 0), false);
+  assert.equal(isVisuallyEmptyEditor('제목', '글감과 함께 나의 일상을 기록해보세요!', 1, 0), false);
+});
+
+test('Naver recovery prompt resumes existing editor state before writing', async () => {
+  const calls = [];
+  const button = {
+    count: async () => 1,
+    isVisible: async () => true,
+    click: async () => calls.push('recover-clicked'),
+  };
+  const popup = {
+    waitFor: async () => {},
+    count: async () => 1,
+    isVisible: async () => true,
+    innerText: async () => '작성 중인 글이 있습니다. 이어서 작성하시겠습니까?',
+    getByRole: (role, options) => {
+      calls.push([role, options.name, options.exact]);
+      return button;
+    },
+  };
+  assert.equal(await resolveEditorRecoveryPrompt({ locator: (selector) => {
+    assert.equal(selector, '.se-popup-alert-confirm');
+    return popup;
+  } }), true);
+  assert.deepEqual(calls, [['button', '확인', true], 'recover-clicked']);
+});
+
+test('unknown Naver confirmation is left untouched', async () => {
+  const popup = {
+    waitFor: async () => {},
+    count: async () => 1,
+    isVisible: async () => true,
+    innerText: async () => '이 글을 삭제하시겠습니까?',
+  };
+  await assert.rejects(resolveEditorRecoveryPrompt({ locator: () => popup }), /unexpected Naver dialog/i);
 });
 
 test('temporary save succeeds when the saved-post count increases', async () => {

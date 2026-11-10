@@ -161,6 +161,7 @@
     .record-save-buttons { display:flex; gap:8px; }
     .record-status-help { margin:8px 0 0; color:var(--muted); font-size:12px; line-height:1.45; }
     .draft-pill { background:#fff0d3; color:#79551b; }
+    .book-draft { position:absolute; top:8px; left:8px; z-index:1; padding:5px 8px; border-radius:999px; font-size:11px; font-weight:850; box-shadow:0 2px 8px #0002; }
     .photo-tools { display:flex; justify-content:flex-end; margin-top:8px; }
     .moment-panel { grid-column:1/-1; min-width:0; margin-top:0; padding:14px; border:1px solid var(--line); border-radius:16px; background:#fffaf3; }
     .moment-panel h3 { margin:0 0 6px; font-size:16px; }
@@ -1529,6 +1530,7 @@
           const cover = '<div class="book-cover-wrap">' + (record.cover_url
             ? '<img class="book-cover" loading="lazy" src="' + escapeHtml(record.cover_url) + '" alt="">'
             : '<div class="book-cover-placeholder" aria-hidden="true">📖</div>') +
+            (record.status === 'draft' ? '<span class="book-draft draft-pill">[임시]</span>' : '') +
             (record.repeat_count > 1 ? '<span class="book-repeat" aria-label="총 ' + record.repeat_count + '회 읽음">x' + record.repeat_count + '</span>' : '') + '</div>';
           const author = record.author ? escapeHtml(record.author) : '&nbsp;';
 
@@ -1538,8 +1540,7 @@
               '<div class="book-date">' + escapeHtml(record.read_date) + '</div>' +
               '<h3 class="book-title">' + escapeHtml(record.title) + '</h3>' +
               '<div class="book-author">' + author + '</div>' +
-            '<div class="book-meta">' +
-                (record.status === 'draft' ? '<span class="mini-pill draft-pill">임시저장</span>' : '') +
+              '<div class="book-meta">' +
                 '<span class="mini-pill">' + (record.repeat_count > 1 ? record.repeat_count + '회 읽음' : escapeHtml(modeLabel(record.reading_mode))) + '</span>' +
               '</div>' +
             '</div>' +

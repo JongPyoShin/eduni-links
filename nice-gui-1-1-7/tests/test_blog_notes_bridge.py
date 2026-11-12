@@ -75,14 +75,30 @@ class BlogImageBridgeTests(unittest.TestCase):
                 patch.object(bridge, "_opener", _Opener(_Response(self.IMAGE))), \
                 patch.object(bridge, "_read_response_text", side_effect=lambda body, *_a, **_kw: self._assert_data_url(body, expected)):
             result = bridge.complete_blog_draft(payload, lambda: {"access_token": "test"})
-        self.assertEqual(result, {"title": "제목", "body": "본문"})
+        self.assertEqual(result, {"title": "제목", "body": "본문" * 650})
 
     @staticmethod
     def _assert_data_url(payload, expected):
         image = next(part for part in payload["input"][0]["content"] if part["type"] == "input_image")
         if image["image_url"] != expected:
             raise AssertionError("GPT payload did not contain the fetched image data URL")
-        return '{"title":"제목","body":"본문"}'
+        if image["detail"] != "high":
+            raise AssertionError("GPT payload must use high image detail")
+        minimum = payload["text"]["format"]["schema"]["properties"]["body"]["minLength"]
+        if minimum < 800 or "사진을 실제로 살펴" not in payload["instructions"]:
+            raise AssertionError("GPT request must require photo-grounded article detail")
+        return '{"title":"제목","body":"' + ('본문' * 650) + '"}'
+
+    def test_three_photos_require_a_longer_body(self):
+        record = {key: "" for key in ("title", "author", "read_date", "reading_mode", "feeling", "child_comment", "favorite_part")}
+        images = [{"url": self.URL, "caption": "책 읽기", "position": index} for index in range(3)]
+        payload = {"tone": "family", "record": record, "images": images, "video_captions": []}
+        expected = "data:image/jpeg;base64," + base64.b64encode(self.IMAGE).decode("ascii")
+        with patch.dict(os.environ, {"EDUNI_AI_COMPANION_ORIGIN": self.ORIGIN}), \
+                patch.object(bridge, "_opener", _Opener(_Response(self.IMAGE))), \
+                patch.object(bridge, "_read_response_text", side_effect=lambda body, *_a, **_kw: self._assert_data_url(body, expected)):
+            result = bridge.complete_blog_draft(payload, lambda: {"access_token": "test"})
+        self.assertGreaterEqual(len(result["body"]), 1_200)
 
 
 if __name__ == "__main__":

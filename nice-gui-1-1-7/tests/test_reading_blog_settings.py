@@ -87,6 +87,8 @@ class ReadingBlogSettingsTests(unittest.TestCase):
                 )
             self.assertEqual(drafted.status_code, 200, drafted.text)
             self.assertEqual(drafted.json()["source_revision"], revision)
+            self.assertEqual(drafted.json()["selected_photo_ids"], [])
+            self.assertEqual(drafted.json()["photo_count"], 0)
 
             foreign_profile = self.profile + 100
             with database_connection(self.db) as conn:
@@ -113,6 +115,29 @@ class ReadingBlogSettingsTests(unittest.TestCase):
         assert payload["record"]["blog_note"] == "중요한 장면"
         assert "parent_note" not in payload["record"]
         return {"title": "제목", "body": "본문"}
+
+    def test_blog_photo_selection_randomly_fills_budget_but_preserves_record_order(self) -> None:
+        from portal_app.ai import companion
+
+        photos = [
+            {"id": 1, "position": 0, "size": 10},
+            {"id": 2, "position": 1, "size": 7},
+            {"id": 3, "position": 2, "size": 5},
+        ]
+        with patch.object(companion.random, "shuffle", side_effect=lambda items: items.reverse()) as shuffle:
+            selected = companion._select_blog_photos(photos, 12)
+        shuffle.assert_called_once()
+        self.assertEqual([item["id"] for item in selected], [2, 3])
+        self.assertLessEqual(sum(item["size"] for item in selected), 12)
+
+    def test_blog_photo_selection_keeps_all_photos_within_budget(self) -> None:
+        from portal_app.ai import companion
+
+        photos = [{"id": 2, "position": 1, "size": 4}, {"id": 1, "position": 0, "size": 5}]
+        with patch.object(companion.random, "shuffle") as shuffle:
+            selected = companion._select_blog_photos(photos, 9)
+        shuffle.assert_not_called()
+        self.assertEqual([item["id"] for item in selected], [1, 2])
 
 
 if __name__ == "__main__":

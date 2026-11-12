@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import threading
 import asyncio
 import hashlib
@@ -72,6 +73,27 @@ def inject_companion_assets(body: str) -> str:
 
 def _error(code: str, status: int) -> JSONResponse:
     return JSONResponse({"ok": False, "error": code}, status_code=status, headers={"Cache-Control": "no-store"})
+
+
+def _select_blog_photos(photos: list[dict[str, Any]], budget_bytes: int) -> list[dict[str, Any]]:
+    ordered = sorted(photos, key=lambda item: int(item["position"]))
+    if sum(int(item["size"]) for item in ordered) <= budget_bytes:
+        return ordered
+    candidates = list(ordered)
+    random.shuffle(candidates)
+    selected: list[dict[str, Any]] = []
+    used_bytes = 0
+    for item in candidates:
+        size = int(item["size"])
+        if 0 < size <= budget_bytes - used_bytes:
+            selected.append(item)
+            used_bytes += size
+    if not selected and ordered:
+        smallest = min(ordered, key=lambda item: int(item["size"]))
+        if int(smallest["size"]) > budget_bytes:
+            raise ValueError("no reading photo fits the blog image budget")
+        selected = [smallest]
+    return sorted(selected, key=lambda item: int(item["position"]))
 
 
 def _align_answer_with_photo(answer: str, photo: dict[str, str] | None) -> str:
@@ -471,7 +493,7 @@ async def reading_blog_draft_api(record_id: int, request: Request) -> JSONRespon
 
     try:
         from urllib.parse import urlsplit
-        from ..reading_attachments import list_reading_attachments
+        from ..reading_attachments import IMAGE_MAX_TOTAL_BYTES, list_reading_attachments
         from ..reading_journal import get_reading_blog_settings, get_reading_record
 
         settings = get_reading_blog_settings(record_id)
@@ -479,7 +501,8 @@ async def reading_blog_draft_api(record_id: int, request: Request) -> JSONRespon
         if record.get("status") != "completed":
             return _error("reading_record_not_completed", 409)
         attachments = list_reading_attachments(record_id, blog_only=True)
-        photos = [item for item in attachments if item.get("kind") == "image"]
+        all_photos = [item for item in attachments if item.get("kind") == "image"]
+        photos = _select_blog_photos(all_photos, IMAGE_MAX_TOTAL_BYTES)
         videos = [item for item in attachments if item.get("kind") == "video"]
         origin_parts = urlsplit(expected)
         if photos and origin_parts.scheme != "https":
@@ -527,6 +550,7 @@ async def reading_blog_draft_api(record_id: int, request: Request) -> JSONRespon
             return _error("blog_settings_changed", 409)
         return JSONResponse({
             "ok": True, **draft, "photo_count": len(photos), "video_count": len(videos),
+            "selected_photo_ids": [int(item["id"]) for item in photos],
             "source_revision": settings["source_revision"],
         }, headers={"Cache-Control": "no-store"})
     except KeyError:

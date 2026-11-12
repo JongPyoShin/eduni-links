@@ -13,6 +13,7 @@ const SETTINGS = path.join(ROOT, 'watch-settings.json');
 const ORIGIN_FILE = path.join(ROOT, 'eduni-origin.json');
 const DRAFTS = path.join(ROOT, 'drafts');
 const API = '/reading/api/blog-watch/records';
+const MAX_BLOG_IMAGE_TOTAL_BYTES = 18 * 1024 * 1024;
 const TONES = ['family', 'plain', 'child', 'book'];
 const TONE_NAMES = ['따뜻한 가족 독서기록', '담백한 독서 일지', '아이의 말과 장면 중심', '책 정보 중심 기록'];
 const POLL_MS = 15_000;
@@ -298,10 +299,47 @@ function validateExistingDraft(draft, origin, recordId, stableMedia, settings) {
     if (url.origin !== origin || url.username || url.password) fail('Existing draft for record ' + recordId + ' is invalid; it was preserved unchanged.');
     return { kind: item.kind, url: url.href, caption: item.caption, position: item.position };
   }).sort((a, b) => a.position - b.position);
-  const expected = stableMedia.map((item, position) => ({
-    kind: item.kind, url: new URL(item.url, origin).href, caption: item.caption || '', position,
+  const expected = stableMedia.map((item) => ({
+    kind: item.kind, url: new URL(item.url, origin).href, caption: item.caption || '', position: item.position,
   }));
-  if (JSON.stringify(media) !== JSON.stringify(expected)) fail('Existing draft for record ' + recordId + ' has different media; it was preserved unchanged.');
+  const expectedByPosition = new Map(expected.map((item) => [item.position, item]));
+  if (media.some((item) => JSON.stringify(item) !== JSON.stringify(expectedByPosition.get(item.position)))) {
+    fail('Existing draft for record ' + recordId + ' has different media; it was preserved unchanged.');
+  }
+  const expectedVideos = expected.filter((item) => item.kind === 'video');
+  const selectedVideos = media.filter((item) => item.kind === 'video');
+  const selectedPhotos = media.filter((item) => item.kind === 'image');
+  const photoBytes = (items) => items.reduce((total, item) => {
+    const source = stableMedia.find((attachment) => attachment.position === item.position);
+    return total + (source ? Number(source.size) || 0 : 0);
+  }, 0);
+  const availablePhotos = stableMedia.filter((item) => item.kind === 'image');
+  if (JSON.stringify(selectedVideos) !== JSON.stringify(expectedVideos)
+    || photoBytes(selectedPhotos) > MAX_BLOG_IMAGE_TOTAL_BYTES
+    || (availablePhotos.length && !selectedPhotos.length)
+    || (photoBytes(availablePhotos.map((item) => expectedByPosition.get(item.position))) <= MAX_BLOG_IMAGE_TOTAL_BYTES
+      && selectedPhotos.length !== availablePhotos.length)) {
+    fail('Existing draft for record ' + recordId + ' has an invalid photo selection; it was preserved unchanged.');
+  }
+}
+
+function selectDraftMedia(stableMedia, selectedPhotoIds) {
+  if (!Array.isArray(selectedPhotoIds) || selectedPhotoIds.some((id) => !Number.isSafeInteger(id))) {
+    fail('EDUNI returned an invalid photo selection.');
+  }
+  const ids = new Set(selectedPhotoIds);
+  if (ids.size !== selectedPhotoIds.length) fail('EDUNI returned duplicate photo selections.');
+  const photos = stableMedia.filter((item) => item.kind === 'image');
+  const availableIds = new Set(photos.map((item) => item.id));
+  if (selectedPhotoIds.some((id) => !availableIds.has(id))) fail('EDUNI selected a photo outside the stable reading record.');
+  const totalBytes = photos.reduce((total, item) => total + Number(item.size), 0);
+  const selected = photos.filter((item) => ids.has(item.id));
+  const selectedBytes = selected.reduce((total, item) => total + Number(item.size), 0);
+  if (selectedBytes > MAX_BLOG_IMAGE_TOTAL_BYTES || (photos.length && !selected.length)
+    || (totalBytes <= MAX_BLOG_IMAGE_TOTAL_BYTES && selected.length !== photos.length)) {
+    fail('EDUNI returned a photo selection outside the 18 MiB budget.');
+  }
+  return stableMedia.filter((item) => item.kind === 'video' || ids.has(item.id));
 }
 
 async function processRecord(origin, record, settings, state) {
@@ -335,12 +373,15 @@ async function processRecord(origin, record, settings, state) {
   const data = await api(origin, '/reading/api/records/' + record.id + '/blog-draft', {
     method: 'POST', body: JSON.stringify({ tone: blogSettings.blog_tone, include_parent_note }),
   });
+  const selectedMedia = selectDraftMedia(stableMedia, data.selected_photo_ids);
   if (typeof data.title !== 'string' || !data.title.trim() || data.title.length > 80
     || typeof data.body !== 'string' || !data.body.trim() || data.body.length > 5_000
-    || data.photo_count !== stableMedia.filter((item) => item.kind === 'image').length
+    || data.photo_count !== selectedMedia.filter((item) => item.kind === 'image').length
     || data.video_count !== stableMedia.filter((item) => item.kind === 'video').length
     || data.source_revision !== blogSettings.source_revision) fail('EDUNI returned an invalid or stale draft.');
-  await log('Record ' + record.id + ': GPT article received; verifying the source snapshot before saving locally.');
+  const selectedPhotoBytes = selectedMedia.filter((item) => item.kind === 'image').reduce((total, item) => total + Number(item.size), 0);
+  await log('Record ' + record.id + ': GPT article received using ' + data.photo_count + '/' + stableMedia.filter((item) => item.kind === 'image').length
+    + ' photos (' + (selectedPhotoBytes / (1024 * 1024)).toFixed(2) + ' MiB); verifying the source snapshot.');
   const afterMedia = (await api(origin, '/reading/api/records/' + record.id + '/blog-media')).attachments;
   const afterSettings = validateBlogSettings(await api(origin, settingsApi(record.id)));
   assertSnapshotCurrent(blogSettings, stableMedia, afterSettings, afterMedia);
@@ -351,8 +392,8 @@ async function processRecord(origin, record, settings, state) {
     title: data.title,
     body: data.body,
     portalOrigin: origin,
-    media: stableMedia.map((item, position) => ({
-      kind: item.kind, url: new URL(item.url, origin).href, caption: item.caption || '', position,
+    media: selectedMedia.map((item) => ({
+      kind: item.kind, url: new URL(item.url, origin).href, caption: item.caption || '', position: item.position,
     })),
   };
   await fs.mkdir(DRAFTS, { recursive: true, mode: 0o700 });
@@ -459,4 +500,4 @@ async function main() {
 
 if (require.main === module) main().catch(async (error) => { await log(error.message, 'ERROR').catch(() => {}); process.exitCode = 1; });
 
-module.exports = { assertSnapshotCurrent, draftPath, localDateKey, mediaKey, nextDailyRunAt, openDraft, validateBlogSettings, validateExistingDraft, validateSettings };
+module.exports = { assertSnapshotCurrent, draftPath, localDateKey, mediaKey, nextDailyRunAt, openDraft, selectDraftMedia, validateBlogSettings, validateExistingDraft, validateSettings };

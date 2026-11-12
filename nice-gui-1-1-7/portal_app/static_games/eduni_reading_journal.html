@@ -841,6 +841,10 @@
       }
 
       function momentKind(file) { return file.type.startsWith('video/') ? 'video' : 'image'; }
+      const MAX_MOMENT_IMAGE_BYTES = 18 * 1024 * 1024;
+      function momentImageBytes() {
+        return momentOrder.reduce((total, item) => total + (item.kind === 'image' ? Number(item.file?.size ?? item.size) || 0 : 0), 0);
+      }
       const MOMENT_COLUMNS_KEY = 'eduni-reading-moment-columns';
       let preferredMomentColumns = 3;
       try { preferredMomentColumns = Number(localStorage.getItem(MOMENT_COLUMNS_KEY)) || 3; } catch (_) {}
@@ -915,19 +919,22 @@
         document.querySelectorAll('[data-moment-picker]').forEach(button => { button.disabled = savingRecord || momentLoading; });
         momentInputs.forEach(input => { input.disabled = savingRecord || momentLoading; });
         momentColumns.disabled = savingRecord || momentLoading;
-        momentStatus.textContent = `${existingMoments.length + queuedMoments.length}/20개 · 새 첨부는 독서기록 저장 후 올라가요.`;
+        momentStatus.textContent = `${existingMoments.length + queuedMoments.length}/20개 · 사진 ${(momentImageBytes() / (1024 * 1024)).toFixed(1)}/18MB · 새 첨부는 독서기록 저장 후 올라가요.`;
       }
       function queueMomentFiles(files) {
         if (savingRecord || momentLoading) return;
         let warning = '';
+        let imageBytes = momentImageBytes();
         for (const file of files) {
           const kind = momentKind(file), ext = file.name.toLowerCase().split('.').pop();
           const validImage = kind === 'image' && ['image/jpeg','image/png','image/webp'].includes(file.type) && file.size <= 10 * 1024 * 1024;
           const validVideo = kind === 'video' && ['video/mp4','video/quicktime','video/webm'].includes(file.type) && file.size <= 100 * 1024 * 1024;
           if ((!validImage && !validVideo) || !ext) { warning = '사진은 JPEG·PNG·WebP 10MB 이하, 영상은 MP4·MOV·WebM 100MB 이하만 추가할 수 있어요.'; continue; }
+          if (kind === 'image' && imageBytes + file.size > MAX_MOMENT_IMAGE_BYTES) { warning = '사진 전체 용량은 기록 하나당 18MB까지예요.'; continue; }
           if (existingMoments.length + queuedMoments.length >= 20) { warning = '첨부는 기록 하나에 최대 20개까지예요.'; break; }
           const item = { file, kind, caption:'', blog_use:false, preview:URL.createObjectURL(file) };
           queuedMoments.push(item); momentOrder.push(item);
+          if (kind === 'image') imageBytes += file.size;
         }
         renderMoments();
         if (warning) momentStatus.textContent = warning;

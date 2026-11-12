@@ -16,6 +16,7 @@ from .reading_storage import ensure_reading_journal_schema, reading_database_con
 
 READING_ATTACHMENT_DIR = Path(os.environ.get("EDUNI_READING_DATA_DIR") or (DATA_DIR / "reading_journal")) / "moments"
 IMAGE_MAX_BYTES = 10 * 1024 * 1024
+IMAGE_MAX_TOTAL_BYTES = 18 * 1024 * 1024
 VIDEO_MAX_BYTES = 100 * 1024 * 1024
 MAX_ATTACHMENTS = 20
 CAPTION_MAX_LENGTH = 500
@@ -142,6 +143,13 @@ def add_reading_attachment(
             ).fetchone()[0]
             if int(count) >= MAX_ATTACHMENTS:
                 raise ValueError("a reading record can have at most 20 attachments")
+            if kind == "image":
+                image_bytes = conn.execute(
+                    "SELECT COALESCE(SUM(size), 0) FROM reading_attachment WHERE reading_record_id = ? AND kind = 'image'",
+                    (record_id,),
+                ).fetchone()[0]
+                if int(image_bytes or 0) + size > IMAGE_MAX_TOTAL_BYTES:
+                    raise ValueError("photos for a reading record can total at most 18 MB")
             selected_position = int(count) if position is None else position
             if isinstance(selected_position, bool) or not isinstance(selected_position, int) or not 0 <= selected_position < MAX_ATTACHMENTS:
                 raise ValueError(f"position must be between 0 and {MAX_ATTACHMENTS - 1}")

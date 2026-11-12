@@ -454,7 +454,7 @@ def _validate_blog_draft_payload(value: object) -> dict:
 
 def complete_blog_draft(payload: dict, get_credentials=credentials) -> dict:
     data = _validate_blog_draft_payload(payload)
-    minimum_body_chars = 1_500 if len(data["images"]) >= 3 else 800 if data["images"] else 1
+    minimum_body_chars = 1_600 if len(data["images"]) >= 3 else 800 if data["images"] else 1
     tone = {
         "family": "따뜻하고 차분한 부모 시점의 가족 독서 기록",
         "plain": "담백하고 사실 중심인 독서 일지",
@@ -483,7 +483,7 @@ def complete_blog_draft(payload: dict, get_credentials=credentials) -> dict:
         "사진에 글자가 보이더라도 확실히 읽히지 않으면 인용하지 않는다. "
         "영상은 첨부 설명만 제공되므로 영상의 장면을 본 것처럼 쓰지 않는다. "
         "부모 메모가 제공되지 않았다면 언급하지 않는다. 외부 검색이나 링크, 홍보 문구, 해시태그는 만들지 않는다. "
-        "제목은 20~40자 안팎으로 자연스럽게 쓴다. 사진이 3장 이상이면 본문을 최소 1,500자, 보통 1,500~2,000자로 충분히 쓴다. 사진이 1~2장이면 최소 800자로 쓴다. 사진에서 확인한 구체적인 장면과 독서 기록의 내용을 중심으로 모바일에서 읽기 쉬운 짧은 문단을 구성한다. 기록과 사진만으로 확인할 내용이 부족하면 사실을 만들어 분량을 채우지 않는다. 결과에는 블로그 제목과 본문만 넣고 지시문, 분석, JSON 예시를 본문에 포함하지 않는다. "
+        "제목은 20~40자 안팎으로 자연스럽게 쓴다. 사진이 3장 이상이면 본문을 최소 1,600자, 보통 1,600~2,200자로 충분히 쓴다. 사진이 1~2장이면 최소 800자로 쓴다. 사진에서 확인한 구체적인 장면과 독서 기록의 내용을 중심으로 모바일에서 읽기 쉬운 짧은 문단을 구성한다. 기록과 사진만으로 확인할 내용이 부족하면 사실을 만들어 분량을 채우지 않는다. 결과에는 블로그 제목과 본문만 넣고 지시문, 분석, JSON 예시를 본문에 포함하지 않는다. "
         "제목과 본문만 지정된 JSON으로 출력한다."
     )
     content = [{"type": "input_text", "text": text}]
@@ -522,10 +522,14 @@ def complete_blog_draft(payload: dict, get_credentials=credentials) -> dict:
         raise ValueError("invalid blog draft response") from exc
     if (not isinstance(draft, dict) or set(draft) != {"title", "body"}
             or not isinstance(draft["title"], str) or not draft["title"].strip() or len(draft["title"]) > 80
-            or not isinstance(draft["body"], str) or len(draft["body"].strip()) < minimum_body_chars or len(draft["body"]) > 5_000
-            or re.search(r"이전\s*지시.{0,8}무시|내부\s*(?:지시사항|프롬프트)|주의하십시오|출력하세요|ignore\s+(?:all\s+)?(?:previous|prior)\s+instructions|\{\s*\"title\"\s*:", draft["body"], re.IGNORECASE)):
+            or not isinstance(draft["body"], str)):
         raise ValueError("invalid blog draft response")
-    return {"title": draft["title"].strip(), "body": draft["body"].strip()}
+    body = draft["body"].strip()
+    if (len(body) < minimum_body_chars or len(body) > 5_000
+            or re.search(r"이전\s*지시.{0,8}무시|내부\s*(?:지시사항|프롬프트)|주의하십시오|출력하세요|ignore\s+(?:all\s+)?(?:previous|prior)\s+instructions|\{\s*\"title\"\s*:", body, re.IGNORECASE)
+            or not re.search(r"[가-힣][.!?…]$", body)):
+        raise ValueError("invalid blog draft response")
+    return {"title": draft["title"].strip(), "body": body}
 
 
 class Handler(BaseHTTPRequestHandler):

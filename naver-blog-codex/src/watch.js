@@ -84,7 +84,10 @@ async function api(origin, pathname, init = {}) {
 async function records(origin) {
   const data = await api(origin, API + '?limit=1');
   if (!Array.isArray(data.records) || data.records.length > 1) fail('Unexpected blog-watch records response.');
-  return data.records[0] || null;
+  const record = data.records[0] || null;
+  if (record && (!Number.isSafeInteger(record.id) || typeof record.created_at !== 'string'
+    || !['draft', 'completed'].includes(record.status))) fail('Unexpected blog-watch records response.');
+  return record;
 }
 
 async function recordsAfter(origin, afterId) {
@@ -94,8 +97,9 @@ async function recordsAfter(origin, afterId) {
     const data = await api(origin, API + '?limit=500&after_id=' + cursor);
     const page = data.records;
     if (!Array.isArray(page) || page.length > 500 || page.some((r, i) => !Number.isSafeInteger(r.id) || r.id <= cursor
-      || typeof r.created_at !== 'string' || (i > 0 && r.id <= page[i - 1].id))) fail('Unexpected blog-watch records response.');
-    records.push(...page.map(({ id, created_at }) => ({ id, created_at })));
+      || typeof r.created_at !== 'string' || !['draft', 'completed'].includes(r.status)
+      || (i > 0 && r.id <= page[i - 1].id))) fail('Unexpected blog-watch records response.');
+    records.push(...page.map(({ id, created_at, status }) => ({ id, created_at, status })));
     if (page.length < 500) return records;
     cursor = page[page.length - 1].id;
   }
@@ -343,6 +347,11 @@ function selectDraftMedia(stableMedia, selectedPhotoIds) {
 }
 
 async function processRecord(origin, record, settings, state) {
+  if (record.status === 'draft') {
+    await log('Record ' + record.id + ': status=draft; monitoring only and waiting for registration completion before GPT writing.');
+    return;
+  }
+  if (record.status !== 'completed') fail('EDUNI returned an invalid reading record status.');
   await log('Record ' + record.id + ': waiting for stable reading settings and media.');
   const { attachments: stableMedia, settings: blogSettings } = await waitReady(origin, record);
   await log('Record ' + record.id + ': snapshot stable; ' + stableMedia.length + ' attachment(s).');
@@ -475,13 +484,15 @@ async function main() {
     const processed = new Set(state.processedRecordIds);
     const pending = page.filter((record) => record.id > state.processedThroughId && !processed.has(record.id));
     if (!pending.length) {
-      await log('No completed, unprocessed records at the scheduled time; waiting for the next daily run.');
+      await log('No new, unprocessed reading records at the scheduled time; waiting for the next daily run.');
       continue;
     }
-    await log('Daily run found ' + pending.length + ' completed, unprocessed record(s); processing in record order.');
+    const draftCount = pending.filter((record) => record.status === 'draft').length;
+    await log('Daily run found ' + pending.length + ' unprocessed record(s): ' + draftCount + ' temporary, '
+      + (pending.length - draftCount) + ' completed; processing in record order.');
     for (const record of pending) {
       for (;;) {
-        await log('Detected new record ' + record.id + '; starting draft workflow.');
+        await log('Detected new record ' + record.id + ' (status=' + record.status + ').');
         try {
           await processRecord(origin, record, settings, state);
           break;

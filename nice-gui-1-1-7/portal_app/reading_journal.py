@@ -833,22 +833,22 @@ def reading_blog_watch_records_api(
     limit: int = Query(default=100, ge=1, le=500),
     after_id: int | None = Query(default=None, ge=0),
 ) -> JSONResponse:
-    """Expose only IDs and creation times to the local new-record watcher."""
+    """Expose IDs, creation times, and status to the local new-record watcher."""
     ensure_reading_journal_schema()
     profile_id = default_child_profile_id()
     with reading_database_connection() as conn:
         if after_id is None:
             rows = conn.execute(
-                "SELECT id, created_at FROM reading_record WHERE child_profile_id = ? AND status = 'completed' ORDER BY id DESC LIMIT ?",
+                "SELECT id, created_at, status FROM reading_record WHERE child_profile_id = ? AND status IN ('draft', 'completed') ORDER BY id DESC LIMIT ?",
                 (profile_id, limit),
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT id, created_at FROM reading_record WHERE child_profile_id = ? AND status = 'completed' AND id > ? ORDER BY id ASC LIMIT ?",
+                "SELECT id, created_at, status FROM reading_record WHERE child_profile_id = ? AND status IN ('draft', 'completed') AND id > ? ORDER BY id ASC LIMIT ?",
                 (profile_id, after_id, limit),
             ).fetchall()
     return JSONResponse(
-        {"records": [{"id": int(row[0]), "created_at": str(row[1])} for row in rows]},
+        {"records": [{"id": int(row[0]), "created_at": str(row[1]), "status": str(row[2])} for row in rows]},
         headers={"Cache-Control": "no-store"},
     )
 

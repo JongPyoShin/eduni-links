@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { isEmptySmartEditorDocument, isVisuallyEmptyEditor, resolveEditorRecoveryPrompt, saveDraftOnly } = require('../src/save-draft');
+const { isEmptySmartEditorDocument, isVisuallyEmptyEditor, resolveEditorRecoveryPrompt, saveDraftOnly, typeEditorText } = require('../src/save-draft');
 
 const blankDocument = {
   document: { components: [
@@ -28,6 +28,40 @@ test('editor placeholders count as empty, but visible draft content does not', (
   assert.equal(isVisuallyEmptyEditor('제목', '글감과 함께 나의 일상을 기록해보세요!', 0, 0), true);
   assert.equal(isVisuallyEmptyEditor('Existing title', '', 0, 0), false);
   assert.equal(isVisuallyEmptyEditor('제목', '글감과 함께 나의 일상을 기록해보세요!', 1, 0), false);
+});
+
+test('long Korean text is entered in verified chunks with plain headings and paragraph breaks', async () => {
+  let renderedText = '';
+  let paragraphCount = 1;
+  const chunks = [];
+  const locator = {
+    click: async () => {},
+    innerText: async () => renderedText,
+    locator: (selector) => {
+      assert.equal(selector, '.se-text-paragraph');
+      return { count: async () => paragraphCount };
+    },
+  };
+  const page = {
+    keyboard: {
+      insertText: async (chunk) => { chunks.push(chunk); renderedText += chunk; },
+      press: async (key) => {
+        assert.equal(key, 'Enter');
+        renderedText += '\n';
+        paragraphCount += 1;
+      },
+    },
+    waitForTimeout: async () => {},
+  };
+  const body = '### 나무 곁에서\n' + '함께 읽은 장면을 자세히 기록합니다. '.repeat(18) + '\n\n마지막 문장입니다.';
+  const expected = '나무 곁에서\n' + '함께 읽은 장면을 자세히 기록합니다. '.repeat(18) + '\n\n마지막 문장입니다.';
+
+  await typeEditorText(page, locator, body);
+
+  assert.equal(renderedText, expected);
+  assert.equal(paragraphCount, 4);
+  assert.ok(chunks.length > 3);
+  assert.ok(chunks.every((chunk) => Array.from(chunk).length <= 120));
 });
 
 test('Naver recovery prompt resumes existing editor state before writing', async () => {

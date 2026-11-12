@@ -190,12 +190,50 @@ async function waitForBrowserClose(context) {
   await new Promise((resolve) => context.once('close', resolve));
 }
 
+async function waitForEditorText(page, locator, expected) {
+  const target = normalizedText(expected);
+  const deadline = Date.now() + 5_000;
+  let rendered = '';
+  while (Date.now() < deadline) {
+    rendered = normalizedText(await locator.innerText().catch(() => ''));
+    if (rendered === target) return;
+    await page.waitForTimeout(50);
+  }
+  fail('Naver editor input did not render completely (' + rendered.length + '/' + target.length + ' chars).');
+}
+
+async function waitForEditorParagraphs(page, locator, expected) {
+  const deadline = Date.now() + 5_000;
+  let rendered = 0;
+  while (Date.now() < deadline) {
+    rendered = await locator.locator('.se-text-paragraph').count().catch(() => 0);
+    if (rendered >= expected) return;
+    await page.waitForTimeout(50);
+  }
+  fail('Naver editor paragraph break did not render (' + rendered + '/' + expected + ').');
+}
+
 async function typeEditorText(page, locator, value) {
+  const editorText = value.replace(/\r\n?/g, '\n').replace(/^#{1,6}\s+/gm, '');
+  const lines = editorText.split('\n');
   await locator.click();
-  const lines = value.replace(/\r\n?/g, '\n').split('\n');
-  for (let index = 0; index < lines.length; index += 1) {
-    if (lines[index]) await page.keyboard.insertText(lines[index]);
-    if (index < lines.length - 1) await page.keyboard.press('Enter');
+  let expected = '';
+  let paragraphs = await locator.locator('.se-text-paragraph').count();
+  for (const [lineIndex, line] of lines.entries()) {
+    const characters = Array.from(line);
+    for (let offset = 0; offset < characters.length; offset += 120) {
+      const chunk = characters.slice(offset, offset + 120).join('');
+      await page.keyboard.insertText(chunk);
+      expected += chunk;
+      await waitForEditorText(page, locator, expected);
+    }
+    if (lineIndex < lines.length - 1) {
+      await page.keyboard.press('Enter');
+      paragraphs += 1;
+      await waitForEditorParagraphs(page, locator, paragraphs);
+      expected += '\n';
+      await waitForEditorText(page, locator, expected);
+    }
   }
 }
 
@@ -498,11 +536,15 @@ async function main() {
       await typeEditorText(page, title, draft.title);
       await typeEditorText(page, body, draft.body);
     }
+    const editorBody = draft.body.replace(/\r\n?/g, '\n').replace(/^#{1,6}\s+/gm, '');
     const renderedTitle = await title.innerText().catch(() => '');
     const renderedBody = await body.innerText().catch(() => '');
-    if (!normalizedText(renderedTitle).includes(normalizedText(draft.title))
-      || !normalizedText(renderedBody).includes(normalizedText(draft.body))) {
-      await log(path.basename(draftPath) + ': title/body verification failed; no Naver draft saved.', 'ERROR');
+    const titleMatches = normalizedText(renderedTitle).includes(normalizedText(draft.title));
+    const bodyMatches = normalizedText(renderedBody).includes(normalizedText(editorBody));
+    if (!titleMatches || !bodyMatches) {
+      await log(path.basename(draftPath) + ': editor text verification failed (title ' + renderedTitle.length + '/' + draft.title.length
+        + ', match=' + titleMatches + '; body ' + renderedBody.length + '/' + editorBody.length + ', match=' + bodyMatches
+        + '); no Naver draft saved.', 'ERROR');
       await waitForBrowserClose(context);
       process.exitCode = 1;
       return;
@@ -534,7 +576,7 @@ async function main() {
   }
 }
 
-module.exports = { attachMediaToEditor, isEmptySmartEditorDocument, isVisuallyEmptyEditor, resolveEditorRecoveryPrompt, savedDraftTitleExists, saveDraftOnly };
+module.exports = { attachMediaToEditor, isEmptySmartEditorDocument, isVisuallyEmptyEditor, resolveEditorRecoveryPrompt, savedDraftTitleExists, saveDraftOnly, typeEditorText };
 
 if (require.main === module) main().catch(async (error) => {
   await log(error.message, 'ERROR').catch(() => {});

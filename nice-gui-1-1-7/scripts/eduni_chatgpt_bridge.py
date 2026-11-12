@@ -454,7 +454,6 @@ def _validate_blog_draft_payload(value: object) -> dict:
 
 def complete_blog_draft(payload: dict, get_credentials=credentials) -> dict:
     data = _validate_blog_draft_payload(payload)
-    minimum_body_chars = 900 if len(data["images"]) >= 3 else 650 if data["images"] else 1
     maximum_body_chars = 1_800 if len(data["images"]) >= 3 else 1_400 if data["images"] else 1_200
     tone = {
         "family": "따뜻하고 차분한 부모 시점의 가족 독서 기록",
@@ -501,7 +500,7 @@ def complete_blog_draft(payload: dict, get_credentials=credentials) -> dict:
         "stream": True,
         "instructions": instructions,
         "input": [{"role": "user", "content": content}],
-        "max_output_tokens": 2_300,
+        "max_output_tokens": 3_000,
         "text": {"verbosity": "medium", "format": {
             "type": "json_schema",
             "name": "eduni_reading_blog_draft",
@@ -510,7 +509,7 @@ def complete_blog_draft(payload: dict, get_credentials=credentials) -> dict:
                 "type": "object", "additionalProperties": False,
                 "properties": {
                     "title": {"type": "string", "minLength": 1, "maxLength": 80},
-                    "body": {"type": "string", "minLength": minimum_body_chars, "maxLength": maximum_body_chars},
+                    "body": {"type": "string", "minLength": 1, "maxLength": maximum_body_chars},
                 },
                 "required": ["title", "body"],
             },
@@ -526,7 +525,7 @@ def complete_blog_draft(payload: dict, get_credentials=credentials) -> dict:
             or not isinstance(draft["body"], str)):
         raise ValueError("invalid blog draft response")
     body = draft["body"].strip()
-    if (len(body) < minimum_body_chars or len(body) > maximum_body_chars
+    if (not body or len(body) > maximum_body_chars
             or re.search(r"이전\s*지시.{0,8}무시|내부\s*(?:지시사항|프롬프트)|주의하십시오|출력하세요|ignore\s+(?:all\s+)?(?:previous|prior)\s+instructions|\{\s*\"title\"\s*:", body, re.IGNORECASE)
             or not re.search(r"[가-힣][.!?…]$", body)):
         raise ValueError("invalid blog draft response")

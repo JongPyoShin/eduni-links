@@ -185,6 +185,27 @@ async function uniqueLocator(locator) {
   return count === 1 && await locator.isVisible().catch(() => false) ? locator : null;
 }
 
+async function firstVisibleLocator(locator) {
+  const count = await locator.count().catch(() => 0);
+  for (let index = 0; index < count; index += 1) {
+    const candidate = locator.nth(index);
+    if (await candidate.isVisible().catch(() => false)) return candidate;
+  }
+  return null;
+}
+
+async function waitForEditorFrame(page) {
+  const deadline = Date.now() + 20_000;
+  while (Date.now() < deadline) {
+    const editor = page.frames().find((frame) => frame.name() === 'mainFrame'
+      && /PostWriteForm\.naver/i.test(frame.url()));
+    if (editor) return editor;
+    if (/PostWriteForm\.naver/i.test(page.mainFrame().url())) return page.mainFrame();
+    await page.waitForTimeout(100);
+  }
+  fail('Naver editor frame did not load; no draft was saved.');
+}
+
 async function waitForBrowserClose(context) {
   process.exitCode = 1;
   await new Promise((resolve) => context.once('close', resolve));
@@ -237,25 +258,25 @@ async function typeEditorText(page, locator, value) {
   }
 }
 
-async function attachMediaToEditor(page, media) {
+async function attachMediaToEditor(page, editor, media) {
   for (let index = 0; index < media.length;) {
     const item = media[index];
     if (item.kind === 'image') {
       let end = index + 1;
       while (end < media.length && media[end].kind === 'image') end += 1;
       const images = media.slice(index, end);
-      const toolbar = await uniqueLocator(page.locator('button.se-image-toolbar-button'));
+      const toolbar = await uniqueLocator(editor.locator('button.se-image-toolbar-button'));
       if (!toolbar) fail('Naver의 사진 도구 버튼을 하나로 찾지 못했습니다.');
-      const before = await page.locator('.se-component.se-image').count();
+      const before = await editor.locator('.se-component.se-image').count();
       const chooserPromise = page.waitForEvent('filechooser', { timeout: 15_000 });
       await toolbar.click();
       const chooser = await chooserPromise;
       await chooser.setFiles(images.map(({ localPath }) => localPath));
-      const layoutOption = page.getByText('개별사진', { exact: true });
+      const layoutOption = editor.getByText('개별사진', { exact: true });
       if (images.length > 1) await layoutOption.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {});
       const layout = await uniqueLocator(layoutOption);
       if (layout) await layout.click();
-      await page.waitForFunction(
+      await editor.waitForFunction(
         ({ selector, count, countExpected }) => {
           const nodes = [...document.querySelectorAll(selector)];
           const added = nodes.slice(count);
@@ -272,14 +293,14 @@ async function attachMediaToEditor(page, media) {
     }
     const toolbarClass = item.kind === 'image' ? 'image' : 'video';
     const componentSelector = '.se-component.se-video';
-    const toolbar = await uniqueLocator(page.locator('button.se-' + toolbarClass + '-toolbar-button'));
+    const toolbar = await uniqueLocator(editor.locator('button.se-' + toolbarClass + '-toolbar-button'));
     if (!toolbar) fail('Naver의 동영상 도구 버튼을 하나로 찾지 못했습니다.');
-    const before = await page.locator(componentSelector).count();
+    const before = await editor.locator(componentSelector).count();
     const chooserPromise = page.waitForEvent('filechooser', { timeout: 15_000 });
     await toolbar.click();
     const chooser = await chooserPromise;
     await chooser.setFiles(item.localPath);
-    await page.waitForFunction(
+    await editor.waitForFunction(
       ({ selector, count }) => document.querySelectorAll(selector).length > count,
       { selector: componentSelector, count: before },
       { timeout: 180_000 },
@@ -288,11 +309,11 @@ async function attachMediaToEditor(page, media) {
   }
 }
 
-async function saveDraftOnly(page) {
-  const saveButton = await uniqueLocator(page.getByRole('button', { name: '저장', exact: true }));
+async function saveDraftOnly(page, editor) {
+  const saveButton = await uniqueLocator(editor.getByRole('button', { name: '저장', exact: true }));
   if (!saveButton) fail('저장 버튼을 하나로 특정할 수 없어 임시저장하지 않았습니다.');
   const counterSelector = 'button[class*="save_count_btn"]';
-  const counter = page.locator(counterSelector);
+  const counter = editor.locator(counterSelector);
   let beforeCount = null;
   if (await counter.count() === 1) {
     const label = await counter.getAttribute('aria-label').catch(() => '');
@@ -303,14 +324,14 @@ async function saveDraftOnly(page) {
   await saveButton.click();
   const confirmations = [];
   if (beforeCount !== null) {
-    confirmations.push(page.waitForFunction(({ selector, previous }) => {
+    confirmations.push(editor.waitForFunction(({ selector, previous }) => {
       const button = document.querySelector(selector);
       if (!button) return false;
       const values = ((button.getAttribute('aria-label') || '') + ' ' + (button.textContent || '')).match(/\d+/g);
       return values && Math.max(...values.map(Number)) > previous;
     }, { selector: counterSelector, previous: beforeCount }, { timeout: 20_000 }));
   }
-  confirmations.push(page.getByText(/임시저장 완료|임시저장\s*되었습니|저장 완료|저장\s*되었습니/)
+  confirmations.push(editor.getByText(/임시저장 완료|임시저장\s*되었습니|저장 완료|저장\s*되었습니/)
     .waitFor({ state: 'visible', timeout: 20_000 }));
   try { await Promise.any(confirmations); }
   catch (_) { fail('네이버 임시저장 완료를 확인하지 못했습니다.'); }
@@ -352,8 +373,8 @@ function isVisuallyEmptyEditor(title, body, imageCount, videoCount) {
     && imageCount === 0 && videoCount === 0;
 }
 
-async function resolveEditorRecoveryPrompt(page) {
-  const popup = page.locator('.se-popup-alert-confirm');
+async function resolveEditorRecoveryPrompt(editor) {
+  const popup = editor.locator('.se-popup-alert-confirm');
   await popup.waitFor({ state: 'visible', timeout: 2_000 }).catch(() => {});
   if (await popup.count().catch(() => 0) !== 1 || !await popup.isVisible().catch(() => false)) return false;
 
@@ -369,24 +390,85 @@ async function resolveEditorRecoveryPrompt(page) {
   return true;
 }
 
+async function dismissEditorHelp(page, editor) {
+  const title = editor.locator('.se-help-title');
+  if (!await title.isVisible().catch(() => false)) return;
+  const close = await uniqueLocator(editor.locator('button.se-help-panel-close-button'));
+  if (!close) fail('Naver help overlay has no unique close button; no draft was changed.');
+  await close.click();
+  await title.waitFor({ state: 'hidden', timeout: 3_000 });
+}
+
 async function savedDraftTitleExists(page, title) {
-  const counter = await uniqueLocator(page.locator('button[class*="save_count_btn"]'));
+  const editor = await waitForEditorFrame(page);
+  await dismissEditorHelp(page, editor);
+  const counter = await uniqueLocator(editor.locator('button[class*="save_count_btn"]'));
   if (!counter) return false;
   await counter.click();
-  const pageText = await page.locator('body').innerText().catch(() => '');
+  const pageText = await editor.locator('body').innerText().catch(() => '');
   const marker = pageText.indexOf('임시저장 글');
   const listText = marker >= 0 ? pageText.slice(marker) : '';
   const found = listText.split(/\r?\n/).map(normalizedText).includes(normalizedText(title));
-  const close = await uniqueLocator(page.getByRole('button', { name: '팝업닫기', exact: true }));
+  const close = await uniqueLocator(editor.getByRole('button', { name: '팝업닫기', exact: true }));
   if (!close) fail('Naver saved-draft list opened but could not be closed safely.');
   await close.click();
   return found;
 }
 
-async function backupRecoveredText(title, body, recordId) {
-  const digest = createHash('sha256').update(title + '\0' + body).digest('hex').slice(0, 20);
+async function openIsolatedEditorPreservingRecovery(sourceContext, blogId, recordId) {
+  const browser = sourceContext.browser();
+  if (!browser) fail('Naver recovery browser is unavailable; the recovered draft was preserved.');
+  const context = await browser.newContext({
+    viewport: { width: 1360, height: 900 },
+    storageState: { cookies: await sourceContext.cookies(), origins: [] },
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto(BLOG_EDITOR + '?blogId=' + encodeURIComponent(blogId), { waitUntil: 'domcontentloaded' });
+    if (/nidlogin\.login/.test(page.url())) fail('Naver login could not be reused in the isolated editor; the recovered draft was preserved.');
+    let editor = await waitForEditorFrame(page);
+    await editor.locator('.se-section-documentTitle .se-module-text').first().waitFor({ state: 'visible', timeout: 20_000 });
+    const recovered = await resolveEditorRecoveryPrompt(editor);
+    let title = await firstVisibleLocator(editor.locator('.se-section-documentTitle .se-module-text'));
+    let body = await firstVisibleLocator(editor.locator('.se-section-text .se-module-text'));
+    if (!title || !body) fail('Naver isolated editor fields were not found; the original recovery was preserved.');
+    let documentData = await editor.evaluate(() => {
+      const smartEditor = window.SmartEditor?._editors?.blogpc001;
+      return typeof smartEditor?.getDocumentData === 'function' ? smartEditor.getDocumentData() : null;
+    });
+    let images = await editor.locator('.se-component.se-image').count();
+    let videos = await editor.locator('.se-component.se-video').count();
+    const currentTitle = await title.innerText().catch(() => '');
+    const currentBody = await body.innerText().catch(() => '');
+    if (recovered && !isVisuallyEmptyEditor(currentTitle, currentBody, images, videos)) {
+      editor = await discardAlreadySavedRecoveryAndStartFresh(page, blogId, currentTitle, currentBody,
+        recordId, documentData);
+      title = await firstVisibleLocator(editor.locator('.se-section-documentTitle .se-module-text'));
+      body = await firstVisibleLocator(editor.locator('.se-section-text .se-module-text'));
+      if (!title || !body) fail('Naver blank editor fields were not found after preserving the recovered draft.');
+      documentData = await editor.evaluate(() => {
+        const smartEditor = window.SmartEditor?._editors?.blogpc001;
+        return typeof smartEditor?.getDocumentData === 'function' ? smartEditor.getDocumentData() : null;
+      });
+      images = await editor.locator('.se-component.se-image').count();
+      videos = await editor.locator('.se-component.se-video').count();
+    }
+    if (!isEmptySmartEditorDocument(documentData)
+      || !isVisuallyEmptyEditor(await title.innerText().catch(() => ''), await body.innerText().catch(() => ''), images, videos)) {
+      fail('Naver isolated editor was not blank; the original recovery was preserved.');
+    }
+    return { context, page, editor, title, body };
+  } catch (error) {
+    await context.close().catch(() => {});
+    throw error;
+  }
+}
+
+async function backupRecoveredText(title, body, recordId, documentData) {
+  const documentJson = JSON.stringify(documentData ?? null);
+  const digest = createHash('sha256').update(title + '\0' + body + '\0' + documentJson).digest('hex').slice(0, 20);
   const backupPath = path.join(DRAFTS, 'naver-recovery-' + digest + '.json');
-  const payload = JSON.stringify({ schemaVersion: 1, source: 'naver-local-recovery-backup', recordId, title, body }, null, 2) + '\n';
+  const payload = JSON.stringify({ schemaVersion: 1, source: 'naver-local-recovery-backup', recordId, title, body, documentData }, null, 2) + '\n';
   try {
     const handle = await fs.open(backupPath, 'wx', 0o600);
     try { await handle.writeFile(payload); } finally { await handle.close(); }
@@ -398,17 +480,18 @@ async function backupRecoveredText(title, body, recordId) {
   return backupPath;
 }
 
-async function discardAlreadySavedRecoveryAndStartFresh(page, blogId, title, body, imageCount, videoCount, recordId) {
-  if (imageCount || videoCount) fail('Recovered Naver draft contains media and was preserved for manual review.');
-  const backupPath = await backupRecoveredText(title, body, recordId);
+async function discardAlreadySavedRecoveryAndStartFresh(page, blogId, title, body, recordId, documentData) {
+  const backupPath = await backupRecoveredText(title, body, recordId, documentData);
   if (!await savedDraftTitleExists(page, title)) {
     fail('Recovered Naver draft is not listed among saved drafts; it was backed up and preserved.');
   }
-  await log(path.basename(backupPath) + ': recovered Naver text backed up; matching saved title confirmed.');
+  await log(path.basename(backupPath) + ': recovered Naver document backed up; matching saved title confirmed.');
 
   await page.goto(BLOG_EDITOR + '?blogId=' + encodeURIComponent(blogId), { waitUntil: 'domcontentloaded' });
-  await page.locator('.se-section-documentTitle .se-module-text').first().waitFor({ state: 'visible', timeout: 20_000 });
-  const popup = page.locator('.se-popup-alert-confirm');
+  let editor = await waitForEditorFrame(page);
+  await editor.locator('.se-section-documentTitle .se-module-text').first().waitFor({ state: 'visible', timeout: 20_000 });
+  const popup = editor.locator('.se-popup-alert-confirm');
+  await dismissEditorHelp(page, editor);
   await popup.waitFor({ state: 'visible', timeout: 2_000 }).catch(() => {});
   if (await popup.count().catch(() => 0) === 1 && await popup.isVisible().catch(() => false)) {
     const message = normalizedText(await popup.innerText().catch(() => ''));
@@ -421,13 +504,13 @@ async function discardAlreadySavedRecoveryAndStartFresh(page, blogId, title, bod
     await popup.waitFor({ state: 'hidden', timeout: 15_000 });
   }
 
-  const titleField = page.locator('.se-section-documentTitle .se-module-text');
-  const bodyField = page.locator('.se-section-text .se-module-text');
+  const titleField = editor.locator('.se-section-documentTitle .se-module-text');
+  const bodyField = editor.locator('.se-section-text .se-module-text').first();
   const currentTitle = await titleField.innerText().catch(() => '');
   const currentBody = await bodyField.innerText().catch(() => '');
-  const images = await page.locator('.se-component.se-image').count();
-  const videos = await page.locator('.se-component.se-video').count();
-  const data = await page.evaluate(() => {
+  const images = await editor.locator('.se-component.se-image').count();
+  const videos = await editor.locator('.se-component.se-video').count();
+  const data = await editor.evaluate(() => {
     const editor = window.SmartEditor?._editors?.blogpc001;
     return typeof editor?.getDocumentData === 'function' ? editor.getDocumentData() : null;
   });
@@ -435,6 +518,7 @@ async function discardAlreadySavedRecoveryAndStartFresh(page, blogId, title, bod
     fail('Naver did not open a blank editor after preserving the saved recovery draft.');
   }
   await log('Naver recovery was backed up and dismissed only after its matching saved title was confirmed.');
+  return editor;
 }
 
 async function main() {
@@ -457,8 +541,9 @@ async function main() {
     headless: false,
     viewport: { width: 1360, height: 900 },
   });
+  let activeContext = context;
   try {
-    const page = context.pages()[0] || await context.newPage();
+    let page = context.pages()[0] || await context.newPage();
     await page.goto(BLOG_WRITE_ENTRY, { waitUntil: 'domcontentloaded' });
     await log(path.basename(draftPath) + ': Naver editor entry opened; checking login and page structure.');
     if (/nidlogin\.login/.test(page.url())) {
@@ -486,20 +571,21 @@ async function main() {
       process.exitCode = 1;
       return;
     }
-    await page.locator('.se-section-documentTitle .se-module-text').first().waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {});
-    const recoveredNaverDraft = await resolveEditorRecoveryPrompt(page);
+    let editor = await waitForEditorFrame(page);
+    await editor.locator('.se-section-documentTitle .se-module-text').first().waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {});
+    const recoveredNaverDraft = await resolveEditorRecoveryPrompt(editor);
     if (recoveredNaverDraft) {
       await log(path.basename(draftPath) + ': recovered Naver editor content for inspection before typing.');
     }
-    const title = await uniqueLocator(page.locator('.se-section-documentTitle .se-module-text'));
-    const body = await uniqueLocator(page.locator('.se-section-text .se-module-text'));
+    let title = await uniqueLocator(editor.locator('.se-section-documentTitle .se-module-text'));
+    let body = await firstVisibleLocator(editor.locator('.se-section-text .se-module-text'));
     if (!title || !body) {
       await log(path.basename(draftPath) + ': could not locate title/body editor fields; no Naver draft saved.', 'ERROR');
       await waitForBrowserClose(context);
       process.exitCode = 1;
       return;
     }
-    const documentData = await page.evaluate(() => {
+    const documentData = await editor.evaluate(() => {
       const editor = window.SmartEditor?._editors?.blogpc001;
       return typeof editor?.getDocumentData === 'function' ? editor.getDocumentData() : null;
     });
@@ -509,8 +595,8 @@ async function main() {
       const currentBody = normalizedText(await body.innerText().catch(() => ''));
       const expectedImages = media.filter((item) => item.kind === 'image').length;
       const expectedVideos = media.filter((item) => item.kind === 'video').length;
-      const currentImages = await page.locator('.se-component.se-image').count();
-      const currentVideos = await page.locator('.se-component.se-video').count();
+      const currentImages = await editor.locator('.se-component.se-image').count();
+      const currentVideos = await editor.locator('.se-component.se-video').count();
       const visiblyEmpty = isVisuallyEmptyEditor(currentTitle, currentBody, currentImages, currentVideos);
       if (recoveredNaverDraft) {
         const types = (documentData?.document?.components || []).map((component) => component && component['@ctype']).filter(Boolean).join(',');
@@ -526,8 +612,14 @@ async function main() {
         await log(path.basename(draftPath) + ': recovered editor has only empty placeholders; starting the EDUNI draft.');
       } else if (!recoveredDraftMatches) {
         if (!recoveredNaverDraft) fail('Naver editor contains a different draft; it was preserved and no new content was entered.');
-        await discardAlreadySavedRecoveryAndStartFresh(page, blogId, currentTitle,
-          await body.innerText().catch(() => ''), currentImages, currentVideos, path.basename(draftPath));
+        const isolated = await openIsolatedEditorPreservingRecovery(context, blogId, path.basename(draftPath));
+        activeContext = isolated.context;
+        page = isolated.page;
+        editor = isolated.editor;
+        title = isolated.title;
+        body = isolated.body;
+        await log(path.basename(draftPath) + ': existing recovered draft with ' + currentImages
+          + ' image(s) and ' + currentVideos + ' video(s) left untouched; using a blank isolated editor.');
       } else {
         await log(path.basename(draftPath) + ': recovered Naver content matches the EDUNI draft; resuming save.');
       }
@@ -552,7 +644,7 @@ async function main() {
     if (media.length && !recoveredDraftMatches) {
       await log(path.basename(draftPath) + ': attaching ' + media.length + ' item(s) in record order.');
       try {
-        await attachMediaToEditor(page, media);
+        await attachMediaToEditor(page, editor, media);
         await log(path.basename(draftPath) + ': all attachments are visible and loaded.');
       } catch (error) {
         await log(path.basename(draftPath) + ': attachment upload failed; save not attempted: ' + error.message, 'ERROR');
@@ -563,7 +655,7 @@ async function main() {
     }
     await log(path.basename(draftPath) + ': title and body' + (media.length ? ' plus attachments' : '') + ' entered; saving as temporary draft.');
     try {
-      await saveDraftOnly(page);
+      await saveDraftOnly(page, editor);
       await log(path.basename(draftPath) + ': Naver temporary-save confirmation observed; no publish action used.');
     } catch (error) {
       await log(path.basename(draftPath) + ': temporary save was not confirmed: ' + error.message, 'ERROR');
@@ -572,6 +664,7 @@ async function main() {
       return;
     }
   } finally {
+    if (activeContext !== context) await activeContext.close().catch(() => {});
     await context.close().catch(() => {});
   }
 }

@@ -119,6 +119,24 @@ function PortSignature($inspect) {
   }
   return (@($values | Sort-Object) -join ';')
 }
+function EffectivePortSignature($inspect) {
+  if ($null -eq $inspect.NetworkSettings.Ports) { return '' }
+  $values = foreach ($pair in $inspect.NetworkSettings.Ports.PSObject.Properties) {
+    foreach ($binding in @($pair.Value)) {
+      if ($null -ne $binding -and -not [string]::IsNullOrWhiteSpace([string]$binding.HostPort)) {
+        "$($binding.HostIp):$($binding.HostPort)->$($pair.Name)"
+      }
+    }
+  }
+  return (@($values | Sort-Object) -join ';')
+}
+function NeedsMissingPortRecovery($inspect, [string]$expected, [bool]$Apply) {
+  $effective = EffectivePortSignature $inspect
+  if ($effective -eq $expected) { return $false }
+  Assert ([string]::IsNullOrWhiteSpace($effective)) 'Running app effective port bindings differ from the release manifest; recovery refused'
+  Assert $Apply 'Running app has no effective published ports; recovery requires deploy.ps1 -Apply'
+  return $true
+}
 function MountSignature($inspect) {
   return (@($inspect.Mounts | ForEach-Object { "$($_.Type):$($_.Name):$($_.Destination):$($_.RW)" } | Sort-Object) -join ';')
 }
@@ -203,6 +221,11 @@ Assert ($pgBefore.Id -eq $release.unrelated_container_ids.'eduni-postgres') 'Pos
 Assert ($relayBefore.Id -eq $release.unrelated_container_ids.'eduni-gpt-relay' -and $relayBefore.Image -eq $release.relay.image_id) 'Relay identity or image drift'
 Assert ((MountSignature $before) -eq $release.app.mount_signature) 'Running app volume drift'
 Assert ((PortSignature $before) -eq $release.app.port_signature) 'Running app port drift'
+$recoverMissingPublishedPorts = NeedsMissingPortRecovery $before $release.app.port_signature $Apply
+if ($recoverMissingPublishedPorts) {
+  $internalHealth = & docker exec eduni-game python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:18081/healthz', timeout=5).status)"
+  Assert ($LASTEXITCODE -eq 0 -and (($internalHealth -join '').Trim() -eq '200')) 'Running app internal health route failed; published-port recovery refused'
+}
 $liveEnv = EnvMap $before
 $composeEnv = @{}
 foreach ($entry in $service.environment.PSObject.Properties) {
@@ -212,8 +235,12 @@ foreach ($key in @($liveEnv.Keys | Where-Object { $_ -like 'EDUNI_*' -or $_ -eq 
   Assert ($composeEnv.ContainsKey($key) -and $liveEnv[$key] -ceq $composeEnv[$key].Replace('$$', '$')) "Compose environment mismatch: $key (values suppressed)"
 }
 $dbBefore = DbSnapshot
-CheckRoutes $true $true
-if (-not $Apply -or $before.Image -eq $release.app.image_id) {
+if ($recoverMissingPublishedPorts) {
+  Write-Output 'RECOVERY PRECHECK PASS: exact port configuration and internal health verified; host route checks deferred until the app-only rebind.'
+} else {
+  CheckRoutes $true $true
+}
+if (-not $Apply -or ($before.Image -eq $release.app.image_id -and -not $recoverMissingPublishedPorts)) {
   if ($before.Image -eq $release.app.image_id) { CheckRoutes $true }
   $mode = if ($before.Image -eq $release.app.image_id) { 'release already current; no-op' } else { 'no deployment performed' }
   $scope = if ($before.Image -eq $release.app.image_id) { 'all retained feature markers' } else { 'predeployment route checks' }
@@ -230,6 +257,7 @@ try {
   Assert ($after.Image -eq $release.app.image_id -and $after.State.Status -eq 'running') 'New app image did not start'
   Assert ((MountSignature $after) -eq $release.app.mount_signature) 'App data mount changed'
   Assert ((PortSignature $after) -eq $release.app.port_signature) 'App port bindings changed'
+  Assert ((EffectivePortSignature $after) -eq $release.app.port_signature) 'App effective published ports differ from the release manifest'
   $afterEnv = EnvMap $after
   foreach ($key in $liveEnv.Keys) { Assert ($afterEnv.ContainsKey($key) -and $afterEnv[$key] -ceq $liveEnv[$key]) "App environment changed: $key (values suppressed)" }
   AssertSameServices $dbBefore
@@ -249,6 +277,7 @@ try {
     Assert ($rolledBack.Image -eq $oldImageId) 'Rollback restored the wrong image'
     Assert ((MountSignature $rolledBack) -eq $release.app.mount_signature) 'Rollback data mount changed'
     Assert ((PortSignature $rolledBack) -eq $release.app.port_signature) 'Rollback port bindings changed'
+    Assert ((EffectivePortSignature $rolledBack) -eq $release.app.port_signature) 'Rollback effective published ports differ from the release manifest'
     AssertSameServices $dbBefore
     CheckRoutes $true $true
     } catch { $rollbackFailure = $_.Exception.Message }

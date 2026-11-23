@@ -122,18 +122,26 @@ class ThinkingLabTests(unittest.TestCase):
             answers.update({"0": issue_id, "_pilot_v": PILOT_VERSION})
             goal = pilot_stage("playground", 1, answers)
             self.assertEqual(list(issue["goals"]), goal["options"])
-            answers["1"] = 0
-            solution = pilot_stage("playground", 2, answers)
-            self.assertIn(issue["name"], solution["context"])
-            self.assertIn(issue["goals"][0], solution["context"])
-            self.assertEqual(list(issue["solutions"]), solution["options"])
-            answers["2"] = 0
-            observed = pilot_stage("playground", 3, answers)
-            self.assertEqual(list(issue["results"]), observed["options"])
-            self.assertIn(issue["solutions"][0], observed["context"])
-            answers["3"] = 1
-            reflected = pilot_stage("playground", 4, answers)
-            self.assertIn(issue["results"][1], reflected["context"])
+            for goal_id, goal_name in enumerate(issue["goals"]):
+                answers["1"] = goal_id
+                solution = pilot_stage("playground", 2, answers)
+                self.assertIn(issue["name"], solution["context"])
+                self.assertIn(goal_name, solution["context"])
+                self.assertEqual(list(issue["solutions"]), solution["options"])
+                for method_id, method_name in enumerate(issue["solutions"]):
+                    answers["2"] = method_id
+                    observed = pilot_stage("playground", 3, answers)
+                    self.assertEqual(
+                        list(issue["results_by_goal"][goal_id]), observed["options"]
+                    )
+                    self.assertIn(method_name, observed["context"])
+                    for result_id in range(3):
+                        answers["3"] = result_id
+                        reflected = pilot_stage("playground", 4, answers)
+                        self.assertIn(
+                            issue["results_by_goal"][goal_id][result_id],
+                            reflected["context"],
+                        )
 
     def test_water_predict_observe_reflect_consistently_for_each_pair(self) -> None:
         for pair_id, (a, b) in enumerate(WATER_PARTS):

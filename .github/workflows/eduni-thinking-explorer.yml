@@ -1,0 +1,38 @@
+name: EDUNI thinking explorer focused checks
+on:
+  push:
+    paths:
+      - '.github/workflows/eduni-thinking-explorer.yml'
+      - 'nice-gui-1-1-7/portal_app/thinking_lab.py'
+      - 'nice-gui-1-1-7/portal_app/routes.py'
+      - 'nice-gui-1-1-7/portal_app/__init__.py'
+      - 'nice-gui-1-1-7/content/thinking_missions.json'
+      - 'nice-gui-1-1-7/tests/test_thinking_lab.py'
+  pull_request:
+    paths:
+      - 'nice-gui-1-1-7/portal_app/thinking_lab.py'
+      - 'nice-gui-1-1-7/portal_app/routes.py'
+      - 'nice-gui-1-1-7/portal_app/__init__.py'
+      - 'nice-gui-1-1-7/content/thinking_missions.json'
+      - 'nice-gui-1-1-7/tests/test_thinking_lab.py'
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install existing portal dependencies
+        run: python -m pip install -r nice-gui-1-1-7/requirements.txt
+      - name: Validate content and focused route/storage regression
+        working-directory: nice-gui-1-1-7
+        run: |
+          python -m compileall -q portal_app/thinking_lab.py tests/test_thinking_lab.py
+          python scripts/validate_content.py
+          python -m unittest discover -s tests -p 'test_thinking_lab.py'
+          python -m unittest discover -s tests -p 'test_routes.py'
+          python -m unittest discover -s tests -p 'test_portal_regression.py'

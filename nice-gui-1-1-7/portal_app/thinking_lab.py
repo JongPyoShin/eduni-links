@@ -219,7 +219,11 @@ def thinking_home() -> None:
             for mission in members:
                 with ui.card().classes("w-full p-4"):
                     ui.label(mission["title"]).classes("text-h6 text-weight-bold")
-                    ui.label(" · ".join(mission["skills"])).classes("text-caption text-teal-8")
+                    ui.label(
+                        "🖼️ 그림·선택 연결형" if mission["id"] in PILOT_IDS
+                        else "📝 질문형 초안 · 보호자 동행 권장"
+                    ).classes("text-caption text-teal-8")
+                    ui.label(" · ".join(mission["skills"])).classes("text-caption text-grey-7")
                     ui.label(f"화면 탐험 약 {mission['estimated_minutes']}분 + 현실 활동")
                     ui.link("이 미션 시작하기 →", f"/portal/thinking/{mission['id']}").classes(
                         "text-h6 q-mt-sm"

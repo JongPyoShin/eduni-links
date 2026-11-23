@@ -195,15 +195,21 @@ def thinking_home() -> None:
         ui.link("← 가족 포털", "/portal")
         ui.label("🔎 생각탐험 연구소").classes("text-h4 text-weight-bold")
         ui.label("정답보다 좋은 질문을 찾아보자! 어른과 함께 실제로 탐험해요.")
+        grouped: dict[str, list[dict[str, Any]]] = {}
         for mission in missions.values():
-            with ui.card().classes("w-full p-4"):
-                ui.label(mission["category"]).classes("text-caption text-teal-8")
-                ui.label(mission["title"]).classes("text-h6 text-weight-bold")
-                ui.label(" · ".join(mission["skills"])).classes("text-caption")
-                ui.label(f"화면 탐험 약 {mission['estimated_minutes']}분 + 현실 활동")
-                ui.link("이 미션 시작하기 →", f"/portal/thinking/{mission['id']}").classes(
-                    "text-h6 q-mt-sm"
-                )
+            grouped.setdefault(mission["category"], []).append(mission)
+        for category, members in grouped.items():
+            ui.label(f"{category} · {len(members)}개 미션").classes(
+                "text-h6 text-weight-bold q-mt-lg"
+            )
+            for mission in members:
+                with ui.card().classes("w-full p-4"):
+                    ui.label(mission["title"]).classes("text-h6 text-weight-bold")
+                    ui.label(" · ".join(mission["skills"])).classes("text-caption text-teal-8")
+                    ui.label(f"화면 탐험 약 {mission['estimated_minutes']}분 + 현실 활동")
+                    ui.link("이 미션 시작하기 →", f"/portal/thinking/{mission['id']}").classes(
+                        "text-h6 q-mt-sm"
+                    )
 
 
 @ui.page("/portal/thinking/{mission_id}")

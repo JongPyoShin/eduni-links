@@ -289,6 +289,15 @@ def render_pilot(
                         sanitize=False,  # ONLY static trusted artwork, never user-supplied input.
                     ).classes("w-full rounded-xl")
                     ui.label(SCENE_DESCRIPTIONS[mission_id]).classes("text-caption text-grey-7")
+                else:
+                    ui.interactive_image(
+                        size=(720, 320),
+                        content=scene_content(mission_id, answers["0"]),
+                        sanitize=False,  # Constant SVG; no user-controlled HTML.
+                    ).classes("w-full rounded-xl")
+                    ui.label("빨간 원은 처음에 고른 곳이에요. 같은 문제를 계속 살펴봐요.").classes(
+                        "text-caption text-grey-7"
+                    )
                 ui.label(stage["prompt"]).classes("text-h6 text-weight-medium")
                 selection_label = ui.label("그림 번호나 아래 버튼으로 선택해 보세요." if step == 0 else "한 가지를 선택해 보세요.")
 
@@ -310,7 +319,7 @@ def render_pilot(
                         ui.label(stage["offline"])
                     performed = ui.checkbox(stage["verified_label"], value=False)
 
-                with ui.expansion("보호자에게만 보이는 도움말").classes("w-full"):
+                with ui.expansion("보호자 도움말 (함께 읽기)").classes("w-full"):
                     ui.label(stage["hint"])
 
                 def advance() -> None:

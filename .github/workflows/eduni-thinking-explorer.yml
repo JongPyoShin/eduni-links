@@ -7,6 +7,7 @@ on:
       - 'nice-gui-1-1-7/portal_app/routes.py'
       - 'nice-gui-1-1-7/portal_app/__init__.py'
       - 'nice-gui-1-1-7/content/thinking_missions.json'
+      - 'nice-gui-1-1-7/content/thinking_catalog.json'
       - 'nice-gui-1-1-7/tests/test_thinking_lab.py'
   pull_request:
     paths:
@@ -14,6 +15,7 @@ on:
       - 'nice-gui-1-1-7/portal_app/routes.py'
       - 'nice-gui-1-1-7/portal_app/__init__.py'
       - 'nice-gui-1-1-7/content/thinking_missions.json'
+      - 'nice-gui-1-1-7/content/thinking_catalog.json'
       - 'nice-gui-1-1-7/tests/test_thinking_lab.py'
 jobs:
   focused:
@@ -58,7 +60,7 @@ jobs:
             tail -80 "$RUNNER_TEMP/eduni-smoke.log"
             exit 1
           fi
-          for route in /portal /portal/thinking /portal/thinking/paper_bridge /portal/thinking/playground /portal/parent /bubble /bubble-shooter; do
+          for route in /portal /portal/thinking /portal/thinking/paper_bridge /portal/thinking/playground /portal/thinking/leaf_dry /portal/parent /bubble /bubble-shooter; do
             code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 12 "http://127.0.0.1:18089$route")
             echo "$route -> $code"
             if [ "$code" != 200 ]; then

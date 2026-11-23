@@ -8,6 +8,8 @@ from typing import Any
 
 from nicegui import ui
 
+from .thinking_pilot import PILOT_IDS, PILOT_VERSION, render_pilot
+
 from .database import (
     database_connection,
     default_child_profile_id,
@@ -111,6 +113,7 @@ def save_choice(
     mission_id: str, step_index: int, option_index: int, revision: int, *,
     child_profile_id: int | None = None, path: Path | None = None,
     missions: dict[str, dict[str, Any]] | None = None,
+    pilot_verified: bool = False,
 ) -> dict[str, Any]:
     missions = missions if missions is not None else load_thinking_missions()
     mission = missions.get(mission_id)
@@ -123,6 +126,8 @@ def save_choice(
         raise ValueError("invalid choice")
     if type(revision) is not int or revision < 0:
         raise ValueError("invalid revision")
+    if mission_id in PILOT_IDS and step_index == 3 and pilot_verified is not True:
+        raise ValueError("family activity must be acknowledged before recording an outcome")
 
     init_thinking_storage(path)
     profile = child_profile_id if child_profile_id is not None else default_child_profile_id(path)
@@ -139,6 +144,8 @@ def save_choice(
             if step_index != 0 or revision != 0:
                 raise ProgressConflict("mission was changed")
             answers = {"0": option_index}
+            if mission_id in PILOT_IDS:
+                answers["_pilot_v"] = PILOT_VERSION
             conn.execute(
                 """INSERT INTO thinking_mission_progress
                    (child_profile_id, mission_id, step_index, answers_json, completed, revision, updated_at)
@@ -150,6 +157,13 @@ def save_choice(
             if completed or stored_step != step_index or stored_revision != revision:
                 raise ProgressConflict("mission was changed")
             answers = json.loads(stored_answers)
+            if mission_id in PILOT_IDS:
+                if answers.get("_pilot_v") != PILOT_VERSION:
+                    raise ProgressConflict("legacy pilot progress cannot be silently reinterpreted")
+                if step_index == 4 and not answers.get("_activity_confirmed"):
+                    raise ValueError("no family activity evidence; cannot complete")
+                if step_index == 3:
+                    answers["_activity_confirmed"] = "family_roleplay" if mission_id == "playground" else "hands_on_observation"
             answers[str(step_index)] = option_index
             cursor = conn.execute(
                 """UPDATE thinking_mission_progress
@@ -220,6 +234,21 @@ def thinking_mission(mission_id: str) -> None:
         ui.link("← 생각탐험 연구소", "/portal/thinking")
         if mission is None:
             ui.label("미션을 찾을 수 없어요.").classes("text-h5")
+            return
+        if mission_id in PILOT_IDS:
+            profile = default_child_profile_id()
+            progress = read_progress(mission_id, child_profile_id=profile)
+
+            def save_pilot_step(step: int, option: int, revision: int, verified: bool) -> dict[str, Any]:
+                return save_choice(
+                    mission_id, step, option, revision, child_profile_id=profile,
+                    missions=missions, pilot_verified=verified,
+                )
+
+            def reload_pilot() -> dict[str, Any]:
+                return read_progress(mission_id, child_profile_id=profile)
+
+            render_pilot(mission_id, progress, save_pilot_step, reload_pilot, ProgressConflict)
             return
         profile = default_child_profile_id()
         progress = read_progress(mission_id, child_profile_id=profile)

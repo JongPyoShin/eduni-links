@@ -18,19 +18,31 @@ PLAY_ISSUES = (
         "name": "미끄러운 물웅덩이",
         "goals": ("친구가 젖은 길을 피해서 지나가기", "위험한 곳을 친구에게 알려주기", "어른에게 위험한 곳을 알리기"),
         "solutions": ("친구에게 안전한 다른 길 알려주기", "친구에게 멈추라고 말하고 어른 부르기", "어른에게 도움을 청해 안전한 길 찾기"),
-        "results": ("친구들이 안전한 쪽으로 이동했어", "아직 물웅덩이 가까이 가는 친구가 있어", "해봤지만 잘 모르겠어"),
+        "results_by_goal": (
+            ("친구가 물웅덩이를 피해서 지나갔어", "아직 물웅덩이를 밟는 친구가 있어", "해봤지만 잘 모르겠어"),
+            ("친구가 위험한 곳을 알아차렸어", "아직 위험을 모르는 친구가 있어", "해봤지만 잘 모르겠어"),
+            ("어른에게 위험을 알렸어", "어른에게 아직 알리지 못했어", "해봤지만 잘 모르겠어"),
+        ),
     },
     {
         "name": "그네를 기다리는 친구들",
         "goals": ("모두 차례를 알 수 있게 하기", "기다리는 시간이 비슷하도록 하기", "다투지 않고 차례를 정하기"),
         "solutions": ("한 번 타고 다음 친구에게 양보하기", "어른과 함께 짧은 시간을 정해 번갈아 타기", "그림으로 차례를 표시하기"),
-        "results": ("친구들이 차례를 잘 지켰어", "아직 누가 먼저인지 헷갈렸어", "해봤지만 잘 모르겠어"),
+        "results_by_goal": (
+            ("모두 자기 차례를 알았어", "아직 차례를 모르는 친구가 있어", "해봤지만 잘 모르겠어"),
+            ("친구들이 비슷하게 기다렸어", "한 친구가 훨씬 오래 기다렸어", "해봤지만 잘 모르겠어"),
+            ("다투지 않고 차례를 정했어", "차례 때문에 다투는 일이 있었어", "해봤지만 잘 모르겠어"),
+        ),
     },
     {
         "name": "쉬는 자리가 부족한 벤치",
         "goals": ("쉬고 싶은 친구도 앉을 수 있게 하기", "오래 쉬는 친구와 새로 온 친구가 배려하기", "모두가 쉬는 자리를 찾게 하기"),
         "solutions": ("서로 양보할 차례 정하기", "근처의 다른 안전한 벤치 찾아보기", "가족과 역할을 바꾸어 필요한 자리 이야기하기"),
-        "results": ("모두 쉴 자리를 찾았어", "아직 자리가 없는 친구가 있어", "해봤지만 잘 모르겠어"),
+        "results_by_goal": (
+            ("쉬고 싶은 친구가 앉을 수 있었어", "아직 앉지 못한 친구가 있어", "해봤지만 잘 모르겠어"),
+            ("친구들이 서로 자리를 양보했어", "서로 양보하기 어려웠어", "해봤지만 잘 모르겠어"),
+            ("모두 쉴 자리를 찾았어", "아직 쉴 자리가 없는 친구가 있어", "해봤지만 잘 모르겠어"),
+        ),
     },
 )
 WATER_PARTS = (
@@ -159,17 +171,23 @@ def pilot_stage(mission_id: str, step: int, answers: dict[str, Any]) -> dict[str
         if step == 3:
             return {
                 "label": "역할놀이 결과", "prompt": "가족과 역할놀이를 해봤니? 무슨 일이 있었어?",
-                "options": list(issue["results"]),
+                "options": list(issue["results_by_goal"][answers["1"]]),
                 "hint": "실제 위험한 놀이터를 고치거나 접근하지 말고, 실내에서 역할을 나눠 이야기해 보세요.",
                 "context": f"문제: {issue['name']} · 우리가 고른 방법: {solution}",
                 "offline": "어른과 아이가 친구 역할을 바꿔 가며 선택한 방법을 실내에서 시험해 보세요.",
                 "verified_label": "보호자와 역할놀이를 해봤어요. (결과는 우리 가족이 관찰한 내용이에요.)",
             }
-        result = issue["results"][answers["3"]]
+        result = issue["results_by_goal"][answers["1"]][answers["3"]]
+        if answers["3"] == 0:
+            question = "우리 목표를 이룬 것 같아. 또 확인하려면 무엇을 해볼까?"
+        elif answers["3"] == 1:
+            question = "아직 문제가 남았네. 무엇을 바꿔볼까?"
+        else:
+            question = "결과를 잘 모르겠다면 무엇을 다시 확인할까?"
         return {
-            "label": "다시 생각하기", "prompt": "역할놀이 결과를 보고 다음에는 무엇을 할까?",
-            "options": ["다른 안전한 방법도 해볼래", "친구에게 이유를 더 쉽게 설명해 볼래", "문제를 다시 관찰해 볼래"],
-            "hint": "결과를 좋고 나쁨으로 평가하지 말고 목표와 실제 결과가 맞았는지 질문하세요.",
+            "label": "다시 생각하기", "prompt": question,
+            "options": ["다른 안전한 방법도 해볼래", "친구에게 방법을 더 쉽게 설명해 볼래", "문제를 다시 관찰해 볼래"],
+            "hint": "성공 기준과 관찰한 사실이 실제로 맞는지 확인하고, 마음에 들지 않으면 다시 시도하게 해주세요.",
             "context": f"우리 목표: {goal} · 관찰한 결과: {result}",
         }
     # Water absorption: a single, measurable question is held constant.
@@ -231,7 +249,7 @@ def render_pilot(
     """Render isolated pilot UX inside the existing route, without changing other missions."""
     with ui.column().classes("w-full max-w-3xl mx-auto p-4 gap-3"):
         ui.link("← 생각탐험 연구소", "/portal/thinking")
-        title = "놀이터 문제 탐정" if mission_id == "playground" else "물 흡수 실험실"
+        title = "놀이터 문제 탐정" if mission_id == "playground" else "물을 가장 잘 흡수하는 재료"
         ui.label(f"🔎 {title}").classes("text-h4 text-weight-bold")
         ui.label("정답보다 내 생각과 실제 결과가 중요해요. 어른과 함께해요.")
         area = ui.column().classes("w-full gap-3")

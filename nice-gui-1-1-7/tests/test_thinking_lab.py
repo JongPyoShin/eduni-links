@@ -26,14 +26,41 @@ class ThinkingLabTests(unittest.TestCase):
         self.db = Path(self.tmp.name) / "thinking.sqlite3"
         self.missions = load_thinking_missions()
 
-    def test_curriculum_has_two_valid_five_stage_missions(self) -> None:
-        self.assertEqual({"paper_bridge", "playground"}, set(self.missions))
+    def test_curriculum_has_sixteen_valid_missions_in_eight_categories(self) -> None:
+        self.assertEqual(16, len(self.missions))
+        self.assertEqual(8, len({item["category"] for item in self.missions.values()}))
+        self.assertTrue({"paper_bridge", "playground"}.issubset(self.missions))
         for mission in self.missions.values():
             self.assertEqual(
                 ["발견", "정의", "대안", "실험", "성찰"],
                 [step["label"] for step in mission["steps"]],
             )
             self.assertTrue(mission["offline_task"])
+
+    def test_catalog_covers_playable_and_backlog_with_source_rights(self) -> None:
+        catalog_path = Path(__file__).resolve().parents[1] / "content" / "thinking_catalog.json"
+        catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+        self.assertEqual(8, len(catalog["categories"]))
+        self.assertEqual(32, len(catalog["items"]))
+        self.assertEqual(16, len(catalog["sources"]))
+        sources = {source["id"] for source in catalog["sources"]}
+        labels = {category["label"] for category in catalog["categories"]}
+        self.assertEqual(len(sources), len(catalog["sources"]))
+        self.assertTrue(all(source["url"].startswith("https://") for source in catalog["sources"]))
+        self.assertTrue(all(source["rights"] and source["terms_url"] for source in catalog["sources"]))
+        playable = [item for item in catalog["items"] if item["status"] == "playable"]
+        backlog = [item for item in catalog["items"] if item["status"] == "idea_backlog"]
+        self.assertEqual(16, len(playable))
+        self.assertEqual(16, len(backlog))
+        self.assertEqual(set(self.missions), {item["id"] for item in playable})
+        self.assertEqual(32, len({item["id"] for item in catalog["items"]}))
+        for item in catalog["items"]:
+            self.assertIn(item["category"], labels)
+            self.assertTrue(item["source_ids"])
+            self.assertTrue(set(item["source_ids"]).issubset(sources))
+            self.assertEqual((item["age_min"], item["age_max"]), (7, 9))
+        for item in playable:
+            self.assertEqual(item["category"], self.missions[item["id"]]["category"])
 
     def test_reject_invalid_and_duplicate_content(self) -> None:
         payload = list(self.missions.values())

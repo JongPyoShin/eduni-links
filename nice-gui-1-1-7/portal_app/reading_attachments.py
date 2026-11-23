@@ -235,11 +235,13 @@ def delete_reading_attachment(
     profile_id = child_profile_id if child_profile_id is not None else default_child_profile_id(path)
     with reading_database_connection(path) as conn:
         if reading_uses_postgres(path):
-            lookup_sql = """SELECT a.filename FROM reading_attachment a JOIN reading_record r ON r.id = a.reading_record_id
-                WHERE a.id = ? AND r.child_profile_id = ? FOR UPDATE OF a"""
+            lookup_sql = """SELECT a.filename, a.reading_record_id, r.cover_filename, r.child_profile_id
+                FROM reading_attachment a JOIN reading_record r ON r.id = a.reading_record_id
+                WHERE a.id = ? AND r.child_profile_id = ? FOR UPDATE OF r, a"""
         else:
             conn.execute("BEGIN IMMEDIATE")
-            lookup_sql = """SELECT a.filename FROM reading_attachment a JOIN reading_record r ON r.id = a.reading_record_id
+            lookup_sql = """SELECT a.filename, a.reading_record_id, r.cover_filename, r.child_profile_id
+                FROM reading_attachment a JOIN reading_record r ON r.id = a.reading_record_id
                 WHERE a.id = ? AND r.child_profile_id = ?"""
         row = conn.execute(
             lookup_sql, (attachment_id, profile_id)
@@ -247,6 +249,15 @@ def delete_reading_attachment(
         if not row:
             return False
         conn.execute("DELETE FROM reading_attachment WHERE id = ?", (attachment_id,))
+        has_moment_photo = conn.execute(
+            "SELECT EXISTS(SELECT 1 FROM reading_attachment WHERE reading_record_id = ? AND kind = 'image')",
+            (row[1],),
+        ).fetchone()
+        if not row[2] and not bool(has_moment_photo and has_moment_photo[0]):
+            conn.execute(
+                "UPDATE reading_record SET status = 'draft' WHERE id = ? AND child_profile_id = ? AND status = 'completed'",
+                (row[1], row[3]),
+            )
     (media_dir / str(row[0])).unlink(missing_ok=True)
     return True
 

@@ -19,7 +19,13 @@ from portal_app.reading_attachments import (
     resolve_reading_attachment,
     update_reading_attachment,
 )
-from portal_app.reading_journal import create_reading_record, delete_reading_record
+from portal_app.reading_journal import (
+    create_reading_record,
+    delete_reading_record,
+    get_reading_record,
+    reading_record_summary,
+    update_reading_record,
+)
 from portal_app.reading_storage import ensure_reading_journal_schema
 
 
@@ -72,6 +78,43 @@ class ReadingAttachmentTests(unittest.TestCase):
         self.assertTrue(delete_reading_attachment(private["id"], self.db, media_dir=self.media))
         self.assertFalse((self.media / private["filename"]).exists())
         self.assertEqual([item["id"] for item in list_reading_attachments(self.record_id, self.db)], [opted_in["id"]])
+
+    def test_drafts_count_and_records_need_a_photo_to_complete(self) -> None:
+        requested_complete = create_reading_record(
+            {"title": "사진 없는 책", "read_date": "2026-11-03", "status": "completed"},
+            self.db, child_profile_id=self.profile_id, media_dir=self.root / "covers",
+        )
+        self.assertEqual(requested_complete["status"], "draft")
+
+        fields = {"title": "사진 없는 책", "read_date": "2026-11-03", "status": "completed"}
+        incomplete = update_reading_record(
+            requested_complete["id"], fields, self.db,
+            child_profile_id=self.profile_id, media_dir=self.root / "covers",
+        )
+        self.assertEqual(incomplete["status"], "draft")
+
+        photo = add_reading_attachment(
+            requested_complete["id"], self.upload(b"\xff\xd8\xff\xe0photo.jpg"),
+            path=self.db, media_dir=self.media,
+        )
+        complete = update_reading_record(
+            requested_complete["id"], fields, self.db,
+            child_profile_id=self.profile_id, media_dir=self.root / "covers",
+        )
+        self.assertEqual(complete["status"], "completed")
+
+        self.create_record(self.profile_id)
+        summary = reading_record_summary(self.db, child_profile_id=self.profile_id, month="2026-11")
+        self.assertEqual(summary["total"], 3)
+        self.assertEqual(summary["month"], 3)
+
+        self.assertTrue(delete_reading_attachment(
+            photo["id"], self.db, child_profile_id=self.profile_id, media_dir=self.media,
+        ))
+        self.assertEqual(
+            get_reading_record(requested_complete["id"], self.db, child_profile_id=self.profile_id)["status"],
+            "draft",
+        )
 
     def test_upload_rejects_forged_signatures_extension_mime_and_caption(self) -> None:
         invalid_uploads = (

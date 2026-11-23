@@ -81,12 +81,12 @@ class ReadingAttachmentTests(unittest.TestCase):
 
     def test_drafts_count_and_records_need_a_photo_to_complete(self) -> None:
         requested_complete = create_reading_record(
-            {"title": "사진 없는 책", "read_date": "2026-11-03", "status": "completed"},
+            {"title": "사진 없는 책", "read_date": "2026-11-03", "rating": 5, "status": "completed"},
             self.db, child_profile_id=self.profile_id, media_dir=self.root / "covers",
         )
         self.assertEqual(requested_complete["status"], "draft")
 
-        fields = {"title": "사진 없는 책", "read_date": "2026-11-03", "status": "completed"}
+        fields = {"title": "사진 없는 책", "read_date": "2026-11-03", "rating": 5, "status": "completed"}
         incomplete = update_reading_record(
             requested_complete["id"], fields, self.db,
             child_profile_id=self.profile_id, media_dir=self.root / "covers",
@@ -103,10 +103,14 @@ class ReadingAttachmentTests(unittest.TestCase):
         )
         self.assertEqual(complete["status"], "completed")
 
-        self.create_record(self.profile_id)
+        create_reading_record(
+            {"title": "임시 기록", "read_date": "2026-11-03", "rating": 5},
+            self.db, child_profile_id=self.profile_id, media_dir=self.root / "covers",
+        )
         summary = reading_record_summary(self.db, child_profile_id=self.profile_id, month="2026-11")
         self.assertEqual(summary["total"], 3)
-        self.assertEqual(summary["month"], 3)
+        self.assertEqual(summary["month"], 1)
+        self.assertEqual(summary["favorite"], 1)
 
         self.assertTrue(delete_reading_attachment(
             photo["id"], self.db, child_profile_id=self.profile_id, media_dir=self.media,

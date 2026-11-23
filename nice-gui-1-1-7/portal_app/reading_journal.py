@@ -518,8 +518,8 @@ def reading_record_summary(
         row = conn.execute(
             """
             SELECT COUNT(*),
-                   SUM(CASE WHEN SUBSTR(read_date, 1, 7) = ? THEN 1 ELSE 0 END),
-                   SUM(CASE WHEN rating >= 5 THEN 1 ELSE 0 END)
+                   SUM(CASE WHEN status = 'completed' AND SUBSTR(read_date, 1, 7) = ? THEN 1 ELSE 0 END),
+                   SUM(CASE WHEN status = 'completed' AND rating >= 5 THEN 1 ELSE 0 END)
               FROM reading_record
              WHERE child_profile_id = ?
             """,

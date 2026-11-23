@@ -4,6 +4,7 @@ on:
     paths:
       - '.github/workflows/eduni-thinking-explorer.yml'
       - 'nice-gui-1-1-7/portal_app/thinking_lab.py'
+      - 'nice-gui-1-1-7/portal_app/thinking_pilot.py'
       - 'nice-gui-1-1-7/portal_app/routes.py'
       - 'nice-gui-1-1-7/portal_app/__init__.py'
       - 'nice-gui-1-1-7/content/thinking_missions.json'
@@ -12,6 +13,7 @@ on:
   pull_request:
     paths:
       - 'nice-gui-1-1-7/portal_app/thinking_lab.py'
+      - 'nice-gui-1-1-7/portal_app/thinking_pilot.py'
       - 'nice-gui-1-1-7/portal_app/routes.py'
       - 'nice-gui-1-1-7/portal_app/__init__.py'
       - 'nice-gui-1-1-7/content/thinking_missions.json'
@@ -33,7 +35,7 @@ jobs:
       - name: Validate content and focused route/storage regression
         working-directory: nice-gui-1-1-7
         run: |
-          python -m compileall -q portal_app/thinking_lab.py tests/test_thinking_lab.py
+          python -m compileall -q portal_app/thinking_lab.py portal_app/thinking_pilot.py tests/test_thinking_lab.py
           python scripts/validate_content.py
           python -m unittest discover -s tests -p 'test_thinking_lab.py'
           # Legacy test_routes.py has two pre-existing stale assertions on main:
@@ -60,7 +62,7 @@ jobs:
             tail -80 "$RUNNER_TEMP/eduni-smoke.log"
             exit 1
           fi
-          for route in /portal /portal/thinking /portal/thinking/paper_bridge /portal/thinking/playground /portal/thinking/leaf_dry /portal/parent /bubble /bubble-shooter; do
+          for route in /portal /portal/thinking /portal/thinking/paper_bridge /portal/thinking/playground /portal/thinking/leaf_dry /portal/thinking/water_absorb /portal/parent /bubble /bubble-shooter; do
             code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 12 "http://127.0.0.1:18089$route")
             echo "$route -> $code"
             if [ "$code" != 200 ]; then

@@ -161,7 +161,10 @@ def create_reading_record(
     child_comment = _clean_text(payload.get("child_comment"), "child_comment")
     favorite_part = _clean_text(payload.get("favorite_part"), "favorite_part")
     parent_note = _clean_text(payload.get("parent_note"), "parent_note")
-    status = _validate_record_status(payload.get("status"), "completed")
+    _validate_record_status(payload.get("status"), "draft")
+    # Attachments are uploaded after the record is created, so completion is
+    # only allowed by a later update after a photo has persisted.
+    status = "draft"
 
     cover_filename = save_cover_data_url(payload.get("cover_data_url"), media_dir)
     created_at = utc_now()
@@ -518,7 +521,7 @@ def reading_record_summary(
                    SUM(CASE WHEN SUBSTR(read_date, 1, 7) = ? THEN 1 ELSE 0 END),
                    SUM(CASE WHEN rating >= 5 THEN 1 ELSE 0 END)
               FROM reading_record
-             WHERE child_profile_id = ? AND status = 'completed'
+             WHERE child_profile_id = ?
             """,
             (summary_month, profile_id),
         ).fetchone()
@@ -700,6 +703,11 @@ def update_reading_record(
 
     try:
         with reading_database_connection(path) as conn:
+            has_moment_photo = conn.execute(
+                "SELECT EXISTS(SELECT 1 FROM reading_attachment WHERE reading_record_id = ? AND kind = 'image')",
+                (record_id,),
+            ).fetchone()
+            final_status = status if next_cover or bool(has_moment_photo and has_moment_photo[0]) else "draft"
             cursor = conn.execute(
                 """
                 UPDATE reading_record
@@ -716,7 +724,7 @@ def update_reading_record(
                     child_comment,
                     favorite_part,
                     parent_note,
-                    status,
+                    final_status,
                     next_cover,
                     record_id,
                     profile_id,

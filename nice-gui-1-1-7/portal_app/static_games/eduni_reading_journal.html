@@ -689,7 +689,7 @@
           <textarea id="parentNote" maxlength="2500" placeholder="읽는 모습, 반응, 다음에 함께 이야기하고 싶은 점"></textarea>
         </div>
 
-        <p class="record-status-help">사진을 나중에 올릴 예정이면 임시저장하세요. 등록 완료한 기록만 블로그 글쓰기 대상이 됩니다.</p>
+        <p class="record-status-help">등록 완료하려면 책 표지 사진이나 읽는 순간 사진을 하나 이상 올려주세요. 영상만 있으면 임시저장으로 남고, 완료한 기록만 블로그 글쓰기 대상이 됩니다.</p>
         <div class="form-actions">
           <span id="saveStatus" class="save-status" role="status" aria-live="polite"></span>
           <button id="cancelEditButton" class="secondary-btn hidden" type="button">수정 취소</button>
@@ -2154,6 +2154,7 @@
             setStatus('임시저장했어요. 첨부 일부가 남아 있어요. 다시 수정 저장하면 업로드를 이어서 시도해요. (' + (attachmentError.message || '첨부 오류') + ')', 'error');
             return;
           }
+          let savedStatus = 'draft';
           if (targetStatus === 'completed') {
             const completionResponse = await fetch('/reading/api/records/' + savedId, {
               method: 'PUT', headers: { 'Content-Type': 'application/json' },
@@ -2161,11 +2162,17 @@
             });
             const completionData = await completionResponse.json().catch(() => ({}));
             if (!completionResponse.ok || !completionData.ok) throw new Error(completionData.error || '등록 완료 처리에 실패했어요. 임시저장 상태로 남아 있어요.');
+            savedStatus = completionData.record?.status === 'completed' ? 'completed' : 'draft';
           }
           resetFormState();
           await loadRecords({ reset: true });
           await loadParentInsights();
-          setStatus(targetStatus === 'completed' ? '독서기록과 첨부 등록을 완료했어요 ✓' : '독서기록을 임시저장했어요 ✓', 'success');
+          const statusMessage = savedStatus === 'completed'
+            ? '독서기록과 첨부 등록을 완료했어요 ✓'
+            : targetStatus === 'completed'
+              ? '사진이 없어 임시저장했어요. 사진을 추가한 뒤 등록 완료해주세요.'
+              : '독서기록을 임시저장했어요 ✓';
+          setStatus(statusMessage, 'success');
           setTimeout(() => setStatus(''), 2600);
         } catch (error) {
           setStatus(error.message || '저장하지 못했어요.', 'error');

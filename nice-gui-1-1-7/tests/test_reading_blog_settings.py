@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import re
 import tempfile
 import unittest
@@ -10,7 +11,12 @@ from fastapi.testclient import TestClient
 from nicegui import app as nicegui_app
 
 from portal_app.database import database_connection, default_child_profile_id, initialize_database, utc_now
-from portal_app.reading_journal import create_reading_record, get_reading_blog_settings, update_reading_blog_settings
+from portal_app.reading_journal import (
+    create_reading_record,
+    get_reading_blog_settings,
+    update_reading_blog_settings,
+    update_reading_record,
+)
 from portal_app.reading_storage import ensure_reading_journal_schema
 
 
@@ -19,9 +25,18 @@ class ReadingBlogSettingsTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
         self.db = self.root / "reading.sqlite3"
+        self.media = self.root / "covers"
         initialize_database(self.db)
         self.profile = default_child_profile_id(self.db)
-        self.record = create_reading_record({"title": "테스트", "read_date": "2026-11-04"}, self.db, child_profile_id=self.profile)
+        cover = "data:image/jpeg;base64," + base64.b64encode(b"\xff\xd8\xff\xe0cover").decode("ascii")
+        self.record = create_reading_record(
+            {"title": "테스트", "read_date": "2026-11-04", "cover_data_url": cover},
+            self.db, child_profile_id=self.profile, media_dir=self.media,
+        )
+        self.record = update_reading_record(
+            self.record["id"], {"title": "테스트", "read_date": "2026-11-04", "status": "completed"},
+            self.db, child_profile_id=self.profile, media_dir=self.media,
+        )
 
     def tearDown(self) -> None:
         self.temp.cleanup()

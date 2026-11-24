@@ -31,7 +31,11 @@ jobs:
         run: |
           python -m compileall -q portal_app/thinking_pilot.py portal_app/thinking_lab.py tests/test_thinking_lab.py
           python -m unittest discover -s tests -p test_thinking_lab.py
-      - name: Two affected routes smoke
+      - name: Install mobile browser test dependencies
+        run: |
+          python -m pip install playwright==1.51.0
+          python -m playwright install --with-deps chromium
+      - name: Affected routes and mobile browser touch test
         working-directory: nice-gui-1-1-7
         run: |
           export EDUNI_HOST=127.0.0.1 PORT=18089 EDUNI_PORTAL_DB="$RUNNER_TEMP/choice-smoke.sqlite3"
@@ -49,3 +53,99 @@ jobs:
             echo "$path -> $code"
             test "$code" = 200 || { tail -60 "$RUNNER_TEMP/choice-smoke.log"; exit 1; }
           done
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright, expect
+
+          BASE = "http://127.0.0.1:18089/portal/thinking/"
+          NEXT = "저장하고 다음으로"
+          def text(page, value):
+              return page.get_by_text(value, exact=True)
+          def btn(page, name):
+              return page.get_by_role("button", name=name, exact=True)
+          def step(page, value):
+              expect(page.get_by_text(value, exact=False)).to_be_visible(timeout=10000)
+              assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"), "horizontal overflow"
+          def choose(page, value):
+              btn(page, value).tap()
+              expect(text(page, "선택: " + value)).to_be_visible(timeout=10000)
+              expect(btn(page, "✓ " + value)).to_have_attribute("aria-pressed", "true")
+              btn(page, NEXT).tap()
+          def open_page(page, mission):
+              page.goto(BASE + mission, wait_until="domcontentloaded")
+              step(page, "1/5 · 발견")
+              page.wait_for_timeout(1000) # allow the NiceGUI websocket handshake
+          def touch_scene(page, x, y, choice):
+              marker = page.locator(f'svg circle[cx="{x}"][cy="{y}"][stroke-dasharray]').first
+              expect(marker).to_be_visible(timeout=10000)
+              marker.scroll_into_view_if_needed()
+              bounds = marker.bounding_box()
+              assert bounds and bounds["width"] > 10, "scene marker invisible or collapsed"
+              page.touchscreen.tap(bounds["x"] + bounds["width"]/2, bounds["y"] + bounds["height"]/2)
+              expect(text(page, "선택: " + choice)).to_be_visible(timeout=10000)
+              expect(btn(page, "✓ " + choice)).to_have_attribute("aria-pressed", "true")
+              expect(page.locator(f'svg circle[cx="{x}"][cy="{y}"][stroke="#e5484d"]')).to_be_visible()
+              btn(page, NEXT).tap()
+          def gate_and_record(page, result, confirmation):
+              btn(page, result).tap()
+              expect(text(page, "선택: " + result)).to_be_visible()
+              expect(btn(page, "✓ " + result)).to_have_attribute("aria-pressed", "true")
+              btn(page, NEXT).tap()
+              expect(page.get_by_text("실제로 해보지 않았다면", exact=False)).to_be_visible(timeout=5000)
+              step(page, "4/5")
+              page.get_by_role("checkbox", name=confirmation, exact=False).tap()
+              btn(page, NEXT).tap()
+              step(page, "5/5")
+          def finish(page, choice):
+              btn(page, choice).tap()
+              expect(text(page, "선택: " + choice)).to_be_visible()
+              btn(page, "관찰 기록하고 완료").tap()
+              expect(text(page, "탐험을 마쳤어요! 🌟")).to_be_visible(timeout=10000)
+              page.reload(wait_until="domcontentloaded")
+              expect(text(page, "탐험을 마쳤어요! 🌟")).to_be_visible(timeout=10000)
+
+          with sync_playwright() as p:
+              browser = p.chromium.launch(headless=True)
+              for width, mission in ((390, "playground"), (320, "water_absorb")):
+                  context = browser.new_context(
+                      viewport={"width": width, "height": 844},
+                      device_scale_factor=1, is_mobile=True, has_touch=True,
+                      locale="ko-KR",
+                  )
+                  page = context.new_page()
+                  errors = []
+                  page.on("pageerror", lambda error: errors.append(str(error)))
+                  try:
+                      open_page(page, mission)
+                      if mission == "playground":
+                          touch_scene(page, 445, 150, "그네를 기다리는 친구들")
+                          step(page, "2/5")
+                          choose(page, "기다리는 시간이 비슷하도록 하기")
+                          step(page, "3/5")
+                          choose(page, "어른과 함께 짧은 시간을 정해 번갈아 타기")
+                          step(page, "4/5")
+                          page.reload(wait_until="domcontentloaded")
+                          step(page, "4/5")
+                          page.wait_for_timeout(1000)
+                          gate_and_record(page, "한 친구가 훨씬 오래 기다렸어", "보호자와 역할놀이를 해봤어요")
+                          expect(text(page, "아직 문제가 남았네. 무엇을 바꿔볼까?")).to_be_visible()
+                          finish(page, "다른 안전한 방법도 해볼래")
+                      else:
+                          touch_scene(page, 210, 194, "책상에 물이 고여 있어")
+                          step(page, "2/5")
+                          choose(page, "천수건 / 스펀지")
+                          step(page, "3/5")
+                          choose(page, "천수건가 먼저")
+                          step(page, "4/5")
+                          gate_and_record(page, "스펀지가 먼저 흡수했어", "보호자와 실제로 물 3방울씩 시험하고 관찰했어요")
+                          expect(text(page, "예상과 다른 결과가 나왔어. 무엇을 다시 해볼까?")).to_be_visible()
+                          finish(page, "같은 크기와 같은 물 양으로 한 번 더 시험")
+                      assert not errors, errors
+                      print(f"MOBILE_BROWSER_PASS: {mission} viewport={width} touch, branching, gate, persistence")
+                  except Exception:
+                      print("BROWSER_FAILURE:", mission, width)
+                      print(page.locator("body").inner_text()[:3000])
+                      raise
+                  finally:
+                      context.close()
+              browser.close()
+          PY

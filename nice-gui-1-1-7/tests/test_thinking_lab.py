@@ -270,7 +270,9 @@ class ThinkingLabTests(unittest.TestCase):
                             self.assertEqual("", stages[4]["context"])
                             self.assertEqual(stages[3]["options"][observed], stages[4]["reflection"][1])
                             self.assertEqual(stages[2]["options"][prediction], stages[4]["reflection"][0])
-                            self.assertNotIn(CONTENT[mid]["look"][look], stages[1]["context"])
+                            # Shared subject words are necessary; reject verbatim echo and the old summary prefix.
+                            self.assertNotEqual(CONTENT[mid]["look"][look], stages[1]["context"])
+                            self.assertFalse(stages[1]["context"].startswith("살펴본 곳:"))
 
     def test_visual_screen_results_and_isolated_legacy_records(self) -> None:
         for mid, expected in (("sorting_cards", [1,0,0]), ("route_debug", [0,1,1]), ("fair_share", [1,0,1])):

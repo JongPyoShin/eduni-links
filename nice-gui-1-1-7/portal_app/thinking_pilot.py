@@ -10,6 +10,8 @@ from typing import Any, Callable
 
 from nicegui import ui
 
+from .thinking_parent import render_parent_guide
+
 PILOT_IDS = frozenset({"playground", "water_absorb"})
 PILOT_VERSION = 2
 
@@ -146,7 +148,7 @@ def pilot_stage(mission_id: str, step: int, answers: dict[str, Any]) -> dict[str
     if mission_id == "playground":
         if step == 0:
             return {
-                "label": "발견", "prompt": "그림에서 먼저 해결하고 싶은 곳을 눌러 볼까?",
+                "label": "발견", "prompt": "놀이터를 잘 살펴봐. 어디를 먼저 도와주고 싶어?",
                 "options": [entry["name"] for entry in PLAY_ISSUES],
                 "hint": "그림에 표시된 1, 2, 3번을 보고 어떤 친구가 불편할지 먼저 이야기해 주세요.",
                 "context": "한 가지 문제를 고르면 그 문제를 마지막까지 해결해 볼 거예요.",
@@ -154,7 +156,7 @@ def pilot_stage(mission_id: str, step: int, answers: dict[str, Any]) -> dict[str
         issue = PLAY_ISSUES[answers["0"]]
         if step == 1:
             return {
-                "label": "문제 정의", "prompt": f"'{issue['name']}' 문제를 어떻게 해결했다고 알 수 있을까?",
+                "label": "문제 정의", "prompt": ("물웅덩이 때문에 친구들이 불편해. 어떻게 되면 좋을까?", "친구들이 그네를 기다리고 있어. 어떻게 되면 좋을까?", "벤치에 자리가 부족해. 어떻게 되면 좋을까?")[answers["0"]],
                 "options": list(issue["goals"]),
                 "hint": "누가 무엇을 할 수 있게 되면 성공인지 아이의 말로 다시 물어보세요.",
                 "context": f"발견한 문제: {issue['name']}",
@@ -162,7 +164,11 @@ def pilot_stage(mission_id: str, step: int, answers: dict[str, Any]) -> dict[str
         goal = issue["goals"][answers["1"]]
         if step == 2:
             return {
-                "label": "방법 찾기", "prompt": "우리 목표를 이루려면 어떤 방법을 먼저 해볼까?",
+                "label": "방법 찾기", "prompt": (
+                    ("친구가 물웅덩이를 피하려면 어떻게 도와줄까?", "친구에게 위험한 곳을 어떻게 알려줄까?", "어른에게 위험한 곳을 알리려면 어떻게 할까?"),
+                    ("모두 자기 차례를 알려면 어떻게 할까?", "친구들이 비슷한 시간 동안 기다리려면 어떻게 할까?", "다투지 않고 차례를 정하려면 어떻게 할까?"),
+                    ("쉬고 싶은 친구가 앉으려면 어떻게 할까?", "친구들이 서로 양보하려면 어떻게 할까?", "모두 쉴 곳을 찾으려면 어떻게 할까?"),
+                )[answers["0"]][answers["1"]],
                 "options": list(issue["solutions"]),
                 "hint": "다른 안전한 방법이 있다면 가족끼리 이야기해도 좋아요.",
                 "context": f"문제: {issue['name']} · 목표: {goal}",
@@ -170,7 +176,7 @@ def pilot_stage(mission_id: str, step: int, answers: dict[str, Any]) -> dict[str
         solution = issue["solutions"][answers["2"]]
         if step == 3:
             return {
-                "label": "역할놀이 결과", "prompt": "가족과 역할놀이를 해봤니? 무슨 일이 있었어?",
+                "label": "역할놀이 결과", "prompt": "가족과 함께 해 보자. 해 보니 무슨 일이 있었어?",
                 "options": list(issue["results_by_goal"][answers["1"]]),
                 "hint": "실제 위험한 놀이터를 고치거나 접근하지 말고, 실내에서 역할을 나눠 이야기해 보세요.",
                 "context": f"문제: {issue['name']} · 우리가 고른 방법: {solution}",
@@ -179,11 +185,11 @@ def pilot_stage(mission_id: str, step: int, answers: dict[str, Any]) -> dict[str
             }
         result = issue["results_by_goal"][answers["1"]][answers["3"]]
         if answers["3"] == 0:
-            question = "우리 목표를 이룬 것 같아. 또 확인하려면 무엇을 해볼까?"
+            question = "잘 해결된 것 같아! 다음에는 무엇을 해 볼까?"
         elif answers["3"] == 1:
             question = "아직 문제가 남았네. 무엇을 바꿔볼까?"
         else:
-            question = "결과를 잘 모르겠다면 무엇을 다시 확인할까?"
+            question = "아직 잘 모르겠구나. 다음에는 무엇을 해 볼까?"
         return {
             "label": "다시 생각하기", "prompt": question,
             "options": ["다른 안전한 방법도 해볼래", "친구에게 방법을 더 쉽게 설명해 볼래", "문제를 다시 관찰해 볼래"],
@@ -193,47 +199,52 @@ def pilot_stage(mission_id: str, step: int, answers: dict[str, Any]) -> dict[str
     # Water absorption: a single, measurable question is held constant.
     if step == 0:
         return {
-            "label": "발견", "prompt": "물이 쏟아진 그림에서 무엇이 보이니? 번호를 골라보자.",
+            "label": "발견", "prompt": "앗, 책상에 물이 쏟아졌네! 어디가 눈에 띄거나 걱정돼?",
             "options": ["책상에 물이 고여 있어", "공책 가까이에 물이 있어", "책상 끝까지 물이 갈 수 있어"],
             "hint": "눈으로 본 사실과 앞으로 일어날 수 있는 일을 구분해 말하게 해 주세요.",
             "context": "어떤 재료가 물을 더 빨리 흡수하는지 실험해 보자.",
         }
     if step == 1:
         return {
-            "label": "문제 정의", "prompt": "물 3방울을 더 빨리 흡수하는 재료를 알아보자. 어떤 두 재료를 비교할래?",
+            "label": "문제 정의", "prompt": "물을 빨리 닦으려면 무엇이 좋을까? 두 가지 재료를 골라 볼래?",
             "options": [f"{first} / {second}" for first, second in WATER_PARTS],
             "hint": "실험 목적은 흡수 속도 비교로 고정합니다. 양·크기·관찰 시작을 같게 해야 해요.",
-            "context": "그림에서 찾은 물 때문에, 물을 빨리 흡수하는 재료를 찾기로 했어요.",
+            "context": "책상에 쏟아진 물을 빨리 빨아들이는 재료를 찾아보자.",
         }
     a, b = WATER_PARTS[answers["1"]]
+    # Display actual material names, not undefined A/B labels.
+    a_name = "종이 타월" if a == "종이타월" else "수건" if a == "천수건" else a
+    b_name = "종이 타월" if b == "종이타월" else "수건" if b == "천수건" else b
+    a_subject = a_name + ("가" if a_name == "스펀지" else "이")
+    b_subject = b_name + ("가" if b_name == "스펀지" else "이")
     if step == 2:
         return {
-            "label": "먼저 예상하기", "prompt": f"두 재료에 물 3방울씩 놓으면 무엇이 더 빨리 흡수할까?",
-            "options": [f"{a}가 먼저", f"{b}가 먼저", "둘이 비슷할 것 같아"],
+            "label": "먼저 예상하기", "prompt": "두 재료에 물을 3방울씩 떨어뜨려 보자. 어느 쪽이 더 빠를 것 같아?",
+            "options": [f"{a_subject} 더 빠를 것 같아", f"{b_subject} 더 빠를 것 같아", "둘이 비슷할 것 같아"],
             "hint": "아이가 이유를 설명한 뒤 실험하세요. 예상은 틀려도 괜찮습니다.",
             "context": f"비교 재료: {a}와 {b} · 같은 크기, 같은 물 3방울",
         }
-    predicted = ("A", "B", "비슷함")[answers["2"]]
+    predicted = (a_name, b_name, "둘이 비슷할 것 같아")[answers["2"]]
     if step == 3:
         return {
-            "label": "실험 결과", "prompt": "같은 조건으로 직접 시험한 뒤 실제 결과를 기록해 보자.",
-            "options": [f"{a}가 먼저 흡수했어", f"{b}가 먼저 흡수했어", "비슷하거나 구별하기 어려웠어"],
+            "label": "실험 결과", "prompt": "직접 해 보니 어느 쪽이 물을 더 빨리 빨아들였어?",
+            "options": [f"{a_subject} 물을 먼저 빨아들였어", f"{b_subject} 물을 먼저 빨아들였어", "비슷하거나 구별하기 어려웠어"],
             "hint": "같은 크기의 재료 두 개에 같은 양(3방울)을 떨어뜨리고 물이 표면에서 사라질 때까지 관찰합니다. 흐르거나 퍼지면 '구별 어려움'을 고르세요.",
             "context": f"비교: {a} / {b} · 예상: {predicted}",
             "offline": "보호자가 같은 크기 재료와 물을 준비합니다. 3방울씩 같은 높이에서 떨어뜨려 흡수되는 모습을 비교하세요. 전기기구에서 멀리 진행하세요.",
             "verified_label": "보호자와 실제로 물 3방울씩 시험하고 관찰했어요.",
         }
-    outcome = ("A", "B", "비슷함")[answers["3"]]
-    matched = (predicted == outcome and outcome != "비슷함")
-    if outcome == "비슷함":
-        prompt = "차이를 알아보기 어려웠네. 다음엔 어떻게 확인할까?"
+    outcome = (a_name, b_name, "비슷하거나 구별하기 어려웠어")[answers["3"]]
+    matched = answers["2"] == answers["3"] and answers["3"] != 2
+    if answers["3"] == 2:
+        prompt = "어느 쪽이 빠른지 알기 어려웠네. 다음에는 무엇을 해 볼까?"
     elif matched:
-        prompt = "예상과 결과가 같았어. 다시 확인하려면 어떻게 하면 좋을까?"
+        prompt = "생각한 대로 됐네! 다음에는 무엇을 해 볼까?"
     else:
         prompt = "예상과 다른 결과가 나왔어. 무엇을 다시 해볼까?"
     return {
         "label": "다시 생각하기", "prompt": prompt,
-        "options": ["같은 크기와 같은 물 양으로 한 번 더 시험", "재료를 바꾸어 다시 비교", "어떤 재료에서 물이 흘렀는지 살펴보기"],
+        "options": ["같은 크기의 재료에 같은 양의 물을 떨어뜨려 다시 해 볼래", "다른 재료로 바꿔서 비교해 볼래", "어떤 재료에서 물이 흘렀는지 살펴볼래"],
         "hint": "얼마나 빨리 흡수했는지 기록했을 뿐 성적을 매기지 않습니다. 다른 결과도 발견이에요.",
         "context": f"비교: {a} / {b} · 예상: {predicted} · 관찰: {outcome}",
     }
@@ -257,33 +268,47 @@ def update_choice_highlight(buttons: list[Any], options: list[str], chosen: int)
 def render_pilot(
     mission_id: str,
     progress: dict[str, Any],
-    on_save: Callable[[int, int, int, bool], dict[str, Any]],
+    on_save: Callable[[int, int, int, bool, bool], dict[str, Any]],
     on_reload: Callable[[], dict[str, Any]],
     conflict_type: type[Exception],
 ) -> None:
     """Render isolated pilot UX inside the existing route, without changing other missions."""
     with ui.column().classes("w-full max-w-3xl mx-auto p-4 gap-3"):
         ui.link("← 생각탐험 연구소", "/portal/thinking")
-        title = "놀이터 문제 탐정" if mission_id == "playground" else "물을 가장 잘 흡수하는 재료"
+        title = "놀이터 문제 탐정" if mission_id == "playground" else "무엇이 물을 빨리 빨아들일까?"
         ui.label(f"🔎 {title}").classes("text-h4 text-weight-bold")
         ui.label("정답보다 내 생각과 실제 결과가 중요해요. 어른과 함께해요.")
         area = ui.column().classes("w-full gap-3")
+        view = {"step": progress["step_index"], "generation": 0}
 
         def render() -> None:
+            view["generation"] += 1
+            generation = view["generation"]
+            revision = progress["revision"]
             area.clear()
             with area:
-                step = progress["step_index"]
+                step = view["step"]
                 answers = progress["answers"]
-                if progress["completed"]:
+
+                def go_to(target: int) -> None:
+                    if view["generation"] == generation:
+                        view["step"] = target
+                        render()
+
+                if step == 5:
                     ui.label("탐험을 마쳤어요! 🌟").classes("text-h5")
                     ui.label("실제로 관찰한 것과 다음에 바꾸고 싶은 것을 가족에게 이야기해 주세요.")
+                    if answers.get("_pilot_v") == PILOT_VERSION:
+                        ui.button("처음부터 다시 보기", on_click=lambda: go_to(0))
+                        ui.button("이전 단계", on_click=lambda: go_to(4))
                     ui.link("다른 미션", "/portal/thinking")
                     return
-                if step > 0 and answers.get("_pilot_v") != PILOT_VERSION:
+                if progress["step_index"] > 0 and answers.get("_pilot_v") != PILOT_VERSION:
                     ui.label("이전 형식으로 진행한 기록이에요. 기록을 지우지 않고 보존했습니다.")
                     ui.label("새 미션 형식에서는 이전 선택을 그대로 해석할 수 없어 여기서 중단해요.")
                     ui.link("다른 미션", "/portal/thinking")
                     return
+                reviewing = step < progress["step_index"]
                 stage = pilot_stage(mission_id, step, answers)
                 ui.label(f"{step + 1}/5 · {stage['label']}").classes("text-subtitle1 text-teal-8")
                 ui.linear_progress(value=step / 5).classes("w-full")
@@ -332,17 +357,25 @@ def render_pilot(
                         .classes("w-full min-h-14 text-left")
                     )
 
+                if reviewing:
+                    choose(answers[str(step)])
+                    ui.label("이전 선택을 바꾸고 저장하면 그 뒤의 답을 다시 골라야 해요.").classes("text-caption")
+
                 performed = None
                 if step == 3:
                     with ui.card().classes("w-full bg-amber-1"):
                         ui.label("🏠 직접 해보기").classes("text-weight-bold")
                         ui.label(stage["offline"])
-                    performed = ui.checkbox(stage["verified_label"], value=False)
+                    performed = ui.checkbox(
+                        stage["verified_label"],
+                        value=reviewing and bool(answers.get("_activity_confirmed")),
+                    )
 
-                with ui.expansion("보호자 도움말 (함께 읽기)").classes("w-full"):
-                    ui.label(stage["hint"])
+                render_parent_guide(mission_id, step, answers, stage["hint"])
 
                 def advance() -> None:
+                    if view["generation"] != generation:
+                        return
                     if selected["index"] is None:
                         ui.notify("그림을 살펴보고 하나를 골라 주세요.")
                         return
@@ -351,18 +384,24 @@ def render_pilot(
                         ui.notify("실제로 해보지 않았다면 다음으로 넘어가지 않아도 괜찮아요.")
                         return
                     try:
-                        updated = on_save(step, selected["index"], progress["revision"], confirmed)
+                        updated = on_save(step, selected["index"], revision, confirmed, reviewing)
                     except conflict_type:
                         ui.notify("다른 화면에서 이미 진행했어요. 최신 기록으로 갱신할게요.")
                         progress.update(on_reload())
+                        view["step"] = progress["step_index"]
                         render()
                         return
                     except (sqlite3.Error, ValueError):
                         ui.notify("저장할 수 없어요. 현재 화면을 유지합니다.")
                         return
                     progress.update(updated)
+                    view["step"] = min(step + 1, progress["step_index"])
                     render()
 
+                if step > 0:
+                    ui.button("이전 단계", on_click=lambda: go_to(step - 1)).props(
+                        "outline no-caps"
+                    ).classes("w-full min-h-12")
                 ui.button("관찰 기록하고 완료" if step == 4 else "저장하고 다음으로", on_click=advance).classes(
                     "w-full min-h-12 bg-teal text-white"
                 )

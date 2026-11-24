@@ -14,11 +14,14 @@ from portal_app.thinking_pilot import (
     PILOT_VERSION, PILOT_IDS, PLAY_ISSUES, WATER_PARTS,
     pilot_stage, scene_hit, scene_content, update_choice_highlight,
 )
+from portal_app.thinking_expanded import CONTENT, VISUAL_IDS, VERSION, visual_key, stage_for, simulate, scene_svg
 from portal_app.thinking_lab import (
     ProgressConflict,
     load_thinking_missions,
     read_progress,
     recent_thinking_progress,
+    thinking_overview,
+    CATEGORY_TILES,
     save_choice,
 )
 
@@ -182,8 +185,8 @@ class ThinkingLabTests(unittest.TestCase):
         for pair_id, (a, b) in enumerate(WATER_PARTS):
             answers = {"0": 0, "1": pair_id, "_pilot_v": PILOT_VERSION}
             stage = pilot_stage("water_absorb", 2, answers)
-            self.assertIn(a, stage["options"][0])
-            self.assertIn(b, stage["options"][1])
+            self.assertIn("수건" if a == "천수건" else "종이 타월" if a == "종이타월" else a, stage["options"][0])
+            self.assertIn("수건" if b == "천수건" else "종이 타월" if b == "종이타월" else b, stage["options"][1])
             for prediction in range(3):
                 for observed in range(3):
                     answers["2"] = prediction
@@ -247,6 +250,110 @@ class ThinkingLabTests(unittest.TestCase):
             save_choice("playground", 1, 0, 1, path=self.db)
         self.assertEqual({"0": 2}, read_progress("playground", path=self.db)["answers"])
 
+    def test_visual_catalog_all_fourteen_and_all_paths(self) -> None:
+        self.assertEqual(set(self.missions) - set(PILOT_IDS), set(VISUAL_IDS))
+        self.assertEqual(14, len(VISUAL_IDS))
+        for mid in VISUAL_IDS:
+            self.assertIn("<rect", scene_svg(mid))
+            for look in range(3):
+                for method in range(3):
+                    for prediction in range(3):
+                        for observed in range(3):
+                            answers = {"_visual_v": VERSION, "0": look, "1": method, "2": prediction, "3": observed}
+                            stages = [stage_for(mid, step, answers) for step in range(5)]
+                            self.assertTrue(all(len(stage["options"]) == 3 for stage in stages))
+                            self.assertIn(CONTENT[mid]["goal"], stages[2]["context"])
+                            self.assertIn(CONTENT[mid]["methods"][method][1], stages[3]["offline"])
+                            self.assertIn(stages[3]["options"][observed], stages[4]["context"])
+                            self.assertIn(CONTENT[mid]["look"][look], stages[1]["context"])
+
+    def test_visual_screen_results_and_isolated_legacy_records(self) -> None:
+        for mid, expected in (("sorting_cards", [1,0,0]), ("route_debug", [0,1,1]), ("fair_share", [1,0,1])):
+            self.assertEqual(expected, [simulate(mid, i)["outcome"] for i in range(3)])
+        for mid in VISUAL_IDS:
+            old = save_choice(mid, 0, 0, 0, path=self.db)
+            state = read_progress(visual_key(mid), path=self.db)
+            for step in range(3):
+                state = save_choice(mid, step, 0, state["revision"], path=self.db, visual=True)
+            with self.assertRaises(ValueError):
+                save_choice(mid, 3, 0, state["revision"], path=self.db, visual=True)
+            index = simulate(mid, 0)["outcome"] if CONTENT[mid].get("screen") else 0
+            if CONTENT[mid].get("screen"):
+                with self.assertRaises(ValueError):
+                    save_choice(mid, 3, 1-index, state["revision"], path=self.db, visual=True, pilot_verified=True)
+            state = save_choice(mid, 3, index, state["revision"], path=self.db, visual=True, pilot_verified=True)
+            self.assertEqual(4, read_progress(visual_key(mid), path=self.db)["step_index"])
+            with self.assertRaises(ProgressConflict):
+                save_choice(mid, 3, index, state["revision"]-1, path=self.db, visual=True, pilot_verified=True)
+            state = save_choice(mid, 4, 0, state["revision"], path=self.db, visual=True)
+            self.assertTrue(state["completed"])
+            self.assertEqual(old, read_progress(mid, path=self.db))
+
+    def test_review_unchanged_keeps_completion_and_revision_all_render_types(self) -> None:
+        for mid, visual in (("paper_bridge", False), ("playground", False), ("route_debug", True)):
+            key = visual_key(mid) if visual else mid
+            state = read_progress(key, path=self.db)
+            for step in range(5):
+                option = simulate(mid, 0)["outcome"] if visual and step == 3 else 0
+                state = save_choice(mid, step, option, state["revision"], path=self.db,
+                                    visual=visual, pilot_verified=step == 3)
+            self.assertTrue(state["completed"])
+            for step in range(5):
+                same = save_choice(mid, step, state["answers"][str(step)], state["revision"],
+                                   path=self.db, visual=visual, pilot_verified=step == 3, allow_edit=True)
+                self.assertEqual(state, same)
+            self.assertEqual(state, read_progress(key, path=self.db))
+
+    def test_review_changed_clears_only_suffix_and_observation_all_render_types(self) -> None:
+        for mid, visual in (("paper_bridge", False), ("water_absorb", False), ("route_debug", True)):
+            key = visual_key(mid) if visual else mid
+            state = read_progress(key, path=self.db)
+            for step in range(5):
+                option = simulate(mid, 0)["outcome"] if visual and step == 3 else 0
+                state = save_choice(mid, step, option, state["revision"], path=self.db,
+                                    visual=visual, pilot_verified=step == 3)
+            with self.assertRaises(ProgressConflict):
+                save_choice(mid, 1, 1, state["revision"], path=self.db, visual=visual)
+            edited = save_choice(mid, 1, 1, state["revision"], path=self.db, visual=visual, allow_edit=True)
+            self.assertEqual({"0": 0, "1": 1}, {k: v for k, v in edited["answers"].items() if k.isdecimal()})
+            self.assertEqual(2, edited["step_index"])
+            self.assertFalse(edited["completed"])
+            self.assertNotIn("_activity_confirmed", edited["answers"])
+            self.assertEqual(state["revision"] + 1, edited["revision"])
+            with self.assertRaises(ProgressConflict):
+                save_choice(mid, 0, 2, state["revision"], path=self.db, visual=visual, allow_edit=True)
+            self.assertEqual(edited, read_progress(key, path=self.db))
+            predicted = save_choice(mid, 2, 0, edited["revision"], path=self.db, visual=visual)
+            if mid in PILOT_IDS or visual:
+                with self.assertRaises(ValueError):
+                    save_choice(mid, 3, 0, predicted["revision"], path=self.db, visual=visual)
+            result = simulate(mid, 1)["outcome"] if visual else 0
+            observed = save_choice(mid, 3, result, predicted["revision"], path=self.db,
+                                   visual=visual, pilot_verified=True)
+            completed = save_choice(mid, 4, 0, observed["revision"], path=self.db, visual=visual)
+            changed_final = save_choice(mid, 4, 1, completed["revision"], path=self.db,
+                                        visual=visual, allow_edit=True)
+            self.assertTrue(changed_final["completed"])
+            self.assertEqual(completed["answers"].get("_activity_confirmed"), changed_final["answers"].get("_activity_confirmed"))
+
+    def test_review_legacy_pilot_blocks_reinterpretation_at_first_step(self) -> None:
+        read_progress("playground", path=self.db)
+        conn = connect_database(self.db)
+        try:
+            child = default_child_profile_id(self.db)
+            conn.execute(
+                """INSERT INTO thinking_mission_progress
+                (child_profile_id, mission_id, step_index, answers_json, completed, revision, updated_at)
+                VALUES (?, 'playground', 1, ?, 0, 1, ?)""",
+                (child, json.dumps({"0": 0}), "2026-11-24T00:00:00+00:00"),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        with self.assertRaises(ProgressConflict):
+            save_choice("playground", 0, 1, 1, path=self.db, allow_edit=True)
+        self.assertEqual({"0": 0}, read_progress("playground", path=self.db)["answers"])
+
     def test_invalid_choice_and_out_of_order_steps_rejected(self) -> None:
         with self.assertRaises(ValueError):
             save_choice("paper_bridge", 0, 999, 0, path=self.db)
@@ -279,6 +386,62 @@ class ThinkingLabTests(unittest.TestCase):
                 child_profile_id=second, path=self.db
             )],
         )
+
+    def test_parent_guides_cover_all_missions_and_stages(self) -> None:
+        from portal_app.thinking_parent import GUIDES, parent_guide
+        self.assertEqual(set(self.missions), set(GUIDES))
+        for mid in self.missions:
+            for step in range(5):
+                focus, explain, question, scaffold = parent_guide(mid, step, {"0": 0})
+                self.assertTrue(all(isinstance(value, str) and value.strip()
+                                    for value in (focus, explain, question, scaffold)))
+                self.assertIn("?", question)
+        self.assertIn("빛", parent_guide("seed_sun", 1, {})[1])
+        self.assertIn("명령", parent_guide("route_debug", 4, {})[1])
+        self.assertIn("실내", parent_guide("playground", 3, {"0": 0})[1])
+        self.assertIn("차례", parent_guide("playground", 3, {"0": 1})[1])
+        self.assertIn("의자", parent_guide("playground", 3, {"0": 2})[1])
+        self.assertNotEqual(parent_guide("route_debug", 1, {}),
+                            parent_guide("route_debug", 1, {}, legacy=True))
+
+    def test_method_questions_are_specific_and_preserve_choice_order(self) -> None:
+        from portal_app.thinking_expanded import METHOD_QUESTIONS
+        self.assertEqual(set(VISUAL_IDS), set(METHOD_QUESTIONS))
+        for mid in VISUAL_IDS:
+            stage = stage_for(mid, 1, {"0": 0, "_visual_v": VERSION})
+            self.assertTrue(stage["prompt"].endswith("?"))
+            self.assertEqual([method[0] for method in CONTENT[mid]["methods"]], stage["options"])
+        self.assertIn("별까지", METHOD_QUESTIONS["route_debug"])
+        self.assertIn("자동차 상자", METHOD_QUESTIONS["missing_sign"])
+
+    def test_category_tiles_cover_all_missions_without_changing_ids(self) -> None:
+        self.assertEqual(8, len(CATEGORY_TILES))
+        self.assertEqual({m["category"] for m in self.missions.values()},
+                         {item[1] for item in CATEGORY_TILES})
+        self.assertEqual(8, len({item[0] for item in CATEGORY_TILES}))
+
+    def test_overview_prefers_current_format_and_keeps_profiles_separate(self) -> None:
+        before, resume, recommended = thinking_overview(self.missions, path=self.db)
+        self.assertEqual(16, len(before))
+        self.assertIsNone(resume)
+        self.assertIn(recommended, self.missions)
+        save_choice("paper_bridge", 0, 0, 0, path=self.db)
+        states, resume, _ = thinking_overview(self.missions, path=self.db)
+        self.assertEqual(0, states["paper_bridge"]["step_index"])
+        self.assertIsNone(resume)
+        save_choice("paper_bridge", 0, 0, 0, path=self.db, visual=True)
+        states, resume, _ = thinking_overview(self.missions, path=self.db)
+        self.assertEqual(1, states["paper_bridge"]["step_index"])
+        self.assertEqual("paper_bridge", resume)
+        conn = connect_database(self.db)
+        try:
+            second = conn.execute("INSERT INTO child_profile (display_name, created_at, active) VALUES ('other', '2026-11-24', 0)").lastrowid
+            conn.commit()
+        finally:
+            conn.close()
+        states, resume, _ = thinking_overview(self.missions, path=self.db, child_profile_id=second)
+        self.assertIsNone(resume)
+        self.assertTrue(all(s["step_index"] == 0 for s in states.values()))
 
     def test_thinking_routes_registered_without_replacing_existing_portal(self) -> None:
         for path in ("/portal/thinking", "/portal/thinking/paper_bridge"):

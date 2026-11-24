@@ -335,6 +335,7 @@
     .calendar-day.has-books { border-color:#a7c2ad; background:#edf4ee; }
     .calendar-day.selected { outline:2px solid var(--accent); }
     .calendar-day-count { align-self:flex-end; min-width:21px; padding:2px 5px; border-radius:999px; background:var(--leaf); color:white; text-align:center; font-size:11px; font-weight:900; }
+    .calendar-day-draft { align-self:flex-end; color:#8c5a1d; font-size:9px; font-weight:900; line-height:1.2; white-space:nowrap; }
     .calendar-hint,.memory-status { margin:10px 0; color:var(--muted); font-size:13px; line-height:1.5; }
     .memory-tools { display:flex; align-items:center; gap:10px; margin:8px 0 12px; }
     .memory-tools select { min-height:40px; padding:0 10px; border:1px solid var(--line); border-radius:11px; background:white; }
@@ -1680,10 +1681,14 @@
           const monthRecords = await fetchAllRecords({ date_from: firstDate, date_to: lastDate });
           if (generation !== calendarRequestGeneration) return;
           const counts = new Map();
+          const draftCounts = new Map();
           for (const record of monthRecords) {
-            if (record.status === 'completed') counts.set(record.read_date, (counts.get(record.read_date) || 0) + 1);
+            counts.set(record.read_date, (counts.get(record.read_date) || 0) + 1);
+            if (record.status === 'draft') draftCounts.set(record.read_date, (draftCounts.get(record.read_date) || 0) + 1);
           }
-          const completedCount = [...counts.values()].reduce((sum, count) => sum + count, 0);
+          const recordCount = [...counts.values()].reduce((sum, count) => sum + count, 0);
+          const draftCount = [...draftCounts.values()].reduce((sum, count) => sum + count, 0);
+          const completedCount = recordCount - draftCount;
           const firstWeekday = (new Date(year, monthNumber - 1, 1).getDay() + 6) % 7;
           for (let index = 0; index < firstWeekday; index++) {
             const blank = document.createElement('span'); blank.className = 'calendar-blank'; blank.setAttribute('aria-hidden','true'); calendarGrid.append(blank);
@@ -1691,14 +1696,18 @@
           for (let day = 1; day <= lastDay; day++) {
             const date = `${month}-${String(day).padStart(2, '0')}`;
             const count = counts.get(date) || 0;
+            const draftDayCount = draftCounts.get(date) || 0;
             const button = document.createElement('button');
             button.type = 'button'; button.className = 'calendar-day' + (count ? ' has-books' : '');
             button.disabled = !count;
             button.setAttribute('role','gridcell');
-            button.setAttribute('aria-label', `${date}, 독서기록 ${count}건`);
+            button.setAttribute('aria-label', `${date}, 독서기록 ${count}건${draftDayCount ? `, 임시 ${draftDayCount}건 포함` : ''}`);
             const dayLabel = document.createElement('span'); dayLabel.textContent = String(day);
             button.append(dayLabel);
             if (count) {
+              if (draftDayCount) {
+                const draftBadge = document.createElement('span'); draftBadge.className = 'calendar-day-draft'; draftBadge.textContent = `임시 ${draftDayCount}`; button.append(draftBadge);
+              }
               const badge = document.createElement('span'); badge.className = 'calendar-day-count'; badge.textContent = String(count); button.append(badge);
               button.addEventListener('click', () => {
                 searchInput.value = '';
@@ -1710,8 +1719,8 @@
             }
             calendarGrid.append(button);
           }
-          calendarStatus.textContent = completedCount
-            ? `${month}에 등록 완료한 독서기록 ${completedCount}건이 있어요. 기록이 있는 날짜를 누르면 그날의 책을 볼 수 있어요.`
+          calendarStatus.textContent = recordCount
+            ? `${month} 전체 ${recordCount}건 · 등록 완료 ${completedCount}건 · 임시 ${draftCount}건이에요. 기록이 있는 날짜를 누르면 그날의 책을 볼 수 있어요.`
             : `${month}에는 아직 기록이 없어요.`;
         } catch (error) {
           if (generation === calendarRequestGeneration) calendarStatus.textContent = error.message || '달력 기록을 불러오지 못했어요.';

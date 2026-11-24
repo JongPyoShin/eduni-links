@@ -85,7 +85,7 @@ CONTENT = json.loads(r'''{
       "잎의 크기",
       "잎을 놓을 자리"
     ],
-    "goal": "두 조건에서 잎의 겉물이 어느 쪽에서 먼저 마르는지 비교하기",
+    "goal": "어느 나뭇잎의 물방울이 먼저 사라지는지 알아보기",
     "methods": [
       [
         "바람 있는 곳과 없는 곳",
@@ -555,6 +555,23 @@ def simulate(mid: str, method: int) -> dict[str, Any]:
     raise ValueError("not an on-screen simulation")
 
 
+# Same choice meanings/order as the existing positive, negative, unsure indices.
+PREDICTION_WORDS = {
+    "paper_bridge": ("동전 3개를 올리면 종이 다리가 어떻게 될까?", "동전 3개를 버틸 것 같아", "3개를 놓기 전에 무너질 것 같아"),
+    "missing_sign": ("친구가 자동차 상자를 혼자 찾을 수 있을까?", "혼자 찾을 것 같아", "도움이 필요할 것 같아"),
+    "ball_run": ("공을 두 번 놓으면 어떻게 될까?", "두 번 다 상자에 들어갈 것 같아", "한 번은 못 들어갈 것 같아"),
+    "lost_toy": ("주인을 확인할 단서를 찾을 수 있을까?", "단서를 찾을 것 같아", "단서가 부족할 것 같아"),
+    "raincoat_story": ("두 친구가 모두 비를 피할 수 있을까?", "두 친구 모두 비를 피할 것 같아", "한 친구는 아직 비를 맞을 것 같아"),
+    "tidy_room": ("자동차를 10초 안에 찾을 수 있을까?", "10초 안에 찾을 것 같아", "10초 넘게 걸릴 것 같아"),
+    "family_turns": ("세 사람 모두 장난감을 쓸 수 있을까?", "모두 한 번씩 쓸 것 같아", "못 쓰는 사람이 있을 것 같아"),
+    "sorting_cards": ("로봇이 카드를 1, 2, 3, 4 순서로 놓을까?", "순서대로 놓을 것 같아", "아직 순서가 섞일 것 같아"),
+    "route_debug": ("로봇이 별까지 갈 수 있을까?", "로봇이 별까지 갈 것 같아", "별까지 못 갈 것 같아"),
+    "snack_votes": ("가족 세 사람의 표를 모두 셀 수 있을까?", "표 3개를 모두 셀 것 같아", "빠지는 표가 있을 것 같아"),
+    "fair_share": ("세 친구가 모두 필요한 블록을 받을까?", "모두 필요한 만큼 받을 것 같아", "블록이 모자란 친구가 있을 것 같아"),
+    "reusable_pack": ("버려야 할 물건이 줄어들까?", "버릴 물건이 줄 것 같아", "줄지 않을 것 같아"),
+}
+
+
 def stage_for(mid: str, step: int, answers: dict[str, Any]) -> dict[str, Any]:
     d = CONTENT[mid]
     if type(step) is not int or not 0 <= step < 5:
@@ -573,9 +590,14 @@ def stage_for(mid: str, step: int, answers: dict[str, Any]) -> dict[str, Any]:
     comparison = d.get("compare", False)
     conditions = d.get("conditions", [])[answers["1"]] if comparison else None
     if step == 2:
-        options = [f"{conditions[0]} 쪽일 것 같아", f"{conditions[1]} 쪽일 것 같아", "비슷하거나 잘 모르겠어"] if comparison else [
-            "목표를 이룰 것 같아","아직 어려울 것 같아","해봐야 알겠어"]
-        return dict(label="결과 예상하기", prompt=("어느 쪽이 먼저 마를까?" if mid == "leaf_dry" else "어느 쪽이 더 많이 자랄까?" if mid == "seed_sun" else "이 방법으로 해보면 어떻게 될까?"), options=options,
+        if comparison:
+            question = "어느 나뭇잎이 먼저 마를까?" if mid == "leaf_dry" else "어느 식물이 더 많이 자랄까?"
+            options = [f"{name}: {'먼저 마를 것 같아' if mid == 'leaf_dry' else '더 많이 자랄 것 같아'}" for name in conditions]
+            options.append("비슷하거나 잘 모르겠어")
+        else:
+            question, yes, no = PREDICTION_WORDS[mid]
+            options = [yes, no, "해봐야 알겠어"]
+        return dict(label="결과 예상하기", prompt=question, options=options,
                     context=d["goal"] + " · 방법: " + method[0], hint="어떤 결과가 나올지 이유를 물어보세요. 틀려도 괜찮습니다.")
     predicted = stage_for(mid, 2, answers)["options"][answers["2"]]
     observations = ([f"{conditions[0]} 쪽이 먼저 말랐어",f"{conditions[1]} 쪽이 먼저 말랐어",d["observed"][2]]

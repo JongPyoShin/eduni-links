@@ -238,32 +238,133 @@ def recent_thinking_progress(
     ]
 
 
+# Stable URL slugs and display names; keep stored curriculum category and mission IDs unchanged.
+CATEGORY_TILES = (
+    ("detective", "문제 탐정단", "🔎", "꼬마 탐정단", "문제와 단서를 찾아요"),
+    ("science", "과학 탐구실", "🧪", "과학 실험실", "궁금한 것을 실험해요"),
+    ("invention", "발명 연구실", "🛠️", "발명 공작소", "새로운 방법을 만들어요"),
+    ("stories", "이야기 법정", "📖", "이야기 세상", "친구의 마음을 생각해요"),
+    ("home", "우리집 프로젝트", "🏠", "우리집 해결사", "생활 속 문제를 해결해요"),
+    ("robot", "규칙·논리 실험실", "🤖", "로봇 연구소", "규칙과 순서를 찾아요"),
+    ("math", "수학·자료 탐험", "🧩", "수학 탐험대", "숫자와 자료로 생각해요"),
+    ("earth", "자연과 지구", "🌱", "지구 탐험대", "자연과 환경을 알아봐요"),
+)
+MISSION_ICONS = dict(
+    playground="🎠", missing_sign="🚪", leaf_dry="🍃", water_absorb="💧",
+    paper_bridge="🌉", ball_run="⚽", lost_toy="🚗", raincoat_story="☔",
+    tidy_room="🧸", family_turns="👫", sorting_cards="🔢", route_debug="🤖",
+    snack_votes="🍎", fair_share="🧱", reusable_pack="🎒", seed_sun="🌱",
+)
+MISSION_TITLES = {
+    "missing_sign": "자동차 상자를 찾아라!",
+    "leaf_dry": "어느 나뭇잎이 먼저 마를까?",
+    "water_absorb": "무엇이 물을 빨리 빨아들일까?",
+    "lost_toy": "장난감의 주인은 누구일까?",
+    "family_turns": "우리 가족 차례 정하기",
+    "snack_votes": "가족 간식 투표",
+    "seed_sun": "어디에서 식물이 더 많이 자랄까?",
+}
+
+
+def mission_title(mission: dict[str, Any]) -> str:
+    return MISSION_TITLES.get(mission["id"], mission["title"])
+
+
+def thinking_overview(
+    missions: dict[str, dict[str, Any]], *,
+    child_profile_id: int | None = None, path: Path | None = None,
+) -> tuple[dict[str, dict[str, Any]], str | None, str | None]:
+    """Read active-format progress in one query. Never count legacy records as visual progress."""
+    init_thinking_storage(path)
+    profile = child_profile_id if child_profile_id is not None else default_child_profile_id(path)
+    keys = {visual_key(mid) if mid in VISUAL_IDS else mid: mid for mid in missions}
+    states = {mid: {"step_index": 0, "completed": False, "compatible": True} for mid in missions}
+    with database_connection(path) as conn:
+        rows = conn.execute(
+            """SELECT mission_id, step_index, completed, answers_json
+               FROM thinking_mission_progress WHERE child_profile_id = ?
+               ORDER BY updated_at DESC, mission_id""", (profile,),
+        ).fetchall()
+    resume = None
+    for key, step, completed, raw in rows:
+        mid = keys.get(key)
+        if mid is None:
+            continue
+        answers = json.loads(raw)
+        compatible = not step or (
+            (mid not in PILOT_IDS or answers.get("_pilot_v") == PILOT_VERSION)
+            and (mid not in VISUAL_IDS or answers.get("_visual_v") == VISUAL_VERSION)
+        )
+        states[mid] = {"step_index": int(step), "completed": bool(completed), "compatible": compatible}
+        if resume is None and 0 < step < len(STAGES) and not completed and compatible:
+            resume = mid
+    recommendation = next(
+        (m["id"] for _, category, *_ in CATEGORY_TILES for m in missions.values()
+         if m["category"] == category and states[m["id"]]["step_index"] == 0
+         and not states[m["id"]]["completed"]), None,
+    )
+    return states, resume, recommendation
+
+
+def mission_tile(mission: dict[str, Any], state: dict[str, Any], prefix: str = "") -> None:
+    mid = mission["id"]
+    if not state["compatible"]:
+        status = "이전 형식 기록"
+    elif state["completed"]:
+        status = "탐험 완료 ✓"
+    elif state["step_index"]:
+        status = f"탐험 중 · {state['step_index']} / 5단계 완료"
+    else:
+        status = "아직 시작 전"
+    activity = "화면에서 확인" if mid in ("sorting_cards", "route_debug", "fair_share") else "가족과 직접 해보기"
+    ui.link(
+        f"{prefix}{MISSION_ICONS.get(mid, '🔎')}  {mission_title(mission)}\n{status}\n{activity}",
+        f"/portal/thinking/{mid}",
+    ).classes(
+        "block w-full rounded-xl border-2 border-solid border-teal-3 bg-white text-teal-10 "
+        "p-4 text-body1 no-underline"
+    ).style("white-space: pre-line; overflow-wrap: anywhere; min-height: 88px; line-height: 1.5;")
+
+
 @ui.page("/portal/thinking")
-def thinking_home() -> None:
+def thinking_home(category: str = "") -> None:
     missions = load_thinking_missions()
+    states, resume, recommendation = thinking_overview(missions)
+    category_info = next((item for item in CATEGORY_TILES if item[0] == category), None)
     with ui.column().classes("w-full max-w-3xl mx-auto p-4 gap-4"):
         ui.link("← 가족 포털", "/portal")
+        if category and category_info is None:
+            ui.label("이 탐험방을 찾을 수 없어요.")
+            ui.link("← 생각탐험 연구소", "/portal/thinking")
+            return
+        if category_info:
+            _, stored_name, icon, title, desc = category_info
+            ui.link("← 생각탐험 연구소", "/portal/thinking")
+            ui.label(f"{icon} {title}").classes("text-h4 text-weight-bold")
+            ui.label(desc).classes("text-body1")
+            for mission in missions.values():
+                if mission["category"] == stored_name:
+                    mission_tile(mission, states[mission["id"]])
+            return
         ui.label("🔎 생각탐험 연구소").classes("text-h4 text-weight-bold")
-        ui.label("정답보다 좋은 질문을 찾아보자! 어른과 함께 실제로 탐험해요.")
-        grouped: dict[str, list[dict[str, Any]]] = {}
-        for mission in missions.values():
-            grouped.setdefault(mission["category"], []).append(mission)
-        for category, members in grouped.items():
-            ui.label(f"{category} · {len(members)}개 미션").classes(
-                "text-h6 text-weight-bold q-mt-lg"
-            )
-            for mission in members:
-                with ui.card().classes("w-full p-4"):
-                    ui.label(mission["title"]).classes("text-h6 text-weight-bold")
-                    ui.label(
-                        "🖼️ 그림·선택 연결형" if mission["id"] in PILOT_IDS or mission["id"] in VISUAL_IDS
-                        else "📝 질문형 초안 · 보호자 동행 권장"
-                    ).classes("text-caption text-teal-8")
-                    ui.label(" · ".join(mission["skills"])).classes("text-caption text-grey-7")
-                    ui.label(f"화면 탐험 약 {mission['estimated_minutes']}분 + 현실 활동")
-                    ui.link("이 미션 시작하기 →", f"/portal/thinking/{mission['id']}").classes(
-                        "text-h6 q-mt-sm"
-                    )
+        ui.label("오늘은 어떤 탐험을 해볼까?").classes("text-h6")
+        if resume:
+            ui.label("이어서 탐험하기").classes("text-h6 text-teal-9")
+            mission_tile(missions[resume], states[resume])
+        elif recommendation:
+            ui.label("오늘의 추천 탐험").classes("text-h6 text-teal-9")
+            mission_tile(missions[recommendation], states[recommendation])
+        with ui.grid(columns=2).classes("w-full gap-3").style("grid-template-columns: repeat(2, minmax(0, 1fr));"):
+            for slug, stored_name, icon, title, desc in CATEGORY_TILES:
+                members = [m for m in missions.values() if m["category"] == stored_name]
+                done = sum(states[m["id"]]["completed"] and states[m["id"]]["compatible"] for m in members)
+                ui.link(
+                    f"{icon} {title}\n{desc}\n{done}/{len(members)}개 완료",
+                    f"/portal/thinking?category={slug}",
+                ).classes(
+                    "block w-full rounded-xl border-2 border-solid border-teal-3 bg-teal-1 "
+                    "p-3 text-body1 text-teal-10 no-underline text-center"
+                ).style("white-space: pre-line; overflow-wrap: anywhere; min-height: 116px; line-height: 1.6;")
 
 
 @ui.page("/portal/thinking/{mission_id}")
@@ -275,6 +376,9 @@ def thinking_mission(mission_id: str, legacy: bool = False) -> None:
         if mission is None:
             ui.label("미션을 찾을 수 없어요.").classes("text-h5")
             return
+        category_info = next((item for item in CATEGORY_TILES if item[1] == mission["category"]), None)
+        if category_info:
+            ui.link(f"← {category_info[3]}", f"/portal/thinking?category={category_info[0]}")
         if mission_id in VISUAL_IDS and not legacy:
             profile = default_child_profile_id()
             key = visual_key(mission_id)
@@ -288,7 +392,7 @@ def thinking_mission(mission_id: str, legacy: bool = False) -> None:
                                    allow_edit=reviewing)
             def reload_visual():
                 return read_progress(key, child_profile_id=profile)
-            render_visual(mission_id, mission["title"], progress, save_visual, reload_visual,
+            render_visual(mission_id, mission_title(mission), progress, save_visual, reload_visual,
                           ProgressConflict, update_choice_highlight)
             return
         if mission_id in PILOT_IDS:
@@ -309,7 +413,7 @@ def thinking_mission(mission_id: str, legacy: bool = False) -> None:
         profile = default_child_profile_id()
         progress = read_progress(mission_id, child_profile_id=profile)
         ui.label(mission["category"]).classes("text-caption text-teal-8")
-        ui.label(mission["title"]).classes("text-h4 text-weight-bold")
+        ui.label(mission_title(mission)).classes("text-h4 text-weight-bold")
         ui.label("어떤 선택에도 벌점은 없어요. 가족과 이야기하며 한 단계씩 해보세요.")
         stage_area = ui.column().classes("w-full gap-3")
         view = {"step": progress["step_index"], "generation": 0}

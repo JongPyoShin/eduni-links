@@ -154,7 +154,7 @@ def pilot_stage(mission_id: str, step: int, answers: dict[str, Any]) -> dict[str
         issue = PLAY_ISSUES[answers["0"]]
         if step == 1:
             return {
-                "label": "문제 정의", "prompt": f"'{issue['name']}' 문제를 어떻게 해결했다고 알 수 있을까?",
+                "label": "문제 정의", "prompt": ("친구들이 그네를 기다리고 있어. 어떤 모습이 되면 좋을까?" if answers["0"] == 1 else "이 문제가 해결되면 어떤 모습이 될까?"),
                 "options": list(issue["goals"]),
                 "hint": "누가 무엇을 할 수 있게 되면 성공인지 아이의 말로 다시 물어보세요.",
                 "context": f"발견한 문제: {issue['name']}",
@@ -162,7 +162,7 @@ def pilot_stage(mission_id: str, step: int, answers: dict[str, Any]) -> dict[str
         goal = issue["goals"][answers["1"]]
         if step == 2:
             return {
-                "label": "방법 찾기", "prompt": "우리 목표를 이루려면 어떤 방법을 먼저 해볼까?",
+                "label": "방법 찾기", "prompt": f"'{goal}' 위해 어떤 방법을 해볼까?",
                 "options": list(issue["solutions"]),
                 "hint": "다른 안전한 방법이 있다면 가족끼리 이야기해도 좋아요.",
                 "context": f"문제: {issue['name']} · 목표: {goal}",
@@ -206,26 +206,29 @@ def pilot_stage(mission_id: str, step: int, answers: dict[str, Any]) -> dict[str
             "context": "그림에서 찾은 물 때문에, 물을 빨리 흡수하는 재료를 찾기로 했어요.",
         }
     a, b = WATER_PARTS[answers["1"]]
+    # Display actual material names, not undefined A/B labels.
+    a_name = "종이 타월" if a == "종이타월" else "수건" if a == "천수건" else a
+    b_name = "종이 타월" if b == "종이타월" else "수건" if b == "천수건" else b
     if step == 2:
         return {
-            "label": "먼저 예상하기", "prompt": f"두 재료에 물 3방울씩 놓으면 무엇이 더 빨리 흡수할까?",
-            "options": [f"{a}가 먼저", f"{b}가 먼저", "둘이 비슷할 것 같아"],
+            "label": "먼저 예상하기", "prompt": "두 재료에 물 3방울씩 떨어뜨리면 어느 쪽이 물을 더 빨리 빨아들일까?",
+            "options": [f"{a_name}: 더 빨리 빨아들일 것 같아", f"{b_name}: 더 빨리 빨아들일 것 같아", "둘이 비슷할 것 같아"],
             "hint": "아이가 이유를 설명한 뒤 실험하세요. 예상은 틀려도 괜찮습니다.",
             "context": f"비교 재료: {a}와 {b} · 같은 크기, 같은 물 3방울",
         }
-    predicted = ("A", "B", "비슷함")[answers["2"]]
+    predicted = (a_name, b_name, "둘이 비슷할 것 같아")[answers["2"]]
     if step == 3:
         return {
             "label": "실험 결과", "prompt": "같은 조건으로 직접 시험한 뒤 실제 결과를 기록해 보자.",
-            "options": [f"{a}가 먼저 흡수했어", f"{b}가 먼저 흡수했어", "비슷하거나 구별하기 어려웠어"],
+            "options": [f"{a_name}: 물을 먼저 빨아들였어", f"{b_name}: 물을 먼저 빨아들였어", "비슷하거나 구별하기 어려웠어"],
             "hint": "같은 크기의 재료 두 개에 같은 양(3방울)을 떨어뜨리고 물이 표면에서 사라질 때까지 관찰합니다. 흐르거나 퍼지면 '구별 어려움'을 고르세요.",
             "context": f"비교: {a} / {b} · 예상: {predicted}",
             "offline": "보호자가 같은 크기 재료와 물을 준비합니다. 3방울씩 같은 높이에서 떨어뜨려 흡수되는 모습을 비교하세요. 전기기구에서 멀리 진행하세요.",
             "verified_label": "보호자와 실제로 물 3방울씩 시험하고 관찰했어요.",
         }
-    outcome = ("A", "B", "비슷함")[answers["3"]]
-    matched = (predicted == outcome and outcome != "비슷함")
-    if outcome == "비슷함":
+    outcome = (a_name, b_name, "비슷하거나 구별하기 어려웠어")[answers["3"]]
+    matched = answers["2"] == answers["3"] and answers["3"] != 2
+    if answers["3"] == 2:
         prompt = "차이를 알아보기 어려웠네. 다음엔 어떻게 확인할까?"
     elif matched:
         prompt = "예상과 결과가 같았어. 다시 확인하려면 어떻게 하면 좋을까?"
@@ -264,7 +267,7 @@ def render_pilot(
     """Render isolated pilot UX inside the existing route, without changing other missions."""
     with ui.column().classes("w-full max-w-3xl mx-auto p-4 gap-3"):
         ui.link("← 생각탐험 연구소", "/portal/thinking")
-        title = "놀이터 문제 탐정" if mission_id == "playground" else "물을 가장 잘 흡수하는 재료"
+        title = "놀이터 문제 탐정" if mission_id == "playground" else "무엇이 물을 빨리 빨아들일까?"
         ui.label(f"🔎 {title}").classes("text-h4 text-weight-bold")
         ui.label("정답보다 내 생각과 실제 결과가 중요해요. 어른과 함께해요.")
         area = ui.column().classes("w-full gap-3")

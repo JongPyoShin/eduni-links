@@ -20,6 +20,8 @@ from portal_app.thinking_lab import (
     load_thinking_missions,
     read_progress,
     recent_thinking_progress,
+    thinking_overview,
+    CATEGORY_TILES,
     save_choice,
 )
 
@@ -183,8 +185,8 @@ class ThinkingLabTests(unittest.TestCase):
         for pair_id, (a, b) in enumerate(WATER_PARTS):
             answers = {"0": 0, "1": pair_id, "_pilot_v": PILOT_VERSION}
             stage = pilot_stage("water_absorb", 2, answers)
-            self.assertIn(a, stage["options"][0])
-            self.assertIn(b, stage["options"][1])
+            self.assertIn("수건" if a == "천수건" else "종이 타월" if a == "종이타월" else a, stage["options"][0])
+            self.assertIn("수건" if b == "천수건" else "종이 타월" if b == "종이타월" else b, stage["options"][1])
             for prediction in range(3):
                 for observed in range(3):
                     answers["2"] = prediction
@@ -384,6 +386,35 @@ class ThinkingLabTests(unittest.TestCase):
                 child_profile_id=second, path=self.db
             )],
         )
+
+    def test_category_tiles_cover_all_missions_without_changing_ids(self) -> None:
+        self.assertEqual(8, len(CATEGORY_TILES))
+        self.assertEqual({m["category"] for m in self.missions.values()},
+                         {item[1] for item in CATEGORY_TILES})
+        self.assertEqual(8, len({item[0] for item in CATEGORY_TILES}))
+
+    def test_overview_prefers_current_format_and_keeps_profiles_separate(self) -> None:
+        before, resume, recommended = thinking_overview(self.missions, path=self.db)
+        self.assertEqual(16, len(before))
+        self.assertIsNone(resume)
+        self.assertIn(recommended, self.missions)
+        save_choice("paper_bridge", 0, 0, 0, path=self.db)
+        states, resume, _ = thinking_overview(self.missions, path=self.db)
+        self.assertEqual(0, states["paper_bridge"]["step_index"])
+        self.assertIsNone(resume)
+        save_choice("paper_bridge", 0, 0, 0, path=self.db, visual=True)
+        states, resume, _ = thinking_overview(self.missions, path=self.db)
+        self.assertEqual(1, states["paper_bridge"]["step_index"])
+        self.assertEqual("paper_bridge", resume)
+        conn = connect_database(self.db)
+        try:
+            second = conn.execute("INSERT INTO child_profile (display_name, created_at, active) VALUES ('other', '2026-11-24', 0)").lastrowid
+            conn.commit()
+        finally:
+            conn.close()
+        states, resume, _ = thinking_overview(self.missions, path=self.db, child_profile_id=second)
+        self.assertIsNone(resume)
+        self.assertTrue(all(s["step_index"] == 0 for s in states.values()))
 
     def test_thinking_routes_registered_without_replacing_existing_portal(self) -> None:
         for path in ("/portal/thinking", "/portal/thinking/paper_bridge"):

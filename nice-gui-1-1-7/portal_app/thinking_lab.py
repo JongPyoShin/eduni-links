@@ -8,7 +8,7 @@ from typing import Any
 
 from nicegui import ui
 
-from .thinking_pilot import PILOT_IDS, PILOT_VERSION, render_pilot
+from .thinking_pilot import PILOT_IDS, PILOT_VERSION, render_pilot, update_choice_highlight
 
 from .database import (
     database_connection,
@@ -284,15 +284,20 @@ def thinking_mission(mission_id: str) -> None:
                 choice_text = ui.label("생각과 가장 가까운 것을 골라 보세요.").classes(
                     "text-caption"
                 )
+                option_buttons: list[Any] = []
 
                 def select(option: int) -> None:
                     selected["value"] = option
                     choice_text.set_text(f"선택했어요: {stage['options'][option]}")
+                    update_choice_highlight(option_buttons, stage["options"], option)
 
                 for index, option_text in enumerate(stage["options"]):
-                    ui.button(
-                        option_text, on_click=lambda i=index: select(i),
-                    ).props("outline no-caps").classes("w-full min-h-14 text-left")
+                    option_buttons.append(
+                        ui.button(option_text, on_click=lambda i=index: select(i))
+                        .props("outline no-caps color=teal-9 aria-pressed=false")
+                        .style("border: 2px solid #94a3b8; border-radius: 12px;")
+                        .classes("w-full min-h-14 text-left")
+                    )
 
                 with ui.expansion("보호자 질문 힌트").classes("w-full"):
                     ui.label(stage["parent_tip"])

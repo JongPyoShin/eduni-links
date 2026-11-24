@@ -12,7 +12,7 @@ from starlette.routing import Match
 from portal_app.database import connect_database, default_child_profile_id
 from portal_app.thinking_pilot import (
     PILOT_VERSION, PILOT_IDS, PLAY_ISSUES, WATER_PARTS,
-    pilot_stage, scene_hit, scene_content,
+    pilot_stage, scene_hit, scene_content, update_choice_highlight,
 )
 from portal_app.thinking_lab import (
     ProgressConflict,
@@ -101,6 +101,41 @@ class ThinkingLabTests(unittest.TestCase):
         with self.assertRaises(ProgressConflict):
             save_choice("playground", 0, 0, old["revision"], path=self.db)
         self.assertEqual(1, read_progress("playground", path=self.db)["answers"]["0"])
+
+    def test_selected_option_has_visible_box_and_reselection_clears_previous(self) -> None:
+        class FakeButton:
+            def __init__(self) -> None:
+                self.text = ""
+                self.properties = {}
+                self.styles = {}
+
+            def set_text(self, value: str) -> None:
+                self.text = value
+
+            def props(self, add: str = "", remove: str = "") -> None:
+                self.properties = {"add": add, "remove": remove}
+
+            def style(self, add: str = "") -> None:
+                self.styles = {"add": add}
+
+        labels = ["첫 번째", "두 번째", "세 번째"]
+        buttons = [FakeButton() for _ in labels]
+        update_choice_highlight(buttons, labels, 1)
+        self.assertEqual("✓ 두 번째", buttons[1].text)
+        self.assertIn("unelevated", buttons[1].properties["add"])
+        self.assertIn("aria-pressed=true", buttons[1].properties["add"])
+        self.assertIn("3px solid", buttons[1].styles["add"])
+        self.assertEqual("첫 번째", buttons[0].text)
+        self.assertIn("outline", buttons[0].properties["add"])
+
+        update_choice_highlight(buttons, labels, 0)
+        self.assertEqual("✓ 첫 번째", buttons[0].text)
+        self.assertIn("aria-pressed=true", buttons[0].properties["add"])
+        self.assertEqual("두 번째", buttons[1].text)
+        self.assertIn("aria-pressed=false", buttons[1].properties["add"])
+        self.assertIn("2px solid", buttons[1].styles["add"])
+        with self.assertRaises(ValueError):
+            update_choice_highlight(buttons, labels, 3)
 
     def test_two_pilot_scenes_support_touch_and_fallback_choices(self) -> None:
         self.assertEqual({"playground", "water_absorb"}, set(PILOT_IDS))

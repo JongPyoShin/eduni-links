@@ -239,6 +239,21 @@ def pilot_stage(mission_id: str, step: int, answers: dict[str, Any]) -> dict[str
     }
 
 
+def update_choice_highlight(buttons: list[Any], options: list[str], chosen: int) -> None:
+    """Show a clear selected rectangle, check mark, and accessible pressed state."""
+    if not 0 <= chosen < len(options) or len(buttons) != len(options):
+        raise ValueError("invalid choice buttons")
+    for index, button in enumerate(buttons):
+        if index == chosen:
+            button.set_text(f"✓ {options[index]}")
+            button.props(add="unelevated color=teal-9 aria-pressed=true", remove="outline")
+            button.style(add="border: 3px solid #115e59; border-radius: 12px;")
+        else:
+            button.set_text(options[index])
+            button.props(add="outline color=teal-9 aria-pressed=false", remove="unelevated")
+            button.style(add="border: 2px solid #94a3b8; border-radius: 12px;")
+
+
 def render_pilot(
     mission_id: str,
     progress: dict[str, Any],
@@ -300,17 +315,22 @@ def render_pilot(
                     )
                 ui.label(stage["prompt"]).classes("text-h6 text-weight-medium")
                 selection_label = ui.label("그림 번호나 아래 버튼으로 선택해 보세요." if step == 0 else "한 가지를 선택해 보세요.")
+                option_buttons: list[Any] = []
 
                 def choose(index: int) -> None:
                     selected["index"] = index
                     selection_label.set_text(f"선택: {stage['options'][index]}")
+                    update_choice_highlight(option_buttons, stage["options"], index)
                     if step == 0:
                         picture.set_content(scene_content(mission_id, index))
 
                 for index, label in enumerate(stage["options"]):
-                    ui.button(label, on_click=lambda i=index: choose(i)).props(
-                        "outline no-caps"
-                    ).classes("w-full min-h-14 text-left")
+                    option_buttons.append(
+                        ui.button(label, on_click=lambda i=index: choose(i))
+                        .props("outline no-caps color=teal-9 aria-pressed=false")
+                        .style("border: 2px solid #94a3b8; border-radius: 12px;")
+                        .classes("w-full min-h-14 text-left")
+                    )
 
                 performed = None
                 if step == 3:

@@ -10,6 +10,8 @@ from typing import Any, Callable
 
 from nicegui import ui
 
+from .thinking_parent import render_parent_guide
+
 PILOT_IDS = frozenset({"playground", "water_absorb"})
 PILOT_VERSION = 2
 
@@ -369,8 +371,7 @@ def render_pilot(
                         value=reviewing and bool(answers.get("_activity_confirmed")),
                     )
 
-                with ui.expansion("보호자 도움말 (함께 읽기)").classes("w-full"):
-                    ui.label(stage["hint"])
+                render_parent_guide(mission_id, step, answers, stage["hint"])
 
                 def advance() -> None:
                     if view["generation"] != generation:

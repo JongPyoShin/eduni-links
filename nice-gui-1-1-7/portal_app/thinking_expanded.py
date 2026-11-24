@@ -7,6 +7,8 @@ from typing import Any
 
 from nicegui import ui
 
+from .thinking_parent import render_parent_guide
+
 CONTENT = json.loads(r'''{
   "paper_bridge": {
     "scene": [
@@ -845,8 +847,7 @@ def render_visual(mid, title, progress, on_save, on_reload, conflict_type, highl
             if reviewing:
                 choose(answers[str(step)])
                 ui.label("이전 선택을 바꾸고 저장하면 그 뒤의 답을 다시 골라야 해요.").classes("text-caption")
-            with ui.expansion("보호자 도움말").classes("w-full"):
-                ui.label(stage["hint"])
+            render_parent_guide(mid, step, answers, stage["hint"])
             def advance():
                 if view["generation"] != generation:
                     return

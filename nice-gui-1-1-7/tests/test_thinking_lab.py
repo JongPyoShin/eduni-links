@@ -387,6 +387,23 @@ class ThinkingLabTests(unittest.TestCase):
             )],
         )
 
+    def test_parent_guides_cover_all_missions_and_stages(self) -> None:
+        from portal_app.thinking_parent import GUIDES, parent_guide
+        self.assertEqual(set(self.missions), set(GUIDES))
+        for mid in self.missions:
+            for step in range(5):
+                focus, explain, question, scaffold = parent_guide(mid, step, {"0": 0})
+                self.assertTrue(all(isinstance(value, str) and value.strip()
+                                    for value in (focus, explain, question, scaffold)))
+                self.assertIn("?", question)
+        self.assertIn("빛", parent_guide("seed_sun", 1, {})[1])
+        self.assertIn("명령", parent_guide("route_debug", 4, {})[1])
+        self.assertIn("실내", parent_guide("playground", 3, {"0": 0})[1])
+        self.assertIn("차례", parent_guide("playground", 3, {"0": 1})[1])
+        self.assertIn("의자", parent_guide("playground", 3, {"0": 2})[1])
+        self.assertNotEqual(parent_guide("route_debug", 1, {}),
+                            parent_guide("route_debug", 1, {}, legacy=True))
+
     def test_method_questions_are_specific_and_preserve_choice_order(self) -> None:
         from portal_app.thinking_expanded import METHOD_QUESTIONS
         self.assertEqual(set(VISUAL_IDS), set(METHOD_QUESTIONS))

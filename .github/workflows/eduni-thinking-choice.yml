@@ -6,6 +6,7 @@ on:
     paths:
       - 'nice-gui-1-1-7/portal_app/thinking_pilot.py'
       - 'nice-gui-1-1-7/portal_app/thinking_expanded.py'
+      - 'nice-gui-1-1-7/portal_app/thinking_parent.py'
       - 'nice-gui-1-1-7/portal_app/thinking_lab.py'
       - 'nice-gui-1-1-7/tests/test_thinking_lab.py'
       - '.github/workflows/eduni-thinking-choice.yml'
@@ -13,6 +14,7 @@ on:
     paths:
       - 'nice-gui-1-1-7/portal_app/thinking_pilot.py'
       - 'nice-gui-1-1-7/portal_app/thinking_expanded.py'
+      - 'nice-gui-1-1-7/portal_app/thinking_parent.py'
       - 'nice-gui-1-1-7/portal_app/thinking_lab.py'
       - 'nice-gui-1-1-7/tests/test_thinking_lab.py'
 jobs:
@@ -31,7 +33,7 @@ jobs:
       - name: Selection behavior and affected thinking tests
         working-directory: nice-gui-1-1-7
         run: |
-          python -m compileall -q portal_app/thinking_pilot.py portal_app/thinking_lab.py portal_app/thinking_expanded.py tests/test_thinking_lab.py
+          python -m compileall -q portal_app/thinking_pilot.py portal_app/thinking_lab.py portal_app/thinking_expanded.py portal_app/thinking_parent.py tests/test_thinking_lab.py
           python -m unittest discover -s tests -p test_thinking_lab.py
       - name: Install mobile browser test dependencies
         run: |
@@ -137,6 +139,11 @@ jobs:
                       if mission == "playground":
                           touch_scene(page, 445, 150, "그네를 기다리는 친구들")
                           step(page, "2/5")
+                          parent_tip = page.get_by_text("부모 도움말 · 지도 포인트", exact=True)
+                          parent_tip.tap()
+                          expect(text(page, "공평한 차례")).to_be_visible()
+                          expect(text(page, "아이에게 물어볼 질문")).to_be_visible()
+                          parent_tip.tap()
                           choose(page, "기다리는 시간이 비슷하도록 하기")
                           step(page, "3/5")
                           btn(page, "이전 단계").tap()
@@ -177,6 +184,11 @@ jobs:
               page.wait_for_timeout(1000)
               choose(page, "로봇의 시작 칸")
               step(page, "2/5")
+              parent_tip = page.get_by_text("부모 도움말 · 지도 포인트", exact=True)
+              parent_tip.tap()
+              expect(text(page, "순서와 방향")).to_be_visible()
+              expect(text(page, "막히면 이렇게 도와주세요")).to_be_visible()
+              parent_tip.tap()
               choose(page, "위·오른쪽·오른쪽·위")
               step(page, "3/5")
               choose(page, "로봇이 별까지 갈 것 같아")

@@ -8,6 +8,8 @@ from typing import Any
 
 from nicegui import ui
 
+from .thinking_parent import render_parent_guide
+
 from .thinking_pilot import PILOT_IDS, PILOT_VERSION, render_pilot, update_choice_highlight
 from .thinking_expanded import VISUAL_IDS, VERSION as VISUAL_VERSION, visual_key, stage_for, simulate, render_visual
 
@@ -472,8 +474,7 @@ def thinking_mission(mission_id: str, legacy: bool = False) -> None:
                     select(progress["answers"][str(step)])
                     ui.label("이전 선택을 바꾸고 저장하면 그 뒤의 답을 다시 골라야 해요.").classes("text-caption")
 
-                with ui.expansion("보호자 질문 힌트").classes("w-full"):
-                    ui.label(stage["parent_tip"])
+                render_parent_guide(mission_id, step, progress["answers"], stage["parent_tip"], legacy=True)
 
                 def advance() -> None:
                     if view["generation"] != generation:

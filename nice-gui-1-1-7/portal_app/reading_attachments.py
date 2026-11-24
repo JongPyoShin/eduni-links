@@ -249,11 +249,12 @@ def delete_reading_attachment(
         if not row:
             return False
         conn.execute("DELETE FROM reading_attachment WHERE id = ?", (attachment_id,))
-        has_moment_photo = conn.execute(
-            "SELECT EXISTS(SELECT 1 FROM reading_attachment WHERE reading_record_id = ? AND kind = 'image')",
+        moment_photo_count = conn.execute(
+            "SELECT COUNT(*) FROM reading_attachment WHERE reading_record_id = ? AND kind = 'image'",
             (row[1],),
         ).fetchone()
-        if not row[2] and not bool(has_moment_photo and has_moment_photo[0]):
+        photo_count = int(bool(row[2])) + int(moment_photo_count[0] if moment_photo_count else 0)
+        if photo_count < 2:
             conn.execute(
                 "UPDATE reading_record SET status = 'draft' WHERE id = ? AND child_profile_id = ? AND status = 'completed'",
                 (row[1], row[3]),

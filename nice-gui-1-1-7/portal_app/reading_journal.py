@@ -689,25 +689,36 @@ def update_reading_record(
         ).fetchone()
     if row is None:
         raise KeyError(record_id)
-    status = _validate_record_status(payload.get("status"), str(row[1] or "completed"))
-
-    old_cover = str(row[0]) if row[0] else None
+    old_cover: str | None = None
     new_cover: str | None = None
-    next_cover = old_cover
-
     if cover_action == "replace":
         new_cover = save_cover_data_url(payload.get("cover_data_url"), media_dir)
-        next_cover = new_cover
-    elif cover_action == "remove":
-        next_cover = None
+    next_cover: str | None = None
 
     try:
         with reading_database_connection(path) as conn:
-            has_moment_photo = conn.execute(
-                "SELECT EXISTS(SELECT 1 FROM reading_attachment WHERE reading_record_id = ? AND kind = 'image')",
+            if reading_uses_postgres(path):
+                locked_row = conn.execute(
+                    "SELECT cover_filename, status FROM reading_record WHERE id = ? AND child_profile_id = ? FOR UPDATE",
+                    (record_id, profile_id),
+                ).fetchone()
+            else:
+                conn.execute("BEGIN IMMEDIATE")
+                locked_row = conn.execute(
+                    "SELECT cover_filename, status FROM reading_record WHERE id = ? AND child_profile_id = ?",
+                    (record_id, profile_id),
+                ).fetchone()
+            if locked_row is None:
+                raise KeyError(record_id)
+            old_cover = str(locked_row[0]) if locked_row[0] else None
+            next_cover = new_cover if cover_action == "replace" else None if cover_action == "remove" else old_cover
+            status = _validate_record_status(payload.get("status"), str(locked_row[1] or "completed"))
+            moment_photo_count = conn.execute(
+                "SELECT COUNT(*) FROM reading_attachment WHERE reading_record_id = ? AND kind = 'image'",
                 (record_id,),
             ).fetchone()
-            final_status = status if next_cover or bool(has_moment_photo and has_moment_photo[0]) else "draft"
+            photo_count = int(bool(next_cover)) + int(moment_photo_count[0] if moment_photo_count else 0)
+            final_status = status if photo_count >= 2 else "draft"
             cursor = conn.execute(
                 """
                 UPDATE reading_record

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import base64
+import io
 import re
 import tempfile
 import unittest
 from pathlib import Path
+from starlette.datastructures import Headers, UploadFile
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -17,6 +19,7 @@ from portal_app.reading_journal import (
     update_reading_blog_settings,
     update_reading_record,
 )
+from portal_app.reading_attachments import add_reading_attachment
 from portal_app.reading_storage import ensure_reading_journal_schema
 
 
@@ -32,6 +35,11 @@ class ReadingBlogSettingsTests(unittest.TestCase):
         self.record = create_reading_record(
             {"title": "테스트", "read_date": "2026-11-04", "cover_data_url": cover},
             self.db, child_profile_id=self.profile, media_dir=self.media,
+        )
+        add_reading_attachment(
+            self.record["id"],
+            UploadFile(filename="moment.jpg", file=io.BytesIO(b"\xff\xd8\xff\xe0moment"), headers=Headers({"content-type": "image/jpeg"})),
+            path=self.db, media_dir=self.root / "moments",
         )
         self.record = update_reading_record(
             self.record["id"], {"title": "테스트", "read_date": "2026-11-04", "status": "completed"},

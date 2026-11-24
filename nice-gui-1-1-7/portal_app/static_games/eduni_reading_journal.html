@@ -689,7 +689,7 @@
           <textarea id="parentNote" maxlength="2500" placeholder="읽는 모습, 반응, 다음에 함께 이야기하고 싶은 점"></textarea>
         </div>
 
-        <p class="record-status-help">등록 완료하려면 책 표지 사진이나 읽는 순간 사진을 하나 이상 올려주세요. 영상만 있으면 임시저장으로 남고, 완료한 기록만 블로그 글쓰기 대상이 됩니다.</p>
+        <p class="record-status-help">등록 완료하려면 책 표지와 읽는 순간 사진을 합쳐 사진 2장 이상 올려주세요. 영상은 사진 수에 포함되지 않아요. 사진이 2장 미만이면 임시저장으로 남고, 등록 완료한 기록만 블로그 글쓰기 대상이 됩니다.</p>
         <div class="form-actions">
           <span id="saveStatus" class="save-status" role="status" aria-live="polite"></span>
           <button id="cancelEditButton" class="secondary-btn hidden" type="button">수정 취소</button>
@@ -2170,7 +2170,7 @@
           const statusMessage = savedStatus === 'completed'
             ? '독서기록과 첨부 등록을 완료했어요 ✓'
             : targetStatus === 'completed'
-              ? '사진이 없어 임시저장했어요. 사진을 추가한 뒤 등록 완료해주세요.'
+              ? '사진이 2장 미만이라 임시저장했어요. 표지와 읽는 순간 사진을 합쳐 2장 이상 추가한 뒤 등록 완료해주세요.'
               : '독서기록을 임시저장했어요 ✓';
           setStatus(statusMessage, 'success');
           setTimeout(() => setStatus(''), 2600);

@@ -79,7 +79,7 @@ class ReadingAttachmentTests(unittest.TestCase):
         self.assertFalse((self.media / private["filename"]).exists())
         self.assertEqual([item["id"] for item in list_reading_attachments(self.record_id, self.db)], [opted_in["id"]])
 
-    def test_drafts_count_and_records_need_a_photo_to_complete(self) -> None:
+    def test_drafts_count_and_records_need_two_photos_to_complete(self) -> None:
         requested_complete = create_reading_record(
             {"title": "사진 없는 책", "read_date": "2026-11-03", "rating": 5, "status": "completed"},
             self.db, child_profile_id=self.profile_id, media_dir=self.root / "covers",
@@ -93,8 +93,17 @@ class ReadingAttachmentTests(unittest.TestCase):
         )
         self.assertEqual(incomplete["status"], "draft")
 
-        photo = add_reading_attachment(
+        first_photo = add_reading_attachment(
             requested_complete["id"], self.upload(b"\xff\xd8\xff\xe0photo.jpg"),
+            path=self.db, media_dir=self.media,
+        )
+        still_incomplete = update_reading_record(
+            requested_complete["id"], fields, self.db,
+            child_profile_id=self.profile_id, media_dir=self.root / "covers",
+        )
+        self.assertEqual(still_incomplete["status"], "draft")
+        second_photo = add_reading_attachment(
+            requested_complete["id"], self.upload(b"\xff\xd8\xff\xe0photo2.jpg", "moment2.jpg"),
             path=self.db, media_dir=self.media,
         )
         complete = update_reading_record(
@@ -113,12 +122,35 @@ class ReadingAttachmentTests(unittest.TestCase):
         self.assertEqual(summary["favorite"], 1)
 
         self.assertTrue(delete_reading_attachment(
-            photo["id"], self.db, child_profile_id=self.profile_id, media_dir=self.media,
+            first_photo["id"], self.db, child_profile_id=self.profile_id, media_dir=self.media,
         ))
         self.assertEqual(
             get_reading_record(requested_complete["id"], self.db, child_profile_id=self.profile_id)["status"],
             "draft",
         )
+
+    def test_cover_counts_as_one_photo_and_video_does_not_count(self) -> None:
+        cover = "data:image/jpeg;base64,/9j/4ABjb3Zlcg=="
+        record = create_reading_record(
+            {"title": "표지만 있는 책", "read_date": "2026-11-03", "cover_data_url": cover},
+            self.db, child_profile_id=self.profile_id, media_dir=self.root / "covers",
+        )
+        fields = {"title": "표지만 있는 책", "read_date": "2026-11-03", "status": "completed"}
+        self.assertEqual(update_reading_record(record["id"], fields, self.db, media_dir=self.root / "covers")["status"], "draft")
+
+        add_reading_attachment(
+            record["id"], self.upload(b"\x00\x00\x00\x18ftypisom\x00\x00\x00\x00", "read.mp4", "video/mp4"),
+            path=self.db, media_dir=self.media,
+        )
+        self.assertEqual(update_reading_record(record["id"], fields, self.db, media_dir=self.root / "covers")["status"], "draft")
+
+        moment = add_reading_attachment(
+            record["id"], self.upload(b"\xff\xd8\xff\xe0moment"),
+            path=self.db, media_dir=self.media,
+        )
+        self.assertEqual(update_reading_record(record["id"], fields, self.db, media_dir=self.root / "covers")["status"], "completed")
+        self.assertTrue(delete_reading_attachment(moment["id"], self.db, media_dir=self.media))
+        self.assertEqual(get_reading_record(record["id"], self.db)["status"], "draft")
 
     def test_upload_rejects_forged_signatures_extension_mime_and_caption(self) -> None:
         invalid_uploads = (

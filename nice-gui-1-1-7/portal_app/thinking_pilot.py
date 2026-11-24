@@ -159,7 +159,7 @@ def pilot_stage(mission_id: str, step: int, answers: dict[str, Any]) -> dict[str
                 "label": "문제 정의", "prompt": ("물웅덩이 때문에 친구들이 불편해. 어떻게 되면 좋을까?", "친구들이 그네를 기다리고 있어. 어떻게 되면 좋을까?", "벤치에 자리가 부족해. 어떻게 되면 좋을까?")[answers["0"]],
                 "options": list(issue["goals"]),
                 "hint": "누가 무엇을 할 수 있게 되면 성공인지 아이의 말로 다시 물어보세요.",
-                "context": f"발견한 문제: {issue['name']}",
+                "context": "",
             }
         goal = issue["goals"][answers["1"]]
         if step == 2:
@@ -171,7 +171,7 @@ def pilot_stage(mission_id: str, step: int, answers: dict[str, Any]) -> dict[str
                 )[answers["0"]][answers["1"]],
                 "options": list(issue["solutions"]),
                 "hint": "다른 안전한 방법이 있다면 가족끼리 이야기해도 좋아요.",
-                "context": f"문제: {issue['name']} · 목표: {goal}",
+                "context": "",
             }
         solution = issue["solutions"][answers["2"]]
         if step == 3:
@@ -179,8 +179,8 @@ def pilot_stage(mission_id: str, step: int, answers: dict[str, Any]) -> dict[str
                 "label": "역할놀이 결과", "prompt": "가족과 함께 해 보자. 해 보니 무슨 일이 있었어?",
                 "options": list(issue["results_by_goal"][answers["1"]]),
                 "hint": "실제 위험한 놀이터를 고치거나 접근하지 말고, 실내에서 역할을 나눠 이야기해 보세요.",
-                "context": f"문제: {issue['name']} · 우리가 고른 방법: {solution}",
-                "offline": "어른과 아이가 친구 역할을 바꿔 가며 선택한 방법을 실내에서 시험해 보세요.",
+                "context": "",
+                "offline": f"실내에서 가족과 역할을 나눠 '{solution}' 방법을 해 보세요. 처음 정한 목표에 어떤 변화가 있었는지 살펴보세요.",
                 "verified_label": "보호자와 역할놀이를 해봤어요. (결과는 우리 가족이 관찰한 내용이에요.)",
             }
         result = issue["results_by_goal"][answers["1"]][answers["3"]]
@@ -192,9 +192,14 @@ def pilot_stage(mission_id: str, step: int, answers: dict[str, Any]) -> dict[str
             question = "아직 잘 모르겠구나. 다음에는 무엇을 해 볼까?"
         return {
             "label": "다시 생각하기", "prompt": question,
-            "options": ["다른 안전한 방법도 해볼래", "친구에게 방법을 더 쉽게 설명해 볼래", "문제를 다시 관찰해 볼래"],
+            "options": (
+                ["물웅덩이를 피하는 다른 방법도 해 볼래", "친구에게 위험한 곳을 더 쉽게 알려줄래", "어디가 위험한지 다시 살펴볼래"],
+                ["차례를 정하는 다른 방법도 해 볼래", "친구에게 그네 타는 약속을 더 쉽게 설명할래", "친구들이 기다리는 모습을 다시 살펴볼래"],
+                ["모두 쉴 수 있는 다른 방법도 해 볼래", "친구에게 자리 양보 방법을 더 쉽게 설명할래", "쉬는 자리가 얼마나 있는지 다시 살펴볼래"],
+            )[answers["0"]],
             "hint": "성공 기준과 관찰한 사실이 실제로 맞는지 확인하고, 마음에 들지 않으면 다시 시도하게 해주세요.",
-            "context": f"우리 목표: {goal} · 관찰한 결과: {result}",
+            "context": "",
+            "reflection": (goal, result),
         }
     # Water absorption: a single, measurable question is held constant.
     if step == 0:
@@ -202,14 +207,14 @@ def pilot_stage(mission_id: str, step: int, answers: dict[str, Any]) -> dict[str
             "label": "발견", "prompt": "앗, 책상에 물이 쏟아졌네! 어디가 눈에 띄거나 걱정돼?",
             "options": ["책상에 물이 고여 있어", "공책 가까이에 물이 있어", "책상 끝까지 물이 갈 수 있어"],
             "hint": "눈으로 본 사실과 앞으로 일어날 수 있는 일을 구분해 말하게 해 주세요.",
-            "context": "어떤 재료가 물을 더 빨리 흡수하는지 실험해 보자.",
+            "context": "",
         }
     if step == 1:
         return {
             "label": "문제 정의", "prompt": "물을 빨리 닦으려면 무엇이 좋을까? 두 가지 재료를 골라 볼래?",
             "options": [f"{first} / {second}" for first, second in WATER_PARTS],
             "hint": "실험 목적은 흡수 속도 비교로 고정합니다. 양·크기·관찰 시작을 같게 해야 해요.",
-            "context": "책상에 쏟아진 물을 빨리 빨아들이는 재료를 찾아보자.",
+            "context": ("물이 더 넓게 퍼지기 전에 닦아 보자.", "공책이 젖기 전에 물을 닦아 보자.", "물이 책상 밖으로 흐르기 전에 닦아 보자.")[answers["0"]],
         }
     a, b = WATER_PARTS[answers["1"]]
     # Display actual material names, not undefined A/B labels.
@@ -230,7 +235,7 @@ def pilot_stage(mission_id: str, step: int, answers: dict[str, Any]) -> dict[str
             "label": "실험 결과", "prompt": "직접 해 보니 어느 쪽이 물을 더 빨리 빨아들였어?",
             "options": [f"{a_subject} 물을 먼저 빨아들였어", f"{b_subject} 물을 먼저 빨아들였어", "비슷하거나 구별하기 어려웠어"],
             "hint": "같은 크기의 재료 두 개에 같은 양(3방울)을 떨어뜨리고 물이 표면에서 사라질 때까지 관찰합니다. 흐르거나 퍼지면 '구별 어려움'을 고르세요.",
-            "context": f"비교: {a} / {b} · 예상: {predicted}",
+            "context": "",
             "offline": "보호자가 같은 크기 재료와 물을 준비합니다. 3방울씩 같은 높이에서 떨어뜨려 흡수되는 모습을 비교하세요. 전기기구에서 멀리 진행하세요.",
             "verified_label": "보호자와 실제로 물 3방울씩 시험하고 관찰했어요.",
         }
@@ -246,7 +251,8 @@ def pilot_stage(mission_id: str, step: int, answers: dict[str, Any]) -> dict[str
         "label": "다시 생각하기", "prompt": prompt,
         "options": ["같은 크기의 재료에 같은 양의 물을 떨어뜨려 다시 해 볼래", "다른 재료로 바꿔서 비교해 볼래", "어떤 재료에서 물이 흘렀는지 살펴볼래"],
         "hint": "얼마나 빨리 흡수했는지 기록했을 뿐 성적을 매기지 않습니다. 다른 결과도 발견이에요.",
-        "context": f"비교: {a} / {b} · 예상: {predicted} · 관찰: {outcome}",
+        "context": "",
+        "reflection": (predicted, outcome),
     }
 
 
@@ -312,7 +318,13 @@ def render_pilot(
                 stage = pilot_stage(mission_id, step, answers)
                 ui.label(f"{step + 1}/5 · {stage['label']}").classes("text-subtitle1 text-teal-8")
                 ui.linear_progress(value=step / 5).classes("w-full")
-                ui.label(stage["context"]).classes("text-body1 text-teal-9")
+                if stage["context"]:
+                    ui.label(stage["context"]).classes("text-body2")
+                if step == 4:
+                    with ui.expansion("처음 생각과 실제 결과 비교").classes("w-full"):
+                        before, after = stage["reflection"]
+                        ui.label(("처음 목표: " if mission_id == "playground" else "처음 생각: ") + before)
+                        ui.label("실제로 본 것: " + after)
                 selected = {"index": None}
                 if step == 0:
                     def on_scene(e: Any) -> None:
@@ -329,15 +341,23 @@ def render_pilot(
                         sanitize=False,  # ONLY static trusted artwork, never user-supplied input.
                     ).classes("w-full rounded-xl")
                     ui.label(SCENE_DESCRIPTIONS[mission_id]).classes("text-caption text-grey-7")
-                else:
+                elif mission_id == "playground" and step < 3:
                     ui.interactive_image(
                         size=(720, 320),
                         content=scene_content(mission_id, answers["0"]),
                         sanitize=False,  # Constant SVG; no user-controlled HTML.
                     ).classes("w-full rounded-xl")
-                    ui.label("빨간 원은 처음에 고른 곳이에요. 같은 문제를 계속 살펴봐요.").classes(
-                        "text-caption text-grey-7"
+                    # The highlighted scene itself carries the selected location.
+                performed = None
+                if step == 3:
+                    with ui.card().classes("w-full bg-amber-1"):
+                        ui.label("🏠 직접 해보기").classes("text-weight-bold")
+                        ui.label(stage["offline"])
+                    performed = ui.checkbox(
+                        stage["verified_label"],
+                        value=reviewing and bool(answers.get("_activity_confirmed")),
                     )
+
                 ui.label(stage["prompt"]).classes("text-h6 text-weight-medium")
                 selection_label = ui.label("그림 번호나 아래 버튼으로 선택해 보세요." if step == 0 else "한 가지를 선택해 보세요.")
                 option_buttons: list[Any] = []
@@ -361,15 +381,6 @@ def render_pilot(
                     choose(answers[str(step)])
                     ui.label("이전 선택을 바꾸고 저장하면 그 뒤의 답을 다시 골라야 해요.").classes("text-caption")
 
-                performed = None
-                if step == 3:
-                    with ui.card().classes("w-full bg-amber-1"):
-                        ui.label("🏠 직접 해보기").classes("text-weight-bold")
-                        ui.label(stage["offline"])
-                    performed = ui.checkbox(
-                        stage["verified_label"],
-                        value=reviewing and bool(answers.get("_activity_confirmed")),
-                    )
 
                 render_parent_guide(mission_id, step, answers, stage["hint"])
 

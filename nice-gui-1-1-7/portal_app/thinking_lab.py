@@ -218,6 +218,71 @@ def save_choice(
     return read_progress(storage_id, child_profile_id=profile, path=path)
 
 
+def reset_progress(
+    mission_id: str, revision: int, *, child_profile_id: int | None = None,
+    path: Path | None = None, visual: bool = False,
+) -> dict[str, Any]:
+    """Explicitly reset only one mission/profile; keep monotonic revision to reject stale tabs."""
+    if mission_id not in load_thinking_missions() or (visual and mission_id not in VISUAL_IDS):
+        raise ValueError("unknown mission")
+    if type(revision) is not int or revision < 0:
+        raise ValueError("invalid revision")
+    storage_id = visual_key(mission_id) if visual else mission_id
+    profile = child_profile_id if child_profile_id is not None else default_child_profile_id(path)
+    answers = {}
+    if visual:
+        answers["_visual_v"] = VISUAL_VERSION
+    if mission_id in PILOT_IDS:
+        answers["_pilot_v"] = PILOT_VERSION
+    init_thinking_storage(path)
+    with database_connection(path) as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute(
+            """SELECT revision FROM thinking_mission_progress
+               WHERE child_profile_id = ? AND mission_id = ?""", (profile, storage_id),
+        ).fetchone()
+        if row is None:
+            if revision != 0:
+                raise ProgressConflict("mission was changed")
+            return {"step_index": 0, "answers": {}, "completed": False, "revision": 0}
+        if row[0] != revision:
+            raise ProgressConflict("mission was changed")
+        cur = conn.execute(
+            """UPDATE thinking_mission_progress SET step_index = 0, answers_json = ?,
+               completed = 0, revision = revision + 1, updated_at = ?
+               WHERE child_profile_id = ? AND mission_id = ? AND revision = ?""",
+            (json.dumps(answers), utc_now(), profile, storage_id, revision),
+        )
+        if cur.rowcount != 1:
+            raise ProgressConflict("mission was changed")
+    return {"step_index": 0, "answers": answers, "completed": False, "revision": revision + 1}
+
+
+def reset_control(mission_id: str, title: str, progress: dict[str, Any], profile: int, *, visual: bool = False, legacy: bool = False) -> None:
+    # Capture the current revision when opening, not when confirming.
+    with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm"):
+        ui.label("이 미션을 처음부터 다시 할까요?").classes("text-h6")
+        ui.label("이 미션의 선택과 실험 기록만 지워져요. 다른 미션 기록은 그대로예요.")
+        opened = {"revision": progress["revision"]}
+        def confirm():
+            dialog.close()
+            try:
+                reset_progress(mission_id, opened["revision"], child_profile_id=profile, visual=visual)
+            except ProgressConflict:
+                ui.notify("다른 화면에서 기록이 바뀌었어요. 다시 확인해 주세요.")
+            except (sqlite3.Error, ValueError):
+                ui.notify("초기화하지 못했어요. 기록을 다시 확인해 주세요.")
+                return
+            ui.navigate.to(f"/portal/thinking/{mission_id}" + ("?legacy=true" if legacy else ""))
+        with ui.row().classes("w-full justify-end"):
+            ui.button("취소", on_click=dialog.close).props("flat no-caps")
+            ui.button("초기화하고 다시 시작", on_click=confirm, color="negative").props("no-caps")
+    def open_dialog():
+        opened["revision"] = progress["revision"]
+        dialog.open()
+    ui.button("미션 초기화", icon="restart_alt", on_click=open_dialog).props("outline no-caps color=grey-8").classes("self-end")
+
+
 def recent_thinking_progress(
     *, child_profile_id: int | None = None, path: Path | None = None, limit: int = 8,
 ) -> list[dict[str, Any]]:
@@ -385,6 +450,7 @@ def thinking_mission(mission_id: str, legacy: bool = False) -> None:
             profile = default_child_profile_id()
             key = visual_key(mission_id)
             progress = read_progress(key, child_profile_id=profile)
+            reset_control(mission_id, mission_title(mission), progress, profile, visual=True)
             old = read_progress(mission_id, child_profile_id=profile)
             if old["step_index"] > 0:
                 ui.link("이전 질문형 기록 보기", f"/portal/thinking/{mission_id}?legacy=true")
@@ -401,6 +467,8 @@ def thinking_mission(mission_id: str, legacy: bool = False) -> None:
             profile = default_child_profile_id()
             progress = read_progress(mission_id, child_profile_id=profile)
 
+            reset_control(mission_id, mission_title(mission), progress, profile)
+
             def save_pilot_step(step: int, option: int, revision: int, verified: bool, reviewing: bool) -> dict[str, Any]:
                 return save_choice(
                     mission_id, step, option, revision, child_profile_id=profile,
@@ -414,6 +482,7 @@ def thinking_mission(mission_id: str, legacy: bool = False) -> None:
             return
         profile = default_child_profile_id()
         progress = read_progress(mission_id, child_profile_id=profile)
+        reset_control(mission_id, mission_title(mission), progress, profile, legacy=legacy)
         ui.label(mission["category"]).classes("text-caption text-teal-8")
         ui.label(mission_title(mission)).classes("text-h4 text-weight-bold")
         ui.label("어떤 선택에도 벌점은 없어요. 가족과 이야기하며 한 단계씩 해보세요.")

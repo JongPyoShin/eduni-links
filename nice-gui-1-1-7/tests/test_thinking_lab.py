@@ -163,8 +163,8 @@ class ThinkingLabTests(unittest.TestCase):
             for goal_id, goal_name in enumerate(issue["goals"]):
                 answers["1"] = goal_id
                 solution = pilot_stage("playground", 2, answers)
-                self.assertIn(issue["name"], solution["context"])
-                self.assertIn(goal_name, solution["context"])
+                self.assertEqual("", solution["context"])
+                self.assertNotIn(goal_name, solution["prompt"])
                 self.assertEqual(list(issue["solutions"]), solution["options"])
                 for method_id, method_name in enumerate(issue["solutions"]):
                     answers["2"] = method_id
@@ -172,13 +172,14 @@ class ThinkingLabTests(unittest.TestCase):
                     self.assertEqual(
                         list(issue["results_by_goal"][goal_id]), observed["options"]
                     )
-                    self.assertIn(method_name, observed["context"])
+                    self.assertIn(method_name, observed["offline"])
+                    self.assertEqual("", observed["context"])
                     for result_id in range(3):
                         answers["3"] = result_id
                         reflected = pilot_stage("playground", 4, answers)
                         self.assertIn(
                             issue["results_by_goal"][goal_id][result_id],
-                            reflected["context"],
+                            reflected["reflection"][1],
                         )
 
     def test_water_predict_observe_reflect_consistently_for_each_pair(self) -> None:
@@ -194,8 +195,9 @@ class ThinkingLabTests(unittest.TestCase):
                     self.assertEqual(3, len(experiment["options"]))
                     answers["3"] = observed
                     reflection = pilot_stage("water_absorb", 4, answers)
-                    self.assertIn("예상", reflection["context"])
-                    self.assertIn("관찰", reflection["context"])
+                    self.assertEqual("", experiment["context"])
+                    self.assertEqual("", reflection["context"])
+                    self.assertEqual(2, len(reflection["reflection"]))
                     self.assertEqual(3, len(reflection["options"]))
 
     def test_pilot_needs_confirmed_real_activity_and_resumes_after_reopen(self) -> None:
@@ -262,10 +264,15 @@ class ThinkingLabTests(unittest.TestCase):
                             answers = {"_visual_v": VERSION, "0": look, "1": method, "2": prediction, "3": observed}
                             stages = [stage_for(mid, step, answers) for step in range(5)]
                             self.assertTrue(all(len(stage["options"]) == 3 for stage in stages))
-                            self.assertIn(CONTENT[mid]["goal"], stages[2]["context"])
+                            self.assertIn(CONTENT[mid]["methods"][method][0], stages[2]["context"])
                             self.assertIn(CONTENT[mid]["methods"][method][1], stages[3]["offline"])
-                            self.assertIn(stages[3]["options"][observed], stages[4]["context"])
-                            self.assertIn(CONTENT[mid]["look"][look], stages[1]["context"])
+                            self.assertEqual("", stages[3]["context"])
+                            self.assertEqual("", stages[4]["context"])
+                            self.assertEqual(stages[3]["options"][observed], stages[4]["reflection"][1])
+                            self.assertEqual(stages[2]["options"][prediction], stages[4]["reflection"][0])
+                            # Shared subject words are necessary; reject verbatim echo and the old summary prefix.
+                            self.assertNotEqual(CONTENT[mid]["look"][look], stages[1]["context"])
+                            self.assertFalse(stages[1]["context"].startswith("살펴본 곳:"))
 
     def test_visual_screen_results_and_isolated_legacy_records(self) -> None:
         for mid, expected in (("sorting_cards", [1,0,0]), ("route_debug", [0,1,1]), ("fair_share", [1,0,1])):
@@ -386,6 +393,30 @@ class ThinkingLabTests(unittest.TestCase):
                 child_profile_id=second, path=self.db
             )],
         )
+
+    def test_reset_current_mission_only_and_reject_stale_tabs(self) -> None:
+        from portal_app.thinking_lab import reset_progress
+        for mid, visual in (("playground", False), ("water_absorb", False), ("route_debug", True), ("paper_bridge", False)):
+            key = visual_key(mid) if visual else mid
+            state = read_progress(key, path=self.db)
+            for step in range(5):
+                option = simulate(mid, 0)["outcome"] if visual and step == 3 else 0
+                state = save_choice(mid, step, option, state["revision"], path=self.db,
+                                    visual=visual, pilot_verified=step == 3)
+            other = read_progress("lost_toy", path=self.db)
+            reset = reset_progress(mid, state["revision"], path=self.db, visual=visual)
+            self.assertEqual(0, reset["step_index"])
+            self.assertFalse(reset["completed"])
+            self.assertNotIn("_activity_confirmed", reset["answers"])
+            self.assertFalse(any(k.isdecimal() for k in reset["answers"]))
+            self.assertEqual(state["revision"] + 1, reset["revision"])
+            self.assertEqual(other, read_progress("lost_toy", path=self.db))
+            with self.assertRaises(ProgressConflict):
+                reset_progress(mid, state["revision"], path=self.db, visual=visual)
+            with self.assertRaises(ProgressConflict):
+                save_choice(mid, 0, 0, 0, path=self.db, visual=visual)
+            new = save_choice(mid, 0, 1, reset["revision"], path=self.db, visual=visual)
+            self.assertEqual(1, new["step_index"])
 
     def test_parent_guides_cover_all_missions_and_stages(self) -> None:
         from portal_app.thinking_parent import GUIDES, parent_guide

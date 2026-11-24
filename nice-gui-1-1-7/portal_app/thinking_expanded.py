@@ -592,8 +592,211 @@ PREDICTION_WORDS = {
 }
 
 
+# Intro, observation-dependent cue, evidence question, and concrete follow-up actions.
+# Existing choice indices remain stable: repeat, change method, explain.
+QUESTION_FLOW = {
+  "paper_bridge": [
+    "책 두 권 사이에 종이를 놓았어. 어느 부분을 먼저 살펴볼까?",
+    [
+      "가운데가 휘는 까닭을 생각해 보자.",
+      "책 사이의 빈 공간도 건너야 해.",
+      "동전의 무게를 받쳐 줄 곳이 필요해."
+    ],
+    "동전을 하나씩 올려 봤어. 세 번째 동전을 올릴 때 다리는 어땠어?",
+    [
+      "같은 모양으로 다시 시험할래",
+      "종이를 다른 모양으로 접어 볼래",
+      "어느 부분이 무게를 버텼는지 설명할래"
+    ]
+  ],
+  "missing_sign": [
+    "처음 온 친구가 자동차를 찾고 있어. 무엇부터 살펴볼까?",
+    [
+      "처음 온 사람은 어디로 가야 할지 알아야 해.",
+      "겉모습이 비슷하면 물건을 구별하기 어려워.",
+      "상자를 열지 않고도 안의 물건을 알 수 있으면 좋겠어."
+    ],
+    "처음 온 사람 역할을 맡은 가족은 도움 없이 자동차 상자를 찾았어?",
+    [
+      "같은 표시로 다른 가족도 찾아보게 할래",
+      "그림이나 화살표를 다른 방법으로 바꿔 볼래",
+      "친구가 어디에서 헷갈렸는지 설명할래"
+    ]
+  ],
+  "leaf_dry": [
+    "나뭇잎 두 장이 젖었어. 공평하게 비교하려면 무엇부터 살펴볼까?",
+    [
+      "처음 물의 양을 같게 해야 해.",
+      "비슷한 크기의 잎을 골라야 해.",
+      "주변 환경에 따라 물이 마르는 속도가 달라질 수 있어."
+    ],
+    "같은 시간 간격으로 살펴보니 어느 잎의 표면 물방울이 먼저 사라졌어?",
+    [
+      "같은 두 조건에서 다시 관찰할래",
+      "다른 두 조건으로 바꿔 비교할래",
+      "두 잎의 물방울이 어떻게 달라졌는지 설명할래"
+    ]
+  ],
+  "ball_run": [
+    "공을 손으로 밀지 않고 상자에 넣으려 해. 무엇부터 살펴볼까?",
+    [
+      "공이 저절로 움직이도록 놓을 곳이 필요해.",
+      "길 중간에서 공이 멈추거나 벗어날 수 있어.",
+      "공이 마지막에 상자 안으로 들어가야 해."
+    ],
+    "같은 자리에서 공을 두 번 놓았어. 몇 번 상자에 들어갔어?",
+    [
+      "같은 길에서 두 번 더 굴려 볼래",
+      "높이나 길의 모양을 바꿔 볼래",
+      "공이 어디에서 멈추거나 도착했는지 설명할래"
+    ]
+  ],
+  "lost_toy": [
+    "놀이터에서 자동차를 발견했어. 어떤 단서부터 살펴볼까?",
+    [
+      "발견한 장소는 주인을 확인하는 단서가 될 수 있어.",
+      "이름을 모르면 물건의 다른 특징을 확인해야 해.",
+      "자기 것이라는 말만으로는 주인인지 확실하지 않아."
+    ],
+    "역할놀이에서 주인을 확인할 수 있는 단서를 충분히 찾았어?",
+    [
+      "같은 질문으로 역할을 바꿔 다시 확인할래",
+      "다른 질문을 하거나 어른에게 도움을 청할래",
+      "확인한 단서와 아직 모르는 점을 설명할래"
+    ]
+  ],
+  "raincoat_story": [
+    "갑자기 비가 내려. 두 친구를 도우려면 무엇부터 살펴볼까?",
+    [
+      "작은 우산으로 두 사람이 비를 피할 수 있을까?",
+      "혼자 비를 맞는 친구도 도와야 해.",
+      "두 친구가 함께 안전한 곳으로 갈 수 있을지 생각해 보자."
+    ],
+    "역할을 나눠 해 보니 마지막에 누가 비를 피할 수 있었어?",
+    [
+      "같은 방법으로 역할을 바꿔 해 볼래",
+      "두 친구를 위한 다른 방법을 골라 볼래",
+      "두 친구가 어떤 기분이었는지 설명할래"
+    ]
+  ],
+  "tidy_room": [
+    "놀이를 하려는데 자동차가 잘 보이지 않아. 무엇부터 살펴볼까?",
+    [
+      "여러 물건이 섞여 있으면 찾기 어려워.",
+      "찾을 자동차의 특징을 생각해 보자.",
+      "빈 상자를 어떻게 쓰면 찾기 쉬울지 생각해 보자."
+    ],
+    "정리한 뒤 자동차를 찾는 데 걸린 시간을 재 봤어. 어땠어?",
+    [
+      "같은 정리로 다른 가족도 찾아보게 할래",
+      "물건을 나누는 기준을 바꿔 볼래",
+      "가족이 찾기 어려웠던 곳을 설명할래"
+    ]
+  ],
+  "family_turns": [
+    "장난감은 하나인데 세 사람이 쓰고 싶어 해. 무엇부터 살펴볼까?",
+    [
+      "한 번에 한 사람만 쓸 수 있어.",
+      "아직 못 쓴 친구에게도 차례가 돌아와야 해.",
+      "언제 다음 사람에게 넘길지 생각해 보자."
+    ],
+    "정한 약속대로 역할놀이를 했어. 장난감을 사용해 본 사람은 몇 명이었어?",
+    [
+      "같은 약속으로 역할을 바꿔 해 볼래",
+      "차례나 시간 약속을 바꿔 볼래",
+      "누가 어떻게 기다렸는지 설명할래"
+    ]
+  ],
+  "sorting_cards": [
+    "로봇이 숫자 카드 네 장을 정리하려고 해. 무엇부터 살펴볼까?",
+    [
+      "앞뒤 두 수의 크기를 비교할 수 있어.",
+      "뒤쪽 카드도 순서에 맞게 놓여야 해.",
+      "가장 작은 수가 어디에 있어야 할지 생각해 보자."
+    ],
+    "실행한 뒤 카드들을 왼쪽부터 읽어 봐. 어떤 순서가 되었어?",
+    [
+      "같은 카드로 다시 실행해 볼래",
+      "카드를 정리하는 다른 방법을 써 볼래",
+      "어떤 카드의 순서가 맞거나 어긋났는지 설명할래"
+    ]
+  ],
+  "route_debug": [
+    "로봇을 별까지 보내려고 해. 지도에서 무엇부터 살펴볼까?",
+    [
+      "명령 한 번에 한 칸씩 움직여.",
+      "막힌 칸으로는 지나갈 수 없어.",
+      "별이 있는 칸에 도착해야 해."
+    ],
+    "이동선을 손가락으로 따라가 봐. 마지막에 어디에서 멈췄어?",
+    [
+      "같은 명령을 처음부터 다시 실행할래",
+      "막힌 길을 피하도록 명령을 바꿔 볼래",
+      "로봇이 멈춘 곳과 까닭을 설명할래"
+    ]
+  ],
+  "snack_votes": [
+    "가족 세 사람이 간식을 고르려고 해. 무엇부터 준비할까?",
+    [
+      "어떤 과일을 골랐는지 기록해야 해.",
+      "세 사람이 모두 참여해야 해.",
+      "한 사람마다 표시 하나씩만 쓰자."
+    ],
+    "과일별로 표를 세고 모두 더했어. 합은 어땠어?",
+    [
+      "같은 방법으로 한 번 더 세어 볼래",
+      "표를 기록하는 다른 방법을 써 볼래",
+      "과일마다 몇 표인지 설명할래"
+    ]
+  ],
+  "fair_share": [
+    "블록은 아홉 개야. 친구마다 필요한 수가 달라. 무엇부터 살펴볼까?",
+    [
+      "첫 번째 친구의 필요한 수를 기억해 둬.",
+      "두 번째 친구에게도 필요한 만큼 돌아가야 해.",
+      "마지막 친구까지 부족하지 않은지 생각해 보자."
+    ],
+    "화면에 나눈 블록을 친구마다 세어 봐. 모두 필요한 만큼 받았어?",
+    [
+      "같은 방법으로 다시 나눠 세어 볼래",
+      "부족한 친구가 없게 다른 방법으로 나눠 볼래",
+      "친구마다 받은 수를 설명할래"
+    ]
+  ],
+  "reusable_pack": [
+    "소풍에서 먹고 마신 뒤 버리는 물건을 줄이고 싶어. 무엇부터 살펴볼까?",
+    [
+      "한 번 쓰는 컵은 먹고 마신 뒤 버릴 수 있어.",
+      "간식 봉지도 먹은 뒤에는 쓰레기가 될 수 있어.",
+      "씻어 다시 쓰는 물건은 다음에도 가져갈 수 있어."
+    ],
+    "준비물을 바꾸기 전과 후를 비교했어. 버릴 물건의 수는 어떻게 달라졌어?",
+    [
+      "같은 준비물로 다시 세어 볼래",
+      "다시 쓸 다른 물건을 골라 볼래",
+      "바꾸기 전과 후의 차이를 설명할래"
+    ]
+  ],
+  "seed_sun": [
+    "비슷한 식물 두 개를 일주일 동안 키워 보려고 해. 무엇부터 살펴볼까?",
+    [
+      "빛을 받는 시간은 장소마다 달라.",
+      "빛이 덜 드는 곳도 성장하는지 알아볼 수 있어.",
+      "처음 크기가 비슷해야 변화를 비교하기 쉬워."
+    ],
+    "일주일 동안 자란 길이를 처음과 비교해 봐. 어느 식물이 더 많이 자랐어?",
+    [
+      "같은 두 장소에서 다시 관찰할래",
+      "다른 두 장소를 골라 비교할래",
+      "키와 잎 색의 변화를 설명할래"
+    ]
+  ]
+}
+
+
 def stage_for(mid: str, step: int, answers: dict[str, Any]) -> dict[str, Any]:
     d = CONTENT[mid]
+    flow = QUESTION_FLOW[mid]
     if type(step) is not int or not 0 <= step < 5:
         raise ValueError("invalid step")
     if any(not valid_index(answers.get(str(i))) for i in range(step)):
@@ -601,11 +804,11 @@ def stage_for(mid: str, step: int, answers: dict[str, Any]) -> dict[str, Any]:
     if step and answers.get("_visual_v") != VERSION:
         raise ValueError("incompatible version")
     if step == 0:
-        return dict(label="그림 살펴보기", prompt="그림을 천천히 봐. 무엇이 먼저 눈에 띄어?", options=d["look"],
-                    context=d["scene"][0], hint="그림에서 실제로 보이는 것과 생각한 것을 구분해 이야기해 주세요.")
+        return dict(label="그림 살펴보기", prompt=flow[0], options=d["look"],
+                    context="", hint="그림에서 실제로 보이는 것과 생각한 것을 구분해 이야기해 주세요.")
     if step == 1:
         return dict(label="방법 고르기", prompt=METHOD_QUESTIONS[mid], options=[m[0] for m in d["methods"]],
-                    context="살펴본 곳: " + d["look"][answers["0"]] + " · 우리 목표: " + d["goal"], hint="하나를 골라 실제로 시험하고 다른 방법은 다음에 해보세요.")
+                    context=flow[1][answers["0"]], hint="하나를 골라 실제로 시험하고 다른 방법은 다음에 해보세요.")
     method = d["methods"][answers["1"]]
     comparison = d.get("compare", False)
     conditions = d.get("conditions", [])[answers["1"]] if comparison else None
@@ -618,15 +821,15 @@ def stage_for(mid: str, step: int, answers: dict[str, Any]) -> dict[str, Any]:
             question, yes, no = PREDICTION_WORDS[mid]
             options = [yes, no, "해봐야 알겠어"]
         return dict(label="결과 예상하기", prompt=question, options=options,
-                    context=d["goal"] + " · 방법: " + method[0], hint="어떤 결과가 나올지 이유를 물어보세요. 틀려도 괜찮습니다.")
+                    context="해 볼 방법: " + method[0], hint="어떤 결과가 나올지 이유를 물어보세요. 틀려도 괜찮습니다.")
     predicted = stage_for(mid, 2, answers)["options"][answers["2"]]
     observations = ([f"{conditions[0]} 쪽이 먼저 말랐어",f"{conditions[1]} 쪽이 먼저 말랐어",d["observed"][2]]
                     if mid == "leaf_dry" else
                     [f"{conditions[0]} 쪽이 더 많이 자랐어",f"{conditions[1]} 쪽이 더 많이 자랐어",d["observed"][2]]
                     if mid == "seed_sun" else d["observed"])
     if step == 3:
-        return dict(label="직접 확인하기", prompt="직접 해 보니 어떻게 됐어?", options=observations,
-                    context=d["goal"] + " · 예상: " + predicted,
+        return dict(label="직접 확인하기", prompt=flow[2], options=observations,
+                    context="",
                     offline=method[1] + " " + d["activity"],
                     hint="실제 관찰한 내용만 고르세요. 결과가 불분명하면 모른다고 해도 괜찮아요.",
                     screen=d.get("screen", False))
@@ -640,8 +843,8 @@ def stage_for(mid: str, step: int, answers: dict[str, Any]) -> dict[str, Any]:
     else:
         prompt = "생각과 다른 결과가 나왔네. 다음에는 무엇을 해 볼까?"
     return dict(label="다시 생각하기", prompt=prompt,
-                options=["같은 방법으로 다시 확인할래","다른 방법으로 해볼래","결과를 그림이나 말로 설명할래"],
-                context="예상: " + predicted + " · 관찰: " + result,
+                options=flow[3],
+                context="", reflection=(predicted, result),
                 hint="아이에게 결과를 보고 알게 된 것과 다음 시도를 말하게 해 주세요.")
 
 
@@ -817,8 +1020,15 @@ def render_visual(mid, title, progress, on_save, on_reload, conflict_type, highl
             already_observed = reviewing and step == 3 and bool(answers.get("_activity_confirmed"))
             picture_result = simulate(mid, answers["1"]) if d.get("screen") and (step == 4 or already_observed) else None
             picture = ui.interactive_image(size=(720,320), content=scene_svg(mid, picture_result), sanitize=False).classes("w-full")
-            ui.label(d["scene"][2]).classes("text-body2 text-grey-8")
-            ui.label(stage["context"]).classes("text-body1")
+            if step == 0:
+                ui.label(d["scene"][2]).classes("text-caption text-grey-8")
+            if stage["context"]:
+                ui.label(stage["context"]).classes("text-body2")
+            if step == 4:
+                with ui.expansion("처음 생각과 실제 결과 비교").classes("w-full"):
+                    before, after = stage["reflection"]
+                    ui.label("처음 생각: " + before)
+                    ui.label("실제로 본 것: " + after)
             ui.label(stage["prompt"]).classes("text-h6")
             chosen = {"index": None, "ran": already_observed}
             if step == 3:

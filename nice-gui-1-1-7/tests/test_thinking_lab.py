@@ -262,7 +262,8 @@ class ThinkingLabTests(unittest.TestCase):
                             self.assertTrue(all(len(stage["options"]) == 3 for stage in stages))
                             self.assertIn(CONTENT[mid]["goal"], stages[2]["context"])
                             self.assertIn(CONTENT[mid]["methods"][method][1], stages[3]["offline"])
-                            self.assertIn(CONTENT[mid]["observed"][observed], stages[4]["context"])
+                            self.assertIn(stages[3]["options"][observed], stages[4]["context"])
+                            self.assertIn(CONTENT[mid]["look"][look], stages[1]["context"])
 
     def test_visual_screen_results_and_isolated_legacy_records(self) -> None:
         for mid, expected in (("sorting_cards", [1,0,0]), ("route_debug", [0,1,1]), ("fair_share", [1,0,1])):

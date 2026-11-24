@@ -746,24 +746,39 @@ def render_visual(mid, title, progress, on_save, on_reload, conflict_type, highl
     ui.label(title).classes("text-h5 text-weight-bold")
     ui.label("그림을 보고, 생각하고, 직접 확인해요.").classes("text-body1")
     area = ui.column().classes("w-full gap-3")
+    view = {"step": progress["step_index"], "generation": 0}
+
     def render():
+        view["generation"] += 1
+        generation = view["generation"]
+        revision = progress["revision"]
         area.clear()
         with area:
-            if progress["completed"]:
+            step = view["step"]
+
+            def go_to(target):
+                if view["generation"] == generation:
+                    view["step"] = target
+                    render()
+
+            if step == 5:
                 ui.label("탐험을 마쳤어요! 🌟").classes("text-h5")
                 ui.label("내가 발견한 결과를 가족에게 설명해 보자.")
+                ui.button("처음부터 다시 보기", on_click=lambda: go_to(0))
+                ui.button("이전 단계", on_click=lambda: go_to(4))
                 return
-            step = progress["step_index"]
             answers = progress["answers"]
+            reviewing = step < progress["step_index"]
             stage = stage_for(mid, step, answers)
             ui.label(f"{step+1}/5 · {stage['label']}").classes("text-subtitle1 text-teal-8")
             ui.linear_progress(value=step/5).classes("w-full")
-            picture_result = simulate(mid, answers["1"]) if step == 4 and d.get("screen") else None
+            already_observed = reviewing and step == 3 and bool(answers.get("_activity_confirmed"))
+            picture_result = simulate(mid, answers["1"]) if d.get("screen") and (step == 4 or already_observed) else None
             picture = ui.interactive_image(size=(720,320), content=scene_svg(mid, picture_result), sanitize=False).classes("w-full")
             ui.label(d["scene"][2]).classes("text-body2 text-grey-8")
             ui.label(stage["context"]).classes("text-body1")
             ui.label(stage["prompt"]).classes("text-h6")
-            chosen = {"index": None, "ran": False}
+            chosen = {"index": None, "ran": already_observed}
             if step == 3:
                 ui.label(stage["offline"]).classes("text-body1")
                 if stage["screen"]:
@@ -775,7 +790,7 @@ def render_visual(mid, title, progress, on_save, on_reload, conflict_type, highl
                     ui.button("화면에서 실행해 보기", on_click=run).classes("w-full min-h-14")
                     confirmation = None
                 else:
-                    confirmation=ui.checkbox("어른과 직접 해보고 결과를 확인했어요.", value=False)
+                    confirmation=ui.checkbox("어른과 직접 해보고 결과를 확인했어요.", value=already_observed)
             else:
                 confirmation=None
             buttons=[]
@@ -787,9 +802,14 @@ def render_visual(mid, title, progress, on_save, on_reload, conflict_type, highl
             for i,label in enumerate(stage["options"]):
                 buttons.append(ui.button(label,on_click=lambda i=i:choose(i)).props(
                     "outline no-caps color=teal-9 aria-pressed=false").classes("w-full min-h-14 text-left"))
+            if reviewing:
+                choose(answers[str(step)])
+                ui.label("이전 선택을 바꾸고 저장하면 그 뒤의 답을 다시 골라야 해요.").classes("text-caption")
             with ui.expansion("보호자 도움말").classes("w-full"):
                 ui.label(stage["hint"])
             def advance():
+                if view["generation"] != generation:
+                    return
                 index=chosen["index"]
                 if index is None:
                     ui.notify("한 가지를 골라 보자.")
@@ -802,12 +822,17 @@ def render_visual(mid, title, progress, on_save, on_reload, conflict_type, highl
                     ui.notify("그림의 실제 결과를 한 번 더 살펴보자.")
                     return
                 try:
-                    progress.update(on_save(step,index,progress["revision"],verified))
+                    progress.update(on_save(step,index,revision,verified,reviewing))
+                    view["step"] = min(step + 1, progress["step_index"])
                 except conflict_type:
+                    ui.notify("다른 화면에서 이미 진행했어요. 최신 기록으로 갱신할게요.")
                     progress.update(on_reload())
+                    view["step"] = progress["step_index"]
                 except (sqlite3.Error,ValueError):
                     ui.notify("저장하지 못했어요. 다시 확인해 주세요.")
                     return
                 render()
+            if step > 0:
+                ui.button("이전 단계", on_click=lambda: go_to(step - 1)).props("outline no-caps").classes("w-full min-h-12")
             ui.button("탐험 완료" if step==4 else "저장하고 다음으로",on_click=advance).classes("w-full min-h-14 bg-teal text-white")
     render()

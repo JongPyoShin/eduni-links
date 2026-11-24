@@ -287,6 +287,71 @@ class ThinkingLabTests(unittest.TestCase):
             self.assertTrue(state["completed"])
             self.assertEqual(old, read_progress(mid, path=self.db))
 
+    def test_review_unchanged_keeps_completion_and_revision_all_render_types(self) -> None:
+        for mid, visual in (("paper_bridge", False), ("playground", False), ("route_debug", True)):
+            key = visual_key(mid) if visual else mid
+            state = read_progress(key, path=self.db)
+            for step in range(5):
+                option = simulate(mid, 0)["outcome"] if visual and step == 3 else 0
+                state = save_choice(mid, step, option, state["revision"], path=self.db,
+                                    visual=visual, pilot_verified=step == 3)
+            self.assertTrue(state["completed"])
+            for step in range(5):
+                same = save_choice(mid, step, state["answers"][str(step)], state["revision"],
+                                   path=self.db, visual=visual, pilot_verified=step == 3, allow_edit=True)
+                self.assertEqual(state, same)
+            self.assertEqual(state, read_progress(key, path=self.db))
+
+    def test_review_changed_clears_only_suffix_and_observation_all_render_types(self) -> None:
+        for mid, visual in (("paper_bridge", False), ("water_absorb", False), ("route_debug", True)):
+            key = visual_key(mid) if visual else mid
+            state = read_progress(key, path=self.db)
+            for step in range(5):
+                option = simulate(mid, 0)["outcome"] if visual and step == 3 else 0
+                state = save_choice(mid, step, option, state["revision"], path=self.db,
+                                    visual=visual, pilot_verified=step == 3)
+            with self.assertRaises(ProgressConflict):
+                save_choice(mid, 1, 1, state["revision"], path=self.db, visual=visual)
+            edited = save_choice(mid, 1, 1, state["revision"], path=self.db, visual=visual, allow_edit=True)
+            self.assertEqual({"0": 0, "1": 1}, {k: v for k, v in edited["answers"].items() if k.isdecimal()})
+            self.assertEqual(2, edited["step_index"])
+            self.assertFalse(edited["completed"])
+            self.assertNotIn("_activity_confirmed", edited["answers"])
+            self.assertEqual(state["revision"] + 1, edited["revision"])
+            with self.assertRaises(ProgressConflict):
+                save_choice(mid, 0, 2, state["revision"], path=self.db, visual=visual, allow_edit=True)
+            self.assertEqual(edited, read_progress(key, path=self.db))
+            predicted = save_choice(mid, 2, 0, edited["revision"], path=self.db, visual=visual)
+            if mid in PILOT_IDS or visual:
+                with self.assertRaises(ValueError):
+                    save_choice(mid, 3, 0, predicted["revision"], path=self.db, visual=visual)
+            result = simulate(mid, 1)["outcome"] if visual else 0
+            observed = save_choice(mid, 3, result, predicted["revision"], path=self.db,
+                                   visual=visual, pilot_verified=True)
+            completed = save_choice(mid, 4, 0, observed["revision"], path=self.db, visual=visual)
+            changed_final = save_choice(mid, 4, 1, completed["revision"], path=self.db,
+                                        visual=visual, allow_edit=True)
+            self.assertTrue(changed_final["completed"])
+            self.assertEqual(completed["answers"].get("_activity_confirmed"), changed_final["answers"].get("_activity_confirmed"))
+
+    def test_review_legacy_pilot_blocks_reinterpretation_at_first_step(self) -> None:
+        read_progress("playground", path=self.db)
+        conn = connect_database(self.db)
+        try:
+            child = default_child_profile_id(self.db)
+            conn.execute(
+                """INSERT INTO thinking_mission_progress
+                (child_profile_id, mission_id, step_index, answers_json, completed, revision, updated_at)
+                VALUES (?, 'playground', 1, ?, 0, 1, ?)""",
+                (child, json.dumps({"0": 0}), "2026-11-24T00:00:00+00:00"),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        with self.assertRaises(ProgressConflict):
+            save_choice("playground", 0, 1, 1, path=self.db, allow_edit=True)
+        self.assertEqual({"0": 0}, read_progress("playground", path=self.db)["answers"])
+
     def test_invalid_choice_and_out_of_order_steps_rejected(self) -> None:
         with self.assertRaises(ValueError):
             save_choice("paper_bridge", 0, 999, 0, path=self.db)

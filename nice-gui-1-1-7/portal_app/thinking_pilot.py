@@ -257,7 +257,7 @@ def update_choice_highlight(buttons: list[Any], options: list[str], chosen: int)
 def render_pilot(
     mission_id: str,
     progress: dict[str, Any],
-    on_save: Callable[[int, int, int, bool], dict[str, Any]],
+    on_save: Callable[[int, int, int, bool, bool], dict[str, Any]],
     on_reload: Callable[[], dict[str, Any]],
     conflict_type: type[Exception],
 ) -> None:
@@ -268,22 +268,36 @@ def render_pilot(
         ui.label(f"🔎 {title}").classes("text-h4 text-weight-bold")
         ui.label("정답보다 내 생각과 실제 결과가 중요해요. 어른과 함께해요.")
         area = ui.column().classes("w-full gap-3")
+        view = {"step": progress["step_index"], "generation": 0}
 
         def render() -> None:
+            view["generation"] += 1
+            generation = view["generation"]
+            revision = progress["revision"]
             area.clear()
             with area:
-                step = progress["step_index"]
+                step = view["step"]
                 answers = progress["answers"]
-                if progress["completed"]:
+
+                def go_to(target: int) -> None:
+                    if view["generation"] == generation:
+                        view["step"] = target
+                        render()
+
+                if step == 5:
                     ui.label("탐험을 마쳤어요! 🌟").classes("text-h5")
                     ui.label("실제로 관찰한 것과 다음에 바꾸고 싶은 것을 가족에게 이야기해 주세요.")
+                    if answers.get("_pilot_v") == PILOT_VERSION:
+                        ui.button("처음부터 다시 보기", on_click=lambda: go_to(0))
+                        ui.button("이전 단계", on_click=lambda: go_to(4))
                     ui.link("다른 미션", "/portal/thinking")
                     return
-                if step > 0 and answers.get("_pilot_v") != PILOT_VERSION:
+                if progress["step_index"] > 0 and answers.get("_pilot_v") != PILOT_VERSION:
                     ui.label("이전 형식으로 진행한 기록이에요. 기록을 지우지 않고 보존했습니다.")
                     ui.label("새 미션 형식에서는 이전 선택을 그대로 해석할 수 없어 여기서 중단해요.")
                     ui.link("다른 미션", "/portal/thinking")
                     return
+                reviewing = step < progress["step_index"]
                 stage = pilot_stage(mission_id, step, answers)
                 ui.label(f"{step + 1}/5 · {stage['label']}").classes("text-subtitle1 text-teal-8")
                 ui.linear_progress(value=step / 5).classes("w-full")
@@ -332,17 +346,26 @@ def render_pilot(
                         .classes("w-full min-h-14 text-left")
                     )
 
+                if reviewing:
+                    choose(answers[str(step)])
+                    ui.label("이전 선택을 바꾸고 저장하면 그 뒤의 답을 다시 골라야 해요.").classes("text-caption")
+
                 performed = None
                 if step == 3:
                     with ui.card().classes("w-full bg-amber-1"):
                         ui.label("🏠 직접 해보기").classes("text-weight-bold")
                         ui.label(stage["offline"])
-                    performed = ui.checkbox(stage["verified_label"], value=False)
+                    performed = ui.checkbox(
+                        stage["verified_label"],
+                        value=reviewing and bool(answers.get("_activity_confirmed")),
+                    )
 
                 with ui.expansion("보호자 도움말 (함께 읽기)").classes("w-full"):
                     ui.label(stage["hint"])
 
                 def advance() -> None:
+                    if view["generation"] != generation:
+                        return
                     if selected["index"] is None:
                         ui.notify("그림을 살펴보고 하나를 골라 주세요.")
                         return
@@ -351,18 +374,24 @@ def render_pilot(
                         ui.notify("실제로 해보지 않았다면 다음으로 넘어가지 않아도 괜찮아요.")
                         return
                     try:
-                        updated = on_save(step, selected["index"], progress["revision"], confirmed)
+                        updated = on_save(step, selected["index"], revision, confirmed, reviewing)
                     except conflict_type:
                         ui.notify("다른 화면에서 이미 진행했어요. 최신 기록으로 갱신할게요.")
                         progress.update(on_reload())
+                        view["step"] = progress["step_index"]
                         render()
                         return
                     except (sqlite3.Error, ValueError):
                         ui.notify("저장할 수 없어요. 현재 화면을 유지합니다.")
                         return
                     progress.update(updated)
+                    view["step"] = min(step + 1, progress["step_index"])
                     render()
 
+                if step > 0:
+                    ui.button("이전 단계", on_click=lambda: go_to(step - 1)).props(
+                        "outline no-caps"
+                    ).classes("w-full min-h-12")
                 ui.button("관찰 기록하고 완료" if step == 4 else "저장하고 다음으로", on_click=advance).classes(
                     "w-full min-h-12 bg-teal text-white"
                 )

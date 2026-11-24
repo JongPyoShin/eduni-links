@@ -116,6 +116,7 @@ def save_choice(
     missions: dict[str, dict[str, Any]] | None = None,
     pilot_verified: bool = False,
     visual: bool = False,
+    allow_edit: bool = False,
 ) -> dict[str, Any]:
     missions = missions if missions is not None else load_thinking_missions()
     mission = missions.get(mission_id)
@@ -161,9 +162,28 @@ def save_choice(
             )
         else:
             stored_step, stored_answers, completed, stored_revision = row
-            if completed or stored_step != step_index or stored_revision != revision:
+            reviewing = allow_edit is True and step_index < stored_step
+            if stored_revision != revision or (not reviewing and (completed or stored_step != step_index)):
                 raise ProgressConflict("mission was changed")
             answers = json.loads(stored_answers)
+            # A version mismatch must never reinterpret an older stored answer, even at step zero.
+            if visual and answers.get("_visual_v") != VISUAL_VERSION:
+                raise ProgressConflict("incompatible visual progress")
+            if mission_id in PILOT_IDS and answers.get("_pilot_v") != PILOT_VERSION:
+                raise ProgressConflict("legacy pilot progress cannot be silently reinterpreted")
+            if reviewing:
+                if str(step_index) not in answers:
+                    raise ProgressConflict("missing earlier answer")
+                if answers[str(step_index)] == option_index:
+                    # Reading/confirming the same answer does not truncate or write progress.
+                    return {"step_index": stored_step, "answers": answers,
+                            "completed": bool(completed), "revision": stored_revision}
+                # Downstream answers depend on earlier choices. Invalidate only the suffix.
+                for key in list(answers):
+                    if key.isdecimal() and int(key) > step_index:
+                        del answers[key]
+                if step_index <= 3:
+                    answers.pop("_activity_confirmed", None)
             if visual:
                 stage = stage_for(mission_id, step_index, answers)
                 if step_index == 3:
@@ -185,10 +205,10 @@ def save_choice(
                    SET step_index = ?, answers_json = ?, completed = ?, revision = revision + 1,
                        updated_at = ?
                    WHERE child_profile_id = ? AND mission_id = ? AND step_index = ?
-                         AND revision = ? AND completed = 0""",
+                         AND revision = ? AND completed = ?""",
                 (
                     next_step, json.dumps(answers), int(next_step == len(STAGES)),
-                    utc_now(), profile, storage_id, step_index, revision,
+                    utc_now(), profile, storage_id, stored_step, revision, completed,
                 ),
             )
             if cursor.rowcount != 1:
@@ -262,9 +282,10 @@ def thinking_mission(mission_id: str, legacy: bool = False) -> None:
             old = read_progress(mission_id, child_profile_id=profile)
             if old["step_index"] > 0:
                 ui.link("이전 질문형 기록 보기", f"/portal/thinking/{mission_id}?legacy=true")
-            def save_visual(step, option, revision, verified):
+            def save_visual(step, option, revision, verified, reviewing):
                 return save_choice(mission_id, step, option, revision, child_profile_id=profile,
-                                   missions=missions, pilot_verified=verified, visual=True)
+                                   missions=missions, pilot_verified=verified, visual=True,
+                                   allow_edit=reviewing)
             def reload_visual():
                 return read_progress(key, child_profile_id=profile)
             render_visual(mission_id, mission["title"], progress, save_visual, reload_visual,
@@ -274,10 +295,10 @@ def thinking_mission(mission_id: str, legacy: bool = False) -> None:
             profile = default_child_profile_id()
             progress = read_progress(mission_id, child_profile_id=profile)
 
-            def save_pilot_step(step: int, option: int, revision: int, verified: bool) -> dict[str, Any]:
+            def save_pilot_step(step: int, option: int, revision: int, verified: bool, reviewing: bool) -> dict[str, Any]:
                 return save_choice(
                     mission_id, step, option, revision, child_profile_id=profile,
-                    missions=missions, pilot_verified=verified,
+                    missions=missions, pilot_verified=verified, allow_edit=reviewing,
                 )
 
             def reload_pilot() -> dict[str, Any]:
@@ -291,16 +312,29 @@ def thinking_mission(mission_id: str, legacy: bool = False) -> None:
         ui.label(mission["title"]).classes("text-h4 text-weight-bold")
         ui.label("어떤 선택에도 벌점은 없어요. 가족과 이야기하며 한 단계씩 해보세요.")
         stage_area = ui.column().classes("w-full gap-3")
+        view = {"step": progress["step_index"], "generation": 0}
 
         def render() -> None:
+            view["generation"] += 1
+            generation = view["generation"]
+            revision = progress["revision"]
             stage_area.clear()
             with stage_area:
-                step = progress["step_index"]
-                if progress["completed"]:
+                step = view["step"]
+
+                def go_to(target: int) -> None:
+                    if view["generation"] == generation:
+                        view["step"] = target
+                        render()
+
+                if step == len(STAGES):
                     ui.label("🎉 탐험을 마쳤어요!").classes("text-h5 text-weight-bold")
                     ui.label("무엇을 새로 발견했는지 가족과 이야기해 보세요.")
+                    ui.button("처음부터 다시 보기", on_click=lambda: go_to(0))
+                    ui.button("이전 단계", on_click=lambda: go_to(len(STAGES) - 1))
                     ui.link("다른 미션 고르기", "/portal/thinking").classes("text-h6")
                     return
+                reviewing = step < progress["step_index"]
                 stage = mission["steps"][step]
                 ui.label(f"{step + 1} / {len(STAGES)} · {stage['label']}").classes(
                     "text-subtitle1 text-teal-8"
@@ -330,29 +364,41 @@ def thinking_mission(mission_id: str, legacy: bool = False) -> None:
                         .classes("w-full min-h-14 text-left")
                     )
 
+                if reviewing:
+                    select(progress["answers"][str(step)])
+                    ui.label("이전 선택을 바꾸고 저장하면 그 뒤의 답을 다시 골라야 해요.").classes("text-caption")
+
                 with ui.expansion("보호자 질문 힌트").classes("w-full"):
                     ui.label(stage["parent_tip"])
 
                 def advance() -> None:
+                    if view["generation"] != generation:
+                        return
                     if selected["value"] is None:
                         ui.notify("한 가지를 고르고 다음으로 가보자.")
                         return
                     try:
                         updated = save_choice(
-                            mission_id, step, selected["value"], progress["revision"],
-                            child_profile_id=profile, missions=missions,
+                            mission_id, step, selected["value"], revision,
+                            child_profile_id=profile, missions=missions, allow_edit=reviewing,
                         )
                     except ProgressConflict:
                         ui.notify("다른 화면에서 진행했어요. 최신 기록을 불러올게요.")
                         progress.update(read_progress(mission_id, child_profile_id=profile))
+                        view["step"] = progress["step_index"]
                         render()
                         return
                     except sqlite3.Error:
                         ui.notify("저장할 수 없어요. 잠시 뒤 다시 시도해 주세요.")
                         return
                     progress.update(updated)
+                    view["step"] = min(step + 1, progress["step_index"])
                     render()
 
+                if step > 0:
+                    ui.button("이전 단계", on_click=lambda: go_to(step - 1)).props(
+                        "outline no-caps"
+                    ).classes("w-full min-h-12")
                 ui.button(
                     "탐험 완료" if step == len(STAGES) - 1 else "저장하고 다음 단계",
                     on_click=advance,

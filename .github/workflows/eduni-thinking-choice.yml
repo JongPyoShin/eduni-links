@@ -15,7 +15,7 @@ on:
       - 'nice-gui-1-1-7/tests/test_thinking_lab.py'
 jobs:
   focused:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read

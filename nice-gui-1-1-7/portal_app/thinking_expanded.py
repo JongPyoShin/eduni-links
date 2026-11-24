@@ -555,6 +555,24 @@ def simulate(mid: str, method: int) -> dict[str, Any]:
     raise ValueError("not an on-screen simulation")
 
 
+# Ask about the actual situation, rather than repeating an abstract goal.
+METHOD_QUESTIONS = {
+    "paper_bridge": "종이 다리가 동전 3개를 버티려면 어떻게 만들어 볼까?",
+    "missing_sign": "친구가 자동차 상자를 혼자 찾으려면 어떻게 해야 할까?",
+    "leaf_dry": "나뭇잎을 어디에 놓으면 먼저 마르는지 어떻게 알아볼까?",
+    "ball_run": "공을 밀지 않아도 상자에 들어가려면 길을 어떻게 만들까?",
+    "lost_toy": "자동차가 누구 것인지 어떻게 알아볼까?",
+    "raincoat_story": "두 친구가 모두 비를 피하려면 어떻게 할까?",
+    "tidy_room": "자동차를 빨리 찾으려면 장난감을 어떻게 정리할까?",
+    "family_turns": "세 사람이 모두 장난감을 쓰려면 어떻게 차례를 정할까?",
+    "sorting_cards": "로봇이 작은 숫자부터 카드를 놓으려면 어떻게 해야 할까?",
+    "route_debug": "로봇이 벽을 피해서 별까지 가려면 어떤 길로 가야 할까?",
+    "snack_votes": "가족 세 사람의 표를 빠짐없이 세려면 어떻게 할까?",
+    "fair_share": "세 친구에게 필요한 블록을 어떻게 나눠 줄까?",
+    "reusable_pack": "소풍에서 버리는 물건을 줄이려면 무엇을 바꿀까?",
+    "seed_sun": "빛이 다른 곳에서 식물이 얼마나 자라는지 어떻게 알아볼까?",
+}
+
 # Same choice meanings/order as the existing positive, negative, unsure indices.
 PREDICTION_WORDS = {
     "paper_bridge": ("동전 3개를 올리면 종이 다리가 어떻게 될까?", "동전 3개를 버틸 것 같아", "3개를 놓기 전에 무너질 것 같아"),
@@ -581,10 +599,10 @@ def stage_for(mid: str, step: int, answers: dict[str, Any]) -> dict[str, Any]:
     if step and answers.get("_visual_v") != VERSION:
         raise ValueError("incompatible version")
     if step == 0:
-        return dict(label="그림 살펴보기", prompt="그림에서 어디를 먼저 살펴볼까?", options=d["look"],
+        return dict(label="그림 살펴보기", prompt="그림을 천천히 봐. 무엇이 먼저 눈에 띄어?", options=d["look"],
                     context=d["scene"][0], hint="그림에서 실제로 보이는 것과 생각한 것을 구분해 이야기해 주세요.")
     if step == 1:
-        return dict(label="방법 고르기", prompt="이 목표를 이루려면 어떤 방법을 해볼까?", options=[m[0] for m in d["methods"]],
+        return dict(label="방법 고르기", prompt=METHOD_QUESTIONS[mid], options=[m[0] for m in d["methods"]],
                     context="살펴본 곳: " + d["look"][answers["0"]] + " · 우리 목표: " + d["goal"], hint="하나를 골라 실제로 시험하고 다른 방법은 다음에 해보세요.")
     method = d["methods"][answers["1"]]
     comparison = d.get("compare", False)
@@ -605,20 +623,20 @@ def stage_for(mid: str, step: int, answers: dict[str, Any]) -> dict[str, Any]:
                     [f"{conditions[0]} 쪽이 더 많이 자랐어",f"{conditions[1]} 쪽이 더 많이 자랐어",d["observed"][2]]
                     if mid == "seed_sun" else d["observed"])
     if step == 3:
-        return dict(label="직접 확인하기", prompt="해본 뒤 어떤 결과를 보았니?", options=observations,
+        return dict(label="직접 확인하기", prompt="직접 해 보니 어떻게 됐어?", options=observations,
                     context=d["goal"] + " · 예상: " + predicted,
                     offline=method[1] + " " + d["activity"],
                     hint="실제 관찰한 내용만 고르세요. 결과가 불분명하면 모른다고 해도 괜찮아요.",
                     screen=d.get("screen", False))
     result = observations[answers["3"]]
     if answers["3"] == 2:
-        prompt = "잘 모르겠다면 무엇을 다시 살펴볼까?"
+        prompt = "아직 잘 모르겠구나. 다음에는 무엇을 해 볼까?"
     elif answers["2"] == answers["3"]:
-        prompt = "예상과 결과가 같았네. 어떻게 다시 확인할까?"
+        prompt = "생각한 대로 됐네! 다음에는 무엇을 해 볼까?"
     elif answers["2"] == 2:
-        prompt = "새롭게 발견했네. 다음에는 어떻게 해볼까?"
+        prompt = "새로운 걸 알게 됐네! 다음에는 무엇을 해 볼까?"
     else:
-        prompt = "예상과 결과가 달랐네. 무엇을 바꿔볼까?"
+        prompt = "생각과 다른 결과가 나왔네. 다음에는 무엇을 해 볼까?"
     return dict(label="다시 생각하기", prompt=prompt,
                 options=["같은 방법으로 다시 확인할래","다른 방법으로 해볼래","결과를 그림이나 말로 설명할래"],
                 context="예상: " + predicted + " · 관찰: " + result,

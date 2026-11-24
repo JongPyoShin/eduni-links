@@ -387,6 +387,16 @@ class ThinkingLabTests(unittest.TestCase):
             )],
         )
 
+    def test_method_questions_are_specific_and_preserve_choice_order(self) -> None:
+        from portal_app.thinking_expanded import METHOD_QUESTIONS
+        self.assertEqual(set(VISUAL_IDS), set(METHOD_QUESTIONS))
+        for mid in VISUAL_IDS:
+            stage = stage_for(mid, 1, {"0": 0, "_visual_v": VERSION})
+            self.assertTrue(stage["prompt"].endswith("?"))
+            self.assertEqual([method[0] for method in CONTENT[mid]["methods"]], stage["options"])
+        self.assertIn("별까지", METHOD_QUESTIONS["route_debug"])
+        self.assertIn("자동차 상자", METHOD_QUESTIONS["missing_sign"])
+
     def test_category_tiles_cover_all_missions_without_changing_ids(self) -> None:
         self.assertEqual(8, len(CATEGORY_TILES))
         self.assertEqual({m["category"] for m in self.missions.values()},

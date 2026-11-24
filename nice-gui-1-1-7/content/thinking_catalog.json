@@ -1,0 +1,856 @@
+{
+  "version": 1,
+  "reviewed_at": "2026-11-23",
+  "audience": "7-9세(보호자 동행)",
+  "copyright_policy": "출처는 조사/아이디어 벤치마킹 목적 링크만 저장. 외부 텍스트, 문제 이미지·영상의 다운로드·스크래핑·전재/번역은 하지 않는다. 포털 미션은 새로 작성한 자체 표현이며 권리 별도 확인 전 외부 리소스 포함 금지.",
+  "difficulty_definition": {
+    "beginner": "문제 하나, 선택지 2~3개, 보호자 질문 지원",
+    "intermediate": "두 기준 비교·장기 관찰·관점 전환, 부모 지원"
+  },
+  "sources": [
+    {
+      "id": "PZ_STW",
+      "name": "Harvard Project Zero · See, Think, Wonder",
+      "url": "https://www.pz.harvard.edu/resources/see-think-wonder",
+      "rights": "CC BY-NC-ND 4.0; 비상업적 공유만, 수정·재배포 불가",
+      "usage": "reference_only",
+      "terms_url": "https://www.pz.harvard.edu/resources/see-think-wonder"
+    },
+    {
+      "id": "PZ_VIEW",
+      "name": "Harvard Project Zero · Circle of Viewpoints",
+      "url": "https://pz.harvard.edu/resources/circle-of-viewpoints",
+      "rights": "CC BY-NC-ND 4.0; 비상업적 공유만, 수정·재배포 불가",
+      "usage": "reference_only",
+      "terms_url": "https://pz.harvard.edu/resources/circle-of-viewpoints"
+    },
+    {
+      "id": "PBS_SOLVE",
+      "name": "PBS Kids for Parents · Creative Problem-Solving",
+      "url": "https://www.pbs.org/parents/creative-problem-solving",
+      "rights": "직접 복제/재배포 권한 미확인",
+      "usage": "reference_only",
+      "terms_url": "https://www.pbs.org/parents/creative-problem-solving"
+    },
+    {
+      "id": "PBS_BALL",
+      "name": "PBS Kids for Parents · Play Ball Obstacle Course",
+      "url": "https://www.pbs.org/parents/crafts-and-experiments/play-ball-obstacle-course",
+      "rights": "직접 복제/재배포 권한 미확인",
+      "usage": "reference_only",
+      "terms_url": "https://www.pbs.org/parents/crafts-and-experiments/play-ball-obstacle-course"
+    },
+    {
+      "id": "PBS_CS",
+      "name": "PBS Kids for Parents · Computer Science Skills Anytime",
+      "url": "https://www.pbs.org/parents/thrive/practicing-computer-science-skills-anytime",
+      "rights": "직접 복제/재배포 권한 미확인",
+      "usage": "reference_only",
+      "terms_url": "https://www.pbs.org/parents/thrive/practicing-computer-science-skills-anytime"
+    },
+    {
+      "id": "PBS_AGE7",
+      "name": "PBS Kids for Parents · Doing Science Every Day at Age 7",
+      "url": "https://www.pbs.org/parents/learn-grow/age-7/science/doing-science-every-day",
+      "rights": "직접 복제/재배포 권한 미확인",
+      "usage": "reference_only",
+      "terms_url": "https://www.pbs.org/parents/learn-grow/age-7/science/doing-science-every-day"
+    },
+    {
+      "id": "NASA_K4",
+      "name": "NASA · Grades K-4 Learning Resources",
+      "url": "https://www.nasa.gov/learning-resources/for-students-grades-k-4/",
+      "rights": "개별 자료·이미지별 조건 확인 필요; NASA 로고 등 별도 보호",
+      "usage": "reference_only",
+      "terms_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+    },
+    {
+      "id": "NASA_FAMILY",
+      "name": "NASA JPL · STEM Activities for Families",
+      "url": "https://www.jpl.nasa.gov/edu/resources/lesson-plan/stem-activities-for-families/",
+      "rights": "NASA 자료도 개별 출처·매체 조건 확인 필요",
+      "usage": "reference_only",
+      "terms_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+    },
+    {
+      "id": "CS_SORT",
+      "name": "CS Unplugged · Sorting Networks",
+      "url": "https://www.csunplugged.org/en/topics/sorting-networks/",
+      "rights": "CS Unplugged 공식 사이트 CC BY-SA 4.0; 복제·변형시 저작자 표시·동일조건변경허락 필요",
+      "usage": "license_allows_conditional_reuse_not_copied",
+      "terms_url": "https://www.csunplugged.org/en/about/"
+    },
+    {
+      "id": "CS_ERROR",
+      "name": "CS Unplugged · Error Detection and Correction",
+      "url": "https://www.csunplugged.org/en/topics/error-detection-and-correction/",
+      "rights": "CS Unplugged 공식 사이트 CC BY-SA 4.0; 복제·변형시 저작자 표시·동일조건변경허락 필요",
+      "usage": "license_allows_conditional_reuse_not_copied",
+      "terms_url": "https://www.csunplugged.org/en/about/"
+    },
+    {
+      "id": "SB_BRIDGE",
+      "name": "Science Buddies · Build the Best Paper Bridge",
+      "url": "https://www.sciencebuddies.org/stem-activities/build-best-bridge",
+      "rights": "소프트웨어 제작에 콘텐츠 사용은 사전 서면 동의 필요, 외부 사이트 복제 금지; 링크는 가능",
+      "usage": "reference_only",
+      "terms_url": "https://www.sciencebuddies.org/about/terms-and-conditions-of-fair-use"
+    },
+    {
+      "id": "TE_DESIGN",
+      "name": "TeachEngineering · Elementary Design Field Day",
+      "url": "https://www.teachengineering.org/curricular-units/ucd_fieldday_unit",
+      "rights": "조직 외 배포/학술이용자 외 사용은 사전 허가 필요; 스크래핑 금지",
+      "usage": "reference_only",
+      "terms_url": "https://www.teachengineering.org/policies/termsofuse"
+    },
+    {
+      "id": "RSC_PRIMARY",
+      "name": "Royal Society of Chemistry · Primary Science Investigations",
+      "url": "https://edu.rsc.org/primary-science/find-resources/experiments-and-investigations",
+      "rights": "포털에 재게시할 수 있는 라이선스 미확인",
+      "usage": "reference_only",
+      "terms_url": "https://edu.rsc.org/primary-science/find-resources/experiments-and-investigations"
+    },
+    {
+      "id": "SMITH_OBJECT",
+      "name": "Smithsonian Learning Lab · Object-Based Learning",
+      "url": "https://learninglab.si.edu/help/object-based-learning",
+      "rights": "Smithsonian Open Access 중 CC0 지정 자산만 자유 재사용; 기타 콘텐츠 조건 별도",
+      "usage": "reference_only",
+      "terms_url": "https://www.si.edu/openaccess/faq"
+    },
+    {
+      "id": "EBS_CREATIVE",
+      "name": "EBS 초등 · 창의체험 탐구생활",
+      "url": "https://primary.ebs.co.kr/course/view?courseId=100001122",
+      "rights": "EBS 약관상 사전 승낙 없는 복제·번역·배포 금지",
+      "usage": "reference_only",
+      "terms_url": "https://sso.ebs.co.kr/policy/termsInfo"
+    },
+    {
+      "id": "SCIENCEALL",
+      "name": "과학창의재단 · 사이언스올 과학학습 놀이터",
+      "url": "https://www.scienceall.com/cmn/mcs/page/adventure/menu/288",
+      "rights": "개별 콘텐츠의 공공누리/저작권 표시 확인 필요; 현재 복제 허가 미확인",
+      "usage": "reference_only",
+      "terms_url": "https://www.scienceall.com/cmn/mcs/page/adventure/menu/288"
+    }
+  ],
+  "categories": [
+    {
+      "id": "observe",
+      "label": "문제 탐정단",
+      "primary_skills": [
+        "관찰",
+        "문제 발견",
+        "문제 정의"
+      ],
+      "source_ids": [
+        "PZ_STW",
+        "SMITH_OBJECT"
+      ]
+    },
+    {
+      "id": "science",
+      "label": "과학 탐구실",
+      "primary_skills": [
+        "가설",
+        "변인 통제",
+        "증거"
+      ],
+      "source_ids": [
+        "PBS_AGE7",
+        "RSC_PRIMARY",
+        "SCIENCEALL"
+      ]
+    },
+    {
+      "id": "engineering",
+      "label": "발명 연구실",
+      "primary_skills": [
+        "설계",
+        "실험",
+        "개선"
+      ],
+      "source_ids": [
+        "PBS_SOLVE",
+        "PBS_BALL",
+        "TE_DESIGN"
+      ]
+    },
+    {
+      "id": "stories",
+      "label": "이야기 법정",
+      "primary_skills": [
+        "관점 비교",
+        "공감",
+        "근거"
+      ],
+      "source_ids": [
+        "PZ_VIEW",
+        "EBS_CREATIVE"
+      ]
+    },
+    {
+      "id": "family",
+      "label": "우리집 프로젝트",
+      "primary_skills": [
+        "자기주도",
+        "협력",
+        "의사결정"
+      ],
+      "source_ids": [
+        "PBS_SOLVE",
+        "PZ_STW"
+      ]
+    },
+    {
+      "id": "logic",
+      "label": "규칙·논리 실험실",
+      "primary_skills": [
+        "알고리즘",
+        "디버깅",
+        "논리"
+      ],
+      "source_ids": [
+        "CS_SORT",
+        "CS_ERROR",
+        "PBS_CS"
+      ]
+    },
+    {
+      "id": "data",
+      "label": "수학·자료 탐험",
+      "primary_skills": [
+        "수감각",
+        "자료 비교",
+        "공정성"
+      ],
+      "source_ids": [
+        "CS_SORT",
+        "EBS_CREATIVE"
+      ]
+    },
+    {
+      "id": "earth",
+      "label": "자연과 지구",
+      "primary_skills": [
+        "환경",
+        "관찰",
+        "장기적 성찰"
+      ],
+      "source_ids": [
+        "NASA_K4",
+        "NASA_FAMILY",
+        "SCIENCEALL"
+      ]
+    }
+  ],
+  "items": [
+    {
+      "id": "paper_bridge",
+      "title": "종이 다리 발명가",
+      "category": "발명 연구실",
+      "status": "playable",
+      "age_min": 7,
+      "age_max": 9,
+      "difficulty": "beginner",
+      "format": "guided_family_project",
+      "skills": [
+        "문제 정의",
+        "대안 생성",
+        "실험·검증",
+        "성찰"
+      ],
+      "minutes_on_screen": 8,
+      "source_ids": [
+        "PBS_SOLVE",
+        "SB_BRIDGE"
+      ],
+      "rights_use": "original_written_mission_no_external_content_copied",
+      "editorial_review": "draft_for_parent_pilot"
+    },
+    {
+      "id": "playground",
+      "title": "놀이터 문제 탐정",
+      "category": "문제 탐정단",
+      "status": "playable",
+      "age_min": 7,
+      "age_max": 9,
+      "difficulty": "beginner",
+      "format": "guided_family_project",
+      "skills": [
+        "문제 발견",
+        "문제 정의",
+        "관점 비교",
+        "성찰"
+      ],
+      "minutes_on_screen": 7,
+      "source_ids": [
+        "PZ_STW",
+        "PBS_SOLVE"
+      ],
+      "rights_use": "original_written_mission_no_external_content_copied",
+      "editorial_review": "draft_for_parent_pilot"
+    },
+    {
+      "id": "missing_sign",
+      "title": "표지판이 사라진 길",
+      "category": "문제 탐정단",
+      "status": "playable",
+      "age_min": 7,
+      "age_max": 9,
+      "difficulty": "beginner",
+      "format": "guided_family_project",
+      "skills": [
+        "관찰",
+        "문제 정의",
+        "관점 비교"
+      ],
+      "minutes_on_screen": 7,
+      "source_ids": [
+        "PZ_STW",
+        "SMITH_OBJECT"
+      ],
+      "rights_use": "original_written_mission_no_external_content_copied",
+      "editorial_review": "draft_for_parent_pilot"
+    },
+    {
+      "id": "leaf_dry",
+      "title": "어느 낙엽이 먼저 마를까?",
+      "category": "과학 탐구실",
+      "status": "playable",
+      "age_min": 7,
+      "age_max": 9,
+      "difficulty": "intermediate",
+      "format": "guided_family_project",
+      "skills": [
+        "가설",
+        "변인 통제",
+        "관찰"
+      ],
+      "minutes_on_screen": 8,
+      "source_ids": [
+        "RSC_PRIMARY",
+        "PBS_AGE7"
+      ],
+      "rights_use": "original_written_mission_no_external_content_copied",
+      "editorial_review": "draft_for_parent_pilot"
+    },
+    {
+      "id": "water_absorb",
+      "title": "물을 가장 잘 흡수하는 재료",
+      "category": "과학 탐구실",
+      "status": "playable",
+      "age_min": 7,
+      "age_max": 9,
+      "difficulty": "beginner",
+      "format": "guided_family_project",
+      "skills": [
+        "문제 정의",
+        "공정한 비교",
+        "증거"
+      ],
+      "minutes_on_screen": 7,
+      "source_ids": [
+        "RSC_PRIMARY",
+        "SCIENCEALL"
+      ],
+      "rights_use": "original_written_mission_no_external_content_copied",
+      "editorial_review": "draft_for_parent_pilot"
+    },
+    {
+      "id": "ball_run",
+      "title": "공이 지나가는 종이 길",
+      "category": "발명 연구실",
+      "status": "playable",
+      "age_min": 7,
+      "age_max": 9,
+      "difficulty": "beginner",
+      "format": "guided_family_project",
+      "skills": [
+        "설계",
+        "실험",
+        "반복 개선"
+      ],
+      "minutes_on_screen": 9,
+      "source_ids": [
+        "PBS_BALL",
+        "TE_DESIGN"
+      ],
+      "rights_use": "original_written_mission_no_external_content_copied",
+      "editorial_review": "draft_for_parent_pilot"
+    },
+    {
+      "id": "lost_toy",
+      "title": "사라진 장난감의 주인은?",
+      "category": "이야기 법정",
+      "status": "playable",
+      "age_min": 7,
+      "age_max": 9,
+      "difficulty": "intermediate",
+      "format": "guided_family_project",
+      "skills": [
+        "공감",
+        "증거 확인",
+        "관점 비교"
+      ],
+      "minutes_on_screen": 8,
+      "source_ids": [
+        "PZ_VIEW"
+      ],
+      "rights_use": "original_written_mission_no_external_content_copied",
+      "editorial_review": "draft_for_parent_pilot"
+    },
+    {
+      "id": "raincoat_story",
+      "title": "토끼와 고슴도치의 비 오는 날",
+      "category": "이야기 법정",
+      "status": "playable",
+      "age_min": 7,
+      "age_max": 9,
+      "difficulty": "beginner",
+      "format": "guided_family_project",
+      "skills": [
+        "협력",
+        "가치 비교",
+        "대안 생성"
+      ],
+      "minutes_on_screen": 8,
+      "source_ids": [
+        "PZ_VIEW",
+        "EBS_CREATIVE"
+      ],
+      "rights_use": "original_written_mission_no_external_content_copied",
+      "editorial_review": "draft_for_parent_pilot"
+    },
+    {
+      "id": "tidy_room",
+      "title": "장난감을 쉽게 찾는 방",
+      "category": "우리집 프로젝트",
+      "status": "playable",
+      "age_min": 7,
+      "age_max": 9,
+      "difficulty": "beginner",
+      "format": "guided_family_project",
+      "skills": [
+        "문제 발견",
+        "설계",
+        "개선"
+      ],
+      "minutes_on_screen": 8,
+      "source_ids": [
+        "PBS_SOLVE"
+      ],
+      "rights_use": "original_written_mission_no_external_content_copied",
+      "editorial_review": "draft_for_parent_pilot"
+    },
+    {
+      "id": "family_turns",
+      "title": "우리 가족 차례 회의",
+      "category": "우리집 프로젝트",
+      "status": "playable",
+      "age_min": 7,
+      "age_max": 9,
+      "difficulty": "intermediate",
+      "format": "guided_family_project",
+      "skills": [
+        "협력",
+        "공정성",
+        "규칙 설계"
+      ],
+      "minutes_on_screen": 8,
+      "source_ids": [
+        "PZ_VIEW"
+      ],
+      "rights_use": "original_written_mission_no_external_content_copied",
+      "editorial_review": "draft_for_parent_pilot"
+    },
+    {
+      "id": "sorting_cards",
+      "title": "카드를 정리하는 로봇",
+      "category": "규칙·논리 실험실",
+      "status": "playable",
+      "age_min": 7,
+      "age_max": 9,
+      "difficulty": "beginner",
+      "format": "guided_family_project",
+      "skills": [
+        "분류",
+        "알고리즘",
+        "디버깅"
+      ],
+      "minutes_on_screen": 8,
+      "source_ids": [
+        "CS_SORT",
+        "PBS_CS"
+      ],
+      "rights_use": "original_written_mission_no_external_content_copied",
+      "editorial_review": "draft_for_parent_pilot"
+    },
+    {
+      "id": "route_debug",
+      "title": "로봇에게 길을 알려줘",
+      "category": "규칙·논리 실험실",
+      "status": "playable",
+      "age_min": 7,
+      "age_max": 9,
+      "difficulty": "beginner",
+      "format": "guided_family_project",
+      "skills": [
+        "순서 계획",
+        "오류 수정",
+        "공간 추론"
+      ],
+      "minutes_on_screen": 8,
+      "source_ids": [
+        "PBS_CS",
+        "CS_ERROR"
+      ],
+      "rights_use": "original_written_mission_no_external_content_copied",
+      "editorial_review": "draft_for_parent_pilot"
+    },
+    {
+      "id": "snack_votes",
+      "title": "가족 간식 투표를 설계해 봐",
+      "category": "수학·자료 탐험",
+      "status": "playable",
+      "age_min": 7,
+      "age_max": 9,
+      "difficulty": "intermediate",
+      "format": "guided_family_project",
+      "skills": [
+        "자료 비교",
+        "의사결정",
+        "공정성"
+      ],
+      "minutes_on_screen": 8,
+      "source_ids": [
+        "EBS_CREATIVE"
+      ],
+      "rights_use": "original_written_mission_no_external_content_copied",
+      "editorial_review": "draft_for_parent_pilot"
+    },
+    {
+      "id": "fair_share",
+      "title": "블록 아홉 개를 나누는 방법",
+      "category": "수학·자료 탐험",
+      "status": "playable",
+      "age_min": 7,
+      "age_max": 9,
+      "difficulty": "beginner",
+      "format": "guided_family_project",
+      "skills": [
+        "수 감각",
+        "공정성",
+        "제약 이해"
+      ],
+      "minutes_on_screen": 8,
+      "source_ids": [
+        "CS_SORT"
+      ],
+      "rights_use": "original_written_mission_no_external_content_copied",
+      "editorial_review": "draft_for_parent_pilot"
+    },
+    {
+      "id": "reusable_pack",
+      "title": "소풍 쓰레기를 줄이는 가방",
+      "category": "자연과 지구",
+      "status": "playable",
+      "age_min": 7,
+      "age_max": 9,
+      "difficulty": "beginner",
+      "format": "guided_family_project",
+      "skills": [
+        "문제 정의",
+        "환경 영향",
+        "개선"
+      ],
+      "minutes_on_screen": 8,
+      "source_ids": [
+        "NASA_K4"
+      ],
+      "rights_use": "original_written_mission_no_external_content_copied",
+      "editorial_review": "draft_for_parent_pilot"
+    },
+    {
+      "id": "seed_sun",
+      "title": "식물은 어디에서 더 잘 자랄까?",
+      "category": "자연과 지구",
+      "status": "playable",
+      "age_min": 7,
+      "age_max": 9,
+      "difficulty": "intermediate",
+      "format": "guided_family_project",
+      "skills": [
+        "가설",
+        "장기 관찰",
+        "조건 비교"
+      ],
+      "minutes_on_screen": 9,
+      "source_ids": [
+        "PBS_AGE7",
+        "NASA_FAMILY"
+      ],
+      "rights_use": "original_written_mission_no_external_content_copied",
+      "editorial_review": "draft_for_parent_pilot"
+    },
+    {
+      "id": "picture_clues",
+      "title": "사라진 그림 속 단서",
+      "category": "문제 탐정단",
+      "status": "idea_backlog",
+      "difficulty": "beginner",
+      "age_min": 7,
+      "age_max": 9,
+      "format": "guided_family_project",
+      "premise": "같은 장면을 두 번 보며 달라진 점을 근거로 설명",
+      "source_ids": [
+        "SMITH_OBJECT"
+      ],
+      "rights_use": "independent_original_design_required",
+      "editorial_review": "pending"
+    },
+    {
+      "id": "broken_schedule",
+      "title": "바뀐 일정의 숨은 문제",
+      "category": "문제 탐정단",
+      "status": "idea_backlog",
+      "difficulty": "intermediate",
+      "age_min": 7,
+      "age_max": 9,
+      "format": "guided_family_project",
+      "premise": "가족 일정의 사실과 예상 문제를 구분하기",
+      "source_ids": [
+        "PZ_STW"
+      ],
+      "rights_use": "independent_original_design_required",
+      "editorial_review": "pending"
+    },
+    {
+      "id": "shadow_length",
+      "title": "그림자는 언제 달라질까?",
+      "category": "과학 탐구실",
+      "status": "idea_backlog",
+      "difficulty": "intermediate",
+      "age_min": 7,
+      "age_max": 9,
+      "format": "guided_family_project",
+      "premise": "같은 물건의 그림자를 시간대별로 비교하며 변인 생각",
+      "source_ids": [
+        "PBS_AGE7"
+      ],
+      "rights_use": "independent_original_design_required",
+      "editorial_review": "pending"
+    },
+    {
+      "id": "sound_soft",
+      "title": "소리를 줄이는 재료",
+      "category": "과학 탐구실",
+      "status": "idea_backlog",
+      "difficulty": "intermediate",
+      "age_min": 7,
+      "age_max": 9,
+      "format": "guided_family_project",
+      "premise": "같은 위치와 소리로 재료 차이를 비교",
+      "source_ids": [
+        "RSC_PRIMARY"
+      ],
+      "rights_use": "independent_original_design_required",
+      "editorial_review": "pending"
+    },
+    {
+      "id": "paper_tower",
+      "title": "종이로 더 높은 탑 만들기",
+      "category": "발명 연구실",
+      "status": "idea_backlog",
+      "difficulty": "intermediate",
+      "age_min": 7,
+      "age_max": 9,
+      "format": "guided_family_project",
+      "premise": "종이 수 제한을 정하고 무너지지 않는 탑 설계",
+      "source_ids": [
+        "TE_DESIGN"
+      ],
+      "rights_use": "independent_original_design_required",
+      "editorial_review": "pending"
+    },
+    {
+      "id": "boat_float",
+      "title": "물이 새지 않는 장난감 배",
+      "category": "발명 연구실",
+      "status": "idea_backlog",
+      "difficulty": "intermediate",
+      "age_min": 7,
+      "age_max": 9,
+      "format": "guided_family_project",
+      "premise": "깨끗한 물과 큰 소재로 모형 배의 안정성 시험",
+      "source_ids": [
+        "PBS_SOLVE"
+      ],
+      "rights_use": "independent_original_design_required",
+      "editorial_review": "pending"
+    },
+    {
+      "id": "two_endings",
+      "title": "한 사건, 두 가지 결말",
+      "category": "이야기 법정",
+      "status": "idea_backlog",
+      "difficulty": "beginner",
+      "age_min": 7,
+      "age_max": 9,
+      "format": "guided_family_project",
+      "premise": "같은 등장인물 행동에서 다른 결말과 영향 상상",
+      "source_ids": [
+        "PZ_VIEW"
+      ],
+      "rights_use": "independent_original_design_required",
+      "editorial_review": "pending"
+    },
+    {
+      "id": "promise_story",
+      "title": "약속을 지키지 못했을 때",
+      "category": "이야기 법정",
+      "status": "idea_backlog",
+      "difficulty": "intermediate",
+      "age_min": 7,
+      "age_max": 9,
+      "format": "guided_family_project",
+      "premise": "의도와 결과를 구분하고 갈등 해결 방법 제안",
+      "source_ids": [
+        "EBS_CREATIVE"
+      ],
+      "rights_use": "independent_original_design_required",
+      "editorial_review": "pending"
+    },
+    {
+      "id": "doorway_queue",
+      "title": "좁은 현관에서 함께 출발하기",
+      "category": "우리집 프로젝트",
+      "status": "idea_backlog",
+      "difficulty": "beginner",
+      "age_min": 7,
+      "age_max": 9,
+      "format": "guided_family_project",
+      "premise": "서로 방해하지 않는 출발 준비 규칙 설계",
+      "source_ids": [
+        "PBS_SOLVE"
+      ],
+      "rights_use": "independent_original_design_required",
+      "editorial_review": "pending"
+    },
+    {
+      "id": "library_order",
+      "title": "우리집 책 빌리기 규칙",
+      "category": "우리집 프로젝트",
+      "status": "idea_backlog",
+      "difficulty": "intermediate",
+      "age_min": 7,
+      "age_max": 9,
+      "format": "guided_family_project",
+      "premise": "서로 다른 대출 기간 요청에 합의안 만들기",
+      "source_ids": [
+        "PZ_VIEW"
+      ],
+      "rights_use": "independent_original_design_required",
+      "editorial_review": "pending"
+    },
+    {
+      "id": "parity_spot",
+      "title": "사라진 숫자 조각 찾기",
+      "category": "규칙·논리 실험실",
+      "status": "idea_backlog",
+      "difficulty": "intermediate",
+      "age_min": 7,
+      "age_max": 9,
+      "format": "guided_family_project",
+      "premise": "짝수 홀수 패턴에서 빠진 조각 검증",
+      "source_ids": [
+        "CS_ERROR"
+      ],
+      "rights_use": "independent_original_design_required",
+      "editorial_review": "pending"
+    },
+    {
+      "id": "rules_reverse",
+      "title": "반대로 움직이는 로봇",
+      "category": "규칙·논리 실험실",
+      "status": "idea_backlog",
+      "difficulty": "intermediate",
+      "age_min": 7,
+      "age_max": 9,
+      "format": "guided_family_project",
+      "premise": "기존 절차를 반대로 바꿀 때 오류 찾기",
+      "source_ids": [
+        "PBS_CS"
+      ],
+      "rights_use": "independent_original_design_required",
+      "editorial_review": "pending"
+    },
+    {
+      "id": "weather_count",
+      "title": "비 오는 날은 얼마나 많았을까?",
+      "category": "수학·자료 탐험",
+      "status": "idea_backlog",
+      "difficulty": "beginner",
+      "age_min": 7,
+      "age_max": 9,
+      "format": "guided_family_project",
+      "premise": "지난 7일 날씨 그림을 세어 비교표 만들기",
+      "source_ids": [
+        "NASA_K4"
+      ],
+      "rights_use": "independent_original_design_required",
+      "editorial_review": "pending"
+    },
+    {
+      "id": "route_compare",
+      "title": "가까운 길이 늘 빠를까?",
+      "category": "수학·자료 탐험",
+      "status": "idea_backlog",
+      "difficulty": "intermediate",
+      "age_min": 7,
+      "age_max": 9,
+      "format": "guided_family_project",
+      "premise": "걸음 수와 장애물 제약을 비교한 경로 계획",
+      "source_ids": [
+        "CS_SORT"
+      ],
+      "rights_use": "independent_original_design_required",
+      "editorial_review": "pending"
+    },
+    {
+      "id": "rain_collection",
+      "title": "빗물을 관찰하는 방법",
+      "category": "자연과 지구",
+      "status": "idea_backlog",
+      "difficulty": "intermediate",
+      "age_min": 7,
+      "age_max": 9,
+      "format": "guided_family_project",
+      "premise": "실외 빗물 수집은 보호자가 수행하고 날씨 기록 분석",
+      "source_ids": [
+        "NASA_K4"
+      ],
+      "rights_use": "independent_original_design_required",
+      "editorial_review": "pending"
+    },
+    {
+      "id": "animal_habitat",
+      "title": "동물에게 좋은 쉼터는?",
+      "category": "자연과 지구",
+      "status": "idea_backlog",
+      "difficulty": "beginner",
+      "age_min": 7,
+      "age_max": 9,
+      "format": "guided_family_project",
+      "premise": "모형 동물의 조건을 비교하고 서식환경 설계",
+      "source_ids": [
+        "SMITH_OBJECT"
+      ],
+      "rights_use": "independent_original_design_required",
+      "editorial_review": "pending"
+    }
+  ]
+}

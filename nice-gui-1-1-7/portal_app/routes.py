@@ -20,6 +20,7 @@ from .pattern_train import render_pattern_train
 from .ai.companion import COMPANION_ASSET_TAGS, inject_companion_assets, companion_chat  # Registers the child UI and disabled-by-default API.
 from .registry import get_world
 from .schemas import Activity
+from .thinking_lab import recent_thinking_progress
 
 
 HANJA_URL = "/hanja"
@@ -332,6 +333,8 @@ def register_pages() -> None:
 
             _section_title("빠른 시작", "자주 쓰는 학습과 게임으로 바로 이동합니다.")
             with ui.element("section").classes("portal-quick"):
+                _portal_card("/portal/thinking", "🔎 생각탐험 연구소",
+                             "문제 발견부터 현실 실험과 성찰까지, 가족과 함께 도전", "새로운 탐험", "portal-game-green")
                 _portal_card(EDUNI_SURVIVAL_URL, "🎮 마주치지 마! 3D 서바이벌",
                              "🌴 정글 · ❄️ 북극 · 🏺 피라미드 · 3D/2D 모드 · 모바일 조작", "3D 모험", "portal-game-jungle")
                 _portal_card(EDUNI_GAME_PORTAL_URL, "🎲 게임 모아보기",
@@ -351,6 +354,7 @@ def register_pages() -> None:
 
             _section_title("학습 세계", "동적 포털의 실제 학습 경로와 맞췄습니다.")
             with ui.element("section").classes("portal-worlds"):
+                _portal_card("/portal/thinking", "생각탐험 연구소", "문제 발견 · 해결 · 실험 · 성찰", "탐험", icon="?", accent="#0f766e")
                 _portal_card(HANJA_URL, "한자마을", "한자 시험과 한자 게임으로 이동", "운영 중", icon="漢", accent="#e11d48")
                 _portal_card("/portal/world/math", "수학탐험대", "패턴 기차와 정글 탐험 활동", "포털", icon="+", accent="#7c3aed")
                 _portal_card(EDUNI_PHONICS_URL, "영어 · 소리톡 파닉스", "소리 읽기 · 단어 합치기 · 따라 말하기", "신규", icon="A", accent="#2563eb")
@@ -390,6 +394,9 @@ def register_pages() -> None:
     def world_page(world_id: str) -> None:
         if world_id == "english":
             ui.navigate.to(EDUNI_PHONICS_URL)
+            return
+        if world_id == "thinking":
+            ui.navigate.to("/portal/thinking")
             return
         _head()
         world = get_world(world_id)
@@ -458,6 +465,13 @@ def register_pages() -> None:
             def show_dashboard() -> None:
                 dashboard.clear()
                 with dashboard:
+                    thinking = recent_thinking_progress(child_profile_id=default_child_profile_id())
+                    if thinking:
+                        with ui.card().classes("portal-card"):
+                            ui.label("생각탐험 진행 기록").classes("text-h6 text-weight-bold")
+                            for record in thinking:
+                                state = "완료" if record["completed"] else f'{record["step_index"]}/5단계'
+                                ui.label(f'{record["title"]} · {state} · {record["updated_at"]}').classes("muted")
                     with ui.card().classes("portal-card"):
                         ui.label("최근 학습 기록").classes("text-h6 text-weight-bold")
                         activity_titles = {activity.id: activity.title for activity in load_activities()}

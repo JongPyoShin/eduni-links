@@ -1,0 +1,51 @@
+name: EDUNI thinking selection focused check
+on:
+  push:
+    branches:
+      - feature/eduni-thinking-pilots-20261124
+    paths:
+      - 'nice-gui-1-1-7/portal_app/thinking_pilot.py'
+      - 'nice-gui-1-1-7/portal_app/thinking_lab.py'
+      - 'nice-gui-1-1-7/tests/test_thinking_lab.py'
+      - '.github/workflows/eduni-thinking-choice.yml'
+  pull_request:
+    paths:
+      - 'nice-gui-1-1-7/portal_app/thinking_pilot.py'
+      - 'nice-gui-1-1-7/portal_app/thinking_lab.py'
+      - 'nice-gui-1-1-7/tests/test_thinking_lab.py'
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install existing requirements
+        run: python -m pip install -r nice-gui-1-1-7/requirements.txt
+      - name: Selection behavior and affected thinking tests
+        working-directory: nice-gui-1-1-7
+        run: |
+          python -m compileall -q portal_app/thinking_pilot.py portal_app/thinking_lab.py tests/test_thinking_lab.py
+          python -m unittest discover -s tests -p test_thinking_lab.py
+      - name: Two affected routes smoke
+        working-directory: nice-gui-1-1-7
+        run: |
+          export EDUNI_HOST=127.0.0.1 PORT=18089 EDUNI_PORTAL_DB="$RUNNER_TEMP/choice-smoke.sqlite3"
+          python app.py > "$RUNNER_TEMP/choice-smoke.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for i in $(seq 1 25); do
+            if curl -sf --max-time 2 http://127.0.0.1:18089/portal >/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          if [ "$ready" != 1 ]; then tail -60 "$RUNNER_TEMP/choice-smoke.log"; exit 1; fi
+          for path in /portal/thinking/playground /portal/thinking/water_absorb /portal/thinking/paper_bridge; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "http://127.0.0.1:18089$path")
+            echo "$path -> $code"
+            test "$code" = 200 || { tail -60 "$RUNNER_TEMP/choice-smoke.log"; exit 1; }
+          done

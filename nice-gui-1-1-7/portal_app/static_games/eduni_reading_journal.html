@@ -1764,7 +1764,7 @@
         try {
           const allRecords = await fetchAllRecords({});
           if (generation !== memoryRequestGeneration) return;
-          memoryRecords = allRecords.filter((record) => record.status === 'completed');
+          memoryRecords = allRecords;
           renderMemories();
         } catch (error) {
           if (generation === memoryRequestGeneration) memoryStatus.textContent = error.message || '기억을 불러오지 못했어요.';

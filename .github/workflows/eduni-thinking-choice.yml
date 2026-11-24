@@ -5,12 +5,14 @@ on:
       - feature/eduni-thinking-pilots-20261124
     paths:
       - 'nice-gui-1-1-7/portal_app/thinking_pilot.py'
+      - 'nice-gui-1-1-7/portal_app/thinking_expanded.py'
       - 'nice-gui-1-1-7/portal_app/thinking_lab.py'
       - 'nice-gui-1-1-7/tests/test_thinking_lab.py'
       - '.github/workflows/eduni-thinking-choice.yml'
   pull_request:
     paths:
       - 'nice-gui-1-1-7/portal_app/thinking_pilot.py'
+      - 'nice-gui-1-1-7/portal_app/thinking_expanded.py'
       - 'nice-gui-1-1-7/portal_app/thinking_lab.py'
       - 'nice-gui-1-1-7/tests/test_thinking_lab.py'
 jobs:
@@ -29,7 +31,7 @@ jobs:
       - name: Selection behavior and affected thinking tests
         working-directory: nice-gui-1-1-7
         run: |
-          python -m compileall -q portal_app/thinking_pilot.py portal_app/thinking_lab.py tests/test_thinking_lab.py
+          python -m compileall -q portal_app/thinking_pilot.py portal_app/thinking_lab.py portal_app/thinking_expanded.py tests/test_thinking_lab.py
           python -m unittest discover -s tests -p test_thinking_lab.py
       - name: Install mobile browser test dependencies
         run: |
@@ -48,7 +50,7 @@ jobs:
             sleep 1
           done
           if [ "$ready" != 1 ]; then tail -60 "$RUNNER_TEMP/choice-smoke.log"; exit 1; fi
-          for path in /portal/thinking/playground /portal/thinking/water_absorb /portal/thinking/paper_bridge; do
+          for path in /portal/thinking/playground /portal/thinking/water_absorb /portal/thinking/paper_bridge /portal/thinking/missing_sign /portal/thinking/leaf_dry /portal/thinking/ball_run /portal/thinking/lost_toy /portal/thinking/raincoat_story /portal/thinking/tidy_room /portal/thinking/family_turns /portal/thinking/sorting_cards /portal/thinking/route_debug /portal/thinking/snack_votes /portal/thinking/fair_share /portal/thinking/reusable_pack /portal/thinking/seed_sun; do
             code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "http://127.0.0.1:18089$path")
             echo "$path -> $code"
             test "$code" = 200 || { tail -60 "$RUNNER_TEMP/choice-smoke.log"; exit 1; }

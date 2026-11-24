@@ -9,6 +9,7 @@ from typing import Any
 from nicegui import ui
 
 from .thinking_pilot import PILOT_IDS, PILOT_VERSION, render_pilot, update_choice_highlight
+from .thinking_expanded import VISUAL_IDS, VERSION as VISUAL_VERSION, visual_key, stage_for, simulate, render_visual
 
 from .database import (
     database_connection,
@@ -114,6 +115,7 @@ def save_choice(
     child_profile_id: int | None = None, path: Path | None = None,
     missions: dict[str, dict[str, Any]] | None = None,
     pilot_verified: bool = False,
+    visual: bool = False,
 ) -> dict[str, Any]:
     missions = missions if missions is not None else load_thinking_missions()
     mission = missions.get(mission_id)
@@ -121,12 +123,15 @@ def save_choice(
         raise ValueError("unknown mission")
     if type(step_index) is not int or not 0 <= step_index < len(STAGES):
         raise ValueError("invalid step")
-    choices = mission["steps"][step_index]["options"]
+    if visual and mission_id not in VISUAL_IDS:
+        raise ValueError("unknown visual mission")
+    storage_id = visual_key(mission_id) if visual else mission_id
+    choices = range(3) if visual else mission["steps"][step_index]["options"]
     if type(option_index) is not int or not 0 <= option_index < len(choices):
         raise ValueError("invalid choice")
     if type(revision) is not int or revision < 0:
         raise ValueError("invalid revision")
-    if mission_id in PILOT_IDS and step_index == 3 and pilot_verified is not True:
+    if (mission_id in PILOT_IDS or visual) and step_index == 3 and pilot_verified is not True:
         raise ValueError("family activity must be acknowledged before recording an outcome")
 
     init_thinking_storage(path)
@@ -138,25 +143,35 @@ def save_choice(
             """SELECT step_index, answers_json, completed, revision
                FROM thinking_mission_progress
                WHERE child_profile_id = ? AND mission_id = ?""",
-            (profile, mission_id),
+            (profile, storage_id),
         ).fetchone()
         if row is None:
             if step_index != 0 or revision != 0:
                 raise ProgressConflict("mission was changed")
             answers = {"0": option_index}
+            if visual:
+                answers["_visual_v"] = VISUAL_VERSION
             if mission_id in PILOT_IDS:
                 answers["_pilot_v"] = PILOT_VERSION
             conn.execute(
                 """INSERT INTO thinking_mission_progress
                    (child_profile_id, mission_id, step_index, answers_json, completed, revision, updated_at)
                    VALUES (?, ?, ?, ?, 0, 1, ?)""",
-                (profile, mission_id, 1, json.dumps(answers), utc_now()),
+                (profile, storage_id, 1, json.dumps(answers), utc_now()),
             )
         else:
             stored_step, stored_answers, completed, stored_revision = row
             if completed or stored_step != step_index or stored_revision != revision:
                 raise ProgressConflict("mission was changed")
             answers = json.loads(stored_answers)
+            if visual:
+                stage = stage_for(mission_id, step_index, answers)
+                if step_index == 3:
+                    if stage.get("screen") and option_index != simulate(mission_id, answers["1"])["outcome"]:
+                        raise ValueError("observation does not match screen result")
+                    answers["_activity_confirmed"] = "screen_model" if stage.get("screen") else "family_observation"
+                if step_index == 4 and not answers.get("_activity_confirmed"):
+                    raise ValueError("activity evidence missing")
             if mission_id in PILOT_IDS:
                 if answers.get("_pilot_v") != PILOT_VERSION:
                     raise ProgressConflict("legacy pilot progress cannot be silently reinterpreted")
@@ -173,12 +188,12 @@ def save_choice(
                          AND revision = ? AND completed = 0""",
                 (
                     next_step, json.dumps(answers), int(next_step == len(STAGES)),
-                    utc_now(), profile, mission_id, step_index, revision,
+                    utc_now(), profile, storage_id, step_index, revision,
                 ),
             )
             if cursor.rowcount != 1:
                 raise ProgressConflict("mission was changed")
-    return read_progress(mission_id, child_profile_id=profile, path=path)
+    return read_progress(storage_id, child_profile_id=profile, path=path)
 
 
 def recent_thinking_progress(
@@ -195,6 +210,7 @@ def recent_thinking_progress(
             (profile, max(1, min(limit, 30))),
         ).fetchall()
     titles = {mid: mission["title"] for mid, mission in load_thinking_missions().items()}
+    titles.update({visual_key(mid): titles[mid] + " (그림 미션)" for mid in VISUAL_IDS})
     return [
         {"mission_id": mid, "title": titles.get(mid, mid),
          "step_index": step, "completed": bool(done), "updated_at": updated}
@@ -220,7 +236,7 @@ def thinking_home() -> None:
                 with ui.card().classes("w-full p-4"):
                     ui.label(mission["title"]).classes("text-h6 text-weight-bold")
                     ui.label(
-                        "🖼️ 그림·선택 연결형" if mission["id"] in PILOT_IDS
+                        "🖼️ 그림·선택 연결형" if mission["id"] in PILOT_IDS or mission["id"] in VISUAL_IDS
                         else "📝 질문형 초안 · 보호자 동행 권장"
                     ).classes("text-caption text-teal-8")
                     ui.label(" · ".join(mission["skills"])).classes("text-caption text-grey-7")
@@ -231,13 +247,28 @@ def thinking_home() -> None:
 
 
 @ui.page("/portal/thinking/{mission_id}")
-def thinking_mission(mission_id: str) -> None:
+def thinking_mission(mission_id: str, legacy: bool = False) -> None:
     missions = load_thinking_missions()
     mission = missions.get(mission_id)
     with ui.column().classes("w-full max-w-3xl mx-auto p-4 gap-4"):
         ui.link("← 생각탐험 연구소", "/portal/thinking")
         if mission is None:
             ui.label("미션을 찾을 수 없어요.").classes("text-h5")
+            return
+        if mission_id in VISUAL_IDS and not legacy:
+            profile = default_child_profile_id()
+            key = visual_key(mission_id)
+            progress = read_progress(key, child_profile_id=profile)
+            old = read_progress(mission_id, child_profile_id=profile)
+            if old["step_index"] > 0:
+                ui.link("이전 질문형 기록 보기", f"/portal/thinking/{mission_id}?legacy=true")
+            def save_visual(step, option, revision, verified):
+                return save_choice(mission_id, step, option, revision, child_profile_id=profile,
+                                   missions=missions, pilot_verified=verified, visual=True)
+            def reload_visual():
+                return read_progress(key, child_profile_id=profile)
+            render_visual(mission_id, mission["title"], progress, save_visual, reload_visual,
+                          ProgressConflict, update_choice_highlight)
             return
         if mission_id in PILOT_IDS:
             profile = default_child_profile_id()

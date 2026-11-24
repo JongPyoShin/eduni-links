@@ -14,6 +14,7 @@ from portal_app.thinking_pilot import (
     PILOT_VERSION, PILOT_IDS, PLAY_ISSUES, WATER_PARTS,
     pilot_stage, scene_hit, scene_content, update_choice_highlight,
 )
+from portal_app.thinking_expanded import CONTENT, VISUAL_IDS, VERSION, visual_key, stage_for, simulate, scene_svg
 from portal_app.thinking_lab import (
     ProgressConflict,
     load_thinking_missions,
@@ -246,6 +247,44 @@ class ThinkingLabTests(unittest.TestCase):
         with self.assertRaises(ProgressConflict):
             save_choice("playground", 1, 0, 1, path=self.db)
         self.assertEqual({"0": 2}, read_progress("playground", path=self.db)["answers"])
+
+    def test_visual_catalog_all_fourteen_and_all_paths(self) -> None:
+        self.assertEqual(set(self.missions) - set(PILOT_IDS), set(VISUAL_IDS))
+        self.assertEqual(14, len(VISUAL_IDS))
+        for mid in VISUAL_IDS:
+            self.assertIn("<rect", scene_svg(mid))
+            for look in range(3):
+                for method in range(3):
+                    for prediction in range(3):
+                        for observed in range(3):
+                            answers = {"_visual_v": VERSION, "0": look, "1": method, "2": prediction, "3": observed}
+                            stages = [stage_for(mid, step, answers) for step in range(5)]
+                            self.assertTrue(all(len(stage["options"]) == 3 for stage in stages))
+                            self.assertIn(CONTENT[mid]["goal"], stages[2]["context"])
+                            self.assertIn(CONTENT[mid]["methods"][method][1], stages[3]["offline"])
+                            self.assertIn(CONTENT[mid]["observed"][observed], stages[4]["context"])
+
+    def test_visual_screen_results_and_isolated_legacy_records(self) -> None:
+        for mid, expected in (("sorting_cards", [1,0,0]), ("route_debug", [0,1,1]), ("fair_share", [1,0,1])):
+            self.assertEqual(expected, [simulate(mid, i)["outcome"] for i in range(3)])
+        for mid in VISUAL_IDS:
+            old = save_choice(mid, 0, 0, 0, path=self.db)
+            state = read_progress(visual_key(mid), path=self.db)
+            for step in range(3):
+                state = save_choice(mid, step, 0, state["revision"], path=self.db, visual=True)
+            with self.assertRaises(ValueError):
+                save_choice(mid, 3, 0, state["revision"], path=self.db, visual=True)
+            index = simulate(mid, 0)["outcome"] if CONTENT[mid].get("screen") else 0
+            if CONTENT[mid].get("screen"):
+                with self.assertRaises(ValueError):
+                    save_choice(mid, 3, 1-index, state["revision"], path=self.db, visual=True, pilot_verified=True)
+            state = save_choice(mid, 3, index, state["revision"], path=self.db, visual=True, pilot_verified=True)
+            self.assertEqual(4, read_progress(visual_key(mid), path=self.db)["step_index"])
+            with self.assertRaises(ProgressConflict):
+                save_choice(mid, 3, index, state["revision"]-1, path=self.db, visual=True, pilot_verified=True)
+            state = save_choice(mid, 4, 0, state["revision"], path=self.db, visual=True)
+            self.assertTrue(state["completed"])
+            self.assertEqual(old, read_progress(mid, path=self.db))
 
     def test_invalid_choice_and_out_of_order_steps_rejected(self) -> None:
         with self.assertRaises(ValueError):

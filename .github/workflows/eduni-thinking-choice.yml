@@ -1,0 +1,245 @@
+name: EDUNI thinking selection focused check
+on:
+  push:
+    branches:
+      - feature/eduni-thinking-pilots-20261124
+    paths:
+      - 'nice-gui-1-1-7/portal_app/thinking_pilot.py'
+      - 'nice-gui-1-1-7/portal_app/thinking_expanded.py'
+      - 'nice-gui-1-1-7/portal_app/thinking_parent.py'
+      - 'nice-gui-1-1-7/portal_app/thinking_lab.py'
+      - 'nice-gui-1-1-7/tests/test_thinking_lab.py'
+      - '.github/workflows/eduni-thinking-choice.yml'
+  pull_request:
+    paths:
+      - 'nice-gui-1-1-7/portal_app/thinking_pilot.py'
+      - 'nice-gui-1-1-7/portal_app/thinking_expanded.py'
+      - 'nice-gui-1-1-7/portal_app/thinking_parent.py'
+      - 'nice-gui-1-1-7/portal_app/thinking_lab.py'
+      - 'nice-gui-1-1-7/tests/test_thinking_lab.py'
+jobs:
+  focused:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install existing requirements
+        run: python -m pip install -r nice-gui-1-1-7/requirements.txt
+      - name: Selection behavior and affected thinking tests
+        working-directory: nice-gui-1-1-7
+        run: |
+          python -m compileall -q portal_app/thinking_pilot.py portal_app/thinking_lab.py portal_app/thinking_expanded.py portal_app/thinking_parent.py tests/test_thinking_lab.py
+          python -m unittest discover -s tests -p test_thinking_lab.py
+      - name: Install mobile browser test dependencies
+        run: |
+          python -m pip install playwright==1.51.0
+          python -m playwright install --with-deps chromium
+      - name: Affected routes and mobile browser touch test
+        working-directory: nice-gui-1-1-7
+        run: |
+          export EDUNI_HOST=127.0.0.1 PORT=18089 EDUNI_PORTAL_DB="$RUNNER_TEMP/choice-smoke.sqlite3"
+          python app.py > "$RUNNER_TEMP/choice-smoke.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for i in $(seq 1 25); do
+            if curl -sf --max-time 2 http://127.0.0.1:18089/portal >/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          if [ "$ready" != 1 ]; then tail -60 "$RUNNER_TEMP/choice-smoke.log"; exit 1; fi
+          for path in /portal/thinking/playground /portal/thinking/water_absorb /portal/thinking/paper_bridge /portal/thinking/missing_sign /portal/thinking/leaf_dry /portal/thinking/ball_run /portal/thinking/lost_toy /portal/thinking/raincoat_story /portal/thinking/tidy_room /portal/thinking/family_turns /portal/thinking/sorting_cards /portal/thinking/route_debug /portal/thinking/snack_votes /portal/thinking/fair_share /portal/thinking/reusable_pack /portal/thinking/seed_sun; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "http://127.0.0.1:18089$path")
+            echo "$path -> $code"
+            test "$code" = 200 || { tail -60 "$RUNNER_TEMP/choice-smoke.log"; exit 1; }
+          done
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright, expect
+
+          BASE = "http://127.0.0.1:18089/portal/thinking/"
+          NEXT = "저장하고 다음으로"
+          def text(page, value):
+              return page.get_by_text(value, exact=True)
+          def btn(page, name):
+              return page.get_by_role("button", name=name, exact=True)
+          def step(page, value):
+              expect(page.get_by_text(value, exact=False)).to_be_visible(timeout=10000)
+              assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"), "horizontal overflow"
+          def choose(page, value):
+              btn(page, value).tap()
+              expect(text(page, "선택: " + value)).to_be_visible(timeout=10000)
+              expect(btn(page, "✓ " + value)).to_have_attribute("aria-pressed", "true")
+              btn(page, NEXT).tap()
+          def open_page(page, mission):
+              page.goto(BASE + mission, wait_until="domcontentloaded")
+              step(page, "1/5 · 발견")
+              page.wait_for_timeout(1000) # allow the NiceGUI websocket handshake
+          def touch_scene(page, x, y, choice):
+              marker = page.locator(f'svg circle[cx="{x}"][cy="{y}"][stroke-dasharray]').first
+              expect(marker).to_be_visible(timeout=10000)
+              marker.scroll_into_view_if_needed()
+              bounds = marker.bounding_box()
+              assert bounds and bounds["width"] > 10, "scene marker invisible or collapsed"
+              page.touchscreen.tap(bounds["x"] + bounds["width"]/2, bounds["y"] + bounds["height"]/2)
+              expect(text(page, "선택: " + choice)).to_be_visible(timeout=10000)
+              expect(btn(page, "✓ " + choice)).to_have_attribute("aria-pressed", "true")
+              expect(page.locator(f'svg circle[cx="{x}"][cy="{y}"][stroke="#e5484d"]')).to_be_visible()
+              btn(page, NEXT).tap()
+          def gate_and_record(page, result, confirmation):
+              btn(page, result).tap()
+              expect(text(page, "선택: " + result)).to_be_visible()
+              expect(btn(page, "✓ " + result)).to_have_attribute("aria-pressed", "true")
+              btn(page, NEXT).tap()
+              expect(page.get_by_text("실제로 해보지 않았다면", exact=False)).to_be_visible(timeout=5000)
+              step(page, "4/5")
+              page.get_by_role("checkbox", name=confirmation, exact=False).tap()
+              btn(page, NEXT).tap()
+              step(page, "5/5")
+          def finish(page, choice):
+              btn(page, choice).tap()
+              expect(text(page, "선택: " + choice)).to_be_visible()
+              btn(page, "관찰 기록하고 완료").tap()
+              expect(text(page, "탐험을 마쳤어요! 🌟")).to_be_visible(timeout=10000)
+              page.reload(wait_until="domcontentloaded")
+              expect(text(page, "탐험을 마쳤어요! 🌟")).to_be_visible(timeout=10000)
+
+          with sync_playwright() as p:
+              browser = p.chromium.launch(headless=True)
+              nav = browser.new_context(viewport={"width": 320, "height": 844}, is_mobile=True, has_touch=True)
+              home = nav.new_page()
+              home.goto(BASE.rstrip("/"), wait_until="domcontentloaded")
+              science = home.get_by_role("link").filter(has_text="과학 실험실")
+              expect(science).to_have_count(1)
+              assert home.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
+              science.tap()
+              expect(home.get_by_role("link").filter(has_text="어느 나뭇잎이 먼저 마를까?")).to_be_visible()
+              expect(home.get_by_role("link").filter(has_text="무엇이 물을 빨리 빨아들일까?")).to_be_visible()
+              expect(home.get_by_role("link").filter(has_text="종이 다리 발명가")).to_have_count(0)
+              home.get_by_role("link").filter(has_text="무엇이 물을 빨리 빨아들일까?").tap()
+              step(home, "1/5")
+              home.get_by_role("link", name="← 과학 실험실", exact=True).tap()
+              expect(home.get_by_role("link").filter(has_text="어느 나뭇잎이 먼저 마를까?")).to_be_visible()
+              nav.close()
+              print("MOBILE_NAV_PASS: 320px tiles, category filtering, mission and return")
+              for width, mission in ((390, "playground"), (320, "water_absorb")):
+                  context = browser.new_context(
+                      viewport={"width": width, "height": 844},
+                      device_scale_factor=1, is_mobile=True, has_touch=True,
+                      locale="ko-KR",
+                  )
+                  page = context.new_page()
+                  errors = []
+                  page.on("pageerror", lambda error: errors.append(str(error)))
+                  try:
+                      open_page(page, mission)
+                      if mission == "playground":
+                          touch_scene(page, 445, 150, "그네를 기다리는 친구들")
+                          step(page, "2/5")
+                          parent_tip = page.get_by_text("부모 도움말 · 지도 포인트", exact=True)
+                          parent_tip.tap()
+                          expect(text(page, "공평한 차례")).to_be_visible()
+                          expect(text(page, "아이에게 물어볼 질문")).to_be_visible()
+                          parent_tip.tap()
+                          choose(page, "기다리는 시간이 비슷하도록 하기")
+                          step(page, "3/5")
+                          btn(page, "이전 단계").tap()
+                          step(page, "2/5")
+                          expect(btn(page, "✓ 기다리는 시간이 비슷하도록 하기")).to_have_attribute("aria-pressed", "true")
+                          btn(page, NEXT).tap()
+                          step(page, "3/5")
+                          choose(page, "어른과 함께 짧은 시간을 정해 번갈아 타기")
+                          step(page, "4/5")
+                          page.reload(wait_until="domcontentloaded")
+                          step(page, "4/5")
+                          page.wait_for_timeout(1000)
+                          gate_and_record(page, "한 친구가 훨씬 오래 기다렸어", "보호자와 역할놀이를 해봤어요")
+                          expect(text(page, "아직 문제가 남았네. 무엇을 바꿔볼까?")).to_be_visible()
+                          finish(page, "차례를 정하는 다른 방법도 해 볼래")
+                      else:
+                          touch_scene(page, 210, 194, "책상에 물이 고여 있어")
+                          step(page, "2/5")
+                          choose(page, "천수건 / 스펀지")
+                          step(page, "3/5")
+                          choose(page, "수건이 더 빠를 것 같아")
+                          step(page, "4/5")
+                          gate_and_record(page, "스펀지가 물을 먼저 빨아들였어", "보호자와 실제로 물 3방울씩 시험하고 관찰했어요")
+                          expect(text(page, "예상과 다른 결과가 나왔어. 무엇을 다시 해볼까?")).to_be_visible()
+                          finish(page, "같은 크기의 재료에 같은 양의 물을 떨어뜨려 다시 해 볼래")
+                      assert not errors, errors
+                      print(f"MOBILE_BROWSER_PASS: {mission} viewport={width} touch, branching, gate, persistence")
+                  except Exception:
+                      print("BROWSER_FAILURE:", mission, width)
+                      print(page.locator("body").inner_text()[:3000])
+                      raise
+                  finally:
+                      context.close()
+              context = browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=1, is_mobile=True, has_touch=True, locale="ko-KR")
+              page = context.new_page()
+              page.goto(BASE + "route_debug", wait_until="domcontentloaded")
+              step(page, "1/5")
+              page.wait_for_timeout(1000)
+              choose(page, "로봇의 시작 칸")
+              step(page, "2/5")
+              parent_tip = page.get_by_text("부모 도움말 · 지도 포인트", exact=True)
+              parent_tip.tap()
+              expect(text(page, "순서와 방향")).to_be_visible()
+              expect(text(page, "막히면 이렇게 도와주세요")).to_be_visible()
+              parent_tip.tap()
+              choose(page, "위·오른쪽·오른쪽·위")
+              step(page, "3/5")
+              choose(page, "로봇이 별까지 갈 것 같아")
+              step(page, "4/5")
+              btn(page, "벽에서 멈췄거나 다른 칸에 도착했어").tap()
+              btn(page, NEXT).tap()
+              expect(page.get_by_text("먼저 직접 해보고", exact=False)).to_be_visible()
+              btn(page, "화면에서 실행해 보기").tap()
+              expect(page.locator('svg polyline[stroke="#137d85"]')).to_have_count(1)
+              expect(page.locator("svg polyline")).to_have_attribute("points", "261,243 261,153")
+              btn(page, "별에 도착했어").tap()
+              btn(page, NEXT).tap()
+              expect(page.get_by_text("그림의 실제 결과를", exact=False)).to_be_visible()
+              btn(page, "벽에서 멈췄거나 다른 칸에 도착했어").tap()
+              btn(page, NEXT).tap()
+              step(page, "5/5")
+              expect(text(page, "생각과 다른 결과가 나왔네. 다음에는 무엇을 해 볼까?")).to_be_visible()
+              expect(page.locator('svg polyline[stroke="#137d85"]')).to_have_count(1)
+              expect(page.locator("svg polyline")).to_have_attribute("points", "261,243 261,153")
+              btn(page, "막힌 길을 피하도록 명령을 바꿔 볼래").tap()
+              btn(page, "탐험 완료").tap()
+              expect(text(page, "탐험을 마쳤어요! 🌟")).to_be_visible()
+              page.reload(wait_until="domcontentloaded")
+              expect(text(page, "탐험을 마쳤어요! 🌟")).to_be_visible()
+              btn(page, "처음부터 다시 보기").tap()
+              step(page, "1/5")
+              expect(btn(page, "✓ 로봇의 시작 칸")).to_have_attribute("aria-pressed", "true")
+              btn(page, NEXT).tap()
+              step(page, "2/5")
+              expect(btn(page, "✓ 위·오른쪽·오른쪽·위")).to_have_attribute("aria-pressed", "true")
+              btn(page, NEXT).tap()
+              step(page, "3/5")
+              expect(btn(page, "✓ 로봇이 별까지 갈 것 같아")).to_have_attribute("aria-pressed", "true")
+              btn(page, "별까지 못 갈 것 같아").tap()
+              btn(page, NEXT).tap()
+              step(page, "4/5")
+              expect(btn(page, "벽에서 멈췄거나 다른 칸에 도착했어")).to_have_attribute("aria-pressed", "false")
+              expect(page.locator("svg polyline")).to_have_count(0)
+              page.reload(wait_until="domcontentloaded")
+              step(page, "4/5")
+              btn(page, "미션 초기화").tap()
+              expect(text(page, "이 미션을 처음부터 다시 할까요?")).to_be_visible()
+              btn(page, "취소").tap()
+              step(page, "4/5")
+              btn(page, "미션 초기화").tap()
+              btn(page, "초기화하고 다시 시작").tap()
+              step(page, "1/5")
+              expect(btn(page, "로봇의 시작 칸")).to_have_attribute("aria-pressed", "false")
+              page.reload(wait_until="domcontentloaded")
+              step(page, "1/5")
+              print("MOBILE_BROWSER_PASS: route_debug back/review, invalidation, reset cancel/confirm and reload")
+              context.close()
+              browser.close()
+          PY

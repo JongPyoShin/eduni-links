@@ -273,6 +273,12 @@ class ThinkingLabTests(unittest.TestCase):
                             # Shared subject words are necessary; reject verbatim echo and the old summary prefix.
                             self.assertNotEqual(CONTENT[mid]["look"][look], stages[1]["context"])
                             self.assertFalse(stages[1]["context"].startswith("살펴본 곳:"))
+        leaf_answers = {"_visual_v": VERSION, "0": 0, "1": 2, "2": 0}
+        leaf_observations = stage_for("leaf_dry", 3, leaf_answers)
+        self.assertTrue(all("잎 표면의 물방울" in label for label in leaf_observations["options"][:2]))
+        self.assertIn("종이가 물방울을 흡수", CONTENT["leaf_dry"]["methods"][2][1])
+        from portal_app.thinking_parent import parent_guide
+        self.assertIn("눈에 보인 물방울만 기록", " ".join(parent_guide("leaf_dry", 3, leaf_answers)))
 
     def test_visual_screen_results_and_isolated_legacy_records(self) -> None:
         for mid, expected in (("sorting_cards", [1,0,0]), ("route_debug", [0,1,1]), ("fair_share", [1,0,1])):

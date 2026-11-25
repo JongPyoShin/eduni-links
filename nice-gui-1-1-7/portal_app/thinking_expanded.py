@@ -99,13 +99,13 @@ CONTENT = json.loads(r'''{
       ],
       [
         "종이 위와 접시 위",
-        "같은 장소에서 한 잎은 종이, 다른 잎은 접시에 놓아요."
+        "같은 장소에서 한 잎은 종이, 다른 잎은 접시에 놓아요. 종이가 물방울을 흡수할 수 있으니 잎이 마른 것과 구분해 관찰해요."
       ]
     ],
     "activity": "비슷한 잎 2장에 같은 물 3방울을 놓고 시작해요. 10분마다 어른과 함께 살펴보고 먼저 표면 물방울이 사라진 쪽을 기록해요. 가열하지 않아요.",
     "observed": [
-      "첫 번째 조건의 잎이 먼저 말랐어",
-      "두 번째 조건의 잎이 먼저 말랐어",
+      "첫 번째 조건 쪽 잎 표면의 물방울이 먼저 사라졌어",
+      "두 번째 조건 쪽 잎 표면의 물방울이 먼저 사라졌어",
       "비슷하거나 구별하기 어려웠어"
     ],
     "compare": true,
@@ -823,7 +823,7 @@ def stage_for(mid: str, step: int, answers: dict[str, Any]) -> dict[str, Any]:
         return dict(label="결과 예상하기", prompt=question, options=options,
                     context="해 볼 방법: " + method[0], hint="어떤 결과가 나올지 이유를 물어보세요. 틀려도 괜찮습니다.")
     predicted = stage_for(mid, 2, answers)["options"][answers["2"]]
-    observations = ([f"{conditions[0]} 쪽이 먼저 말랐어",f"{conditions[1]} 쪽이 먼저 말랐어",d["observed"][2]]
+    observations = ([f"{conditions[0]} 잎 표면의 물방울이 먼저 사라졌어",f"{conditions[1]} 잎 표면의 물방울이 먼저 사라졌어",d["observed"][2]]
                     if mid == "leaf_dry" else
                     [f"{conditions[0]} 쪽이 더 많이 자랐어",f"{conditions[1]} 쪽이 더 많이 자랐어",d["observed"][2]]
                     if mid == "seed_sun" else d["observed"])

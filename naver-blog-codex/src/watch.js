@@ -57,11 +57,14 @@ async function validateOrigin(value) {
   return url.origin;
 }
 
-async function confirmedOrigin(option) {
+async function confirmedOrigin(option, promptIfMissing = true) {
   let saved;
   try { saved = JSON.parse(await fs.readFile(ORIGIN_FILE, 'utf8')).origin; } catch (_) {}
-  const origin = await validateOrigin(option || saved || await ask('EDUNI origin (for example https://portal.example): '));
+  const configured = option || saved;
+  if (!configured && !promptIfMissing) fail('No EDUNI origin is configured; run npm run watch:configure or pass --origin.');
+  const origin = await validateOrigin(configured || await ask('EDUNI origin (for example https://portal.example): '));
   if (saved !== origin) {
+    if (!promptIfMissing) fail('This EDUNI origin is not saved; run npm run watch:configure to confirm it before unattended scheduling.');
     if ((await ask('Type this exact origin to allow the watcher and media helper to use it: ' + origin + '\nConfirm: ')).trim() !== origin) fail('Origin confirmation did not match.');
     await fs.writeFile(ORIGIN_FILE, JSON.stringify({ origin }, null, 2) + '\n', { mode: 0o600 });
   }
@@ -168,7 +171,8 @@ async function readState() {
       || (value.processedThroughId !== undefined && (!Number.isSafeInteger(value.processedThroughId) || value.processedThroughId < 0))
       || (value.processedRecordIds !== undefined && (!Array.isArray(value.processedRecordIds)
         || value.processedRecordIds.some((id) => !Number.isSafeInteger(id) || id < 0)))
-      || (value.lastScheduledDate !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(value.lastScheduledDate))) {
+      || (value.lastScheduledDate !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(value.lastScheduledDate))
+      || (value.runInProgressDate !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(value.runInProgressDate))) {
       fail('Invalid watcher state; preserve and inspect watch-state.json.');
     }
     return value;
@@ -346,7 +350,7 @@ function selectDraftMedia(stableMedia, selectedPhotoIds) {
   return stableMedia.filter((item) => item.kind === 'video' || ids.has(item.id));
 }
 
-async function processRecord(origin, record, settings, state) {
+async function processRecord(origin, record, settings, state, allowParentNotePrompt = true) {
   if (record.status === 'draft') {
     await log('Record ' + record.id + ': status=draft; monitoring only and waiting for registration completion before GPT writing.');
     return;
@@ -377,7 +381,10 @@ async function processRecord(origin, record, settings, state) {
   }
   const include_parent_note = settings.parentNotePolicy === 'always'
     ? true
-    : settings.parentNotePolicy === 'ask' ? await parentNoteChoice() : false;
+    : settings.parentNotePolicy === 'ask' && allowParentNotePrompt ? await parentNoteChoice() : false;
+  if (settings.parentNotePolicy === 'ask' && !allowParentNotePrompt) {
+    await log('Record ' + record.id + ': parent note omitted because this scheduled run is unattended.');
+  }
   await log('Record ' + record.id + ': requesting article generation through EDUNI GPT.');
   const data = await api(origin, '/reading/api/records/' + record.id + '/blog-draft', {
     method: 'POST', body: JSON.stringify({ tone: blogSettings.blog_tone, include_parent_note }),
@@ -420,14 +427,18 @@ async function main() {
   const args = process.argv.slice(2);
   const latestOnly = args.includes('--latest');
   const configure = args.includes('--configure');
+  let recordId;
   let originArg = null;
   for (let i = 0; i < args.length; i += 1) {
     if (args[i] === '--origin') originArg = args[++i];
-    else if (args[i] !== '--latest' && args[i] !== '--configure') fail('Usage: npm run watch -- [--origin https://portal.example] [--latest] [--configure]');
+    else if (args[i] === '--record-id') {
+      recordId = Number(args[++i]);
+      if (!Number.isSafeInteger(recordId) || recordId < 1) fail('Invalid reading record ID.');
+    } else if (args[i] !== '--latest' && args[i] !== '--configure') fail('Usage: npm run watch -- [--origin https://portal.example] [--latest | --record-id ID | --configure]');
   }
-  if (configure && latestOnly) fail('--configure and --latest cannot be used together.');
+  if (Number(configure) + Number(latestOnly) + Number(recordId !== undefined) > 1) fail('Choose one watcher mode.');
   if (originArg && !originArg.trim()) fail('Origin is required after --origin.');
-  const origin = await confirmedOrigin(originArg);
+  const origin = await confirmedOrigin(originArg, configure || latestOnly || recordId !== undefined);
   if (configure) {
     const current = await readSettings();
     const settings = { ...current, tone: await chooseTone(), parentNotePolicy: await chooseParentNotePolicy() };
@@ -454,6 +465,12 @@ async function main() {
     state.processedRecordIds = [];
     await writeState(state);
   }
+  if (recordId !== undefined) {
+    const record = (await recordsAfter(origin, recordId - 1)).find((item) => item.id === recordId);
+    if (!record || record.status !== 'completed') fail('Select a completed reading record.');
+    await processRecord(origin, record, settings, state);
+    return;
+  }
   if (latestOnly) {
     if (!latest) fail('No reading records found.');
     if (!recordWasProcessed(state, latest.id)) await processRecord(origin, latest, settings, state);
@@ -463,14 +480,14 @@ async function main() {
   await log('Watcher started; daily schedule=' + settings.dailyAt + ' local ('
     + Intl.DateTimeFormat().resolvedOptions().timeZone + '); baseline=' + state.baselineId + ', lastProcessed=' + state.lastGeneratedId + '.');
   for (;;) {
-    const nextRun = nextDailyRunAt(new Date(), settings.dailyAt, state.lastScheduledDate || null);
+    const nextRun = state.runInProgressDate ? new Date() : nextDailyRunAt(new Date(), settings.dailyAt, state.lastScheduledDate || null);
     const delay = Math.max(0, nextRun.getTime() - Date.now());
     if (delay > 0) {
       await log('Next EDUNI check at ' + localDateTimeLabel(nextRun) + ' (' + Intl.DateTimeFormat().resolvedOptions().timeZone + ').');
       await sleep(delay);
     }
 
-    state.lastScheduledDate = localDateKey(new Date());
+    state.runInProgressDate = localDateKey(new Date());
     await writeState(state);
     await log('Daily run started; checking for new reading records.');
     let page;
@@ -485,27 +502,34 @@ async function main() {
     const pending = page.filter((record) => record.id > state.processedThroughId && !processed.has(record.id));
     if (!pending.length) {
       await log('No new, unprocessed reading records at the scheduled time; waiting for the next daily run.');
+      state.lastScheduledDate = state.runInProgressDate;
+      delete state.runInProgressDate;
+      await writeState(state);
       continue;
     }
     const draftCount = pending.filter((record) => record.status === 'draft').length;
     await log('Daily run found ' + pending.length + ' unprocessed record(s): ' + draftCount + ' temporary, '
       + (pending.length - draftCount) + ' completed; processing in record order.');
     for (const record of pending) {
-      for (;;) {
+      for (let attempt = 1; attempt <= 2; attempt += 1) {
         await log('Detected new record ' + record.id + ' (status=' + record.status + ').');
         try {
-          await processRecord(origin, record, settings, state);
+          await processRecord(origin, record, settings, state, false);
           break;
         } catch (error) {
           if (error.code === 'reading_record_draft') {
             await log('Record ' + record.id + ': changed back to temporary-save status; deferring until the next daily run.');
             break;
           }
-          await log('Record ' + record.id + ' was not completed and remains pending; retrying in 60 seconds: ' + error.message, 'ERROR');
+          await log('Record ' + record.id + ' remains pending: ' + error.message, 'ERROR');
+          if (attempt === 2) break;
           await sleep(RETRY_MS);
         }
       }
     }
+    state.lastScheduledDate = state.runInProgressDate;
+    delete state.runInProgressDate;
+    await writeState(state);
   }
 }
 

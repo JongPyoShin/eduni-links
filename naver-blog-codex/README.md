@@ -16,7 +16,7 @@ The last command opens a separate Chromium window at Naver login. Sign in and co
 
 ## Draft source
 
-The watcher reads the record's saved blog note, saved tone, and blog-use media directly from EDUNI, then writes a private local recovery JSON and opens the Naver helper. The JSON is not a Naver blog draft: a record counts as processed only after the helper confirms Naver's temporary-save result. No per-record JSON download or manual file move is required. Notes and tone are managed on the reading record in EDUNI. The browser helper attaches selected media and temporary-saves the post after verifying the editor state. It never publishes.
+The watcher reads the record's saved blog note, saved tone, and blog-use media directly from EDUNI, then writes a private local recovery JSON and opens the Naver helper. The JSON is not a Naver blog draft: a record counts as processed only after the helper confirms Naver's temporary-save result. No per-record JSON download or manual file move is required. Notes and tone are managed on the reading record in EDUNI. The reusable writing guide is edited at `/reading/blog-writing-guide` and stored with the reading data; the GPT writer receives it along with the record-specific note. The browser helper attaches selected media and temporary-saves the post after verifying the editor state. It never publishes.
 
 ## Watch for new reading records
 

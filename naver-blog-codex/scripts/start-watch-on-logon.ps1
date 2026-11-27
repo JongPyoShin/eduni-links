@@ -5,7 +5,6 @@ $Node = (Get-Command node.exe -ErrorAction Stop).Source
 & $Node (Join-Path $HelperRoot 'src\watch.js')
 $ExitCode = $LASTEXITCODE
 if ($ExitCode -ne 0) {
-  Write-Host "EDUNI blog watcher exited with code $ExitCode."
-  [void](Read-Host 'Press Enter to close this window')
+  Write-Host "EDUNI blog watcher exited with code $ExitCode. See watcher.log."
 }
 exit $ExitCode

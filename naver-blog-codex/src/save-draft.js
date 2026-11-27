@@ -148,6 +148,11 @@ async function downloadMedia(draft, origin) {
     const url = new URL(item.url);
     const addresses = await resolvePinnedAddresses(url.hostname, url.protocol);
     const response = await requestPinned(url, addresses);
+    if (response.statusCode === 404 && item.kind === 'image') {
+      response.destroy();
+      await log('Photo ' + (item.position + 1) + ' is unavailable in EDUNI (404); skipping it.');
+      continue;
+    }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       response.destroy();
       fail('Media ' + (index + 1) + ' returned HTTP ' + response.statusCode + '; redirects and failed requests are rejected.');
@@ -183,11 +188,6 @@ async function downloadMedia(draft, origin) {
 async function uniqueLocator(locator) {
   const count = await locator.count().catch(() => 0);
   return count === 1 && await locator.isVisible().catch(() => false) ? locator : null;
-}
-
-async function waitForBrowserClose(context) {
-  process.exitCode = 1;
-  await new Promise((resolve) => context.once('close', resolve));
 }
 
 async function waitForEditorText(page, locator, expected) {
@@ -237,6 +237,49 @@ async function typeEditorText(page, locator, value) {
   }
 }
 
+function planPhotoPlacement(value, media) {
+  const lines = [];
+  const placements = [];
+  const photos = new Map(media.filter((item) => item.kind === 'image').map((item) => [item.position + 1, item]));
+  for (const line of value.replace(/\r\n?/g, '\n').split('\n')) {
+    const marker = line.trim().match(/^\[\[PHOTO:(\d{1,3})\]\]$/);
+    if (!marker) {
+      if (line.trim() || lines.at(-1)?.trim()) lines.push(line);
+      continue;
+    }
+    const photo = photos.get(Number(marker[1]));
+    let after = lines.length - 1;
+    while (after >= 0 && !lines[after].trim()) after -= 1;
+    if (!photo) continue;
+    if (after < 0) fail('Invalid blog photo placement.');
+    after = lines.slice(0, after + 1).filter((text) => text.trim()).length - 1;
+    photos.delete(Number(marker[1]));
+    const previous = placements.at(-1);
+    if (previous?.after === after) previous.photos.push(photo);
+    else placements.push({ after, photos: [photo] });
+  }
+  if (placements.length && (photos.size || lines.filter((line) => line.trim()).length <= placements.at(-1).after + 1)) {
+    fail('Incomplete blog photo placement.');
+  }
+  return { body: lines.join('\n'), placements };
+}
+
+async function readPhotoOffsets(page) {
+  return page.locator('.se-section-text .se-text-paragraph, .se-component.se-image').evaluateAll((nodes) => {
+    const offsets = [];
+    let count = 0;
+    for (const node of nodes) {
+      if (node.matches('.se-component.se-image')) offsets.push(count);
+      else if (node.textContent.replace(/[\u200B-\u200D\uFEFF]/g, '').trim()) count += 1;
+    }
+    return offsets;
+  });
+}
+
+function plannedPhotoOffsets(placements) {
+  return placements.flatMap(({ after, photos }) => photos.map(() => after + 1));
+}
+
 async function attachMediaToEditor(page, media) {
   for (let index = 0; index < media.length;) {
     const item = media[index];
@@ -247,9 +290,13 @@ async function attachMediaToEditor(page, media) {
       const toolbar = await uniqueLocator(page.locator('button.se-image-toolbar-button'));
       if (!toolbar) fail('Naver의 사진 도구 버튼을 하나로 찾지 못했습니다.');
       const before = await page.locator('.se-component.se-image').count();
-      const chooserPromise = page.waitForEvent('filechooser', { timeout: 15_000 });
-      await toolbar.click();
-      const chooser = await chooserPromise;
+      let chooser;
+      for (let attempt = 0; attempt < 3 && !chooser; attempt += 1) {
+        const opened = page.waitForEvent('filechooser', { timeout: 2_500 }).catch(() => null);
+        await toolbar.click();
+        chooser = await opened;
+      }
+      if (!chooser) fail('Naver photo picker did not open.');
       await chooser.setFiles(images.map(({ localPath }) => localPath));
       const layoutOption = page.getByText('개별사진', { exact: true });
       if (images.length > 1) await layoutOption.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {});
@@ -383,10 +430,10 @@ async function savedDraftTitleExists(page, title) {
   return found;
 }
 
-async function backupRecoveredText(title, body, recordId) {
-  const digest = createHash('sha256').update(title + '\0' + body).digest('hex').slice(0, 20);
+async function backupRecoveredText(title, body, recordId, documentData) {
+  const digest = createHash('sha256').update(JSON.stringify([title, body, documentData])).digest('hex').slice(0, 20);
   const backupPath = path.join(DRAFTS, 'naver-recovery-' + digest + '.json');
-  const payload = JSON.stringify({ schemaVersion: 1, source: 'naver-local-recovery-backup', recordId, title, body }, null, 2) + '\n';
+  const payload = JSON.stringify({ schemaVersion: 1, source: 'naver-local-recovery-backup', recordId, title, body, documentData }, null, 2) + '\n';
   try {
     const handle = await fs.open(backupPath, 'wx', 0o600);
     try { await handle.writeFile(payload); } finally { await handle.close(); }
@@ -398,13 +445,13 @@ async function backupRecoveredText(title, body, recordId) {
   return backupPath;
 }
 
-async function discardAlreadySavedRecoveryAndStartFresh(page, blogId, title, body, imageCount, videoCount, recordId) {
-  if (imageCount || videoCount) fail('Recovered Naver draft contains media and was preserved for manual review.');
-  const backupPath = await backupRecoveredText(title, body, recordId);
-  if (!await savedDraftTitleExists(page, title)) {
+async function discardAlreadySavedRecoveryAndStartFresh(page, blogId, title, body, recordId, documentData, retryOwnDraft = false) {
+  if (!documentData?.document?.components?.length) fail('Could not back up the recovered Naver document.');
+  const backupPath = await backupRecoveredText(title, body, recordId, documentData);
+  if (!retryOwnDraft && !await savedDraftTitleExists(page, title)) {
     fail('Recovered Naver draft is not listed among saved drafts; it was backed up and preserved.');
   }
-  await log(path.basename(backupPath) + ': recovered Naver text backed up; matching saved title confirmed.');
+  await log(path.basename(backupPath) + ': recovered Naver document backed up.');
 
   await page.goto(BLOG_EDITOR + '?blogId=' + encodeURIComponent(blogId), { waitUntil: 'domcontentloaded' });
   await page.locator('.se-section-documentTitle .se-module-text').first().waitFor({ state: 'visible', timeout: 20_000 });
@@ -434,7 +481,7 @@ async function discardAlreadySavedRecoveryAndStartFresh(page, blogId, title, bod
   if (!isEmptySmartEditorDocument(data) || !isVisuallyEmptyEditor(currentTitle, currentBody, images, videos)) {
     fail('Naver did not open a blank editor after preserving the saved recovery draft.');
   }
-  await log('Naver recovery was backed up and dismissed only after its matching saved title was confirmed.');
+  await log('Naver recovery was backed up before opening a blank editor.');
 }
 
 async function main() {
@@ -463,7 +510,6 @@ async function main() {
     await log(path.basename(draftPath) + ': Naver editor entry opened; checking login and page structure.');
     if (/nidlogin\.login/.test(page.url())) {
       await log(path.basename(draftPath) + ': login required; no Naver draft saved.', 'ERROR');
-      await waitForBrowserClose(context);
       process.exitCode = 1;
       return;
     }
@@ -475,14 +521,12 @@ async function main() {
       : null;
     if (!blogId) {
       await log(path.basename(draftPath) + ': could not identify logged-in blog; no Naver draft saved.', 'ERROR');
-      await waitForBrowserClose(context);
       process.exitCode = 1;
       return;
     }
     await page.goto(BLOG_EDITOR + '?blogId=' + encodeURIComponent(blogId), { waitUntil: 'domcontentloaded' });
     if (/nidlogin\.login/.test(page.url())) {
       await log(path.basename(draftPath) + ': editor login check failed; no Naver draft saved.', 'ERROR');
-      await waitForBrowserClose(context);
       process.exitCode = 1;
       return;
     }
@@ -492,10 +536,12 @@ async function main() {
       await log(path.basename(draftPath) + ': recovered Naver editor content for inspection before typing.');
     }
     const title = await uniqueLocator(page.locator('.se-section-documentTitle .se-module-text'));
-    const body = await uniqueLocator(page.locator('.se-section-text .se-module-text'));
+    const layout = planPhotoPlacement(draft.body, media);
+    const bodyFields = page.locator('.se-section-text .se-module-text');
+    const body = await uniqueLocator(bodyFields) || (recoveredNaverDraft ? bodyFields.first() : null);
+    const readBody = async () => (await bodyFields.allInnerTexts()).join('\n');
     if (!title || !body) {
       await log(path.basename(draftPath) + ': could not locate title/body editor fields; no Naver draft saved.', 'ERROR');
-      await waitForBrowserClose(context);
       process.exitCode = 1;
       return;
     }
@@ -504,9 +550,10 @@ async function main() {
       return typeof editor?.getDocumentData === 'function' ? editor.getDocumentData() : null;
     });
     let recoveredDraftMatches = false;
+    let recoveredTextOnly = false;
     if (!isEmptySmartEditorDocument(documentData)) {
       const currentTitle = normalizedText(await title.innerText().catch(() => ''));
-      const currentBody = normalizedText(await body.innerText().catch(() => ''));
+      const currentBody = normalizedText(await readBody().catch(() => ''));
       const expectedImages = media.filter((item) => item.kind === 'image').length;
       const expectedVideos = media.filter((item) => item.kind === 'video').length;
       const currentImages = await page.locator('.se-component.se-image').count();
@@ -520,54 +567,110 @@ async function main() {
       }
       recoveredDraftMatches = recoveredNaverDraft && !visiblyEmpty
         && currentTitle === normalizedText(draft.title)
-        && currentBody === normalizedText(draft.body)
+        && currentBody === normalizedText(layout.body.replace(/^#{1,6}\s+/gm, ''))
         && currentImages === expectedImages && currentVideos === expectedVideos;
-      if (recoveredNaverDraft && visiblyEmpty) {
+      recoveredTextOnly = !process.env.EDUNI_RETRY_OWN_DRAFT && recoveredNaverDraft && currentImages === 0 && currentVideos === 0
+        && currentTitle === normalizedText(draft.title)
+        && currentBody === normalizedText(layout.body.replace(/^#{1,6}\s+/gm, ''));
+      if (recoveredTextOnly) {
+        await log('Recovered matching text; continuing with attachment upload.');
+      } else if (recoveredNaverDraft && visiblyEmpty) {
         await log(path.basename(draftPath) + ': recovered editor has only empty placeholders; starting the EDUNI draft.');
       } else if (!recoveredDraftMatches) {
         if (!recoveredNaverDraft) fail('Naver editor contains a different draft; it was preserved and no new content was entered.');
         await discardAlreadySavedRecoveryAndStartFresh(page, blogId, currentTitle,
-          await body.innerText().catch(() => ''), currentImages, currentVideos, path.basename(draftPath));
+          await readBody().catch(() => ''), path.basename(draftPath), documentData,
+          process.env.EDUNI_RETRY_OWN_DRAFT === path.basename(draftPath) && currentTitle === normalizedText(draft.title));
       } else {
         await log(path.basename(draftPath) + ': recovered Naver content matches the EDUNI draft; resuming save.');
       }
     }
-    if (!recoveredDraftMatches) {
+    if (!recoveredDraftMatches && !recoveredTextOnly) {
       await typeEditorText(page, title, draft.title);
-      await typeEditorText(page, body, draft.body);
+      await typeEditorText(page, body, layout.body);
     }
-    const editorBody = draft.body.replace(/\r\n?/g, '\n').replace(/^#{1,6}\s+/gm, '');
+    const editorBody = layout.body.replace(/\r\n?/g, '\n').replace(/^#{1,6}\s+/gm, '');
     const renderedTitle = await title.innerText().catch(() => '');
-    const renderedBody = await body.innerText().catch(() => '');
+    const renderedBody = await readBody().catch(() => '');
     const titleMatches = normalizedText(renderedTitle).includes(normalizedText(draft.title));
     const bodyMatches = normalizedText(renderedBody).includes(normalizedText(editorBody));
     if (!titleMatches || !bodyMatches) {
       await log(path.basename(draftPath) + ': editor text verification failed (title ' + renderedTitle.length + '/' + draft.title.length
         + ', match=' + titleMatches + '; body ' + renderedBody.length + '/' + editorBody.length + ', match=' + bodyMatches
         + '); no Naver draft saved.', 'ERROR');
-      await waitForBrowserClose(context);
       process.exitCode = 1;
       return;
     }
     if (media.length && !recoveredDraftMatches) {
       await log(path.basename(draftPath) + ': attaching ' + media.length + ' item(s) in record order.');
       try {
-        await attachMediaToEditor(page, media);
+        if (layout.placements.length) {
+          const paragraphs = page.locator('.se-section-text .se-text-paragraph').filter({ hasText: /[^\s\u200B-\u200D\uFEFF]/ });
+          for (const { after, photos } of [...layout.placements].reverse()) {
+            const sidebar = page.locator('aside.se-sidebar-interaction:visible');
+            if (await sidebar.count()) {
+              const library = await uniqueLocator(page.getByText('라이브러리', { exact: true }).locator('xpath=ancestor::button'));
+              if (library) await library.click();
+            }
+            const paragraph = paragraphs.nth(after);
+            await paragraph.evaluate((node) => node.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' }));
+            const caret = await paragraph.evaluate((node) => {
+              const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+              let last;
+              for (let child = walker.nextNode(); child; child = walker.nextNode()) {
+                if (child.textContent.trim()) last = child;
+              }
+              if (!last) return null;
+              const range = document.createRange();
+              range.setStart(last, last.length - 1);
+              range.setEnd(last, last.length);
+              const rect = range.getBoundingClientRect();
+              return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+            });
+            if (!caret) fail('Blog paragraph has no visible text.');
+            await page.mouse.click(caret.x, caret.y);
+            await page.keyboard.press('End');
+            await log('Uploading photos ' + photos.map((item) => item.position + 1).join(', ') + ' after paragraph ' + (after + 1) + '.');
+            await attachMediaToEditor(page, photos);
+            await page.waitForTimeout(900);
+            await log('Photo upload confirmed for paragraph ' + (after + 1) + '.');
+          }
+          const videos = media.filter((item) => item.kind === 'video');
+          if (videos.length) {
+            await paragraphs.last().click();
+            await page.keyboard.press('End');
+            await attachMediaToEditor(page, videos);
+          }
+        } else {
+          await attachMediaToEditor(page, media);
+        }
         await log(path.basename(draftPath) + ': all attachments are visible and loaded.');
       } catch (error) {
         await log(path.basename(draftPath) + ': attachment upload failed; save not attempted: ' + error.message, 'ERROR');
-        await waitForBrowserClose(context);
         process.exitCode = 1;
         return;
       }
     }
+    if (layout.placements.length) {
+      if (JSON.stringify(await readPhotoOffsets(page)) !== JSON.stringify(plannedPhotoOffsets(layout.placements))) {
+        fail('Naver placed photos after paragraphs ' + (await readPhotoOffsets(page)).join(', ') + '; expected ' + plannedPhotoOffsets(layout.placements).join(', ') + '.');
+      }
+      if (normalizedText(await readBody()) !== normalizedText(editorBody)) fail('Naver text changed during photo placement.');
+    }
     await log(path.basename(draftPath) + ': title and body' + (media.length ? ' plus attachments' : '') + ' entered; saving as temporary draft.');
     try {
-      await saveDraftOnly(page);
+      const titleWasAlreadySaved = await savedDraftTitleExists(page, draft.title);
+      try {
+        await saveDraftOnly(page);
+      } catch (error) {
+        if (titleWasAlreadySaved || !await savedDraftTitleExists(page, draft.title)) {
+          throw error;
+        }
+        await log('New draft title confirmed in the Naver temporary draft list.');
+      }
       await log(path.basename(draftPath) + ': Naver temporary-save confirmation observed; no publish action used.');
     } catch (error) {
       await log(path.basename(draftPath) + ': temporary save was not confirmed: ' + error.message, 'ERROR');
-      await waitForBrowserClose(context);
       process.exitCode = 1;
       return;
     }

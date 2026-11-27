@@ -1,0 +1,49 @@
+name: Build EDUNI relay candidate
+
+on:
+  push:
+    branches:
+      - integration/eduni-blog-relay-astra-20261127
+    paths:
+      - 'nice-gui-1-1-7/scripts/eduni_chatgpt_bridge.py'
+      - 'nice-gui-1-1-7/tests/test_blog_notes_bridge.py'
+      - 'nice-gui-1-1-7/Dockerfile'
+      - 'nice-gui-1-1-7/requirements.lock.txt'
+      - '.github/workflows/eduni-relay-candidate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch the pushed source commit
+        shell: bash
+        run: |
+          git init source
+          git -C source remote add origin https://github.com/JongPyoShin/eduni-links.git
+          git -C source fetch --depth=1 origin "$GITHUB_SHA"
+          git -C source checkout --detach "$GITHUB_SHA"
+          test "$(git -C source rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Build and package the relay image
+        shell: bash
+        run: |
+          image="eduni-gpt-relay:candidate-${GITHUB_SHA}"
+          docker build -f source/nice-gui-1-1-7/Dockerfile \
+            --build-arg VCS_REF="$GITHUB_SHA" \
+            -t "$image" source
+          mkdir -p out
+          docker image inspect "$image" --format '{{.Id}}' > out/image-id.txt
+          docker save "$image" | gzip -1 > out/eduni-gpt-relay.tar.gz
+          sha256sum out/eduni-gpt-relay.tar.gz > out/archive-sha256.txt
+          printf 'source_commit=%s\nimage_tag=%s\n' "$GITHUB_SHA" "$image" > out/build-manifest.txt
+          cat out/image-id.txt out/archive-sha256.txt out/build-manifest.txt >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload candidate image archive
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: eduni-relay-image-${{ github.sha }}
+          path: out/
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0

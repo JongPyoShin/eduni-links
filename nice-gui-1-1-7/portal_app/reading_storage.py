@@ -47,6 +47,12 @@ CREATE TABLE IF NOT EXISTS reading_attachment (
 
 CREATE INDEX IF NOT EXISTS idx_reading_attachment_record_position
 ON reading_attachment(reading_record_id, position, id);
+
+CREATE TABLE IF NOT EXISTS reading_blog_preferences (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  writing_guide TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL
+);
 """
 
 POSTGRES_READING_SCHEMA_STATEMENTS = (
@@ -93,6 +99,13 @@ POSTGRES_READING_SCHEMA_STATEMENTS = (
     """
     CREATE INDEX IF NOT EXISTS idx_reading_attachment_record_position
     ON reading_attachment(reading_record_id, position, id)
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS reading_blog_preferences (
+      id SMALLINT PRIMARY KEY CHECK (id = 1),
+      writing_guide TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL
+    )
     """,
 )
 

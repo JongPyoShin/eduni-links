@@ -494,9 +494,10 @@ async def reading_blog_draft_api(record_id: int, request: Request) -> JSONRespon
     try:
         from urllib.parse import urlsplit
         from ..reading_attachments import IMAGE_MAX_TOTAL_BYTES, list_reading_attachments
-        from ..reading_journal import get_reading_blog_settings, get_reading_record
+        from ..reading_journal import get_blog_writing_guide, get_reading_blog_settings, get_reading_record
 
         settings = get_reading_blog_settings(record_id)
+        writing_guide = get_blog_writing_guide()
         record = get_reading_record(record_id)
         if record.get("status") != "completed":
             return _error("reading_record_not_completed", 409)
@@ -527,6 +528,7 @@ async def reading_blog_draft_api(record_id: int, request: Request) -> JSONRespon
             source_record["parent_note"] = clean_text("parent_note", 2_000)
         payload = {
             "tone": settings["blog_tone"],
+            "writing_guide": writing_guide["writing_guide"],
             "record": source_record,
             "images": [
                 {"url": expected.rstrip("/") + item["url"], "caption": str(item.get("caption", ""))[:500], "position": item["position"]}
@@ -543,10 +545,13 @@ async def reading_blog_draft_api(record_id: int, request: Request) -> JSONRespon
         caller = request.client.host if request.client else "unknown"
         draft = await asyncio.to_thread(_run_blog_draft, payload, caller)
         current_settings = get_reading_blog_settings(record_id)
+        current_writing_guide = get_blog_writing_guide()
         current_record = get_reading_record(record_id)
         if current_record.get("status") != "completed":
             return _error("reading_record_not_completed", 409)
         if current_settings["source_revision"] != settings["source_revision"]:
+            return _error("blog_settings_changed", 409)
+        if current_writing_guide["revision"] != writing_guide["revision"]:
             return _error("blog_settings_changed", 409)
         return JSONResponse({
             "ok": True, **draft, "photo_count": len(photos), "video_count": len(videos),

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f7f1e7">
+  <title>블로그 글쓰기 가이드 · EDUNI</title>
+  <style>
+    :root { color-scheme:light; --paper:#fbf7ef; --card:#fffdf8; --ink:#2f2a26; --muted:#776f68; --line:#e9dfd1; --leaf:#5f826d; --accent:#cf6b4f; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; padding:20px; background:radial-gradient(circle at 10% 0%,rgba(240,201,107,.17),transparent 24rem),var(--paper); color:var(--ink); font-family:"Pretendard","Noto Sans KR",system-ui,sans-serif; }
+    main { width:min(760px,100%); margin:0 auto; }
+    a { color:#365342; font-weight:800; text-decoration:none; }
+    .back { display:inline-flex; align-items:center; min-height:42px; color:var(--muted); }
+    section { margin-top:12px; padding:clamp(20px,5vw,34px); border:1px solid var(--line); border-radius:22px; background:rgba(255,253,248,.95); box-shadow:0 12px 34px rgba(90,69,50,.10); }
+    .eyebrow { margin:0 0 8px; color:var(--leaf); font-size:12px; font-weight:900; letter-spacing:.12em; }
+    h1 { margin:0; font-size:clamp(24px,5vw,34px); }
+    .intro,.help { color:var(--muted); line-height:1.65; }
+    label { display:block; margin:24px 0 8px; font-weight:900; }
+    textarea { display:block; width:100%; min-height:340px; resize:vertical; padding:14px; border:1px solid #dcd1c5; border-radius:14px; background:white; color:var(--ink); font:inherit; line-height:1.65; }
+    textarea:focus { outline:3px solid rgba(95,130,109,.2); border-color:var(--leaf); }
+    .meta { display:flex; justify-content:space-between; gap:12px; margin-top:8px; color:var(--muted); font-size:12px; }
+    .actions { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-top:18px; }
+    button { min-height:46px; padding:0 18px; border:0; border-radius:13px; background:var(--leaf); color:white; font:inherit; font-weight:900; cursor:pointer; }
+    button:disabled { opacity:.6; cursor:wait; }
+    #status { min-height:1.5em; margin:0; color:var(--muted); font-size:13px; }
+    .help { margin:18px 0 0; padding:13px 15px; border-radius:12px; background:#f2f5ef; font-size:13px; }
+    @media (max-width:520px) { body { padding:12px; } textarea { min-height:48vh; } .meta { align-items:flex-end; } }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back" href="/reading">← 독서기록으로</a>
+    <section>
+      <p class="eyebrow">BLOG WRITING</p>
+      <h1>블로그 글쓰기 가이드</h1>
+      <p class="intro">여기에 저장한 가이드는 앞으로 글쓰기 봇이 새 글을 만들 때마다 참고합니다. 특정 기록에만 적용할 내용은 독서 기록의 ‘블로그 작성 메모’에 적어주세요.</p>
+      <form id="guideForm">
+        <label for="guide">공통 작성 프롬프트</label>
+        <textarea id="guide" name="guide" maxlength="4000" placeholder="예: 7세 아이를 키우는 엄마의 시점으로 쓰고, 비슷한 연령의 아이를 키우는 부모가 독자라고 생각해 주세요. 사진 속 장면과 독서 기록을 자연스럽게 연결하고, 기록에 없는 경험은 만들지 마세요."></textarea>
+        <div class="meta"><span>저장하면 다음 글 생성부터 적용됩니다.</span><span id="count">0 / 4,000자</span></div>
+        <div class="actions"><button id="saveButton" type="submit">가이드 저장</button><p id="status" role="status" aria-live="polite"></p></div>
+      </form>
+      <p class="help">독서 기록과 사진에 없는 사실을 만들지 않도록 하는 기준, 개인정보 보호, 사진 배치 규칙은 기본 지침으로 유지됩니다. 저장된 공통 가이드와 기록별 메모는 이 기준을 바꾸지 않고 글의 관점·구성·표현 선호를 전달합니다. 현재 글쓰기 봇은 EDUNI 기록과 첨부 자료를 참고하며 외부 웹 조사는 하지 않습니다.</p>
+    </section>
+  </main>
+  <script>
+    const guideInput = document.getElementById('guide');
+    const count = document.getElementById('count');
+    const status = document.getElementById('status');
+    const saveButton = document.getElementById('saveButton');
+    const updateCount = () => { count.textContent = `${guideInput.value.length.toLocaleString()} / 4,000자`; };
+    guideInput.addEventListener('input', updateCount);
+    async function requestGuide(method, body) {
+      const response = await fetch('/reading/api/blog-writing-guide', {
+        method,
+        headers: { 'X-Requested-With': 'XMLHttpRequest', ...(body ? { 'Content-Type': 'application/json' } : {}) },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+        cache: 'no-store',
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.ok !== true) throw new Error(data.error || '가이드를 불러오지 못했어요.');
+      return data;
+    }
+    async function loadGuide() {
+      try {
+        const data = await requestGuide('GET');
+        guideInput.value = data.writing_guide || '';
+        updateCount();
+        status.textContent = guideInput.value ? '저장된 가이드를 불러왔어요.' : '아직 저장된 공통 가이드가 없어요.';
+      } catch (error) {
+        status.textContent = error.message;
+        saveButton.disabled = true;
+      }
+    }
+    document.getElementById('guideForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      saveButton.disabled = true;
+      status.textContent = '저장 중…';
+      try {
+        const data = await requestGuide('PUT', { writing_guide: guideInput.value });
+        guideInput.value = data.writing_guide || '';
+        updateCount();
+        status.textContent = '저장했어요. 다음 글 생성부터 적용됩니다.';
+      } catch (error) {
+        status.textContent = error.message === 'writing_guide must be at most 4000 characters' ? '가이드는 4,000자까지 저장할 수 있어요.' : '저장하지 못했어요. 잠시 후 다시 시도해주세요.';
+      } finally {
+        saveButton.disabled = false;
+      }
+    });
+    loadGuide();
+  </script>
+</body>
+</html>

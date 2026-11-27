@@ -30,6 +30,7 @@ from .reading_covers import CoverLookupUnavailable, CoverNotFound, download_cove
 
 READING_STATIC_DIR = Path(__file__).resolve().parent / "static_games"
 READING_HTML = READING_STATIC_DIR / "eduni_reading_journal.html"
+BLOG_WRITING_GUIDE_HTML = READING_STATIC_DIR / "eduni_reading_blog_guide.html"
 READING_DATA_DIR = Path(os.environ.get("EDUNI_READING_DATA_DIR") or (DATA_DIR / "reading_journal"))
 READING_MEDIA_DIR = READING_DATA_DIR / "covers"
 READING_MEDIA_DIR.mkdir(parents=True, exist_ok=True)
@@ -43,6 +44,7 @@ READING_RECORD_STATUSES = {"draft", "completed"}
 IMAGE_LIMIT_BYTES = 4 * 1024 * 1024
 BLOG_TONES = {"family", "plain", "child", "book"}
 BLOG_NOTE_LIMIT = 4000
+BLOG_WRITING_GUIDE_LIMIT = 4000
 TEXT_LIMITS = {
     "title": 160,
     "author": 120,
@@ -287,6 +289,37 @@ def update_reading_blog_settings(record_id: int, payload: dict[str, Any], path: 
         if cursor.rowcount != 1:
             raise KeyError(record_id)
     return get_reading_blog_settings(record_id, path, child_profile_id=profile_id)
+
+
+def blog_writing_guide_revision(writing_guide: str) -> str:
+    return hashlib.sha256(writing_guide.encode("utf-8")).hexdigest()
+
+
+def get_blog_writing_guide(path: Path | None = None) -> dict[str, str]:
+    ensure_reading_journal_schema(path)
+    with reading_database_connection(path) as conn:
+        row = conn.execute(
+            "SELECT writing_guide FROM reading_blog_preferences WHERE id = 1"
+        ).fetchone()
+    writing_guide = str(row[0]) if row else ""
+    return {"writing_guide": writing_guide, "revision": blog_writing_guide_revision(writing_guide)}
+
+
+def update_blog_writing_guide(payload: dict[str, Any], path: Path | None = None) -> dict[str, str]:
+    if set(payload) != {"writing_guide"}:
+        raise ValueError("invalid blog writing guide")
+    writing_guide = payload.get("writing_guide")
+    if not isinstance(writing_guide, str) or len(writing_guide) > BLOG_WRITING_GUIDE_LIMIT:
+        raise ValueError("writing_guide must be at most 4000 characters")
+    writing_guide = writing_guide.strip()
+    ensure_reading_journal_schema(path)
+    with reading_database_connection(path) as conn:
+        conn.execute(
+            "INSERT INTO reading_blog_preferences (id, writing_guide, updated_at) VALUES (1, ?, ?) "
+            "ON CONFLICT (id) DO UPDATE SET writing_guide = excluded.writing_guide, updated_at = excluded.updated_at",
+            (writing_guide, utc_now()),
+        )
+    return get_blog_writing_guide(path)
 
 
 def _validate_optional_read_date(value: object | None, field: str) -> str | None:
@@ -801,6 +834,13 @@ def reading_journal_page() -> HTMLResponse:
     return HTMLResponse(inject_companion_assets(READING_HTML.read_text(encoding="utf-8")))
 
 
+@app.get("/reading/blog-writing-guide", response_class=HTMLResponse)
+def reading_blog_writing_guide_page() -> HTMLResponse:
+    if not BLOG_WRITING_GUIDE_HTML.exists():
+        return HTMLResponse("<h1>글쓰기 가이드 페이지를 찾을 수 없습니다.</h1>", status_code=404)
+    return HTMLResponse(BLOG_WRITING_GUIDE_HTML.read_text(encoding="utf-8"))
+
+
 @app.get("/reading/api/health")
 def reading_storage_health_api() -> JSONResponse:
     try:
@@ -844,6 +884,24 @@ def reading_blog_settings_patch_api(record_id: int, request: Request, payload: d
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
     except KeyError:
         return JSONResponse({"ok": False, "error": "record not found"}, status_code=404)
+    return JSONResponse({"ok": True, **settings}, headers={"Cache-Control": "no-store"})
+
+
+@app.get("/reading/api/blog-writing-guide")
+def reading_blog_writing_guide_get_api(request: Request) -> JSONResponse:
+    if not _reading_settings_request_allowed(request):
+        return JSONResponse({"ok": False, "error": "request_rejected"}, status_code=403, headers={"Cache-Control": "no-store"})
+    return JSONResponse({"ok": True, **get_blog_writing_guide()}, headers={"Cache-Control": "no-store"})
+
+
+@app.put("/reading/api/blog-writing-guide")
+def reading_blog_writing_guide_put_api(request: Request, payload: dict[str, Any] | None = Body(default=None)) -> JSONResponse:
+    if not _reading_settings_request_allowed(request, require_origin=True):
+        return JSONResponse({"ok": False, "error": "request_rejected"}, status_code=403, headers={"Cache-Control": "no-store"})
+    try:
+        settings = update_blog_writing_guide(payload or {})
+    except ValueError as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=400, headers={"Cache-Control": "no-store"})
     return JSONResponse({"ok": True, **settings}, headers={"Cache-Control": "no-store"})
 
 

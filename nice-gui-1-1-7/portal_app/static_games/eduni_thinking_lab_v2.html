@@ -2,15 +2,605 @@
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>생각 탐험 연구소 · 체험실</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f3f7f5;color:#163a35;font:17px/1.65 system-ui,"Malgun Gothic",sans-serif}main{max-width:760px;margin:auto;padding:18px 16px 48px}a{color:#16675e}h1{font-size:clamp(25px,6vw,36px);line-height:1.25;margin:12px 0}h2{font-size:23px;line-height:1.35;margin:0}h3{font-size:18px;margin:0}p{margin:8px 0 16px}.panel{background:white;border:1px solid #d4e5de;border-radius:20px;padding:18px;margin:14px 0}.menu,.controls{display:flex;flex-wrap:wrap;gap:8px}button{font:inherit;font-weight:650;min-height:48px;border:1px solid #8daea4;background:#fff;color:#164d45;padding:9px 14px;border-radius:12px;cursor:pointer;touch-action:manipulation}button:focus-visible,a:focus-visible{outline:3px solid #bf7100;outline-offset:3px}button[aria-pressed=true],button.primary{background:#17685d;color:white;border-color:#17685d}button:disabled{opacity:.45;cursor:default}.animal{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;border-bottom:1px solid #e0ebe6;padding:12px 0}.animal strong{font-size:19px}.apples{overflow-wrap:anywhere}.small{font-size:14px;color:#4a665e}.status{background:#e9f4ee;padding:12px;border-radius:12px;margin:12px 0;min-height:50px}.grid{display:grid;gap:4px;max-width:420px;margin:12px auto}.cell{aspect-ratio:1;border-radius:9px;display:grid;place-items:center;background:#e2efe5;font-size:clamp(15px,5vw,27px);border:1px solid #a8cabb}.wall{background:#bac3c1}.trail{background:#fbdc9c}.clue{padding:12px;border:1px solid #d6e5dd;border-radius:12px;margin:10px 0}.clue button,.choice{width:100%;text-align:left}.seq{min-height:48px;overflow-wrap:anywhere;padding:10px;background:#f1f5f3;border-radius:10px}label{display:block;margin:10px 0}input[type=checkbox]{width:22px;height:22px;vertical-align:middle;margin-right:8px}details{margin-top:16px}summary{cursor:pointer;font-weight:650}.tag{font-size:14px;color:#4b6860} .level{margin:8px 0} @media(max-width:380px){.panel{padding:12px}button{padding:8px 10px}}
-.bridge-river{background:#bde2f2;border-radius:14px;padding:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center}.bridge-cell{flex:1;min-width:52px;text-align:center;background:#e5f6ff;border-radius:8px;padding:5px}.piece{font-size:28px}.result-bar{background:#228373;height:16px;border-radius:8px;margin:4px 0 10px}.choice{margin:4px 0}</style></head><body><main><a href="/portal/thinking">← 생각 탐험 연구소로 돌아가기</a><h1>생각 탐험 체험실</h1><p>단서를 찾고, 방법을 생각하고, 직접 시험해 보세요. 잘 안되면 방법을 바꿔 다시 도전할 수 있어요.</p><nav class="menu" id="menu" aria-label="탐험 고르기"></nav><section class="panel" id="game"></section><p class="small">이 체험실의 진행 기록은 저장되지 않아요. 기존 탐험 기록은 그대로 남아 있어요.</p></main>
+.bridge-river{background:#bde2f2;border-radius:14px;padding:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center}.bridge-cell{flex:1;min-width:52px;text-align:center;background:#e5f6ff;border-radius:8px;padding:5px}.piece{font-size:28px}.result-bar{background:#228373;height:16px;border-radius:8px;margin:4px 0 10px}.choice{margin:4px 0}.clue h3{margin-bottom:8px}.status{white-space:normal;overflow-wrap:anywhere}</style></head><body><main><a href="/portal/thinking">← 생각 탐험 연구소로 돌아가기</a><h1>생각 탐험 체험실</h1><p>단서를 찾고, 방법을 생각하고, 직접 시험해 보세요. 잘 안되면 방법을 바꿔 다시 도전할 수 있어요.</p><nav class="menu" id="menu" aria-label="탐험 고르기"></nav><section class="panel" id="game"></section><p class="small">이 체험실의 진행 기록은 저장되지 않아요. 기존 탐험 기록은 그대로 남아 있어요.</p></main>
 <script id="rules">
-const DATA={"food":[{"title":"숲속 친구들의 점심","intro":"숲속 친구들이 점심을 기다려요. 토끼, 곰, 원숭이가 필요한 사과의 수를 살펴보고 나눠 주세요.","names":["토끼","곰","원숭이"],"emoji":["🐰","🐻","🐵"],"need":[2,6,4],"stock":12,"reserve":0},{"title":"숲속 간식 바구니","intro":"다람쥐, 여우, 고슴도치가 간식을 기다려요. 세 친구가 필요한 사과를 받고 나면 남은 사과는 바구니에 두세요.","names":["다람쥐","여우","고슴도치"],"emoji":["🐿️","🦊","🦔"],"need":[3,5,2],"stock":11,"reserve":0},{"title":"늦게 오는 친구","intro":"세 친구에게 필요한 만큼 나눠 주되, 늦게 오는 친구를 위해 사과 2개 이상을 남겨 두어요.","names":["토끼","곰","여우"],"emoji":["🐰","🐻","🦊"],"need":[3,5,4],"stock":15,"reserve":2}],"route":[{"title":"꽃밭에 도착하기","intro":"로봇이 꽃밭에 물을 주러 가요. 돌을 피해 꽃까지 가는 길을 만들어 주세요.","w":4,"h":4,"start":[0,3],"goal":[3,0],"walls":[[1,2],[2,2]],"limit":8},{"title":"돌무더기를 돌아가는 길","intro":"이번에는 돌무더기가 길을 막고 있어요. 로봇이 돌을 피해 꽃밭까지 갈 수 있도록 길을 만들어 주세요.","w":5,"h":4,"start":[0,3],"goal":[4,0],"walls":[[1,1],[1,2],[2,2],[3,2]],"limit":9},{"title":"배터리가 얼마 남지 않았어요","intro":"로봇이 움직일 수 있는 횟수가 줄었어요. 돌을 피하면서 꽃까지 짧은 길을 만들어 주세요.","w":5,"h":5,"start":[0,4],"goal":[4,0],"walls":[[1,4],[1,3],[2,2],[3,1],[3,2]],"limit":8}],"detect":[{"title":"젖은 책상","intro":"교실 책상 위에 물이 고여 있어요. 어디에서 물이 나왔을까요? 단서를 조사해 단서에 가장 잘 맞는 설명을 찾아보세요.","clues":[["물병","물병 뚜껑이 열려 있고 옆으로 누워 있어요."],["창문","창문은 닫혀 있고 창틀은 말라 있어요."],["물자국","물병 입구에서 물웅덩이까지 젖은 자국이 이어져요."],["걸레","걸레는 선반 위에 있고 보송보송해요."]],"ideas":["열린 물병에서 물이 흘렀을 것 같아요.","창문으로 빗물이 들어왔을 것 같아요.","젖은 걸레에서 물이 떨어졌을 것 같아요."],"correct":0,"proof":[0,2],"hint":"물병 입구와 책상 위 물자국이 어떻게 이어져 있는지 살펴보세요.","why":"열린 물병과 이어진 물자국은 물병에서 물이 흘렀다는 설명을 뒷받침해요. 누가 물병을 넘어뜨렸는지는 아직 알 수 없어요."},{"title":"사라진 종이비행기","intro":"책상에 있던 종이비행기가 보이지 않아요. 교실의 단서를 확인해 어디에서 찾아보면 좋을지 생각해 보세요.","clues":[["선풍기","책상 옆 선풍기에서 열린 문 쪽으로 바람이 불고 있어요."],["창문","창문은 닫혀 있어요."],["복도","문 밖 바닥에 같은 색과 모양의 종이비행기가 보여요."],["가방","가방은 의자에 걸려 있어요."]],"ideas":["창문 밖부터 찾아봐요.","복도에 있는 비행기부터 확인해요.","가방 안부터 찾아봐요."],"correct":1,"proof":[0,2],"hint":"바람이 부는 방향과 실제로 발견된 물건을 살펴보세요.","why":"바람이 문 쪽으로 불고 복도에 비슷한 비행기가 보여요. 복도에서 먼저 확인할 이유가 있어요. 그 비행기가 정말 내 것인지는 확인해야 해요."},{"title":"시들어 가는 화분","intro":"교실 화분의 잎이 축 늘어졌어요. 지금 관찰할 수 있는 단서로 먼저 무엇을 확인하면 좋을까요?","clues":[["흙","흙 표면이 말라 있고, 흙 속에도 물기가 거의 없어요."],["물주기 기록","지난 며칠 동안 물을 준 기록이 없어요."],["창가","화분은 밝은 창가에 있어요."],["화분 색","화분은 파란색이에요."]],"ideas":["햇빛이 너무 강한지 먼저 확인해요.","화분이 너무 작은지 먼저 확인해요.","물이 부족한지 먼저 확인해요."],"correct":2,"proof":[0,1],"hint":"흙의 상태와 마지막으로 물을 준 때를 함께 살펴보세요.","why":"마른 흙과 물주기 기록은 물 부족을 먼저 확인할 근거가 돼요. 식물에 맞는 양의 물을 주고 이후 변화를 관찰해야 원인을 더 잘 알 수 있어요."}],"bridge":[{"title":"토끼가 건널 다리","intro":"토끼가 개울 건너편으로 가려고 해요. 빈 곳에 다리 조각을 놓아 길을 이어 주세요.","loads":[2,2,2],"budget":4,"parts":[{"name":"나무판","cost":1,"capacity":2,"icon":"🟫"},{"name":"튼튼한 판","cost":2,"capacity":4,"icon":"⬜"}]},{"title":"수레가 지나가는 다리","intro":"토끼가 짐을 실은 수레를 끌고 가요. 다리의 각 칸이 견뎌야 하는 무게가 달라요. 가진 재료 안에서 다리를 만들어 보세요.","loads":[2,4,2,4],"budget":6,"parts":[{"name":"나무판","cost":1,"capacity":2,"icon":"🟫"},{"name":"튼튼한 판","cost":2,"capacity":4,"icon":"⬜"}]},{"title":"구조대의 다리","intro":"구조대가 무거운 물건을 옮겨야 해요. 필요한 무게를 버티면서 재료를 아낄 수 있을까요?","loads":[2,5,3,5],"budget":9,"parts":[{"name":"나무판","cost":1,"capacity":2,"icon":"🟫"},{"name":"보강한 판","cost":2,"capacity":3,"icon":"🟧"},{"name":"철판","cost":3,"capacity":5,"icon":"⬜"}]}],"science":[{"title":"종이배가 버티는 무게","intro":"두 종이배 중 어느 쪽이 더 많은 구슬을 버틸까요? 아래는 가상 실험에서 얻은 관찰 기록이에요. 한 가지 조건만 달리한 두 실험을 골라 비교해 보세요.","variable":"배의 모양","fields":["배의 모양","종이의 크기","구슬의 크기"],"trials":[["넓은 바닥","같은 크기","작은 구슬",8],["좁은 바닥","같은 크기","작은 구슬",4],["좁은 바닥","큰 종이","작은 구슬",7],["넓은 바닥","같은 크기","큰 구슬",3]],"unit":"버틴 구슬 수","hint":"종이의 크기와 구슬의 크기가 같은 두 실험을 찾아보세요.","reflection":"실험 기록에서는 배의 모양에 따라 버틴 구슬 수가 달랐어요. 실제 종이배도 같은 결과가 나올지 가족과 시험해 보세요."},{"title":"얼음이 녹는 시간","intro":"얼음을 어디에 놓으면 먼저 녹을까요? 가상 실험 기록에서 장소만 다른 두 실험을 찾아보세요.","variable":"장소","fields":["장소","얼음 크기","그릇"],"trials":[["따뜻한 방","작은 얼음","같은 접시",6],["서늘한 방","큰 얼음","같은 접시",18],["서늘한 방","작은 얼음","같은 접시",12],["따뜻한 방","작은 얼음","금속 그릇",5]],"unit":"녹는 데 걸린 시간(분)","hint":"얼음의 크기와 그릇이 같아야 장소에 따른 차이를 비교하기 쉬워요.","reflection":"이 기록에서는 따뜻한 방의 얼음이 더 빨리 녹았어요. 실제 결과는 온도와 그릇 등 여러 조건에 따라 달라질 수 있어요."},{"title":"씨앗이 자라는 데 필요한 물","intro":"같은 종류의 씨앗을 일주일 동안 키웠어요. 가상 관찰 기록에서 물의 양만 다른 두 실험을 찾아 비교해 보세요.","variable":"하루 물의 양","fields":["하루 물의 양","빛","흙"],"trials":[["물 5mL","밝은 곳","같은 흙",4],["물 15mL","밝은 곳","다른 흙",6],["물 5mL","그늘","같은 흙",2],["물 15mL","밝은 곳","같은 흙",7]],"unit":"일주일 뒤 평균 키(cm)","hint":"빛과 흙은 같고 물의 양만 다른 기록을 찾아보세요.","reflection":"이 기록에서는 물의 양이 다른 두 씨앗의 평균 키가 달랐어요. 모든 식물에 물을 많이 주는 것이 좋다는 뜻은 아니에요."}],"plan":[{"title":"소풍 간식 사기","intro":"친구들과 소풍을 가요. 동전 6개로 마실 것과 먹을 것을 각각 하나 이상 골라 주세요. 가방에는 무게가 4칸까지 들어가요.","budget":6,"cap":4,"requirements":{"drink":1,"food":1},"items":[["물","💧",2,1,"drink"],["주스","🧃",4,1,"drink"],["빵","🥖",3,1,"food"],["사과","🍎",2,1,"food"]]},{"title":"비 오는 날의 준비물","intro":"비가 오는 날 밖에 나갈 준비를 해요. 동전 8개로 비를 막는 물건과 발을 보호하는 물건을 골라 주세요. 가방에는 무게가 4칸까지 들어가요.","budget":8,"cap":4,"requirements":{"rain":1,"feet":1},"items":[["우산","☂️",4,2,"rain"],["우비","🧥",3,1,"rain"],["장화","🥾",5,3,"feet"],["방수 신발 덮개","🛍️",3,1,"feet"]]},{"title":"동물 병원에 물건 보내기","intro":"동물 병원에 물 두 병과 붕대 한 개 이상을 보내요. 동전은 10개, 상자는 무게 5칸까지 담을 수 있어요.","budget":10,"cap":5,"requirements":{"drink":2,"bandage":1},"items":[["물 한 병","💧",2,1,"drink"],["물 두 병 묶음","🧴",3,2,"drink2"],["작은 붕대","🩹",3,1,"bandage"],["큰 붕대","📦",5,3,"bandage"]]}]};
+const DATA={
+  "food": [
+    {
+      "title": "숲속 친구들의 점심",
+      "intro": "숲속 친구들이 점심을 기다려요. 토끼, 곰, 원숭이가 필요한 사과의 수를 살펴보고 나눠 주세요.",
+      "names": [
+        "토끼",
+        "곰",
+        "원숭이"
+      ],
+      "emoji": [
+        "🐰",
+        "🐻",
+        "🐵"
+      ],
+      "need": [
+        2,
+        6,
+        4
+      ],
+      "stock": 12,
+      "reserve": 0
+    },
+    {
+      "title": "숲속 간식 바구니",
+      "intro": "다람쥐, 여우, 고슴도치가 간식을 기다려요. 세 친구가 필요한 사과를 받고 나면 남은 사과는 바구니에 두세요.",
+      "names": [
+        "다람쥐",
+        "여우",
+        "고슴도치"
+      ],
+      "emoji": [
+        "🐿️",
+        "🦊",
+        "🦔"
+      ],
+      "need": [
+        3,
+        5,
+        2
+      ],
+      "stock": 11,
+      "reserve": 0
+    },
+    {
+      "title": "늦게 오는 친구",
+      "intro": "세 친구에게 필요한 만큼 나눠 주되, 늦게 오는 친구를 위해 사과 2개 이상을 남겨 두어요.",
+      "names": [
+        "토끼",
+        "곰",
+        "여우"
+      ],
+      "emoji": [
+        "🐰",
+        "🐻",
+        "🦊"
+      ],
+      "need": [
+        3,
+        5,
+        4
+      ],
+      "stock": 15,
+      "reserve": 2
+    }
+  ],
+  "route": [
+    {
+      "title": "꽃밭에 도착하기",
+      "intro": "로봇이 꽃밭에 물을 주러 가요. 돌을 피해 꽃까지 가는 길을 만들어 주세요.",
+      "w": 4,
+      "h": 4,
+      "start": [
+        0,
+        3
+      ],
+      "goal": [
+        3,
+        0
+      ],
+      "walls": [
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "limit": 8
+    },
+    {
+      "title": "돌무더기를 돌아가는 길",
+      "intro": "이번에는 돌무더기가 길을 막고 있어요. 로봇이 돌을 피해 꽃밭까지 갈 수 있도록 길을 만들어 주세요.",
+      "w": 5,
+      "h": 4,
+      "start": [
+        0,
+        3
+      ],
+      "goal": [
+        4,
+        0
+      ],
+      "walls": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "limit": 9
+    },
+    {
+      "title": "배터리가 얼마 남지 않았어요",
+      "intro": "로봇이 움직일 수 있는 횟수가 줄었어요. 돌을 피하면서 꽃까지 짧은 길을 만들어 주세요.",
+      "w": 5,
+      "h": 5,
+      "start": [
+        0,
+        4
+      ],
+      "goal": [
+        4,
+        0
+      ],
+      "walls": [
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "limit": 8
+    }
+  ],
+  "detect": [
+    {
+      "title": "젖은 책상",
+      "intro": "교실 책상 위에 물이 고여 있어요. 물은 어디에서 나왔을까요? 단서를 조사하고 가장 알맞은 설명을 골라 보세요.",
+      "clues": [
+        [
+          "물병",
+          "물병 뚜껑이 열려 있고 옆으로 누워 있어요."
+        ],
+        [
+          "창문",
+          "창문은 닫혀 있고 창틀은 말라 있어요."
+        ],
+        [
+          "물자국",
+          "물병 입구에서 물웅덩이까지 젖은 자국이 이어져요."
+        ],
+        [
+          "걸레",
+          "걸레는 선반 위에 있고 보송보송해요."
+        ]
+      ],
+      "ideas": [
+        "열린 물병에서 물이 흘렀을 것 같아요.",
+        "창문으로 빗물이 들어왔을 것 같아요.",
+        "젖은 걸레에서 물이 떨어졌을 것 같아요."
+      ],
+      "correct": 0,
+      "proof": [
+        0,
+        2
+      ],
+      "hint": "물병 입구와 책상 위 물자국이 어떻게 이어져 있는지 살펴보세요.",
+      "why": "열린 물병과 이어진 물자국은 물병에서 물이 흘렀다는 설명을 뒷받침해요. 누가 물병을 넘어뜨렸는지는 아직 알 수 없어요."
+    },
+    {
+      "title": "사라진 종이비행기",
+      "intro": "책상에 있던 종이비행기가 보이지 않아요. 교실의 단서를 확인해 어디에서 찾아보면 좋을지 생각해 보세요.",
+      "clues": [
+        [
+          "선풍기",
+          "책상 옆 선풍기에서 열린 문 쪽으로 바람이 불고 있어요."
+        ],
+        [
+          "창문",
+          "창문은 닫혀 있어요."
+        ],
+        [
+          "복도",
+          "문 밖 바닥에 같은 색과 모양의 종이비행기가 보여요."
+        ],
+        [
+          "가방",
+          "가방은 의자에 걸려 있어요."
+        ]
+      ],
+      "ideas": [
+        "창문 밖부터 찾아봐요.",
+        "복도에 있는 비행기부터 확인해요.",
+        "가방 안부터 찾아봐요."
+      ],
+      "correct": 1,
+      "proof": [
+        0,
+        2
+      ],
+      "hint": "바람이 부는 방향과 실제로 발견된 물건을 살펴보세요.",
+      "why": "바람이 문 쪽으로 불고 복도에 비슷한 비행기가 보여요. 복도에서 먼저 확인할 이유가 있어요. 그 비행기가 정말 내 것인지는 확인해야 해요."
+    },
+    {
+      "title": "시들어 가는 화분",
+      "intro": "교실 화분의 잎이 축 늘어졌어요. 지금 관찰할 수 있는 단서로 먼저 무엇을 확인하면 좋을까요?",
+      "clues": [
+        [
+          "흙",
+          "흙 표면이 말라 있고, 흙 속에도 물기가 거의 없어요."
+        ],
+        [
+          "물주기 기록",
+          "지난 며칠 동안 물을 준 기록이 없어요."
+        ],
+        [
+          "창가",
+          "화분은 밝은 창가에 있어요."
+        ],
+        [
+          "화분 색",
+          "화분은 파란색이에요."
+        ]
+      ],
+      "ideas": [
+        "햇빛이 너무 강한지 먼저 확인해요.",
+        "화분이 너무 작은지 먼저 확인해요.",
+        "물이 부족한지 먼저 확인해요."
+      ],
+      "correct": 2,
+      "proof": [
+        0,
+        1
+      ],
+      "hint": "흙의 상태와 마지막으로 물을 준 때를 함께 살펴보세요.",
+      "why": "마른 흙과 물주기 기록은 물 부족을 먼저 확인할 근거가 돼요. 식물에 맞는 양의 물을 주고 이후 변화를 관찰해야 원인을 더 잘 알 수 있어요."
+    }
+  ],
+  "bridge": [
+    {
+      "title": "토끼가 건널 다리",
+      "intro": "토끼가 개울 건너편으로 가려고 해요. 빈 곳에 다리 조각을 놓아 길을 이어 주세요.",
+      "loads": [
+        2,
+        2,
+        2
+      ],
+      "budget": 4,
+      "parts": [
+        {
+          "name": "나무판",
+          "cost": 1,
+          "capacity": 2,
+          "icon": "🟫"
+        },
+        {
+          "name": "튼튼한 판",
+          "cost": 2,
+          "capacity": 4,
+          "icon": "⬜"
+        }
+      ]
+    },
+    {
+      "title": "수레가 지나가는 다리",
+      "intro": "토끼가 짐을 실은 수레를 옮기려고 해요. 다리의 각 칸에는 버텨야 할 무게가 표시되어 있어요. 가진 재료로 튼튼한 다리를 만들어 보세요.",
+      "loads": [
+        2,
+        4,
+        2,
+        4
+      ],
+      "budget": 6,
+      "parts": [
+        {
+          "name": "나무판",
+          "cost": 1,
+          "capacity": 2,
+          "icon": "🟫"
+        },
+        {
+          "name": "튼튼한 판",
+          "cost": 2,
+          "capacity": 4,
+          "icon": "⬜"
+        }
+      ]
+    },
+    {
+      "title": "구조대의 다리",
+      "intro": "구조대가 무거운 물건을 옮겨야 해요. 각 칸에 알맞은 판을 놓아 재료를 아끼면서 다리를 만들어 보세요.",
+      "loads": [
+        2,
+        5,
+        3,
+        5
+      ],
+      "budget": 9,
+      "parts": [
+        {
+          "name": "나무판",
+          "cost": 1,
+          "capacity": 2,
+          "icon": "🟫"
+        },
+        {
+          "name": "보강한 판",
+          "cost": 2,
+          "capacity": 3,
+          "icon": "🟧"
+        },
+        {
+          "name": "철판",
+          "cost": 3,
+          "capacity": 5,
+          "icon": "⬜"
+        }
+      ]
+    }
+  ],
+  "science": [
+    {
+      "title": "종이배가 버티는 무게",
+      "intro": "어떤 모양의 종이배가 구슬을 더 많이 실을 수 있을까요? 한 가지 조건만 다른 두 가상 실험을 골라 결과를 비교해 보세요.",
+      "variable": "배의 모양",
+      "fields": [
+        "배의 모양",
+        "종이의 크기",
+        "구슬의 크기"
+      ],
+      "trials": [
+        [
+          "넓은 바닥",
+          "15cm × 15cm",
+          "작은 구슬",
+          8
+        ],
+        [
+          "좁은 바닥",
+          "15cm × 15cm",
+          "작은 구슬",
+          4
+        ],
+        [
+          "좁은 바닥",
+          "20cm × 20cm",
+          "작은 구슬",
+          7
+        ],
+        [
+          "넓은 바닥",
+          "15cm × 15cm",
+          "큰 구슬",
+          3
+        ]
+      ],
+      "unit": "버틴 구슬 수",
+      "hint": "종이의 크기와 구슬의 크기가 같은 두 실험을 찾아보세요.",
+      "reflection": "실험 기록에서는 배의 모양에 따라 버틴 구슬 수가 달랐어요. 실제 종이배도 같은 결과가 나올지 가족과 시험해 보세요."
+    },
+    {
+      "title": "얼음이 녹는 시간",
+      "intro": "얼음을 어디에 놓으면 먼저 녹을까요? 가상 실험 기록에서 장소만 다른 두 실험을 찾아보세요.",
+      "variable": "장소",
+      "fields": [
+        "장소",
+        "얼음 크기",
+        "그릇"
+      ],
+      "trials": [
+        [
+          "따뜻한 방",
+          "작은 얼음",
+          "도자기 접시",
+          6
+        ],
+        [
+          "서늘한 방",
+          "큰 얼음",
+          "도자기 접시",
+          18
+        ],
+        [
+          "서늘한 방",
+          "작은 얼음",
+          "도자기 접시",
+          12
+        ],
+        [
+          "따뜻한 방",
+          "작은 얼음",
+          "금속 그릇",
+          5
+        ]
+      ],
+      "unit": "녹는 데 걸린 시간(분)",
+      "hint": "얼음의 크기와 그릇이 같아야 장소에 따른 차이를 비교하기 쉬워요.",
+      "reflection": "이 기록에서는 따뜻한 방의 얼음이 더 빨리 녹았어요. 실제 결과는 온도와 그릇 등 여러 조건에 따라 달라질 수 있어요."
+    },
+    {
+      "title": "씨앗이 자라는 데 필요한 물",
+      "intro": "같은 종류의 씨앗을 일주일 동안 키웠어요. 가상 관찰 기록에서 물의 양만 다른 두 실험을 찾아 비교해 보세요.",
+      "variable": "하루 물의 양",
+      "fields": [
+        "하루 물의 양",
+        "빛",
+        "흙"
+      ],
+      "trials": [
+        [
+          "물 5mL",
+          "밝은 곳",
+          "흙 A",
+          4
+        ],
+        [
+          "물 15mL",
+          "밝은 곳",
+          "흙 B",
+          6
+        ],
+        [
+          "물 5mL",
+          "그늘",
+          "흙 A",
+          2
+        ],
+        [
+          "물 15mL",
+          "밝은 곳",
+          "흙 A",
+          7
+        ]
+      ],
+      "unit": "일주일 뒤 평균 키(cm)",
+      "hint": "빛과 흙은 같고 물의 양만 다른 기록을 찾아보세요.",
+      "reflection": "이 기록에서는 물의 양이 다른 두 씨앗의 평균 키가 달랐어요. 모든 식물에 물을 많이 주는 것이 좋다는 뜻은 아니에요."
+    }
+  ],
+  "plan": [
+    {
+      "title": "소풍 간식 사기",
+      "intro": "친구들과 소풍을 가요. 동전 6개로 마실 것과 먹을 것을 각각 하나 이상 골라 주세요. 가방에 담을 수 있는 무게는 4칸이에요.",
+      "budget": 6,
+      "cap": 4,
+      "requirements": {
+        "drink": 1,
+        "food": 1
+      },
+      "items": [
+        [
+          "물",
+          "💧",
+          2,
+          1,
+          "drink"
+        ],
+        [
+          "주스",
+          "🧃",
+          4,
+          1,
+          "drink"
+        ],
+        [
+          "빵",
+          "🥖",
+          3,
+          1,
+          "food"
+        ],
+        [
+          "사과",
+          "🍎",
+          2,
+          1,
+          "food"
+        ]
+      ]
+    },
+    {
+      "title": "비 오는 날의 준비물",
+      "intro": "비가 오는 날 밖에 나갈 준비를 해요. 동전 8개로 비를 막는 물건과 발을 보호하는 물건을 하나씩 골라 주세요. 가방에 담을 수 있는 무게는 4칸이에요.",
+      "budget": 8,
+      "cap": 4,
+      "requirements": {
+        "rain": 1,
+        "feet": 1
+      },
+      "items": [
+        [
+          "우산",
+          "☂️",
+          4,
+          2,
+          "rain"
+        ],
+        [
+          "우비",
+          "🧥",
+          3,
+          1,
+          "rain"
+        ],
+        [
+          "장화",
+          "🥾",
+          5,
+          3,
+          "feet"
+        ],
+        [
+          "방수 신발 덮개",
+          "🛍️",
+          3,
+          1,
+          "feet"
+        ]
+      ]
+    },
+    {
+      "title": "동물 병원에 물건 보내기",
+      "intro": "동물 병원에 물 두 병과 붕대 한 개 이상을 보내요. 동전은 10개이고, 상자에 담을 수 있는 무게는 5칸이에요.",
+      "budget": 10,
+      "cap": 5,
+      "requirements": {
+        "drink": 2,
+        "bandage": 1
+      },
+      "items": [
+        [
+          "물 한 병",
+          "💧",
+          2,
+          1,
+          "drink"
+        ],
+        [
+          "물 두 병 묶음",
+          "🧴",
+          3,
+          2,
+          "drink2"
+        ],
+        [
+          "작은 붕대",
+          "🩹",
+          3,
+          1,
+          "bandage"
+        ],
+        [
+          "큰 붕대",
+          "📦",
+          5,
+          3,
+          "bandage"
+        ]
+      ]
+    }
+  ]
+};
 function foodResult(s,a){const valid=Array.isArray(a)&&a.length===s.need.length&&a.every(x=>Number.isInteger(x)&&x>=0);if(!valid)return {ok:false};const left=s.stock-a.reduce((x,y)=>x+y,0);const short=s.need.map((n,i)=>Math.max(0,n-a[i]));return {ok:left>=s.reserve&&short.every(x=>x===0),left,short};}
-function runRoute(s,cmds){let p=s.start.slice(),path=[p.slice()];const d={U:[0,-1],D:[0,1],L:[-1,0],R:[1,0]};if(cmds.length>s.limit)return {ok:false,path,reason:"limit"};for(let i=0;i<cmds.length;i++){let v=d[cmds[i]];if(!v)return {ok:false,path,reason:"command",at:i};let n=[p[0]+v[0],p[1]+v[1]];if(n[0]<0||n[1]<0||n[0]>=s.w||n[1]>=s.h||s.walls.some(w=>w[0]===n[0]&&w[1]===n[1]))return {ok:false,path,reason:"wall",at:i};p=n;path.push(p.slice());}return {ok:p[0]===s.goal[0]&&p[1]===s.goal[1],path,reason:"end"};}
-function detectiveResult(s,idea,seen,proof){const ready=seen.length===s.clues.length&&idea!==null&&proof.length>=2;return {ready,ok:ready&&idea===s.correct&&s.proof.every(i=>proof.includes(i))&&proof.every(i=>seen.includes(i))};}
-function bridgeResult(s,parts){if(parts.length!==s.loads.length||parts.some(p=>!Number.isInteger(p)||p< -1||p>=s.parts.length))return {ok:false};const cost=parts.reduce((a,p)=>a+(p<0?0:s.parts[p].cost),0);const weak=parts.map((p,i)=>p<0||s.parts[p].capacity<s.loads[i]?i:-1).filter(i=>i>=0);return {ok:cost<=s.budget&&!weak.length,cost,weak};}
-function scienceResult(s,selected,prediction){if(selected.length!==2||new Set(selected).size!==2||selected.some(i=>!Number.isInteger(i)||i<0||i>=s.trials.length))return {ready:false,ok:false};const a=s.trials[selected[0]],b=s.trials[selected[1]],same=a[1]===b[1]&&a[2]===b[2],fair=same&&a[0]!==b[0];const outcome=a[3]===b[3]?2:a[3]>b[3]?0:1;return {ready:prediction!==null,ok:fair&&prediction!==null,fair,outcome,matched:prediction===outcome};}
-function planResult(s,counts){if(counts.length!==s.items.length||counts.some(n=>!Number.isInteger(n)||n<0||n>20))return {ok:false};let cost=0,weight=0,have={};s.items.forEach((p,i)=>{cost+=p[2]*counts[i];weight+=p[3]*counts[i];let k=p[4]==="drink2"?"drink":p[4];have[k]=(have[k]||0)+counts[i]*(p[4]==="drink2"?2:1)});const missing=Object.keys(s.requirements).filter(k=>(have[k]||0)<s.requirements[k]);return {ok:cost<=s.budget&&weight<=s.cap&&!missing.length,cost,weight,missing};}
+function runRoute(s,cmds){let p=s.start.slice(),path=[p.slice()];const d={U:[0,-1],D:[0,1],L:[-1,0],R:[1,0]};if(!Array.isArray(cmds)||cmds.length>s.limit)return {ok:false,path,reason:"limit"};for(let i=0;i<cmds.length;i++){let v=Object.hasOwn(d,cmds[i])?d[cmds[i]]:null;if(!v)return {ok:false,path,reason:"command",at:i};let n=[p[0]+v[0],p[1]+v[1]];if(n[0]<0||n[1]<0||n[0]>=s.w||n[1]>=s.h||s.walls.some(w=>w[0]===n[0]&&w[1]===n[1]))return {ok:false,path,reason:"wall",at:i};p=n;path.push(p.slice());}return {ok:p[0]===s.goal[0]&&p[1]===s.goal[1],path,reason:"end"};}
+function detectiveResult(s,idea,seen,proof){const ready=Array.isArray(seen)&&Array.isArray(proof)&&new Set(seen).size===s.clues.length&&seen.length===s.clues.length&&seen.every(i=>Number.isInteger(i)&&i>=0&&i<s.clues.length)&&Number.isInteger(idea)&&idea>=0&&idea<s.ideas.length&&proof.length===2&&new Set(proof).size===2;return {ready,ok:ready&&idea===s.correct&&s.proof.every(i=>proof.includes(i))&&proof.every(i=>seen.includes(i))};}
+function bridgeResult(s,parts){if(!Array.isArray(parts)||parts.length!==s.loads.length||parts.some(p=>!Number.isInteger(p)||p< -1||p>=s.parts.length))return {ok:false};const cost=parts.reduce((a,p)=>a+(p<0?0:s.parts[p].cost),0);const weak=parts.map((p,i)=>p<0||s.parts[p].capacity<s.loads[i]?i:-1).filter(i=>i>=0);return {ok:cost<=s.budget&&!weak.length,cost,weak};}
+function scienceResult(s,selected,prediction){if(!Array.isArray(selected)||selected.length!==2||new Set(selected).size!==2||selected.some(i=>!Number.isInteger(i)||i<0||i>=s.trials.length))return {ready:false,ok:false};const a=s.trials[selected[0]],b=s.trials[selected[1]],same=a[1]===b[1]&&a[2]===b[2],fair=same&&a[0]!==b[0];const outcome=a[3]===b[3]?2:a[3]>b[3]?0:1;return {ready:[0,1,2].includes(prediction),ok:fair&&[0,1,2].includes(prediction),fair,outcome,matched:prediction===outcome};}
+function planResult(s,counts){if(!Array.isArray(counts)||counts.length!==s.items.length||counts.some(n=>!Number.isInteger(n)||n<0||n>20))return {ok:false};let cost=0,weight=0,have={};s.items.forEach((p,i)=>{cost+=p[2]*counts[i];weight+=p[3]*counts[i];let k=p[4]==="drink2"?"drink":p[4];have[k]=(have[k]||0)+counts[i]*(p[4]==="drink2"?2:1)});const missing=Object.keys(s.requirements).filter(k=>(have[k]||0)<s.requirements[k]);return {ok:cost<=s.budget&&weight<=s.cap&&!missing.length,cost,weight,missing};}
 </script>
 <script>
 "use strict";
@@ -31,28 +621,28 @@ function detect(s){game.append(node("h3","1. 단서 조사하기"));s.clues.forE
 
 function bridge(s){
  const r=bridgeResult(s,state.parts);
- game.append(node("p","이 다리는 실제 구조물을 계산하는 도구가 아니라, 정해진 규칙으로 설계하는 모형 놀이예요.","small"),node("h3","남은 재료: "+(s.budget-r.cost)+"개"));
+ game.append(node("p","이 다리는 실제 구조물을 계산하는 도구가 아니라, 정해진 규칙으로 설계하는 모형 놀이예요.","small"),node("h3",r.cost>s.budget?"부족한 재료: "+(r.cost-s.budget)+"개":"남은 재료: "+(s.budget-r.cost)+"개"));
  const legend=node("div",undefined,"controls");s.parts.forEach(p=>legend.append(node("div",p.icon+" "+p.name+" · 재료 "+p.cost+"개 · 무게 "+p.capacity+"까지","clue")));game.append(legend);
  const river=node("div",undefined,"bridge-river");s.loads.forEach((load,i)=>{const cell=node("div",undefined,"bridge-cell");cell.append(node("strong",(i+1)+"번 칸"),node("div","무게 "+load,"small"),node("div",state.parts[i]<0?"🌊":s.parts[state.parts[i]].icon,"piece"));river.append(cell)});game.append(river);
  s.loads.forEach((load,i)=>{const row=node("div",undefined,"clue");row.append(node("h3",(i+1)+"번 칸에 놓을 재료"));const choices=node("div",undefined,"controls");s.parts.forEach((p,j)=>button(choices,p.icon+" "+p.name,()=>{state.parts[i]=j;state.attempted=false;render()},{pressed:state.parts[i]===j}));button(choices,"비우기",()=>{state.parts[i]=-1;state.attempted=false;render()},{disabled:state.parts[i]<0});row.append(choices);game.append(row)});
  button(game,"다리 시험하기",()=>{state.attempted=true;render()},{primary:true});
- if(state.attempted){status(r.ok?"다리의 모든 칸이 필요한 무게를 버텼어요. 재료도 정해진 수 안에서 사용했어요!":r.weak.length?"아직 "+r.weak.map(i=>(i+1)+"번").join(", ")+" 칸이 비어 있거나 필요한 무게를 버티지 못해요. 그 칸의 재료를 바꿔 보세요.":"다리는 무게를 버티지만 재료를 너무 많이 썼어요. 가벼운 무게를 버티는 칸부터 살펴보세요.");if(r.ok)complete()}else status("칸마다 버텨야 하는 무게를 확인한 뒤 재료를 골라 보세요.");
+ if(state.attempted){status(r.ok?"다리의 모든 칸이 필요한 무게를 버텼어요. 재료도 정해진 수 안에서 사용했어요!":r.weak.length?"아직 "+r.weak.map(i=>(i+1)+"번").join(", ")+" 칸이 비어 있거나 필요한 무게를 버티지 못해요. 그 칸의 재료를 바꿔 보세요.":"다리는 무게를 버티지만 재료를 너무 많이 썼어요. 무게가 작은 칸에 더 적은 재료를 써도 되는지 살펴보세요.");if(r.ok)complete()}else status("칸마다 버텨야 하는 무게를 확인한 뒤 재료를 골라 보세요.");
  guide("가장 튼튼한 재료만 쓰는 것과 필요한 곳에 알맞은 재료를 쓰는 것의 차이를 이야기해 보세요. 이 활동은 실제 다리의 안전성을 예측하지 않습니다.");
 }
 function science(s){
  game.append(node("h3","1. "+s.variable+"만 다른 두 기록 고르기"));
  s.trials.forEach((t,i)=>{const box=node("div",undefined,"clue");button(box,"실험 "+(i+1),()=>{state.selected=state.selected.includes(i)?state.selected.filter(x=>x!==i):[...state.selected,i];state.prediction=null;state.attempted=false;render()},{pressed:state.selected.includes(i),disabled:!state.selected.includes(i)&&state.selected.length>=2});s.fields.forEach((f,j)=>box.append(node("div",f+": "+t[j])));game.append(box)});
- if(state.selected.length===2){const a=state.selected[0],b=state.selected[1];game.append(node("h3","2. 결과를 예상해 보기"),node("p","어느 실험의 '"+s.unit+"' 값이 더 클까요?"));const c=node("div",undefined,"controls");["실험 "+(a+1),"실험 "+(b+1),"두 실험이 같을 것 같아요"].forEach((t,i)=>button(c,t,()=>{state.prediction=i;state.attempted=false;render()},{pressed:state.prediction===i}));game.append(c);}
+ if(state.selected.length===2){const a=state.selected[0],b=state.selected[1];game.append(node("h3","2. 결과를 예상해 보기"),node("p",s.unit+"는 어느 실험에서 더 클까요?"));const c=node("div",undefined,"controls");["실험 "+(a+1),"실험 "+(b+1),"두 실험이 같을 것 같아요"].forEach((t,i)=>button(c,t,()=>{state.prediction=i;state.attempted=false;render()},{pressed:state.prediction===i}));game.append(c);}
  const r=scienceResult(s,state.selected,state.prediction);button(game,"관찰 기록 열기",()=>{state.attempted=true;render()},{primary:true,disabled:!r.ready});
  if(state.attempted){if(!r.fair){status("두 실험에서 다른 조건이 더 있어요. "+s.hint)}else{const a=state.selected[0],b=state.selected[1];const result=node("div",undefined,"clue");result.append(node("h3",s.unit));[a,b].forEach(i=>{result.append(node("div","실험 "+(i+1)+": "+s.trials[i][3]));const bar=node("div",undefined,"result-bar");bar.style.width=(100*s.trials[i][3]/Math.max(s.trials[a][3],s.trials[b][3]))+"%";result.append(bar)});game.append(result);status((r.matched?"예상한 결과와 같아요. ":"예상과 달랐네요. 새로운 사실을 발견했어요! ")+s.reflection);complete()}}else status("비교하려는 조건은 다르게, 나머지 조건은 같게 골라 보세요.");
  guide("관찰 기록은 학습을 위해 만든 가상 자료입니다. 아이가 결과를 예상한 이유를 말하게 하고, 예상과 다르더라도 기록을 근거로 생각을 바꾸는 과정을 칭찬해 주세요.");
 }
 function plan(s){
  const r=planResult(s,state.counts);const names={drink:"마실 것",food:"먹을 것",rain:"비를 막는 물건",feet:"발을 보호하는 물건",bandage:"붕대"};if(level===2)names.drink="물";
- game.append(node("h3","🪙 남은 동전: "+(s.budget-r.cost)+"개"),node("h3","🎒 남은 무게 칸: "+(s.cap-r.weight)+"칸"),node("p","필요한 물건: "+Object.entries(s.requirements).map(([k,n])=>names[k]+" "+n+(k==="drink"&&level===2?"병":"개")+" 이상").join(", "),"small"));
+ game.append(node("h3",r.cost>s.budget?"🪙 부족한 동전: "+(r.cost-s.budget)+"개":"🪙 남은 동전: "+(s.budget-r.cost)+"개"),node("h3",r.weight>s.cap?"🎒 초과한 무게: "+(r.weight-s.cap)+"칸":"🎒 더 담을 수 있는 무게: "+(s.cap-r.weight)+"칸"),node("p","필요한 물건: "+Object.entries(s.requirements).map(([k,n])=>names[k]+" "+n+(k==="drink"&&level===2?"병":"개")+" 이상").join(", "),"small"));
  s.items.forEach((p,i)=>{const row=node("div",undefined,"animal"),info=node("div");info.append(node("strong",p[1]+" "+p[0]),node("div","동전 "+p[2]+"개 · 무게 "+p[3]+"칸","small"),node("div","고른 수: "+state.counts[i]+"개"));const c=node("div",undefined,"controls");button(c,"−",()=>{state.counts[i]--;state.attempted=false;render()},{disabled:state.counts[i]===0,label:p[0]+" 하나 빼기"});button(c,"+",()=>{state.counts[i]++;state.attempted=false;render()},{disabled:state.counts[i]>=s.budget,label:p[0]+" 하나 담기"});row.append(info,c);game.append(row)});
  button(game,"준비가 끝났는지 확인하기",()=>{state.attempted=true;render()},{primary:true});
- if(state.attempted){const notes=[];if(r.cost>s.budget)notes.push("동전이 "+(r.cost-s.budget)+"개 부족해요.");if(r.weight>s.cap)notes.push("가방에 "+(r.weight-s.cap)+"칸만큼 무게가 넘쳐요.");if(r.missing.length)notes.push("아직 필요한 물건이 부족해요: "+r.missing.map(k=>names[k]).join(", ")+".");status(r.ok?"필요한 물건을 모두 골랐고, 동전과 무게 조건도 지켰어요. 다른 방법으로도 준비할 수 있을까요?":notes.join(" ")+" 물건을 바꿔 다시 계획해 보세요.");if(r.ok)complete()}else status("필요한 물건을 먼저 살펴보고 동전과 가방의 남은 공간을 확인해 보세요.");
+ if(state.attempted){const notes=[];if(r.cost>s.budget)notes.push("동전이 "+(r.cost-s.budget)+"개 부족해요.");if(r.weight>s.cap)notes.push("가방에 담을 수 있는 무게를 "+(r.weight-s.cap)+"칸만큼 넘었어요.");if(r.missing.length)notes.push("아직 필요한 물건이 부족해요: "+r.missing.map(k=>names[k]).join(", ")+".");status(r.ok?"필요한 물건을 모두 골랐고, 동전과 무게 조건도 지켰어요. 다른 방법으로도 준비할 수 있을까요?":notes.join(" ")+" 물건을 바꿔 다시 계획해 보세요.");if(r.ok)complete()}else status("필요한 물건을 먼저 살펴보고 동전과 가방에 더 담을 수 있는 무게를 확인해 보세요.");
  guide("같은 목표를 이루는 여러 조합을 찾아보세요. 더 싼 방법, 더 가벼운 방법 중 어떤 것이 상황에 어울리는지 이야기해 보세요.");
 }
 

@@ -2,7 +2,7 @@
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>생각 탐험 연구소 · 체험실</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f3f7f5;color:#163a35;font:17px/1.65 system-ui,"Malgun Gothic",sans-serif}main{max-width:760px;margin:auto;padding:18px 16px 48px}a{color:#16675e}h1{font-size:clamp(25px,6vw,36px);line-height:1.25;margin:12px 0}h2{font-size:23px;line-height:1.35;margin:0}h3{font-size:18px;margin:0}p{margin:8px 0 16px}.panel{background:white;border:1px solid #d4e5de;border-radius:20px;padding:18px;margin:14px 0}.menu,.controls{display:flex;flex-wrap:wrap;gap:8px}button{font:inherit;font-weight:650;min-height:48px;border:1px solid #8daea4;background:#fff;color:#164d45;padding:9px 14px;border-radius:12px;cursor:pointer;touch-action:manipulation}button:focus-visible,a:focus-visible{outline:3px solid #bf7100;outline-offset:3px}button[aria-pressed=true],button.primary{background:#17685d;color:white;border-color:#17685d}button:disabled{opacity:.45;cursor:default}.animal{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;border-bottom:1px solid #e0ebe6;padding:12px 0}.animal strong{font-size:19px}.apples{overflow-wrap:anywhere}.small{font-size:14px;color:#4a665e}.status{background:#e9f4ee;padding:12px;border-radius:12px;margin:12px 0;min-height:50px}.grid{display:grid;gap:4px;max-width:420px;margin:12px auto}.cell{aspect-ratio:1;border-radius:9px;display:grid;place-items:center;background:#e2efe5;font-size:clamp(15px,5vw,27px);border:1px solid #a8cabb}.wall{background:#bac3c1}.trail{background:#fbdc9c}.clue{padding:12px;border:1px solid #d6e5dd;border-radius:12px;margin:10px 0}.clue button,.choice{width:100%;text-align:left}.seq{min-height:48px;overflow-wrap:anywhere;padding:10px;background:#f1f5f3;border-radius:10px}label{display:block;margin:10px 0}input[type=checkbox]{width:22px;height:22px;vertical-align:middle;margin-right:8px}details{margin-top:16px}summary{cursor:pointer;font-weight:650}.tag{font-size:14px;color:#4b6860} .level{margin:8px 0} @media(max-width:380px){.panel{padding:12px}button{padding:8px 10px}}
-.bridge-river{background:#bde2f2;border-radius:14px;padding:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center}.bridge-cell{flex:1;min-width:52px;text-align:center;background:#e5f6ff;border-radius:8px;padding:5px}.piece{font-size:28px}.result-bar{background:#228373;height:16px;border-radius:8px;margin:4px 0 10px}.choice{margin:4px 0}.clue h3{margin-bottom:8px}.status{white-space:normal;overflow-wrap:anywhere}</style></head><body><main><a href="/portal/thinking">← 생각 탐험 연구소로 돌아가기</a><h1>생각 탐험 체험실</h1><p>단서를 찾고, 방법을 생각하고, 직접 시험해 보세요. 잘 안되면 방법을 바꿔 다시 도전할 수 있어요.</p><nav class="menu" id="menu" aria-label="탐험 고르기"></nav><section class="panel" id="game"></section><p class="small">이 체험실의 진행 기록은 저장되지 않아요. 기존 탐험 기록은 그대로 남아 있어요.</p></main>
+.bridge-river{background:#bde2f2;border-radius:14px;padding:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center}.bridge-cell{flex:1;min-width:52px;text-align:center;background:#e5f6ff;border-radius:8px;padding:5px}.piece{font-size:28px}.result-bar{background:#228373;height:16px;border-radius:8px;margin:4px 0 10px}.choice{margin:4px 0}.clue h3{margin-bottom:8px}.status{white-space:normal;overflow-wrap:anywhere}.flow-stage{background:#f1f6f3;padding:12px;border-radius:12px;margin:10px 0}.flow-arrow{text-align:center;color:#49796a;font-size:24px}.compare-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}.compare-grid>div{background:#edf5f0;border-radius:12px;padding:10px}textarea{font:inherit;width:100%;min-height:84px;border:1px solid #8daea4;border-radius:12px;padding:10px;color:inherit;background:#fff;resize:vertical}textarea:focus-visible{outline:3px solid #bf7100}.workshop-note{border-left:4px solid #228373;padding-left:12px;margin:10px 0}.choice[aria-pressed=true]{background:#17685d;color:white}</style></head><body><main><a href="/portal/thinking">← 생각 탐험 연구소로 돌아가기</a><h1>생각 탐험 체험실</h1><p>단서를 찾고, 방법을 생각하고, 직접 시험해 보세요. 잘 안되면 방법을 바꿔 다시 도전할 수 있어요.</p><nav class="menu" id="menu" aria-label="탐험 고르기"></nav><section class="panel" id="game"></section><p class="small">이 체험실의 진행 기록과 직접 적은 내용은 저장되지 않아요. 다른 탐험을 고르거나 화면을 닫으면 사라져요. 기존 탐험 기록은 그대로 남아 있어요.</p></main>
 <script id="rules">
 const DATA={
   "food": [
@@ -596,6 +596,422 @@ const DATA={
         ]
       ]
     }
+  ],
+  "system": [
+    {
+      "title": "빵집에 주문이 밀렸어요",
+      "intro": "빵집에서는 반죽을 만들고, 빵을 굽고, 포장한 뒤 손님에게 줘요. 어느 곳에서 일이 밀리는지 찾아보고 도우미를 배치해 보세요.",
+      "unit": "빵",
+      "stages": [
+        "반죽",
+        "굽기",
+        "포장"
+      ],
+      "icons": [
+        "🥣",
+        "🍞",
+        "📦"
+      ],
+      "rounds": [
+        {
+          "supply": 6,
+          "capacity": [
+            2,
+            5,
+            3
+          ],
+          "helpers": 3,
+          "target": 4,
+          "event": "손님에게 빵을 4개 이상 전달해야 해요."
+        },
+        {
+          "supply": 7,
+          "capacity": [
+            4,
+            2,
+            5
+          ],
+          "helpers": 3,
+          "target": 4,
+          "event": "반죽은 빨라졌지만 오븐 한 대가 고장 났어요. 이번에도 빵을 4개 이상 전달해야 해요."
+        }
+      ],
+      "question": "도우미를 한 곳에 많이 배치하면 다른 곳의 일도 저절로 빨라질까요?"
+    },
+    {
+      "title": "도서관의 새 책",
+      "intro": "새 책은 이름표를 붙이고, 내용을 확인한 뒤 책장에 꽂아요. 책이 어디에서 기다리고 있는지 살펴보세요.",
+      "unit": "책",
+      "stages": [
+        "이름표 붙이기",
+        "등록 확인",
+        "책장에 꽂기"
+      ],
+      "icons": [
+        "🏷️",
+        "📝",
+        "📚"
+      ],
+      "rounds": [
+        {
+          "supply": 8,
+          "capacity": [
+            6,
+            2,
+            4
+          ],
+          "helpers": 3,
+          "target": 4,
+          "event": "오늘은 새 책 4권 이상을 책장에 꽂는 것이 목표예요."
+        },
+        {
+          "supply": 8,
+          "capacity": [
+            3,
+            5,
+            3
+          ],
+          "helpers": 3,
+          "target": 4,
+          "event": "등록 확인이 빨라졌어요. 이름표를 붙이는 사람과 책을 꽂는 사람이 부족해졌어요. 다시 배치해 보세요."
+        }
+      ],
+      "question": "등록 확인을 더 빠르게 하면 책장에 꽂는 책도 늘어날까요? 어떤 조건에서 그럴까요?"
+    },
+    {
+      "title": "구호 물품이 도착하는 길",
+      "intro": "모형 물류센터에서 상자를 싣고, 트럭으로 옮기고, 도착한 상자를 정리해요. 한 곳만 빨라져도 충분할지 알아보세요.",
+      "unit": "상자",
+      "stages": [
+        "싣기",
+        "운반",
+        "정리"
+      ],
+      "icons": [
+        "📦",
+        "🚚",
+        "🏠"
+      ],
+      "rounds": [
+        {
+          "supply": 9,
+          "capacity": [
+            5,
+            3,
+            4
+          ],
+          "helpers": 4,
+          "target": 5,
+          "event": "상자 5개 이상을 도착지에서 정리해야 해요."
+        },
+        {
+          "supply": 10,
+          "capacity": [
+            3,
+            6,
+            4
+          ],
+          "helpers": 4,
+          "target": 5,
+          "event": "운반할 트럭은 늘었지만 상자를 싣는 사람이 줄었어요. 상자 5개 이상을 정리하려면 어떻게 해야 할까요?"
+        }
+      ],
+      "question": "가장 느린 곳을 도우면 항상 목표를 이룰까요? 또 다른 곳이 느려질 수도 있을까요?"
+    }
+  ],
+  "invent": [
+    {
+      "title": "비 오는 날의 책가방",
+      "intro": "책을 넣고 비 오는 날에도 다닐 수 있는 가방을 상상해 봐요. 원하는 부품을 골라 나만의 가방을 만들어 보세요.",
+      "budget": 6,
+      "needs": [
+        "책 보관",
+        "물 튀김 줄이기",
+        "들고 다니기"
+      ],
+      "parts": [
+        [
+          "큰 주머니",
+          "🎒",
+          2,
+          [
+            0
+          ]
+        ],
+        [
+          "덮개",
+          "☂️",
+          2,
+          [
+            1
+          ]
+        ],
+        [
+          "손잡이",
+          "🪢",
+          1,
+          [
+            2
+          ]
+        ],
+        [
+          "어깨끈",
+          "🎽",
+          2,
+          [
+            2
+          ]
+        ],
+        [
+          "덮개 달린 주머니",
+          "📦",
+          3,
+          [
+            0,
+            1
+          ]
+        ],
+        [
+          "꾸미기 스티커",
+          "⭐",
+          1,
+          []
+        ]
+      ],
+      "question": "어깨에 메는 가방과 손으로 드는 가방은 각각 언제 편할까요?"
+    },
+    {
+      "title": "도서관의 안내판",
+      "intro": "처음 온 친구가 혼자서 책 읽는 곳을 찾을 수 있게 안내판을 만들어 봐요. 아직 글자를 잘 읽지 못하는 친구도 이용할 수 있어야 해요.",
+      "budget": 6,
+      "needs": [
+        "목적지 표시",
+        "방향 표시",
+        "글을 몰라도 이해하기"
+      ],
+      "parts": [
+        [
+          "책 그림",
+          "📖",
+          2,
+          [
+            0,
+            2
+          ]
+        ],
+        [
+          "화살표",
+          "➡️",
+          1,
+          [
+            1
+          ]
+        ],
+        [
+          "책 읽는 곳 글자",
+          "🔤",
+          1,
+          [
+            0
+          ]
+        ],
+        [
+          "책 그림과 화살표",
+          "🪧",
+          3,
+          [
+            0,
+            1,
+            2
+          ]
+        ],
+        [
+          "방향을 가리키는 손 그림",
+          "👉",
+          2,
+          [
+            1
+          ]
+        ],
+        [
+          "반짝이 테두리",
+          "✨",
+          1,
+          []
+        ]
+      ],
+      "question": "글자를 읽을 수 있는 친구와 아직 읽지 못하는 친구에게 어떤 안내가 도움이 될까요?"
+    },
+    {
+      "title": "달 탐사 로봇",
+      "intro": "달을 탐험하는 상상 로봇을 만들어 봐요. 움직이고, 주변을 살피고, 지구에 소식을 보내야 해요. 부품을 조합해 두 가지 로봇을 만들어 볼까요?",
+      "budget": 8,
+      "needs": [
+        "이동",
+        "주변 관찰",
+        "소식 보내기"
+      ],
+      "parts": [
+        [
+          "바퀴",
+          "⚙️",
+          2,
+          [
+            0
+          ]
+        ],
+        [
+          "다리",
+          "🦿",
+          3,
+          [
+            0
+          ]
+        ],
+        [
+          "카메라",
+          "📷",
+          2,
+          [
+            1
+          ]
+        ],
+        [
+          "안테나",
+          "📡",
+          2,
+          [
+            2
+          ]
+        ],
+        [
+          "카메라와 안테나 묶음",
+          "🛰️",
+          3,
+          [
+            1,
+            2
+          ]
+        ],
+        [
+          "깃발",
+          "🚩",
+          1,
+          []
+        ]
+      ],
+      "question": "두 로봇은 어떤 점이 다를까요? 울퉁불퉁한 곳을 탐험할 때 어떤 부품을 더 생각해 보고 싶나요?"
+    }
+  ],
+  "story": [
+    {
+      "title": "하나뿐인 그네",
+      "intro": "놀이터에 그네가 하나 있어요. 민준이는 이제 막 타기 시작했고, 지아는 오래 기다렸어요. 두 친구가 어떻게 하면 좋을까요?",
+      "people": [
+        [
+          "민준",
+          "👦",
+          "이제 막 탔는데 바로 내려오면 아쉬울 것 같아."
+        ],
+        [
+          "지아",
+          "👧",
+          "오래 기다렸어. 나도 언제 탈 수 있는지 알고 싶어."
+        ]
+      ],
+      "actions": [
+        [
+          "타는 시간을 함께 정하기",
+          "민준이는 정한 시간까지 타고, 지아는 다음 차례를 알 수 있어요. 시간을 지키기로 서로 약속해야 해요."
+        ],
+        [
+          "지금 차례를 바꾸기",
+          "지아는 바로 탈 수 있어요. 민준이가 아쉬워할 수 있으니 다음 차례를 다시 정해야 해요."
+        ],
+        [
+          "다른 놀이를 먼저 하고 돌아오기",
+          "지아는 기다리는 동안 다른 놀이를 할 수 있어요. 돌아왔을 때 차례가 지나가지 않도록 약속이 필요해요."
+        ]
+      ],
+      "priorities": [
+        "기다리는 시간을 줄이기",
+        "둘 다 탈 기회 주기",
+        "서로 기분을 이야기하기"
+      ],
+      "question": "친구가 약속을 잊어버리면 어떻게 알려 줄 수 있을까요?"
+    },
+    {
+      "title": "함께 만든 블록 도시",
+      "intro": "서윤이와 도윤이는 블록으로 도시를 만들고 있어요. 서윤이는 높은 탑을 만들고 싶고, 도윤이는 자동차가 지나갈 길을 만들고 싶어요. 블록은 조금밖에 남지 않았어요.",
+      "people": [
+        [
+          "서윤",
+          "👧",
+          "탑이 조금 더 높았으면 좋겠어. 거의 다 만들었거든."
+        ],
+        [
+          "도윤",
+          "👦",
+          "자동차가 갈 길이 끊겨 있어. 길을 이어 보고 싶어."
+        ]
+      ],
+      "actions": [
+        [
+          "남은 블록을 나누기",
+          "두 친구가 각각 조금씩 더 만들 수 있어요. 탑과 길을 모두 원하는 만큼 만들지는 못할 수도 있어요."
+        ],
+        [
+          "탑과 길을 연결해 새 도시 만들기",
+          "같은 블록을 함께 쓰는 방법을 생각할 수 있어요. 이미 만든 부분도 조금 바꿔야 할 수 있어요."
+        ],
+        [
+          "하나를 먼저 완성한 뒤 다음 작품 만들기",
+          "한 작품을 먼저 완성할 수 있어요. 다른 친구는 기다려야 하므로 다음에 무엇을 만들지 함께 약속해야 해요."
+        ]
+      ],
+      "priorities": [
+        "두 친구의 아이디어 살리기",
+        "작품 하나를 먼저 완성하기",
+        "남은 블록 아껴 쓰기"
+      ],
+      "question": "두 친구가 처음 생각하지 못했던 새로운 도시를 만들려면 어떤 모습이면 좋을까요?"
+    },
+    {
+      "title": "친구의 그림을 전시해요",
+      "intro": "교실에 그림을 전시할 자리가 하나 남았어요. 하린이는 처음 그린 그림을 보여 주고 싶고, 유나는 오랫동안 고친 그림을 보여 주고 싶어요.",
+      "people": [
+        [
+          "하린",
+          "👧",
+          "처음으로 끝까지 그린 그림이야. 친구들에게 보여 주고 싶어."
+        ],
+        [
+          "유나",
+          "👧",
+          "여러 번 고친 그림이야. 내가 노력한 것도 보여 주고 싶어."
+        ]
+      ],
+      "actions": [
+        [
+          "날짜를 정해 번갈아 전시하기",
+          "두 그림을 모두 전시할 수 있어요. 어느 그림을 먼저 전시할지 함께 정해야 해요."
+        ],
+        [
+          "전시 공간을 나누어 두 그림 붙이기",
+          "두 그림을 동시에 볼 수 있어요. 공간이 좁다면 그림을 안전하게 붙일 방법을 찾아야 해요."
+        ],
+        [
+          "친구들에게 다른 전시 장소를 함께 찾아 달라고 부탁하기",
+          "두 그림을 넓게 보여 줄 새 자리를 찾을 수도 있어요. 실제로 사용할 수 있는 장소인지 선생님에게 확인해야 해요."
+        ]
+      ],
+      "priorities": [
+        "두 그림을 모두 보여 주기",
+        "그림을 잘 볼 수 있는 공간 만들기",
+        "친구들과 함께 방법 정하기"
+      ],
+      "question": "그림을 잘 그렸는지만 보고 전시할 작품을 고르면 어떤 점을 놓칠 수 있을까요?"
+    }
   ]
 };
 function foodResult(s,a){const valid=Array.isArray(a)&&a.length===s.need.length&&a.every(x=>Number.isInteger(x)&&x>=0);if(!valid)return {ok:false};const left=s.stock-a.reduce((x,y)=>x+y,0);const short=s.need.map((n,i)=>Math.max(0,n-a[i]));return {ok:left>=s.reserve&&short.every(x=>x===0),left,short};}
@@ -604,17 +1020,39 @@ function detectiveResult(s,idea,seen,proof){const ready=Array.isArray(seen)&&Arr
 function bridgeResult(s,parts){if(!Array.isArray(parts)||parts.length!==s.loads.length||parts.some(p=>!Number.isInteger(p)||p< -1||p>=s.parts.length))return {ok:false};const cost=parts.reduce((a,p)=>a+(p<0?0:s.parts[p].cost),0);const weak=parts.map((p,i)=>p<0||s.parts[p].capacity<s.loads[i]?i:-1).filter(i=>i>=0);return {ok:cost<=s.budget&&!weak.length,cost,weak};}
 function scienceResult(s,selected,prediction){if(!Array.isArray(selected)||selected.length!==2||new Set(selected).size!==2||selected.some(i=>!Number.isInteger(i)||i<0||i>=s.trials.length))return {ready:false,ok:false};const a=s.trials[selected[0]],b=s.trials[selected[1]],same=a[1]===b[1]&&a[2]===b[2],fair=same&&a[0]!==b[0];const outcome=a[3]===b[3]?2:a[3]>b[3]?0:1;return {ready:[0,1,2].includes(prediction),ok:fair&&[0,1,2].includes(prediction),fair,outcome,matched:prediction===outcome};}
 function planResult(s,counts){if(!Array.isArray(counts)||counts.length!==s.items.length||counts.some(n=>!Number.isInteger(n)||n<0||n>20))return {ok:false};let cost=0,weight=0,have={};s.items.forEach((p,i)=>{cost+=p[2]*counts[i];weight+=p[3]*counts[i];let k=p[4]==="drink2"?"drink":p[4];have[k]=(have[k]||0)+counts[i]*(p[4]==="drink2"?2:1)});const missing=Object.keys(s.requirements).filter(k=>(have[k]||0)<s.requirements[k]);return {ok:cost<=s.budget&&weight<=s.cap&&!missing.length,cost,weight,missing};}
+function systemResult(s,round,allocation){
+ const r=s.rounds[round];if(!r||!Array.isArray(allocation)||allocation.length!==r.capacity.length||allocation.some(n=>!Number.isInteger(n)||n<0||n>r.helpers))return {valid:false,ok:false};
+ const used=allocation.reduce((a,b)=>a+b,0),capacity=r.capacity.map((n,i)=>n+allocation[i]);let incoming=r.supply;
+ const flow=capacity.map(cap=>{const done=Math.min(incoming,cap),waiting=incoming-done;incoming=done;return {done,waiting};});
+ return {valid:used<=r.helpers,ok:used<=r.helpers&&incoming>=r.target,used,capacity,flow,output:incoming};
+}
+function inventResult(s,parts){
+ if(!Array.isArray(parts)||new Set(parts).size!==parts.length||parts.some(i=>!Number.isInteger(i)||i<0||i>=s.parts.length))return {valid:false,ok:false};
+ const cost=parts.reduce((a,i)=>a+s.parts[i][2],0),covered=new Set(parts.flatMap(i=>s.parts[i][3])),missing=s.needs.filter((_,i)=>!covered.has(i));
+ return {valid:true,ok:cost<=s.budget&&!missing.length,cost,missing};
+}
+function differentDesign(s,a,b){
+ if(!inventResult(s,a).ok||!inventResult(s,b).ok)return false;
+ // A useful design must change functional components, not just decorations.
+ const functional=x=>x.filter(i=>s.parts[i][3].length).sort((i,j)=>i-j).join(",");
+ return functional(a)!==functional(b);
+}
+function storyResult(s,seen,tried,choice,priority,reason){
+ const validList=(a,n)=>Array.isArray(a)&&new Set(a).size===a.length&&a.every(i=>Number.isInteger(i)&&i>=0&&i<n);
+ const ready=validList(seen,s.people.length)&&seen.length===s.people.length&&validList(tried,s.actions.length)&&tried.length>=2&&tried.includes(choice)&&Number.isInteger(priority)&&priority>=0&&priority<s.priorities.length&&typeof reason==="string"&&reason.trim().length>0&&reason.length<=500;
+ return {ready,ok:ready}; // No moral correctness score.
+}
 </script>
 <script>
 "use strict";
 const menu=document.getElementById("menu"), game=document.getElementById("game");
-const labels={food:"🍎 사과 나누기",route:"🤖 로봇 길 만들기",detect:"🔎 단서 탐정",bridge:"🌉 다리 설계",science:"🔬 공정한 실험",plan:"🎒 준비물 계획"};
+const labels={food:"🍎 사과 나누기",route:"🤖 로봇 길 만들기",detect:"🔎 단서 탐정",bridge:"🌉 다리 설계",science:"🔬 공정한 실험",plan:"🎒 준비물 계획",system:"🏘️ 연결된 일",invent:"💡 나만의 발명",story:"💬 이야기 회의"};
 const dirs={U:"↑",D:"↓",L:"←",R:"→"}, dirNames={U:"위",D:"아래",L:"왼쪽",R:"오른쪽"};
 let mode="food",level=0,state;
 function node(tag,value,cls){const el=document.createElement(tag);if(value!==undefined)el.textContent=value;if(cls)el.className=cls;return el;}
 function button(parent,label,fn,opts={}){const b=node("button",label,opts.primary?"primary":"");b.type="button";if(opts.pressed!==undefined)b.setAttribute("aria-pressed",String(opts.pressed));if(opts.label)b.setAttribute("aria-label",opts.label);b.disabled=!!opts.disabled;b.addEventListener("click",fn);parent.append(b);return b;}
-function start(m,l){mode=m;level=l;state={a:[0,0,0],cmds:[],seen:[],proof:[],idea:null,result:null,attempted:false,parts:[],selected:[],prediction:null,counts:[0,0,0,0]};if(m==="bridge")state.parts=DATA[m][l].loads.map(()=>-1);render();}
-function render(){menu.replaceChildren();for(const key of Object.keys(labels))button(menu,labels[key],()=>start(key,0),{pressed:key===mode});game.replaceChildren();const s=DATA[mode][level];game.append(node("div","탐험 "+(level+1)+" / "+DATA[mode].length,"tag"),node("h2",s.title),node("p",s.intro));const levels=node("div",undefined,"controls level");for(let i=0;i<DATA[mode].length;i++)button(levels,(i+1)+"단계",()=>start(mode,i),{pressed:i===level});game.append(levels);if(mode==="food")food(s);if(mode==="route")route(s);if(mode==="detect")detect(s);if(mode==="bridge")bridge(s);if(mode==="science")science(s);if(mode==="plan")plan(s);}
+function start(m,l){mode=m;level=l;state={a:[0,0,0],cmds:[],seen:[],proof:[],idea:null,result:null,attempted:false,parts:[],selected:[],prediction:null,counts:[0,0,0,0],round:0,allocation:[0,0,0],baseline:null,design:[],firstDesign:null,tried:[],reason:"",priority:null,choice:null};if(m==="bridge")state.parts=DATA[m][l].loads.map(()=>-1);render();}
+function render(){menu.replaceChildren();for(const key of Object.keys(labels))button(menu,labels[key],()=>start(key,0),{pressed:key===mode});game.replaceChildren();const s=DATA[mode][level];game.append(node("div","탐험 "+(level+1)+" / "+DATA[mode].length,"tag"),node("h2",s.title),node("p",s.intro));const levels=node("div",undefined,"controls level");for(let i=0;i<DATA[mode].length;i++)button(levels,(i+1)+"단계",()=>start(mode,i),{pressed:i===level});game.append(levels);if(mode==="food")food(s);if(mode==="route")route(s);if(mode==="detect")detect(s);if(mode==="bridge")bridge(s);if(mode==="science")science(s);if(mode==="plan")plan(s);if(mode==="system")systemWorkshop(s);if(mode==="invent")invent(s);if(mode==="story")story(s);}
 function status(t){const e=node("div",t,"status");e.setAttribute("role","status");game.append(e);}
 function guide(t){const e=node("details");e.append(node("summary","부모님과 이야기해요"),node("p",t));game.append(e);}
 function complete(){const box=node("div",undefined,"controls");if(level+1<DATA[mode].length)button(box,"다음 탐험",()=>start(mode,level+1),{primary:true});button(box,"다시 해보기",()=>start(mode,level));game.append(box);}
@@ -647,6 +1085,61 @@ function plan(s){
  button(game,"준비가 끝났는지 확인하기",()=>{state.attempted=true;render()},{primary:true});
  if(state.attempted){const notes=[];if(r.cost>s.budget)notes.push("동전이 "+(r.cost-s.budget)+"개 부족해요.");if(r.weight>s.cap)notes.push("가방에 담을 수 있는 무게를 "+(r.weight-s.cap)+"칸만큼 넘었어요.");if(r.missing.length)notes.push("아직 필요한 물건이 부족해요: "+r.missing.map(k=>names[k]).join(", ")+".");status(r.ok?"필요한 물건을 모두 골랐고, 동전과 무게 조건도 지켰어요. 다른 방법으로도 준비할 수 있을까요?":notes.join(" ")+" 물건을 바꿔 다시 계획해 보세요.");if(r.ok)complete()}else status("필요한 물건을 먼저 살펴보고 동전과 가방에 더 담을 수 있는 무게를 확인해 보세요.");
  guide("같은 목표를 이루는 여러 조합을 찾아보세요. 더 싼 방법, 더 가벼운 방법 중 어떤 것이 상황에 어울리는지 이야기해 보세요.");
+}
+
+
+function systemWorkshop(s){
+ const r=s.rounds[state.round],out=systemResult(s,state.round,state.allocation);
+ game.append(node("div","상황 "+(state.round+1)+" / "+s.rounds.length,"tag"),node("p",r.event),node("p","이 모형에서는 일이 왼쪽부터 순서대로 이어져요. 각 작업은 앞에서 마친 물건만 받을 수 있어요. 도우미 한 명을 배치하면 한 곳에서 물건 한 개를 더 처리할 수 있어요.","small"));
+ game.append(node("h3","처음 들어오는 물건: "+r.supply+(s.unit==="책"?"권":"개")),node("h3","배치할 수 있는 도우미: "+(r.helpers-out.used)+"명"));
+ s.stages.forEach((name,i)=>{
+  const stage=node("div",undefined,"flow-stage");stage.append(node("h3",s.icons[i]+" "+(i+1)+". "+name),node("p","기본 처리량 "+r.capacity[i]+" · 도우미 "+state.allocation[i]+"명 · 처리할 수 있는 양 "+out.capacity[i]));
+  const c=node("div",undefined,"controls");button(c,"−",()=>{state.allocation[i]--;state.attempted=false;render()},{disabled:state.allocation[i]===0,label:name+" 도우미 한 명 빼기"});button(c,"+",()=>{state.allocation[i]++;state.attempted=false;render()},{disabled:out.used>=r.helpers,label:name+" 도우미 한 명 추가"});stage.append(c);
+  if(state.attempted)stage.append(node("div","마친 양: "+out.flow[i].done+" · 이곳에서 기다리는 양: "+out.flow[i].waiting,"status"));
+  game.append(stage);if(i<s.stages.length-1)game.append(node("div","↓","flow-arrow"));
+ });
+ button(game,"일을 시작해 보기",()=>{state.attempted=true;render()},{primary:true});
+ if(state.attempted){
+  const waiting=out.flow.map((f,i)=>f.waiting?s.stages[i]+"("+f.waiting+")":null).filter(Boolean);
+  status("마지막 작업까지 끝낸 "+s.unit+": "+out.output+(s.unit==="책"?"권":"개")+". "+(out.ok?"목표를 이루었어요!":(waiting.length?"아직 물건이 기다리는 곳: "+waiting.join(", ")+". ":"")+"도우미를 다른 곳으로 옮겨 다시 시험해 보세요."));
+  if(out.ok&&state.round===0)button(game,"상황이 바뀌었어요! 다음 도전",()=>{state.baseline={allocation:state.allocation.slice(),output:out.output};state.round=1;state.attempted=false;render()},{primary:true});
+  if(out.ok&&state.round===1){const compare=node("div",undefined,"compare-grid");compare.append(node("div","처음 상황: "+state.baseline.output+" · 도우미 "+state.baseline.allocation.join(" / ")),node("div","바뀐 상황: "+out.output+" · 도우미 "+state.allocation.join(" / ")));game.append(compare,node("p",s.question));complete();}
+ }else status(state.round===1?"처음 배치한 도우미가 그대로 있어요. 바뀐 처리량을 보고 옮겨도 좋아요.":"어느 곳에서 물건이 기다릴지 예상하고 도우미를 배치해 보세요.");
+ guide("각 작업의 처리량과 실제로 마친 양은 다를 수 있어요. 앞 작업에서 물건이 충분히 오지 않으면 뒤 작업에 여유가 생겨요. 이 모형은 한 번의 작업 흐름을 단순화한 것이며 실제 공장의 시간과 재고를 예측하지 않습니다.");
+}
+function invent(s){
+ const out=inventResult(s,state.design);
+ game.append(node("p","이 발명 놀이는 부품마다 정해진 기능과 비용으로 작동해요. 실제 물건의 안전성이나 성능을 보장하는 것은 아니에요.","small"),node("h3",state.firstDesign?"두 번째 작품 만들기":"첫 번째 작품 만들기"),node("p","필요한 기능: "+s.needs.join(" · ")),node("h3",out.cost>s.budget?"부족한 재료: "+(out.cost-s.budget)+"개":"남은 재료: "+(s.budget-out.cost)+"개"));
+ s.parts.forEach((part,i)=>{const box=node("div",undefined,"clue");button(box,part[1]+" "+part[0],()=>{state.design=state.design.includes(i)?state.design.filter(k=>k!==i):[...state.design,i];state.attempted=false;render()},{pressed:state.design.includes(i)});box.append(node("div","재료 "+part[2]+"개 · "+(part[3].length?part[3].map(k=>s.needs[k]).join(", "):"꾸미기")));game.append(box)});
+ const preview=node("div",undefined,"workshop-note");preview.append(node("h3","내가 고른 부품"),node("p",state.design.length?state.design.map(i=>s.parts[i][1]+" "+s.parts[i][0]).join(" + "):"아직 고른 부품이 없어요."));game.append(preview);
+ button(game,"내 작품 시험하기",()=>{state.attempted=true;render()},{primary:true});
+ if(state.attempted){
+  if(!out.ok){let messages=[];if(out.missing.length)messages.push("아직 부족한 기능: "+out.missing.join(", ")+".");if(out.cost>s.budget)messages.push("재료가 "+(out.cost-s.budget)+"개 부족해요.");status(messages.join(" ")+" 부품을 바꾸어 다시 만들어 보세요.");}
+  else if(!state.firstDesign){status("필요한 기능을 모두 갖췄어요! 이번에는 다른 부품으로도 만들어 볼까요?");button(game,"다른 작품 만들기",()=>{state.firstDesign=state.design.slice();state.attempted=false;render()},{primary:true});}
+  else if(!differentDesign(s,state.firstDesign,state.design)){status("처음 작품과 기능을 만드는 부품이 같아요. 꾸미기만 바꾸지 말고, 다른 기능 부품을 사용해 보세요.");}
+  else{const first=inventResult(s,state.firstDesign);const compare=node("div",undefined,"compare-grid");compare.append(node("div","첫 번째 작품 · 재료 "+first.cost+"개: "+state.firstDesign.map(i=>s.parts[i][0]).join(", ")),node("div","두 번째 작품 · 재료 "+out.cost+"개: "+state.design.map(i=>s.parts[i][0]).join(", ")));game.append(compare);status("다른 방법으로 두 작품을 만들었어요! "+s.question);complete();}
+ }else status(state.firstDesign?"처음 작품을 바탕으로 부품을 바꾸어 보세요.":"어떤 부품이 필요한 기능을 만들어 줄지 생각해 보세요.");
+ guide("완성된 두 작품 중 어느 것이 더 좋은지는 상황에 따라 달라질 수 있어요. 아이가 새로운 부품을 상상하거나 종이에 그림을 그려 설명하도록 격려해 주세요. 꾸미기 부품은 기능을 바꾸지 않으므로 두 작품의 기능 부품이 달라야 합니다.");
+}
+function story(s){
+ game.append(node("h3","1. 두 친구의 마음 들어 보기"));
+ s.people.forEach((person,i)=>{const box=node("div",undefined,"clue");button(box,person[1]+" "+person[0]+"의 이야기 듣기",()=>{if(!state.seen.includes(i))state.seen.push(i);render()},{pressed:state.seen.includes(i)});if(state.seen.includes(i))box.append(node("p",person[2]));game.append(box)});
+ if(state.seen.length!==s.people.length){status("두 친구의 이야기를 모두 들어 보세요.");return;}
+ game.append(node("h3","2. 다른 방법을 비교해 보기"),node("p","방법마다 어떤 일이 생길지 살펴보세요. 두 가지 이상을 비교한 뒤 마음에 드는 방법을 정해 보세요."));
+ s.actions.forEach((a,i)=>{const box=node("div",undefined,"clue");button(box,a[0],()=>{if(!state.tried.includes(i))state.tried.push(i);render()},{pressed:state.tried.includes(i)});if(state.tried.includes(i))box.append(node("p",a[1]));game.append(box)});
+ if(state.tried.length<2){status("다른 방법도 하나 더 살펴보세요.");return;}
+ game.append(node("h3","3. 내가 중요하게 생각하는 것"),node("p","무엇을 가장 중요하게 생각하나요?"));
+ s.priorities.forEach((p,i)=>button(game,p,()=>{state.priority=i;state.attempted=false;render()},{pressed:state.priority===i}).classList.add("choice"));
+ game.append(node("h3","4. 내 방법 정하기"));
+ state.tried.slice().sort((a,b)=>a-b).forEach(i=>button(game,s.actions[i][0],()=>{state.choice=i;state.attempted=false;render()},{pressed:state.choice===i}).classList.add("choice"));
+ game.append(node("p","왜 이 방법을 골랐나요? 다른 방법이 떠오르면 함께 적어도 좋아요. 이름이나 개인정보는 적지 않아도 돼요."));
+ const note=node("textarea");note.value=state.reason;note.maxLength=500;note.setAttribute("aria-label","내가 고른 방법의 이유");note.placeholder="예: 두 친구가 모두 놀 수 있었으면 좋겠어요.";
+ const reasonBox=node("div",undefined,"workshop-note");reasonBox.append(note);game.append(reasonBox);
+ const finish=button(reasonBox,"내 생각 정리하기",()=>{state.attempted=true;render()},{primary:true,disabled:!storyResult(s,state.seen,state.tried,state.choice,state.priority,state.reason).ready});
+ note.addEventListener("input",()=>{state.reason=note.value.slice(0,500);finish.disabled=!storyResult(s,state.seen,state.tried,state.choice,state.priority,state.reason).ready;if(state.attempted){state.attempted=false;const old=game.querySelector?.("[data-story-result]");if(old)old.remove();}});
+ if(state.attempted&&storyResult(s,state.seen,state.tried,state.choice,state.priority,state.reason).ok){status("두 친구의 마음을 듣고 여러 방법을 비교했어요. 네가 중요하게 생각한 이유도 정리했네요. "+s.question);note.disabled=true;complete();}
+ else status("정해진 정답은 없어요. 다른 친구의 마음도 생각하며 네 의견을 정리해 보세요.");
+ guide("아이의 선택을 정답이나 오답으로 평가하지 마세요. 그 방법이 누구에게 도움이 되고 어떤 어려움이 남는지 질문해 주세요. 아이가 직접 입력하기 어려우면 말로 설명하고 보호자가 대신 적어도 됩니다. 이 내용은 서버나 기기에 저장되지 않습니다.");
 }
 
 start("food",0);

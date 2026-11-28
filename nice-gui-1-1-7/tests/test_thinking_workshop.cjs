@@ -3,8 +3,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 function verify(html){
  const scripts=[...html.matchAll(/<script(?: id="rules")?>([\s\S]*?)<\/script>/g)].map(x=>x[1]);
- const rules=new Function(scripts[0]+"\nreturn {DATA,foodResult,runRoute,detectiveResult,bridgeResult,scienceResult,planResult};")();
- const {DATA,foodResult,runRoute,detectiveResult,bridgeResult,scienceResult,planResult}=rules;
+ const rules=new Function(scripts[0]+"\nreturn {DATA,foodResult,runRoute,detectiveResult,bridgeResult,scienceResult,planResult,systemResult,inventResult,differentDesign,storyResult};")();
+ const {DATA,foodResult,runRoute,detectiveResult,bridgeResult,scienceResult,planResult,systemResult,inventResult,differentDesign,storyResult}=rules;
  let checks=0, sessions=0;
  function assert(x,m){if(!x)throw Error(m);checks++;}
  class El{
@@ -48,7 +48,50 @@ function verify(html){
   const s=DATA.plan[i];let solution;for(let a=0;a<4;a++)for(let b=0;b<4;b++)for(let c=0;c<4;c++)for(let d=0;d<4;d++)if(planResult(s,[a,b,c,d]).ok)solution=[a,b,c,d];assert(solution,s.title);assert(!planResult(s,[0,0,0,0]).ok,"empty plan");assert(!planResult(s,[20,20,20,20]).ok,"over budget");
   ui.start("plan",i);press("준비가 끝났는지 확인하기");assert(!done(),"empty plan completed");solution.forEach((count,k)=>{for(let j=0;j<count;j++)pressAria(s.items[k][0]+" 하나 담기");});press("준비가 끝났는지 확인하기");assert(done(),s.title+" UI");sessions++;
  }
- assert(sessions===18,"expected sessions");assert(!/\b(fetch|XMLHttpRequest|localStorage|sessionStorage)\s*[.(]/.test(scripts.join("\n")),"external communication or persistence");return {checks,sessions};
+
+ for(let i=0;i<DATA.system.length;i++){
+  const s=DATA.system[i];const solutions=[];
+  for(let round=0;round<s.rounds.length;round++){
+   const r=s.rounds[round],valid=[];
+   for(let a=0;a<=r.helpers;a++)for(let b=0;b<=r.helpers;b++)for(let c=0;c<=r.helpers;c++){
+    const alloc=[a,b,c],out=systemResult(s,round,alloc);
+    if(out.ok)valid.push(alloc);
+    if(out.valid){if(out.flow.reduce((n,f)=>n+f.waiting,0)+out.output!==r.supply)throw Error("flow not conserved");}
+   }
+   assert(valid.length>0,s.title);assert(!systemResult(s,round,[0,0,0]).ok,"empty allocation");
+   assert(!systemResult(s,round,[r.helpers,r.helpers,r.helpers]).ok,"excess helpers");
+   solutions.push(valid);
+  }
+  const first=solutions[0].find(a=>!systemResult(s,1,a).ok);assert(first,"change should require revised allocation");
+  ui.start("system",i);press("일을 시작해 보기");assert(!done(),"baseline incorrectly completed");
+  first.forEach((n,k)=>{for(let j=0;j<n;j++)pressAria(s.stages[k]+" 도우미 한 명 추가")});press("일을 시작해 보기");press("상황이 바뀌었어요! 다음 도전");
+  assert(ui.getState().allocation.join(",")===first.join(","),"allocation lost on change");press("일을 시작해 보기");assert(!done(),"disruption bypassed");
+  first.forEach((n,k)=>{for(let j=0;j<n;j++)pressAria(s.stages[k]+" 도우미 한 명 빼기")});
+  solutions[1][0].forEach((n,k)=>{for(let j=0;j<n;j++)pressAria(s.stages[k]+" 도우미 한 명 추가")});press("일을 시작해 보기");assert(done(),s.title+" UI");sessions++;
+ }
+ for(let i=0;i<DATA.invent.length;i++){
+  const s=DATA.invent[i],valid=[];
+  for(let mask=0;mask<1<<s.parts.length;mask++){const a=s.parts.map((_,k)=>k).filter(k=>mask&(1<<k));if(inventResult(s,a).ok)valid.push(a);}
+  const first=valid.find(a=>valid.some(b=>differentDesign(s,a,b))),second=valid.find(b=>differentDesign(s,first,b));
+  assert(first&&second,s.title);assert(!inventResult(s,[]).ok,"empty invention");assert(!inventResult(s,[0,0]).ok,"duplicate parts");assert(!differentDesign(s,first,first),"same prototype");const deco=s.parts.findIndex(p=>!p[3].length);assert(!differentDesign(s,first,first.includes(deco)?first.filter(k=>k!==deco):[...first,deco]),"decoration only");
+  ui.start("invent",i);press("내 작품 시험하기");assert(!done(),"empty invention completed");
+  first.forEach(k=>press(s.parts[k][1]+" "+s.parts[k][0]));press("내 작품 시험하기");press("다른 작품 만들기");press("내 작품 시험하기");assert(!done(),"same prototype completed");
+  first.filter(k=>!second.includes(k)).forEach(k=>press(s.parts[k][1]+" "+s.parts[k][0]));second.filter(k=>!first.includes(k)).forEach(k=>press(s.parts[k][1]+" "+s.parts[k][0]));press("내 작품 시험하기");assert(done(),s.title+" UI");sessions++;
+ }
+ for(let i=0;i<DATA.story.length;i++){
+  const s=DATA.story[i];assert(!storyResult(s,[0],[0,1],1,0,"이유").ok,"missing perspective");assert(!storyResult(s,[0,1],[0],0,0,"이유").ok,"one alternative");assert(!storyResult(s,[0,1],[0,1],1,0,"   ").ok,"empty reflection");
+  s.actions.forEach((_,k)=>assert(storyResult(s,[0,1],[0,1,2],k,0,"이유").ok,"must not grade moral choice"));
+  ui.start("story",i);assert(!all(game,"button").some(x=>x.textContent==="내 생각 정리하기"),"early completion");
+  s.people.forEach(p=>press(p[1]+" "+p[0]+"의 이야기 듣기"));press(s.actions[0][0]);assert(!all(game,"button").some(x=>x.textContent==="내 생각 정리하기"),"one approach bypassed");press(s.actions[1][0]);press(s.priorities[0]);
+  // The same action label occurs twice: one comparison control and one final choice.
+  const select=all(game,"button").filter(x=>x.textContent===s.actions[1][0]).at(-1);select.click();
+  const finish=()=>all(game,"button").find(x=>x.textContent==="내 생각 정리하기");assert(finish().disabled,"reflection required");
+  if(i===1){const field=all(game,"textarea")[0];field.value="두 친구가 모두 참여했으면 좋겠어요.";field.events.input();assert(!finish().disabled,"typed reflection");}
+  else{press("가족에게 말로 설명했어요");assert(!finish().disabled,"spoken reflection");}
+  press("내 생각 정리하기");assert(done(),s.title+" UI");sessions++;
+  ui.start("story",i);assert(ui.getState().reason===""&&!ui.getState().spoken,"reflection retained on restart");
+ }
+ assert(sessions===27,"expected sessions");assert(!/\b(fetch|XMLHttpRequest|localStorage|sessionStorage)\s*[.(]/.test(scripts.join("\n")),"external communication or persistence");return {checks,sessions};
 }
 const html = fs.readFileSync(path.join(__dirname,"../portal_app/static_games/eduni_thinking_lab_v2.html"),"utf8");
 console.log(verify(html));

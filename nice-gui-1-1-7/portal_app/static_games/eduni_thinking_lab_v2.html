@@ -29,7 +29,7 @@ const DATA={
     },
     {
       "title": "숲속 간식 바구니",
-      "intro": "다람쥐, 여우, 고슴도치가 간식을 기다려요. 세 친구가 필요한 사과를 받고 나면 남은 사과는 바구니에 두세요.",
+      "intro": "다람쥐, 여우, 고슴도치가 간식을 기다려요. 세 친구에게 적어도 필요한 수만큼 사과를 주고, 남는 사과는 바구니에 두세요.",
       "names": [
         "다람쥐",
         "여우",
@@ -50,7 +50,7 @@ const DATA={
     },
     {
       "title": "늦게 오는 친구",
-      "intro": "세 친구에게 필요한 만큼 나눠 주되, 늦게 오는 친구를 위해 사과 2개 이상을 남겨 두어요.",
+      "intro": "세 친구에게 적어도 필요한 수만큼 사과를 나눠 주세요. 늦게 오는 친구를 위해 사과 2개 이상을 남겨 두세요.",
       "names": [
         "토끼",
         "곰",
@@ -391,7 +391,8 @@ const DATA={
       ],
       "unit": "버틴 구슬 수",
       "hint": "종이의 크기와 구슬의 크기가 같은 두 실험을 찾아보세요.",
-      "reflection": "실험 기록에서는 배의 모양에 따라 버틴 구슬 수가 달랐어요. 실제 종이배도 같은 결과가 나올지 가족과 시험해 보세요."
+      "reflection": "이 가상 실험에서는 배의 모양에 따라 버틴 구슬 수가 달랐어요. 가족과 실제 종이배를 만들어 비교해 볼까요? 작은 구슬 대신 같은 크기의 큰 블록을 사용해 보세요.",
+      "question": "어느 종이배가 구슬을 더 많이 실을 수 있을까요?"
     },
     {
       "title": "얼음이 녹는 시간",
@@ -430,11 +431,12 @@ const DATA={
       ],
       "unit": "녹는 데 걸린 시간(분)",
       "hint": "얼음의 크기와 그릇이 같아야 장소에 따른 차이를 비교하기 쉬워요.",
-      "reflection": "이 기록에서는 따뜻한 방의 얼음이 더 빨리 녹았어요. 실제 결과는 온도와 그릇 등 여러 조건에 따라 달라질 수 있어요."
+      "reflection": "이 기록에서는 따뜻한 방의 얼음이 더 빨리 녹았어요. 실제 결과는 온도와 그릇 등 여러 조건에 따라 달라질 수 있어요.",
+      "question": "어느 얼음이 녹는 데 더 오래 걸릴까요?"
     },
     {
       "title": "씨앗이 자라는 데 필요한 물",
-      "intro": "같은 종류의 씨앗을 일주일 동안 키웠어요. 가상 관찰 기록에서 하루에 준 물의 양만 다른 두 실험을 찾아 비교해 보세요.",
+      "intro": "같은 종류의 씨앗 여러 개를 일주일 동안 키웠어요. 가상 관찰 기록에서 하루에 준 물의 양만 다른 두 실험을 찾아 비교해 보세요.",
       "variable": "하루 물의 양",
       "fields": [
         "하루 물의 양",
@@ -469,7 +471,8 @@ const DATA={
       ],
       "unit": "일주일 뒤 평균 키(cm)",
       "hint": "빛과 흙은 같고 물의 양만 다른 기록을 찾아보세요.",
-      "reflection": "이 기록에서는 물의 양이 다른 두 실험의 평균 키가 달랐어요. 모든 식물에 물을 많이 주는 것이 좋다는 뜻은 아니에요."
+      "reflection": "이 기록에서는 물의 양이 다른 두 실험의 평균 키가 달랐어요. 모든 식물에 물을 많이 주는 것이 좋다는 뜻은 아니에요.",
+      "question": "어느 실험에서 싹의 평균 키가 더 클까요?"
     }
   ],
   "plan": [
@@ -615,7 +618,7 @@ function render(){menu.replaceChildren();for(const key of Object.keys(labels))bu
 function status(t){const e=node("div",t,"status");e.setAttribute("role","status");game.append(e);}
 function guide(t){const e=node("details");e.append(node("summary","부모님과 이야기해요"),node("p",t));game.append(e);}
 function complete(){const box=node("div",undefined,"controls");if(level+1<DATA[mode].length)button(box,"다음 탐험",()=>start(mode,level+1),{primary:true});button(box,"다시 해보기",()=>start(mode,level));game.append(box);}
-function food(s){const r=foodResult(s,state.a);game.append(node("h3","🧺 바구니에 남은 사과: "+r.left+"개"),node("p",s.reserve?"친구들에게 나눠 주고 "+s.reserve+"개 이상 남기는 것이 목표예요.":"모든 친구에게 필요한 만큼 나눠 주는 것이 목표예요.","small"));s.names.forEach((name,i)=>{const row=node("div",undefined,"animal"),info=node("div");info.append(node("strong",s.emoji[i]+" "+name),node("div","필요한 사과 "+s.need[i]+"개 · 받은 사과 "+state.a[i]+"개","small"),node("div","🍎".repeat(state.a[i])||"아직 받은 사과가 없어요.","apples"));const buttons=node("div",undefined,"controls");button(buttons,"−",()=>{state.a[i]--;state.attempted=false;render()},{disabled:state.a[i]===0,label:name+"에게서 사과 한 개 되돌리기"});button(buttons,"+",()=>{state.a[i]++;state.attempted=false;render()},{disabled:r.left===0,label:name+"에게 사과 한 개 주기"});row.append(info,buttons);game.append(row);});button(game,"나눈 결과 확인하기",()=>{state.attempted=true;render()},{primary:true});if(state.attempted){const shortage=s.names.filter((n,i)=>r.short[i]>0).map(n=>n);status(r.ok?(s.reserve?"모든 친구가 필요한 만큼 받았고, 늦게 오는 친구 몫도 남겼어요!":"모든 친구가 필요한 만큼 받았어요. 잘 나눠 주었네요!"):shortage.length?"아직 사과가 부족한 친구가 있어요: "+shortage.join(", ")+". 남은 사과를 주거나, 필요한 수보다 많이 받은 친구에게서 사과를 옮겨 보세요.":"친구들은 충분히 받았지만 늦게 오는 친구 몫이 부족해요. 바구니에 조금 돌려놓아 보세요.");if(r.ok)complete();}else status("친구마다 필요한 수를 살펴보고 사과를 옮겨 보세요.");guide("똑같이 나누는 것과 필요한 만큼 나누는 것은 언제 다를까요? 아이가 먼저 이유를 설명하게 해 주세요.")}
+function food(s){const r=foodResult(s,state.a);game.append(node("h3","🧺 바구니에 남은 사과: "+r.left+"개"),node("p",s.reserve?"친구들에게 필요한 수 이상의 사과를 주고 "+s.reserve+"개 이상 남기는 것이 목표예요.":"모든 친구에게 필요한 수 이상의 사과를 주는 것이 목표예요.","small"));s.names.forEach((name,i)=>{const row=node("div",undefined,"animal"),info=node("div");info.append(node("strong",s.emoji[i]+" "+name),node("div","필요한 사과 "+s.need[i]+"개 · 받은 사과 "+state.a[i]+"개","small"),node("div","🍎".repeat(state.a[i])||"아직 받은 사과가 없어요.","apples"));const buttons=node("div",undefined,"controls");button(buttons,"−",()=>{state.a[i]--;state.attempted=false;render()},{disabled:state.a[i]===0,label:name+"에게서 사과 한 개 되돌리기"});button(buttons,"+",()=>{state.a[i]++;state.attempted=false;render()},{disabled:r.left===0,label:name+"에게 사과 한 개 주기"});row.append(info,buttons);game.append(row);});button(game,"나눈 결과 확인하기",()=>{state.attempted=true;render()},{primary:true});if(state.attempted){const shortage=s.names.filter((n,i)=>r.short[i]>0).map(n=>n);status(r.ok?(s.reserve?"모든 친구가 필요한 만큼 받았고, 늦게 오는 친구 몫도 남겼어요!":"모든 친구가 필요한 만큼 받았어요. 잘 나눠 주었네요!"):shortage.length?"아직 사과가 부족한 친구가 있어요: "+shortage.join(", ")+". 남은 사과를 주거나, 필요한 수보다 많이 받은 친구에게서 사과를 옮겨 보세요.":"친구들은 충분히 받았지만 늦게 오는 친구 몫이 부족해요. 바구니에 사과를 조금 돌려놓아 보세요.");if(r.ok)complete();}else status("친구마다 필요한 수를 살펴보고 사과를 옮겨 보세요.");guide("똑같이 나누는 것과 필요한 만큼 나누는 것은 언제 다를까요? 아이가 먼저 이유를 설명하게 해 주세요.")}
 function route(s){const grid=node("div",undefined,"grid");grid.style.gridTemplateColumns="repeat("+s.w+",1fr)";grid.setAttribute("role","img");grid.setAttribute("aria-label","로봇 지도. 로봇은 출발점, 꽃은 도착점, 돌은 지나갈 수 없는 칸입니다.");const same=(a,x,y)=>a[0]===x&&a[1]===y;for(let y=0;y<s.h;y++)for(let x=0;x<s.w;x++){const wall=s.walls.some(a=>same(a,x,y)),trail=state.result?.path.some(a=>same(a,x,y)),last=state.result?.path.at(-1)||s.start;const e=node("div",wall?"🪨":same(last,x,y)?"🤖":same(s.goal,x,y)?"🌼":trail?"•":"","cell"+(wall?" wall":trail?" trail":""));grid.append(e)}game.append(grid,node("p","로봇은 화살표 한 개마다 한 칸 움직여요. 돌이나 지도 밖으로 갈 수 없어요."),node("h3","이동 명령: "+state.cmds.length+" / "+s.limit+"개"),node("div",state.cmds.map(d=>dirs[d]).join(" ")||"화살표를 눌러 길을 만들어 보세요.","seq"));const c=node("div",undefined,"controls");for(const d of ["U","L","D","R"])button(c,dirs[d],()=>{state.cmds.push(d);state.result=null;render()},{disabled:state.cmds.length>=s.limit,label:dirNames[d]+(d==="L"||d==="R"?"으로":"로")+" 한 칸 추가"});button(c,"마지막 지우기",()=>{state.cmds.pop();state.result=null;render()},{disabled:!state.cmds.length});button(c,"모두 지우기",()=>{state.cmds=[];state.result=null;render()},{disabled:!state.cmds.length});game.append(c);button(game,"로봇 출발!",()=>{state.result=runRoute(s,state.cmds);render()},{primary:true,disabled:!state.cmds.length});if(state.result){let r=state.result;status(r.ok?"꽃밭에 도착했어요! 네가 만든 길을 따라 로봇이 움직였어요.":r.reason==="wall"?(r.at+1)+"번째 명령에서 길이 막혔어요. 그 앞의 위치를 보고 명령을 고쳐 보세요.":"로봇이 아직 꽃밭에 도착하지 못했어요. 이동할 수 있는 횟수를 살펴보고 길을 다시 만들어 보세요.");if(r.ok)complete()}else status("출발하기 전에 로봇이 어디로 움직일지 예상해 보세요.");guide("어느 명령에서 로봇이 멈췄나요? 바로 답을 알려주기보다 그 칸에서 가능한 방향을 함께 살펴보세요.")}
 function detect(s){game.append(node("h3","1. 단서 조사하기"));s.clues.forEach((c,i)=>{const box=node("div",undefined,"clue"),seen=state.seen.includes(i);button(box,seen?"✓ "+c[0]:c[0]+" 살펴보기",()=>{if(!seen)state.seen.push(i);state.attempted=false;render()},{pressed:seen});if(seen)box.append(node("p",c[1]));game.append(box)});game.append(node("h3","2. 단서를 보고 가장 알맞은 설명 고르기"));s.ideas.forEach((t,i)=>button(game,t,()=>{state.idea=i;state.attempted=false;render()},{pressed:state.idea===i} ).classList.add("choice"));game.append(node("h3","3. 그 설명을 뒷받침하는 단서 두 개 고르기"));state.seen.slice().sort((a,b)=>a-b).forEach(i=>{const l=node("label"),cb=node("input");cb.type="checkbox";cb.checked=state.proof.includes(i);cb.disabled=!cb.checked&&state.proof.length>=2;cb.addEventListener("change",()=>{state.proof=cb.checked?[...state.proof,i]:state.proof.filter(x=>x!==i);state.attempted=false;render()});l.append(cb,document.createTextNode(s.clues[i][0]+" — "+s.clues[i][1]));game.append(l)});const r=detectiveResult(s,state.idea,state.seen,state.proof);button(game,"내 생각 확인하기",()=>{state.attempted=true;render()},{primary:true,disabled:!r.ready});if(state.attempted){status(r.ok?s.why:"아직 설명과 단서가 충분히 연결되지 않았어요. "+s.hint);if(r.ok)complete()}else status("단서 네 개를 모두 살펴본 뒤 알맞은 설명 하나와 그 이유가 되는 단서 두 개를 골라 보세요.");guide("확인한 사실과 아직 모르는 일을 구분해 보세요. 아이에게 어떤 단서를 보고 그렇게 생각했는지 물어보세요.")}
 
@@ -632,7 +635,7 @@ function bridge(s){
 function science(s){
  game.append(node("h3","1. "+s.variable+"만 다른 두 기록 고르기"));
  s.trials.forEach((t,i)=>{const box=node("div",undefined,"clue");button(box,"실험 "+(i+1),()=>{state.selected=state.selected.includes(i)?state.selected.filter(x=>x!==i):[...state.selected,i];state.prediction=null;state.attempted=false;render()},{pressed:state.selected.includes(i),disabled:!state.selected.includes(i)&&state.selected.length>=2});s.fields.forEach((f,j)=>box.append(node("div",f+": "+t[j])));game.append(box)});
- if(state.selected.length===2){const a=state.selected[0],b=state.selected[1];game.append(node("h3","2. 결과를 예상해 보기"),node("p","어느 실험에서 다음 값이 더 클까요? "+s.unit));const c=node("div",undefined,"controls");["실험 "+(a+1),"실험 "+(b+1),"두 실험이 같을 것 같아요"].forEach((t,i)=>button(c,t,()=>{state.prediction=i;state.attempted=false;render()},{pressed:state.prediction===i}));game.append(c);}
+ if(state.selected.length===2){const a=state.selected[0],b=state.selected[1];game.append(node("h3","2. 결과를 예상해 보기"),node("p",s.question));const c=node("div",undefined,"controls");["실험 "+(a+1),"실험 "+(b+1),"두 실험이 같을 것 같아요"].forEach((t,i)=>button(c,t,()=>{state.prediction=i;state.attempted=false;render()},{pressed:state.prediction===i}));game.append(c);}
  const r=scienceResult(s,state.selected,state.prediction);button(game,"관찰 기록 열기",()=>{state.attempted=true;render()},{primary:true,disabled:!r.ready});
  if(state.attempted){if(!r.fair){status("두 실험에서 다른 조건이 더 있어요. "+s.hint)}else{const a=state.selected[0],b=state.selected[1];const result=node("div",undefined,"clue");result.append(node("h3",s.unit));[a,b].forEach(i=>{result.append(node("div","실험 "+(i+1)+": "+s.trials[i][3]));const bar=node("div",undefined,"result-bar");bar.style.width=(100*s.trials[i][3]/Math.max(s.trials[a][3],s.trials[b][3]))+"%";result.append(bar)});game.append(result);status((r.matched?"예상한 결과와 같아요. ":"예상과 달랐네요. 새로운 사실을 발견했어요! ")+s.reflection);complete()}}else status("비교하려는 조건은 다르게, 나머지 조건은 같게 골라 보세요.");
  guide("관찰 기록은 학습을 위해 만든 가상 자료입니다. 아이가 결과를 예상한 이유를 말하게 하고, 예상과 다르더라도 기록을 근거로 생각을 바꾸는 과정을 칭찬해 주세요.");

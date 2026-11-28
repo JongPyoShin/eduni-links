@@ -430,11 +430,11 @@ def thinking_home(category: str = "") -> None:
         ui.label("오늘은 어떤 탐험을 해볼까요?").classes("text-h6")
         with ui.card().classes("w-full bg-teal-1 gap-2"):
             ui.label("직접 해보는 생각 탐험 체험실").classes("text-h6 text-weight-bold text-teal-10")
-            ui.label("사과 나누기, 로봇 길 만들기, 단서 찾기, 다리 설계, 실험 비교, 준비물 계획까지. 직접 조작하고 여러 방법으로 해결해 보세요.").classes("text-body1")
+            ui.label("물건을 나누고, 길을 만들고, 단서를 찾아보세요. 작업 흐름을 바꾸거나 나만의 발명품을 만들고, 친구들의 의견을 비교할 수도 있어요.").classes("text-body1")
             ui.link("체험실 시작하기 →", WORKSHOP_URL).classes(
                 "block w-full bg-teal-8 text-white text-center p-3 rounded-xl no-underline text-weight-bold"
             )
-            ui.label("6가지 탐험 · 18개 미션 · 체험 기록은 저장하지 않아요.").classes("text-caption text-teal-9")
+            ui.label("9가지 탐험 · 27개 미션 · 체험 기록은 저장하지 않아요.").classes("text-caption text-teal-9")
         if resume:
             ui.label("이어서 탐험하기").classes("text-h6 text-teal-9")
             mission_tile(missions[resume], states[resume])

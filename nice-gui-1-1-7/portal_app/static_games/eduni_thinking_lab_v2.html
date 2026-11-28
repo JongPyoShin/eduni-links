@@ -1091,7 +1091,7 @@ function plan(s){
 
 function systemWorkshop(s){
  const r=s.rounds[state.round],out=systemResult(s,state.round,state.allocation);
- game.append(node("div","상황 "+(state.round+1)+" / "+s.rounds.length,"tag"),node("p",r.event),node("p","이 모형에서는 일은 위에서 아래로 순서대로 이어져요. 각 작업은 앞에서 마친 물건만 받을 수 있어요. 도우미 한 명을 배치하면 그곳에서 "+(s.unit==="책"?"책 한 권을":"물건 한 개를")+" 더 처리할 수 있어요.","small"));
+ game.append(node("div","상황 "+(state.round+1)+" / "+s.rounds.length,"tag"),node("p",r.event),node("p","이 모형에서는 일이 위에서 아래로 순서대로 이어져요. 각 작업은 앞에서 마친 물건만 받을 수 있어요. 도우미 한 명을 배치하면 그곳에서 "+(s.unit==="책"?"책 한 권을":"물건 한 개를")+" 더 처리할 수 있어요.","small"));
  game.append(node("h3","처음 들어오는 "+s.unit+": "+r.supply+(s.unit==="책"?"권":"개")),node("h3","배치할 수 있는 도우미: "+(r.helpers-out.used)+"명"));
  s.stages.forEach((name,i)=>{
   const stage=node("div",undefined,"flow-stage");stage.append(node("h3",s.icons[i]+" "+(i+1)+". "+name),node("p","기본 처리량 "+r.capacity[i]+" · 도우미 "+state.allocation[i]+"명 · 처리할 수 있는 양 "+out.capacity[i]));

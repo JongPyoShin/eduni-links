@@ -6,7 +6,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from nicegui import ui
+from fastapi.responses import HTMLResponse
+from nicegui import app, ui
 
 from .thinking_parent import render_parent_guide
 
@@ -393,6 +394,18 @@ def mission_tile(mission: dict[str, Any], state: dict[str, Any], prefix: str = "
     ).style("white-space: pre-line; overflow-wrap: anywhere; min-height: 88px; line-height: 1.5;")
 
 
+WORKSHOP_URL = "/portal/thinking-workshop"
+WORKSHOP_FILE = Path(__file__).resolve().parent / "static_games" / "eduni_thinking_lab_v2.html"
+
+
+@app.get(WORKSHOP_URL, response_class=HTMLResponse)
+def thinking_workshop() -> HTMLResponse:
+    """Serve the self-contained workshop without changing saved mission progress."""
+    if not WORKSHOP_FILE.is_file():
+        return HTMLResponse("체험실 파일을 찾을 수 없어요.", status_code=404)
+    return HTMLResponse(WORKSHOP_FILE.read_text(encoding="utf-8"))
+
+
 @ui.page("/portal/thinking")
 def thinking_home(category: str = "") -> None:
     missions = load_thinking_missions()
@@ -414,7 +427,14 @@ def thinking_home(category: str = "") -> None:
                     mission_tile(mission, states[mission["id"]])
             return
         ui.label("🔎 생각탐험 연구소").classes("text-h4 text-weight-bold")
-        ui.label("오늘은 어떤 탐험을 해볼까?").classes("text-h6")
+        ui.label("오늘은 어떤 탐험을 해볼까요?").classes("text-h6")
+        with ui.card().classes("w-full bg-teal-1 gap-2"):
+            ui.label("직접 해보는 생각 탐험 체험실").classes("text-h6 text-weight-bold text-teal-10")
+            ui.label("사과 나누기, 로봇 길 만들기, 단서 찾기, 다리 설계, 실험 비교, 준비물 계획까지. 직접 조작하고 여러 방법으로 해결해 보세요.").classes("text-body1")
+            ui.link("체험실 시작하기 →", WORKSHOP_URL).classes(
+                "block w-full bg-teal-8 text-white text-center p-3 rounded-xl no-underline text-weight-bold"
+            )
+            ui.label("6가지 탐험 · 18개 미션 · 체험 기록은 저장하지 않아요.").classes("text-caption text-teal-9")
         if resume:
             ui.label("이어서 탐험하기").classes("text-h6 text-teal-9")
             mission_tile(missions[resume], states[resume])
